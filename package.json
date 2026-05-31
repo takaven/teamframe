@@ -23,6 +23,7 @@
     "verify:parity": "node scripts/verify-parity.mjs",
     "verify:rls": "node scripts/verify-rls.mjs",
     "seed:admin": "node scripts/seed-admin.mjs",
+    "seed:demo": "node scripts/seed-demo.mjs",
     "storage:setup": "node scripts/setup-storage.mjs",
     "smoke:core-loop": "node scripts/smoke-core-loop.mjs",
     "guard:instrumentation": "node scripts/guard-instrumentation.mjs",

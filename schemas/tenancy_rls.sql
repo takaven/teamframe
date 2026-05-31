@@ -61,6 +61,8 @@ alter table compensation enable row level security;
 alter table documents enable row level security;
 alter table leaves enable row level security;
 alter table audit_logs enable row level security;
+alter table risk_signals enable row level security;
+alter table action_items enable row level security;
 alter table analytics_events enable row level security;
 alter table policies enable row level security;
 alter table procedures enable row level security;
@@ -285,6 +287,46 @@ using (
 drop policy if exists audit_logs_insert_admin on audit_logs;
 create policy audit_logs_insert_admin on audit_logs
 for insert
+with check (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+);
+
+drop policy if exists risk_signals_select_admin on risk_signals;
+create policy risk_signals_select_admin on risk_signals
+for select
+using (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+);
+
+drop policy if exists risk_signals_write_admin on risk_signals;
+create policy risk_signals_write_admin on risk_signals
+for all
+using (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+)
+with check (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+);
+
+drop policy if exists action_items_select_admin on action_items;
+create policy action_items_select_admin on action_items
+for select
+using (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+);
+
+drop policy if exists action_items_write_admin on action_items;
+create policy action_items_write_admin on action_items
+for all
+using (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+)
 with check (
   is_current_actor_admin()
   and tenant_id = current_actor_tenant_id()

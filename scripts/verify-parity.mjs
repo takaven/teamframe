@@ -53,6 +53,8 @@ const TENANT_TABLES = [
   "documents",
   "leaves",
   "audit_logs",
+  "risk_signals",
+  "action_items",
   "analytics_events",
   "onboarding_tasks",
   "policies",

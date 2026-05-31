@@ -7,12 +7,12 @@ export default function DashboardError({
   reset: () => void;
 }) {
   return (
-    <main className="mx-auto max-w-4xl px-6 py-14">
+    <main className="mx-auto max-w-4xl px-6 py-12">
       <section className="rounded-xl border border-ink-300/70 bg-white/80 p-6">
         <p className="text-[12px] tracking-[0.14em] text-ink-500">Dashboard</p>
-        <h1 className="mt-2 text-[28px] leading-tight tracking-tight">We could not load the latest queues.</h1>
+        <h1 className="mt-2 text-[28px] leading-tight tracking-tight">We could not load your latest risk view.</h1>
         <p className="mt-3 text-[14px] text-ink-700">
-          Try again to refresh the latest approvals and onboarding items.
+          Try again to refresh urgent issues, next actions, and recent resolutions.
         </p>
         <button
           type="button"
