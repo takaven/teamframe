@@ -887,7 +887,20 @@ export async function createEmployee(actor: Actor, input: unknown): Promise<Empl
 
   const created = data as unknown as EmployeeRow;
 
-  const inviteResult = await inviteEmployeeAuthUser(created.email, tenantId);
+  // Employee row creation is authoritative; auth invite remains best-effort.
+  let inviteResult: InviteResult;
+  try {
+    inviteResult = await inviteEmployeeAuthUser(created.email, tenantId);
+  } catch (inviteErr) {
+    const inviteMessage = inviteErr instanceof Error ? inviteErr.message : String(inviteErr);
+    console.error("EMPLOYEE_INVITE_UNHANDLED", inviteMessage);
+    inviteResult = {
+      status: "failed",
+      category: "auth_api_failed",
+      message: inviteMessage,
+    };
+  }
+
   if (inviteResult.status === "linked" || inviteResult.status === "invited") {
     await setEmployeeSetupStatus(tenantId, created.id, "ready");
     await recordInviteTelemetry(tenantId, created.id, { succeeded: true });
@@ -920,11 +933,13 @@ export async function createEmployee(actor: Actor, input: unknown): Promise<Empl
     await writeAudit(actor, "employee.invite_sent", created.id, true);
   }
 
-  if (inviteResult.status === "conflict") {
-    throw new Error("EMPLOYEE_INVITE_TENANT_CONFLICT");
-  }
-  if (inviteResult.status === "failed") {
-    throw new Error(mapInviteFailureToErrorCode(inviteResult.category ?? "unknown"));
+  if (inviteResult.status === "conflict" || inviteResult.status === "failed") {
+    console.warn("EMPLOYEE_INVITE_BEST_EFFORT_DEGRADED", {
+      tenant_id: tenantId,
+      employee_id: created.id,
+      invite_status: inviteResult.status,
+      invite_failure_code: mapInviteFailureToErrorCode(inviteResult.category ?? "unknown"),
+    });
   }
 
   // Fire activation event if this is the tenant's first employee.
@@ -1181,3 +1196,4 @@ export async function generateEmployeeActivationLink(
 
   return { activationLink };
 }
+
