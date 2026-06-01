@@ -19,3 +19,8 @@ create index if not exists analytics_events_created_idx on analytics_events(crea
 create unique index if not exists analytics_events_first_unique
   on analytics_events(tenant_id, event_name)
   where event_name like 'first_%' and tenant_id is not null;
+
+-- 'activation_completed' fires at most once per tenant (not covered by the first_% pattern).
+create unique index if not exists analytics_events_activation_completed_unique
+  on analytics_events(tenant_id, event_name)
+  where event_name = 'activation_completed' and tenant_id is not null;

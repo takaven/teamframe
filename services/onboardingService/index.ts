@@ -65,6 +65,13 @@ async function writeAudit(actor: Actor, actionType: string, targetId?: string): 
   }
 }
 
+// All events queried in a single round-trip: the 5 prerequisite workflow events plus
+// activation_completed itself so we can short-circuit if it has already been inserted.
+const ACTIVATION_COMPLETED_CHECK_EVENTS = [
+  ...ACTIVATION_WORKFLOW_EVENTS,
+  "activation_completed",
+] as const;
+
 export async function maybeFireActivationCompleted(tenantId: string, userId: string): Promise<void> {
   const start = Date.now();
   const supabase = createServiceRoleClient();
@@ -72,7 +79,7 @@ export async function maybeFireActivationCompleted(tenantId: string, userId: str
     .from("analytics_events")
     .select("event_name")
     .eq("tenant_id", tenantId)
-    .in("event_name", ACTIVATION_WORKFLOW_EVENTS as unknown as string[]);
+    .in("event_name", ACTIVATION_COMPLETED_CHECK_EVENTS as unknown as string[]);
 
   if (error) {
     // Non-fatal: activation completion check failing does not break the user flow,
@@ -95,6 +102,8 @@ export async function maybeFireActivationCompleted(tenantId: string, userId: str
   }
 
   const firedNames = new Set((data ?? []).map((r: { event_name: string }) => r.event_name));
+  // Idempotency guard: if activation_completed is already in the DB, do nothing.
+  if (firedNames.has("activation_completed")) return;
   const allFired = ACTIVATION_WORKFLOW_EVENTS.every((e) => firedNames.has(e));
   if (allFired) {
     await track({
