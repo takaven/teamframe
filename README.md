@@ -12,7 +12,7 @@ This README is **the enforcement contract for TeamFrame V1**. If a feature, depe
 
 As of the latest commit on `main`, the running app provides:
 
-- **Auth** — Supabase magic-link sign-in (`/auth`, `/auth/callback`, `/auth/check-email`, `/auth/logout`).
+- **Auth** — two-tier Supabase sign-in: admins use email + password at `/admin/login`; employees use magic links at `/auth`, `/auth/callback`, `/auth/check-email`, and `/auth/logout`.
 - **Dashboard** (`/dashboard`) — real employee counts (total / active / on leave / inactive) with an honest empty state when no employees exist.
 - **Employees** (`/employees`) — admins manage the team roster.
 - **Onboarding** (`/onboarding`) — employees complete their onboarding checklist; admins assign and monitor tasks.
@@ -183,11 +183,16 @@ npm run storage:setup
 idempotent and safe to re-run. `storage:setup` creates the private `documents`
 bucket with the V1 file-type and size limits.
 
-### 5. Lock Supabase auth to magic-link-only
+### 5. Configure Supabase auth
 ```bash
 npm run auth:lock
 ```
-Without a Supabase Management API token this prints a 30-second manual checklist (3 toggles in the dashboard). With one set in `SUPABASE_ACCESS_TOKEN`, it patches the project config automatically.
+Admins sign in with email + password at `/admin/login`; employees sign in with magic links at `/auth`.
+
+In Supabase Auth:
+- Enable Email + Password sign-ins for admins.
+- Disable new user signups so random emails cannot self-register.
+- Do not add password reset, email change, OAuth, MFA, or other auth flows in V1.
 
 Also set the Supabase **Magic Link** email template to:
 
@@ -272,7 +277,7 @@ If any answer trends toward complexity, the feature is **V2**.
 
 ## Security principles
 
-- **Magic-link-only authentication.** No passwords, no OAuth providers, no MFA in V1. See [`docs/auth-rules.md`](docs/auth-rules.md).
+- **Two-tier authentication.** Admins use email + password at `/admin/login`; employees use magic links at `/auth`. No password reset, email change, OAuth providers, or MFA in V1. See [`docs/auth-rules.md`](docs/auth-rules.md).
 - **Server-side RBAC is mandatory.** Client checks are UX hints only.
 - **Two roles only**: `admin`, `employee`. See [`docs/rbac-rules.md`](docs/rbac-rules.md).
 - **Service-role key is server-only.** Importing `/lib/db/supabaseServer` from a client component is a review block.

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createServerClient } from "@/lib/db/supabaseServer";
 import { resolveIdentity } from "@/lib/rbac/roles";
 import { AuthForm } from "./AuthForm";
@@ -121,7 +122,10 @@ export default async function AuthPage({
       <AuthForm errorMessage={errorMessage} />
 
       <p className="mt-10 text-[12px] text-ink-500">
-        No passwords. No social logins. Admin-invited only.
+        Employees use magic links.{" "}
+        <Link href="/admin/login" className="font-medium text-ink-900 underline-offset-4 hover:underline">
+          Admin? Sign in here &rarr;
+        </Link>
       </p>
     </main>
   );

@@ -1,9 +1,10 @@
 "use server";
 
 /**
- * Auth server actions.
+ * Employee auth server actions.
  *
- * Magic-link only. No password flow. No OAuth.
+ * Employees use magic-link only. Admin password login lives at /admin/login.
+ * No password reset, email change, or OAuth flow is part of V1.
  * The browser never holds a Supabase admin/service-role key.
  */
 

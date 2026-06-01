@@ -2,8 +2,9 @@
 
 ## Auth model (V1 — locked)
 
-- **Authentication method**: Magic Link only (Supabase Auth, email OTP)
-- **No passwords** exist in the system
+- **Authentication method**: two-tier Supabase Auth
+  - Admins: email + password at `/admin/login`
+  - Employees: Magic Link at `/auth`
 - **No password reset flows** exist
 - **No OAuth providers** allowed (Google / GitHub / Microsoft / etc.)
 - **No MFA** in V1
@@ -15,16 +16,24 @@ User identity is always:
 ## Login flow
 
 ```
-1. User enters email on /auth
+1. Employee enters email on /auth
 2. Server action calls supabase.auth.signInWithOtp({ email })
-3. User receives a magic link email
+3. Employee receives a magic link email
 4. User clicks link → /auth/callback?token_hash=...&type=magiclink → session cookie set
 5. Server resolves the actor:
      auth.users.id (session)
      → employees.email match
      → employees.id
      → app_metadata.role  →  'admin' | 'employee'
-6. Redirect to /dashboard
+6. Redirect to role default
+```
+
+```
+1. Admin enters email + password on /admin/login
+2. Server action calls supabase.auth.signInWithPassword({ email, password })
+3. Server verifies session.user.app_metadata.role === 'admin'
+4. Non-admin sessions are signed out and denied
+5. Admin redirects to /dashboard
 ```
 
 ## Role assignment
@@ -47,7 +56,7 @@ Roles are **server-controlled** and never derived from client input.
 ## Forbidden in V1
 
 - Sign-up form / open registration
-- Password fields anywhere in the product
+- Password reset or email-change flows
 - "Continue with Google" or any OAuth provider
 - TOTP, WebAuthn, SMS, or any MFA
 - Account-deletion self-service (admins handle this server-side)
@@ -60,9 +69,9 @@ In the Supabase Dashboard (or via Management API), the following must be true:
 |---|---|
 | Email provider | enabled |
 | Magic Link | enabled |
-| **Password login** | **disabled** |
+| **Password login** | **enabled** for manually configured admins |
 | **Allow new users to sign up** | **disabled** (admin-invite only) |
-| Confirm email | enabled |
+| Confirm email | disabled for password signups |
 | OAuth providers | all disabled |
 
 `npm run auth:lock` will assert these settings and refuse to proceed if any

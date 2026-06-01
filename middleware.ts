@@ -3,9 +3,14 @@ import type { CookieOptions } from "@supabase/ssr";
 import { createServerClient } from "@supabase/ssr";
 
 const PROTECTED_PREFIXES = ["/dashboard", "/employees", "/leaves", "/onboarding", "/me"] as const;
+const PUBLIC_PATHS = ["/admin/login"] as const;
 
 function isProtectedPath(pathname: string): boolean {
   return PROTECTED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
+
+function isPublicPath(pathname: string): boolean {
+  return PUBLIC_PATHS.some((path) => pathname === path);
 }
 
 function redirectToAuth(request: NextRequest) {
@@ -17,6 +22,10 @@ function redirectToAuth(request: NextRequest) {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  if (isPublicPath(pathname)) {
+    return NextResponse.next();
+  }
+
   if (!isProtectedPath(pathname)) {
     return NextResponse.next();
   }
@@ -66,6 +75,7 @@ export const config = {
     "/employees/:path*",
     "/leaves/:path*",
     "/onboarding/:path*",
+    "/admin/login",
     "/me/:path*",
     "/me",
   ],

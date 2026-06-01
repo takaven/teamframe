@@ -3,7 +3,7 @@
 ## Core Rule
 **All authorization is enforced server-side.** Client-side checks are UX hints only and never grant access.
 
-Authentication is **Magic Link only** (see [`auth-rules.md`](auth-rules.md)). No passwords, no OAuth, no MFA in V1.
+Authentication is two-tier (see [`auth-rules.md`](auth-rules.md)): admins use email + password at `/admin/login`; employees use magic links at `/auth`. No password reset, email change, OAuth, or MFA in V1.
 
 ## Roles
 TeamFrame V1 has exactly two roles:
