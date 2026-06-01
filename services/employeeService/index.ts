@@ -1028,11 +1028,6 @@ export async function softDeleteEmployee(
     throw new Error("NOT_FOUND");
   }
 
-  const exists = await rowExistsForTenant(actor, employeeId);
-  if (exists) {
-    throw new Error("STALE_WRITE");
-  }
-
   await writeAudit(actor, "employee.archived", employeeId, true);
 }
 
