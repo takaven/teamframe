@@ -136,5 +136,5 @@ export async function completeOnboardingTaskAction(formData: FormData): Promise<
   if (failed) {
     redirect(`/onboarding?error=${encodeURIComponent(errorCode)}`);
   }
-  redirect("/onboarding?status=completed");
+  redirect("/me?status=task_completed");
 }

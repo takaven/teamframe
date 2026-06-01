@@ -98,7 +98,7 @@ export async function submitLeaveAction(formData: FormData): Promise<void> {
   if (failed) {
     redirect(`/leaves?error=${encodeURIComponent(errorCode)}`);
   }
-  redirect("/leaves?status=submitted");
+  redirect("/me?status=leave_submitted");
 }
 
 export async function decideLeaveAction(formData: FormData): Promise<void> {
@@ -167,7 +167,5 @@ export async function decideLeaveAction(formData: FormData): Promise<void> {
   if (failed) {
     redirect(`${returnTo}?error=${encodeURIComponent(errorCode)}&leave=${encodeURIComponent(leaveId)}`);
   }
-  redirect(
-    `${returnTo}?status=decided&decision=${encodeURIComponent(decision)}&leave=${encodeURIComponent(leaveId)}`,
-  );
+  redirect(`${returnTo}?status=decided_${decision}`);
 }

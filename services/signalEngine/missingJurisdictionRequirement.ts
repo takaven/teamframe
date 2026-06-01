@@ -2,7 +2,7 @@ import "server-only";
 
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 
-import type { SignalSeverity } from "@/services/signalEngine/missingContract";
+import type { SignalSeverity } from "@/services/signalEngine/contracts";
 
 type EmployeeRow = {
   id: string;

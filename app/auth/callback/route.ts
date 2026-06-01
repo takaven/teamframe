@@ -2,15 +2,17 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/db/supabaseServer";
 import { resolveIdentity } from "@/lib/rbac/roles";
 
-const NEXT_ALLOWLIST = ["/dashboard", "/employees", "/leaves", "/onboarding"] as const;
+const NEXT_ALLOWLIST = ["/dashboard", "/employees", "/leaves", "/onboarding", "/me"] as const;
 
 function safeNext(raw: string | null): string {
   if (!raw) return "";
   if (!raw.startsWith("/") || raw.startsWith("//") || raw.startsWith("/\\")) return "";
-  if (raw.startsWith("/auth")) return "";
+  const [rawPathname, search = ""] = raw.split("?");
+  const pathname = rawPathname ?? "";
+  if (pathname.startsWith("/auth")) return "";
   for (const prefix of NEXT_ALLOWLIST) {
-    if (raw === prefix || raw.startsWith(`${prefix}/`)) {
-      return raw;
+    if (pathname === prefix || pathname.startsWith(`${prefix}/`)) {
+      return search ? `${pathname}?${search}` : pathname;
     }
   }
   return "";
@@ -30,8 +32,36 @@ function callbackErrorRedirect(url: URL, reason: string): NextResponse {
   return NextResponse.redirect(new URL(`/auth?error=callback_failed&reason=${encodeURIComponent(reason)}`, url));
 }
 
-function successRedirect(url: URL, next: string): NextResponse {
-  return NextResponse.redirect(new URL(next || "/dashboard", url));
+function roleDefaultPath(role: string): string {
+  return role === "employee" ? "/me" : "/dashboard";
+}
+
+function successRedirect(url: URL, next: string, role = "admin"): NextResponse {
+  return NextResponse.redirect(new URL(next || roleDefaultPath(role), url));
+}
+
+async function recoverExistingSession(params: {
+  supabase: Awaited<ReturnType<typeof createServerClient>>;
+  url: URL;
+  next: string;
+}): Promise<NextResponse | null> {
+  const {
+    data: { user },
+  } = await params.supabase.auth.getUser();
+
+  if (!user) {
+    return null;
+  }
+
+  try {
+    const identity = await resolveIdentity(user.id);
+    if (identity.role === "employee" && (!identity.employeeId || !identity.tenantId)) {
+      return callbackErrorRedirect(params.url, "invalid_tenant");
+    }
+    return successRedirect(params.url, params.next, identity.role);
+  } catch {
+    return null;
+  }
 }
 
 export async function GET(request: Request) {
@@ -52,6 +82,10 @@ export async function GET(request: Request) {
     const supabase = await createServerClient();
 
     if (providerError) {
+      const recoveredSession = await recoverExistingSession({ supabase, url, next });
+      if (recoveredSession) {
+        return recoveredSession;
+      }
       return callbackErrorRedirect(url, classifyAuthFailureMessage(providerError));
     }
 
@@ -68,7 +102,7 @@ export async function GET(request: Request) {
         if (identity.role === "employee" && (!identity.employeeId || !identity.tenantId)) {
           return callbackErrorRedirect(url, "invalid_tenant");
         }
-        return successRedirect(url, next);
+        return successRedirect(url, next, identity.role);
       } catch {
         return callbackErrorRedirect(url, "identity_resolution_failed");
       }
@@ -81,11 +115,19 @@ export async function GET(request: Request) {
       });
 
       if (error || !data?.user) {
+        const recoveredSession = await recoverExistingSession({ supabase, url, next });
+        if (recoveredSession) {
+          return recoveredSession;
+        }
         return callbackErrorRedirect(url, classifyAuthFailureMessage(error?.message ?? "invalid_link"));
       }
     } else {
       const { error } = await supabase.auth.exchangeCodeForSession(code ?? "");
       if (error) {
+        const recoveredSession = await recoverExistingSession({ supabase, url, next });
+        if (recoveredSession) {
+          return recoveredSession;
+        }
         return callbackErrorRedirect(url, classifyAuthFailureMessage(error.message));
       }
     }
@@ -103,7 +145,7 @@ export async function GET(request: Request) {
       return callbackErrorRedirect(url, "invalid_tenant");
     }
 
-    return successRedirect(url, next);
+    return successRedirect(url, next, identity.role);
   } catch (error) {
     // Never expose callback internals to end users.
     console.error("AUTH_CALLBACK_FAILED", error);
