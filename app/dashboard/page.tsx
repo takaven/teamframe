@@ -286,13 +286,6 @@ export default async function DashboardPage() {
         </div>
       </header>
 
-      <section className="mt-6 rounded-xl border border-ink-300/70 bg-white/80 p-4 text-[14px] text-ink-700">
-        <p>
-          Demo flow: <span className="font-medium text-ink-900">Here are the risks.</span> This is why they matter. This is the next action.
-          Then show progress in <span className="font-medium text-ink-900">Resolved</span>.
-        </p>
-      </section>
-
       <div className="mt-6 space-y-5">
         <SignalSection
           title="Urgent now"
