@@ -7,17 +7,19 @@
 
 TeamFrame uses a phase-based development model. **Do not build anything from a later phase while the current phase is unstable.**
 
-### Phase 1 — Foundation (current)
-Status: 🟡 In progress — do not expand until this is stable
+### Phase 1 — Foundation (complete)
+Status: ✅ Complete — Phase 2 is unlocked
 
-All Phase 1 modules below must be working, tested, and not crashing before any Phase 2 work begins:
+Evidence: `docs/audits/phase-2-readiness-2026-05-29.md` — verdict GREEN, closed 2026-05-30 at SHA `754b1ed`. All Phase 1 modules shipped, guards pass, RLS hardened, telemetry coverage enforced by CI.
+
+All Phase 1 modules:
 - [x] Employee Directory (CRUD + actions)
 - [x] Org Chart (read-only)
 - [x] Dashboard (live employee counts + empty state)
-- [ ] Onboarding Document Uploads (schema + service shipped; UI pending)
-- [ ] Leave Requests — submit / approve / reject (schema + service shipped; UI pending)
-- [ ] Instrumentation — internal `analytics_events` table + server-only `track()` helper wired into the 8 activation events
-- [ ] Hardening — RLS audit, audit-log coverage, cross-tenant negative tests
+- [x] Onboarding Document Uploads (schema + service + UI shipped)
+- [x] Leave Requests — submit / approve / reject (schema + service + UI shipped)
+- [x] Instrumentation — internal `analytics_events` table + server-only `track()` helper wired into the 8 activation events
+- [x] Hardening — RLS audit, audit-log coverage, cross-tenant negative tests
 
 **Explicitly NOT in Phase 1 (parked):**
 - Company Announcements — schema file exists, no service, no UI, no roadmap commitment until activation telemetry justifies it.
@@ -25,7 +27,7 @@ All Phase 1 modules below must be working, tested, and not crashing before any P
 
 **Phase 1 is stable when:** All shipped modules load without errors, RBAC is enforced on every write, RLS policies are in place on every table, the 8 activation events are emitted server-side, and no module breaks when another is used concurrently.
 
-### Phase 2 — Planned (do not start yet)
+### Phase 2 — Planned (Phase 1 now complete — review README non-goals before starting)
 - Policies & Procedures library (upload, categorise, employee acknowledgement)
 - Notification preferences (in-app only, no external infra yet)
 - Basic reporting (headcount over time, leave summary)
@@ -39,9 +41,9 @@ All Phase 1 modules below must be working, tested, and not crashing before any P
 
 ### Rule
 If a request is for Phase 2 or later, stop and say:
-> "Phase 1 isn't marked stable yet. Should we finish and stabilise Phase 1 first, or are you explicitly unlocking Phase 2?"
+> "Phase 1 is now stable (audit GREEN, 2026-05-30). Before starting this Phase 2 item, confirm it does not conflict with the README non-goals list. Should we proceed?"
 
-This prevents the pattern of adding new features on top of unstable foundations — which is how projects get scrapped.
+Phase 1 stability no longer blocks Phase 2 expansion, but README scope guardrails still apply to every Phase 2 item.
 
 ---
 

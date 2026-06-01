@@ -15,6 +15,9 @@ As of the latest commit on `main`, the running app provides:
 - **Auth** — Supabase magic-link sign-in (`/auth`, `/auth/callback`, `/auth/check-email`, `/auth/logout`).
 - **Dashboard** (`/dashboard`) — real employee counts (total / active / on leave / inactive) with an honest empty state when no employees exist.
 - **Employees** (`/employees`) — admins manage the team roster.
+- **Onboarding** (`/onboarding`) — employees complete their onboarding checklist; admins assign and monitor tasks.
+- **Leaves** (`/leaves`) — employees submit leave requests; admins approve or reject from the queue.
+- **Self-service** (`/me`) — employee profile landing and hub for self-service actions.
 - **Tenant safety** — server-side role resolution via `requireTenantActor`, every service call takes an explicit `Actor`, RLS on every table.
 
 Everything in the next section ("What TeamFrame is") describes the V1 *target surface*. Items not in the list above are **not yet in the UI**.
@@ -26,9 +29,9 @@ Everything in the next section ("What TeamFrame is") describes the V1 *target su
 The product targets exactly these things:
 
 - **Employee directory** — who's on the team _(shipped)_
-- **Onboarding readiness** — preboarding risk signals _(in flight)_
-- **Document expiry tracking** — passports, visas, work permits _(in flight)_
-- **Minimal leave tracking** — request, approve, reject _(schema + service scaffolded; no UI yet)_
+- **Onboarding task tracking** — employee checklist; admin assignment _(shipped)_
+- **Document expiry tracking** — passports, visas, work permits _(in flight — signal engine shipped; document upload UI in progress)_
+- **Leave tracking** — request, approve, reject _(shipped)_
 
 Nothing more.
 
@@ -113,8 +116,8 @@ Full detail: [`docs/architecture.md`](docs/architecture.md).
 
 /services
   /employeeService    # shipped; explicit Actor on every call
-  /documentService    # scaffolded, not yet surfaced in UI
-  /leaveService       # scaffolded, not yet surfaced in UI
+  /documentService    # scaffolded; signal engine wired; upload UI in progress
+  /leaveService       # shipped; submit/approve/reject wired end-to-end
 
 /middleware
   auth.ts             # session resolution

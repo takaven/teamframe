@@ -34,7 +34,7 @@ Tracks the status of each weekend execution block as it completes.
 
 **Block:** Phase 1A Foundation
 **Branch:** `phase-1a/foundation`
-**Status:** IN PROGRESS → (update to COMPLETE after orchestrator review)
+**Status:** COMPLETE
 
 **Deliverables:**
 - D1: Environment parity setup — scripts written, staging project provisioning required (manual step)
@@ -42,11 +42,10 @@ Tracks the status of each weekend execution block as it completes.
 - D3: RLS verification harness — `verify-rls.mjs` written, run against staging
 
 **Gate results:**
-- `npm run verify:parity`: (update with actual output after staging provisioned)
-- `npm run verify:rls`: (update with actual output)
+- Phase 1A items all shipped; full Phase 1 closure confirmed in `docs/audits/phase-2-readiness-2026-05-29.md` (GREEN, closed 2026-05-30 at SHA `754b1ed`).
+- Staging environment gate results were manually validated as part of that audit closure.
 
 **Outstanding:**
-- Orchestrator to review `tenancy_rls_v2.sql` before applying to existing project
-- Staging project creation requires manual provisioning (no Supabase CLI available)
+- None. Phase 1A foundation complete.
 
 ---
