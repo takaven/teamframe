@@ -1,99 +1,154 @@
-/**
- * Magic-link callback.
- *
- * Supabase redirects here after the user clicks a magic link. TeamFrame
- * supports both callback shapes:
- *  - recommended: `?token_hash=...&type=magiclink` (email template flow)
- *  - fallback: `?code=...` (Supabase default PKCE flow)
- *
- * On failure (expired link, bad code, etc.), bounce back to /auth with a
- * friendly error code in the query string.
- */
-
-import { NextResponse, type NextRequest } from "next/server";
-import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/db/supabaseServer";
 import { resolveIdentity } from "@/lib/rbac/roles";
 
+const NEXT_ALLOWLIST = ["/dashboard", "/employees", "/leaves", "/onboarding", "/me"] as const;
+
 function safeNext(raw: string | null): string {
-  if (!raw) return "/dashboard";
-  if (!raw.startsWith("/") || raw.startsWith("//") || raw.startsWith("/\\")) {
-    return "/dashboard";
+  if (!raw) return "";
+  if (!raw.startsWith("/") || raw.startsWith("//") || raw.startsWith("/\\")) return "";
+  const [rawPathname, search = ""] = raw.split("?");
+  const pathname = rawPathname ?? "";
+  if (pathname.startsWith("/auth")) return "";
+  for (const prefix of NEXT_ALLOWLIST) {
+    if (pathname === prefix || pathname.startsWith(`${prefix}/`)) {
+      return search ? `${pathname}?${search}` : pathname;
+    }
   }
-  return raw;
+  return "";
 }
 
-function redirectTo(origin: string, path: string, request: NextRequest, clearAuthCookies = false) {
-  const response = NextResponse.redirect(`${origin}${path}`);
-  if (clearAuthCookies) {
-    for (const cookie of request.cookies.getAll()) {
-      if (cookie.name.includes("code-verifier") || cookie.name.includes("auth-token")) {
-        response.cookies.delete(cookie.name);
-      }
-    }
+function classifyAuthFailureMessage(message: string): string {
+  const lower = message.toLowerCase();
+  if (lower.includes("expired")) return "expired_link";
+  if (lower.includes("already") && (lower.includes("used") || lower.includes("consumed"))) {
+    return "already_used_link";
   }
-  return response;
+  if (lower.includes("invalid") || lower.includes("otp")) return "invalid_link";
+  return "session_exchange_failed";
 }
 
-export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url);
-  const code = searchParams.get("code");
-  const tokenHash = searchParams.get("token_hash");
-  const type = searchParams.get("type") ?? "magiclink";
-  const next = safeNext(searchParams.get("next"));
-  const supabaseErr = searchParams.get("error_description") ?? searchParams.get("error");
+function callbackErrorRedirect(url: URL, reason: string): NextResponse {
+  return NextResponse.redirect(new URL(`/auth?error=callback_failed&reason=${encodeURIComponent(reason)}`, url));
+}
 
-  if (supabaseErr) {
-    if (process.env.NODE_ENV === "development") {
-      console.warn(`[callback] supabase rejected the link: ${supabaseErr}`);
-    }
-    return redirectTo(origin, "/auth?error=callback_failed", request, true);
-  }
+function roleDefaultPath(role: string): string {
+  return role === "employee" ? "/me" : "/dashboard";
+}
 
-  if (!code && !tokenHash) {
-    if (process.env.NODE_ENV === "development") {
-      console.warn("[callback] no code, token_hash, or error in URL");
-    }
-    return redirectTo(origin, "/auth?error=callback_failed", request, true);
-  }
+function successRedirect(url: URL, next: string, role = "admin"): NextResponse {
+  return NextResponse.redirect(new URL(next || roleDefaultPath(role), url));
+}
 
-  if (process.env.NODE_ENV === "development") {
-    const cookieStore = await cookies();
-    const all = cookieStore.getAll().map((c) => c.name);
-    const hasVerifier = all.some((n) => n.includes("code-verifier"));
-    console.log(
-      `[callback] code=${code?.slice(0, 8) ?? "none"} token_hash=${tokenHash?.slice(0, 8) ?? "none"} cookies=[${all.join(", ")}] code_verifier_present=${hasVerifier}`,
-    );
-  }
-
-  const supabase = await createServerClient();
-  const { error } = tokenHash
-    ? await supabase.auth.verifyOtp({
-        token_hash: tokenHash,
-        type: type === "invite" ? "invite" : "magiclink",
-      })
-    : await supabase.auth.exchangeCodeForSession(code ?? "");
-
-  if (error) {
-    if (process.env.NODE_ENV === "development") {
-      console.warn(`[callback] session exchange failed: ${error.message}`);
-    }
-    return redirectTo(origin, "/auth?error=callback_failed", request, true);
-  }
-
+async function recoverExistingSession(params: {
+  supabase: Awaited<ReturnType<typeof createServerClient>>;
+  url: URL;
+  next: string;
+}): Promise<NextResponse | null> {
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await params.supabase.auth.getUser();
 
   if (!user) {
-    return redirectTo(origin, "/auth?error=callback_failed", request, true);
+    return null;
   }
 
-  const identity = await resolveIdentity(user.id);
-  if (!identity.employeeId && identity.role !== "admin") {
-    await supabase.auth.signOut();
-    return redirectTo(origin, "/auth?error=not_authorized", request, true);
+  try {
+    const identity = await resolveIdentity(user.id);
+    if (identity.role === "employee" && (!identity.employeeId || !identity.tenantId)) {
+      return callbackErrorRedirect(params.url, "invalid_tenant");
+    }
+    return successRedirect(params.url, params.next, identity.role);
+  } catch {
+    return null;
   }
+}
 
-  return redirectTo(origin, next, request);
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const code = url.searchParams.get("code");
+  const tokenHash = url.searchParams.get("token_hash");
+  const typeParam = (url.searchParams.get("type") ?? "magiclink") as
+    | "magiclink"
+    | "email"
+    | "signup"
+    | "invite"
+    | "recovery"
+    | "email_change";
+  const next = safeNext(url.searchParams.get("next"));
+  const providerError = url.searchParams.get("error_description") ?? url.searchParams.get("error");
+
+  try {
+    const supabase = await createServerClient();
+
+    if (providerError) {
+      const recoveredSession = await recoverExistingSession({ supabase, url, next });
+      if (recoveredSession) {
+        return recoveredSession;
+      }
+      return callbackErrorRedirect(url, classifyAuthFailureMessage(providerError));
+    }
+
+    if (!tokenHash && !code) {
+      const {
+        data: { user: existingUser },
+      } = await supabase.auth.getUser();
+      if (!existingUser) {
+        return callbackErrorRedirect(url, "missing_token");
+      }
+
+      try {
+        const identity = await resolveIdentity(existingUser.id);
+        if (identity.role === "employee" && (!identity.employeeId || !identity.tenantId)) {
+          return callbackErrorRedirect(url, "invalid_tenant");
+        }
+        return successRedirect(url, next, identity.role);
+      } catch {
+        return callbackErrorRedirect(url, "identity_resolution_failed");
+      }
+    }
+
+    if (tokenHash) {
+      const { data, error } = await supabase.auth.verifyOtp({
+        token_hash: tokenHash,
+        type: typeParam,
+      });
+
+      if (error || !data?.user) {
+        const recoveredSession = await recoverExistingSession({ supabase, url, next });
+        if (recoveredSession) {
+          return recoveredSession;
+        }
+        return callbackErrorRedirect(url, classifyAuthFailureMessage(error?.message ?? "invalid_link"));
+      }
+    } else {
+      const { error } = await supabase.auth.exchangeCodeForSession(code ?? "");
+      if (error) {
+        const recoveredSession = await recoverExistingSession({ supabase, url, next });
+        if (recoveredSession) {
+          return recoveredSession;
+        }
+        return callbackErrorRedirect(url, classifyAuthFailureMessage(error.message));
+      }
+    }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return callbackErrorRedirect(url, "session_not_found");
+    }
+
+    const identity = await resolveIdentity(user.id);
+    if (identity.role === "employee" && (!identity.employeeId || !identity.tenantId)) {
+      return callbackErrorRedirect(url, "invalid_tenant");
+    }
+
+    return successRedirect(url, next, identity.role);
+  } catch (error) {
+    // Never expose callback internals to end users.
+    console.error("AUTH_CALLBACK_FAILED", error);
+    return callbackErrorRedirect(url, "unknown");
+  }
 }

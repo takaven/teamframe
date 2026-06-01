@@ -27,7 +27,4 @@ export const env = {
   get supabaseServiceRoleKey() {
     return required("SUPABASE_SERVICE_ROLE_KEY", process.env.SUPABASE_SERVICE_ROLE_KEY);
   },
-  get openaiApiKey() {
-    return required("OPENAI_API_KEY", process.env.OPENAI_API_KEY);
-  },
 };

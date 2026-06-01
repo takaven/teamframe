@@ -1,34 +1,49 @@
 #!/usr/bin/env node
-
 import { createHash } from "node:crypto";
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { SCHEMA_ORDER } from "./schema-order.mjs";
 
-const repoRoot = process.cwd();
-const orderedFiles = SCHEMA_ORDER.map((name) => join(repoRoot, "schemas", name));
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const projectRoot = join(__dirname, "..");
+const schemasDir = join(projectRoot, "schemas");
+const outputDir = join(projectRoot, ".ci", "schema-state");
+const outputPath = join(outputDir, "schema-state.json");
 
-const fileHashes = SCHEMA_ORDER.map((name, index) => {
-  const content = readFileSync(orderedFiles[index], "utf8");
-  const sha256 = createHash("sha256").update(content).digest("hex");
-  return { name, sha256 };
+function sha256(input) {
+  return createHash("sha256").update(input).digest("hex");
+}
+
+const files = SCHEMA_ORDER.map((name) => {
+  const path = join(schemasDir, name);
+  const content = readFileSync(path, "utf8");
+  return {
+    name,
+    sha256: sha256(content),
+    bytes: Buffer.byteLength(content, "utf8"),
+  };
 });
 
-const overall = createHash("sha256")
-  .update(JSON.stringify(fileHashes))
-  .digest("hex");
+const aggregate = createHash("sha256");
+for (const file of files) {
+  aggregate.update(file.name);
+  aggregate.update("\n");
+  aggregate.update(file.sha256);
+  aggregate.update("\n");
+}
 
 const payload = {
   generatedAt: new Date().toISOString(),
   schemaOrder: SCHEMA_ORDER,
-  files: fileHashes,
-  overallSha256: overall,
+  files,
+  schemaStateSha256: aggregate.digest("hex"),
 };
 
-const outDir = join(repoRoot, ".ci", "schema-state");
-mkdirSync(outDir, { recursive: true });
-const outPath = join(outDir, "schema-state.json");
-writeFileSync(outPath, JSON.stringify(payload, null, 2));
+mkdirSync(outputDir, { recursive: true });
+writeFileSync(outputPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
 
-console.log(`Schema state written: ${outPath}`);
-console.log(`Schema overall sha256: ${overall}`);
+console.log(`schema-state: wrote ${outputPath}`);
+console.log(`schema-state-sha256: ${payload.schemaStateSha256}`);

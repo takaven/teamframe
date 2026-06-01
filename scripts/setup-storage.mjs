@@ -35,6 +35,7 @@ const BUCKET_CONFIG = {
   public: false,
   fileSizeLimit: 10 * 1024 * 1024,
   allowedMimeTypes: [
+    "application/zip",
     "application/pdf",
     "application/msword",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",

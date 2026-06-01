@@ -1,3 +1,9 @@
+-- DEPRECATED: This file is superseded by schemas/tenancy_rls_v2.sql (Weekend 1 Phase 1A).
+-- The email-fallback path in current_actor_tenant_id() has been removed in v2.
+-- V2 has been applied to staging. Do NOT re-add the fallback.
+-- Function BODIES below are intentionally unchanged — v2 redefines only
+-- current_actor_tenant_id() and adds a comment on current_actor_email().
+-- Apply v2 AFTER this file. See docs/launch/weekend-1-report.md for context.
 -- TeamFrame V1 — tenant helpers + row level security
 -- These policies are designed for authenticated JWT sessions.
 
@@ -34,6 +40,7 @@ as $$
       from employees e
       where lower(e.email) = current_actor_email()
         and e.deleted_at is null
+      order by e.created_at asc, e.id asc
       limit 1
     )
   );
@@ -47,16 +54,47 @@ as $$
   select app_role() = 'admin';
 $$;
 
+alter table companies enable row level security;
 alter table employees enable row level security;
 alter table employee_profiles enable row level security;
 alter table compensation enable row level security;
 alter table documents enable row level security;
 alter table leaves enable row level security;
-alter table company_updates enable row level security;
 alter table audit_logs enable row level security;
+alter table risk_signals enable row level security;
+alter table action_items enable row level security;
+alter table analytics_events enable row level security;
 alter table policies enable row level security;
 alter table procedures enable row level security;
 alter table acknowledgements enable row level security;
+alter table onboarding_tasks enable row level security;
+
+drop policy if exists analytics_events_select on analytics_events;
+create policy analytics_events_select on analytics_events
+for select
+using (
+  is_current_actor_admin()
+  and (tenant_id is null or tenant_id = current_actor_tenant_id())
+);
+
+drop policy if exists companies_select_tenant_scoped on companies;
+create policy companies_select_tenant_scoped on companies
+for select
+using (
+  id = current_actor_tenant_id()
+);
+
+drop policy if exists companies_write_admin on companies;
+create policy companies_write_admin on companies
+for all
+using (
+  is_current_actor_admin()
+  and id = current_actor_tenant_id()
+)
+with check (
+  is_current_actor_admin()
+  and id = current_actor_tenant_id()
+);
 
 drop policy if exists employees_select on employees;
 create policy employees_select on employees
@@ -64,6 +102,10 @@ for select
 using (
   tenant_id = current_actor_tenant_id()
   and deleted_at is null
+  and (
+    is_current_actor_admin()
+    or lower(email) = current_actor_email()
+  )
 );
 
 drop policy if exists employees_insert on employees;
@@ -91,6 +133,53 @@ create policy employee_profiles_select on employee_profiles
 for select
 using (
   tenant_id = current_actor_tenant_id()
+  and (
+    is_current_actor_admin()
+    or employee_id in (
+      select id
+      from employees
+      where lower(email) = current_actor_email()
+        and tenant_id = current_actor_tenant_id()
+        and deleted_at is null
+    )
+  )
+);
+
+drop policy if exists onboarding_tasks_select on onboarding_tasks;
+create policy onboarding_tasks_select on onboarding_tasks
+for select
+using (
+  tenant_id = current_actor_tenant_id()
+  and (
+    is_current_actor_admin()
+    or employee_id in (
+      select id
+      from employees
+      where lower(email) = current_actor_email()
+        and tenant_id = current_actor_tenant_id()
+        and deleted_at is null
+    )
+  )
+);
+
+drop policy if exists onboarding_tasks_insert_admin on onboarding_tasks;
+create policy onboarding_tasks_insert_admin on onboarding_tasks
+for insert
+with check (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+);
+
+drop policy if exists onboarding_tasks_update_admin on onboarding_tasks;
+create policy onboarding_tasks_update_admin on onboarding_tasks
+for update
+using (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+)
+with check (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
 );
 
 drop policy if exists employee_profiles_write_admin on employee_profiles;
@@ -187,25 +276,6 @@ with check (
   and tenant_id = current_actor_tenant_id()
 );
 
-drop policy if exists company_updates_select on company_updates;
-create policy company_updates_select on company_updates
-for select
-using (
-  tenant_id = current_actor_tenant_id()
-);
-
-drop policy if exists company_updates_write_admin on company_updates;
-create policy company_updates_write_admin on company_updates
-for all
-using (
-  is_current_actor_admin()
-  and tenant_id = current_actor_tenant_id()
-)
-with check (
-  is_current_actor_admin()
-  and tenant_id = current_actor_tenant_id()
-);
-
 drop policy if exists audit_logs_admin_only on audit_logs;
 create policy audit_logs_admin_only on audit_logs
 for select
@@ -222,11 +292,55 @@ with check (
   and tenant_id = current_actor_tenant_id()
 );
 
+drop policy if exists risk_signals_select_admin on risk_signals;
+create policy risk_signals_select_admin on risk_signals
+for select
+using (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+);
+
+drop policy if exists risk_signals_write_admin on risk_signals;
+create policy risk_signals_write_admin on risk_signals
+for all
+using (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+)
+with check (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+);
+
+drop policy if exists action_items_select_admin on action_items;
+create policy action_items_select_admin on action_items
+for select
+using (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+);
+
+drop policy if exists action_items_write_admin on action_items;
+create policy action_items_write_admin on action_items
+for all
+using (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+)
+with check (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+);
+
 drop policy if exists policies_select on policies;
 create policy policies_select on policies
 for select
 using (
   tenant_id = current_actor_tenant_id()
+  and (
+    is_current_actor_admin()
+    or is_published
+  )
 );
 
 drop policy if exists policies_write_admin on policies;
@@ -246,6 +360,10 @@ create policy procedures_select on procedures
 for select
 using (
   tenant_id = current_actor_tenant_id()
+  and (
+    is_current_actor_admin()
+    or is_published
+  )
 );
 
 drop policy if exists procedures_write_admin on procedures;

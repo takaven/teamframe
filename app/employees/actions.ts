@@ -3,7 +3,23 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireTenantActor } from "@/middleware/rbac";
-import { createEmployee, softDeleteEmployee, updateEmployee } from "@/services/employeeService";
+import {
+  createEmployee,
+  generateEmployeeActivationLink,
+  reinviteEmployee,
+  softDeleteEmployee,
+  updateEmployee,
+} from "@/services/employeeService";
+import { signalEngine } from "@/services/signalEngine";
+import {
+  exportFinanceHandoffUrl,
+  exportEmployeeDueDiligencePackUrl,
+  getSignedDownloadUrl,
+  softDeleteDocument,
+  uploadDocument,
+} from "@/services/documentService";
+import { logAction } from "@/lib/telemetry/logger";
+import { captureActionError } from "@/lib/telemetry/sentry";
 
 const CreateInputSchema = z.object({
   full_name: z.string().trim().min(1),
@@ -11,6 +27,10 @@ const CreateInputSchema = z.object({
   role_title: z.string().trim().min(1),
   department: z.string().trim().min(1),
   timezone: z.string().trim().min(1),
+  employment_type: z.enum(["full_time", "part_time", "contractor", "intern"]),
+  country: z.string().trim().min(2),
+  start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
 
 const UpdateInputSchema = z.object({
@@ -18,13 +38,76 @@ const UpdateInputSchema = z.object({
   expected_updated_at: z.string().trim().min(1),
   role_title: z.string().trim().min(1),
   department: z.string().trim().min(1),
+  employment_type: z.enum(["full_time", "part_time", "contractor", "intern"]),
+  country: z.string().trim().min(2),
+  start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   status: z.enum(["active", "on_leave", "inactive"]),
+  lifecycle_state: z.enum(["preboarding", "active", "on_leave", "offboarding", "exited"]).optional(),
+});
+
+const StartOffboardingInputSchema = z.object({
+  employee_id: z.string().uuid(),
+  expected_updated_at: z.string().trim().min(1),
+  return_to: z.string().trim().optional(),
 });
 
 const ArchiveInputSchema = z.object({
   employee_id: z.string().uuid(),
   expected_updated_at: z.string().trim().min(1),
+  return_to: z.string().trim().optional(),
 });
+
+const ReinviteInputSchema = z.object({
+  employee_id: z.string().uuid(),
+  return_to: z.string().trim().optional(),
+});
+
+const ActivationLinkInputSchema = z.object({
+  employee_id: z.string().uuid(),
+  return_to: z.string().trim().optional(),
+});
+
+const UploadDocumentInputSchema = z.object({
+  employee_id: z.string().uuid(),
+  type: z.enum(["cv", "contract", "jd", "photo"]),
+  signed_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  expires_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  return_to: z.string().trim().optional(),
+});
+
+const DownloadDocumentInputSchema = z.object({
+  document_id: z.string().uuid(),
+  return_to: z.string().trim().optional(),
+});
+
+const DeleteDocumentInputSchema = z.object({
+  document_id: z.string().uuid(),
+  employee_id: z.string().uuid(),
+  return_to: z.string().trim().optional(),
+});
+
+const ExportDueDiligencePackInputSchema = z.object({
+  employee_id: z.string().uuid(),
+  return_to: z.string().trim().optional(),
+});
+
+const ExportFinanceHandoffInputSchema = z.object({
+  return_to: z.string().trim().optional(),
+});
+
+function safeReturnPath(path: string | undefined, fallback: string): string {
+  if (!path || !path.startsWith("/") || path.startsWith("//")) {
+    return fallback;
+  }
+  return path;
+}
+
+function optionalString(value: FormDataEntryValue | null): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
 
 function getErrorCode(error: unknown): string {
   if (error instanceof z.ZodError) return "INVALID_INPUT";
@@ -40,20 +123,57 @@ export async function createEmployeeAction(formData: FormData): Promise<void> {
   let failed = false;
   let errorCode = "UNKNOWN";
 
+  // Observability instrumentation (Phase 1C).
+  const start = Date.now();
+  const requestId = crypto.randomUUID();
+  let actor: Awaited<ReturnType<typeof requireTenantActor>> | null = null;
+  let caughtError: unknown = null;
+
   try {
-    const actor = await requireTenantActor();
+    actor = await requireTenantActor();
     const parsed = CreateInputSchema.parse({
       full_name: formData.get("full_name"),
       email: formData.get("email"),
       role_title: formData.get("role_title"),
       department: formData.get("department"),
       timezone: formData.get("timezone"),
+      employment_type: formData.get("employment_type"),
+      country: formData.get("country"),
+      start_date: formData.get("start_date"),
+      end_date: optionalString(formData.get("end_date")),
     });
 
     await createEmployee(actor, parsed);
   } catch (error) {
     failed = true;
     errorCode = getErrorCode(error);
+    caughtError = error;
+  }
+
+  const durationMs = Date.now() - start;
+  if (caughtError !== null) {
+    captureActionError("createEmployee", caughtError, {
+      actor_user_id: actor?.authUserId ?? null,
+      actor_tenant_id: actor?.tenantId ?? null,
+    });
+    logAction({
+      action: "createEmployee",
+      actorUserId: actor?.authUserId ?? null,
+      actorTenantId: actor?.tenantId ?? null,
+      durationMs,
+      outcome: "fail",
+      error: caughtError,
+      requestId,
+    });
+  } else {
+    logAction({
+      action: "createEmployee",
+      actorUserId: actor!.authUserId,
+      actorTenantId: actor!.tenantId,
+      durationMs,
+      outcome: "ok",
+      requestId,
+    });
   }
 
   if (failed) {
@@ -67,13 +187,23 @@ export async function updateEmployeeAction(formData: FormData): Promise<void> {
   let failed = false;
   let errorCode = "UNKNOWN";
 
+  // Observability instrumentation (Phase 1B).
+  const start = Date.now();
+  const requestId = crypto.randomUUID();
+  let actor: Awaited<ReturnType<typeof requireTenantActor>> | null = null;
+  let caughtError: unknown = null;
+
   try {
-    const actor = await requireTenantActor();
+    actor = await requireTenantActor();
     const parsed = UpdateInputSchema.parse({
       employee_id: formData.get("employee_id"),
       expected_updated_at: formData.get("expected_updated_at"),
       role_title: formData.get("role_title"),
       department: formData.get("department"),
+      employment_type: formData.get("employment_type"),
+      country: formData.get("country"),
+      start_date: formData.get("start_date"),
+      end_date: optionalString(formData.get("end_date")),
       status: formData.get("status"),
     });
 
@@ -83,6 +213,10 @@ export async function updateEmployeeAction(formData: FormData): Promise<void> {
       {
         role_title: parsed.role_title,
         department: parsed.department,
+        employment_type: parsed.employment_type,
+        country: parsed.country,
+        start_date: parsed.start_date,
+        end_date: parsed.end_date ?? null,
         status: parsed.status,
       },
       parsed.expected_updated_at,
@@ -90,6 +224,33 @@ export async function updateEmployeeAction(formData: FormData): Promise<void> {
   } catch (error) {
     failed = true;
     errorCode = getErrorCode(error);
+    caughtError = error;
+  }
+
+  const durationMs = Date.now() - start;
+  if (caughtError !== null) {
+    captureActionError("updateEmployee", caughtError, {
+      actor_user_id: actor?.authUserId ?? null,
+      actor_tenant_id: actor?.tenantId ?? null,
+    });
+    logAction({
+      action: "updateEmployee",
+      actorUserId: actor?.authUserId ?? null,
+      actorTenantId: actor?.tenantId ?? null,
+      durationMs,
+      outcome: "fail",
+      error: caughtError,
+      requestId,
+    });
+  } else {
+    logAction({
+      action: "updateEmployee",
+      actorUserId: actor!.authUserId,
+      actorTenantId: actor!.tenantId,
+      durationMs,
+      outcome: "ok",
+      requestId,
+    });
   }
 
   if (failed) {
@@ -102,23 +263,484 @@ export async function updateEmployeeAction(formData: FormData): Promise<void> {
 export async function archiveEmployeeAction(formData: FormData): Promise<void> {
   let failed = false;
   let errorCode = "UNKNOWN";
+  let employeeId = "";
+  let returnTo = "/employees";
+
+  // Observability instrumentation (Phase 1C).
+  const start = Date.now();
+  const requestId = crypto.randomUUID();
+  let actor: Awaited<ReturnType<typeof requireTenantActor>> | null = null;
+  let caughtError: unknown = null;
 
   try {
-    const actor = await requireTenantActor();
+    actor = await requireTenantActor();
     const parsed = ArchiveInputSchema.parse({
       employee_id: formData.get("employee_id"),
       expected_updated_at: formData.get("expected_updated_at"),
+      return_to: optionalString(formData.get("return_to")),
     });
+    employeeId = parsed.employee_id;
+    returnTo = safeReturnPath(parsed.return_to, "/employees");
 
     await softDeleteEmployee(actor, parsed.employee_id, parsed.expected_updated_at);
+  } catch (error) {
+    failed = true;
+    errorCode = getErrorCode(error);
+    caughtError = error;
+  }
+
+  const durationMs = Date.now() - start;
+  if (caughtError !== null) {
+    captureActionError("archiveEmployee", caughtError, {
+      actor_user_id: actor?.authUserId ?? null,
+      actor_tenant_id: actor?.tenantId ?? null,
+      employee_id: employeeId || null,
+    });
+    logAction({
+      action: "archiveEmployee",
+      actorUserId: actor?.authUserId ?? null,
+      actorTenantId: actor?.tenantId ?? null,
+      durationMs,
+      outcome: "fail",
+      error: caughtError,
+      requestId,
+    });
+  } else {
+    logAction({
+      action: "archiveEmployee",
+      actorUserId: actor!.authUserId,
+      actorTenantId: actor!.tenantId,
+      durationMs,
+      outcome: "ok",
+      requestId,
+    });
+  }
+
+  if (failed) {
+    redirect(`${returnTo}?error=${encodeURIComponent(errorCode)}&employee=${encodeURIComponent(employeeId)}`);
+  }
+
+  redirect(`${returnTo}?status=archived&employee=${encodeURIComponent(employeeId)}`);
+}
+
+export async function startOffboardingAction(formData: FormData): Promise<void> {
+  let failed = false;
+  let errorCode = "UNKNOWN";
+  let employeeId = "";
+  let returnTo = "/employees";
+
+  const start = Date.now();
+  const requestId = crypto.randomUUID();
+  let actor: Awaited<ReturnType<typeof requireTenantActor>> | null = null;
+  let caughtError: unknown = null;
+
+  try {
+    actor = await requireTenantActor();
+    const parsed = StartOffboardingInputSchema.parse({
+      employee_id: formData.get("employee_id"),
+      expected_updated_at: formData.get("expected_updated_at"),
+      return_to: optionalString(formData.get("return_to")),
+    });
+
+    employeeId = parsed.employee_id;
+    returnTo = safeReturnPath(parsed.return_to, "/employees");
+
+    await updateEmployee(
+      actor,
+      parsed.employee_id,
+      { lifecycle_state: "offboarding" },
+      parsed.expected_updated_at,
+    );
+
+    await signalEngine.emit({
+      tenant_id: actor.tenantId,
+      employee_id: parsed.employee_id,
+      kind: "incomplete_offboarding",
+      status: "open",
+    });
+  } catch (error) {
+    failed = true;
+    errorCode = getErrorCode(error);
+    caughtError = error;
+  }
+
+  const durationMs = Date.now() - start;
+  if (caughtError !== null) {
+    captureActionError("startOffboarding", caughtError, {
+      actor_user_id: actor?.authUserId ?? null,
+      actor_tenant_id: actor?.tenantId ?? null,
+      employee_id: employeeId || null,
+    });
+    logAction({
+      action: "startOffboarding",
+      actorUserId: actor?.authUserId ?? null,
+      actorTenantId: actor?.tenantId ?? null,
+      durationMs,
+      outcome: "fail",
+      error: caughtError,
+      requestId,
+    });
+  } else {
+    logAction({
+      action: "startOffboarding",
+      actorUserId: actor!.authUserId,
+      actorTenantId: actor!.tenantId,
+      durationMs,
+      outcome: "ok",
+      requestId,
+    });
+  }
+
+  if (failed) {
+    redirect(`${returnTo}?error=${encodeURIComponent(errorCode)}&employee=${encodeURIComponent(employeeId)}`);
+  }
+
+  redirect(`${returnTo}?status=offboarding_started&employee=${encodeURIComponent(employeeId)}`);
+}
+
+export async function reinviteEmployeeAction(formData: FormData): Promise<void> {
+  let failed = false;
+  let errorCode = "UNKNOWN";
+  let employeeId = "";
+  let returnTo = "/employees";
+
+  // Observability instrumentation (Phase 1C).
+  const start = Date.now();
+  const requestId = crypto.randomUUID();
+  let actor: Awaited<ReturnType<typeof requireTenantActor>> | null = null;
+  let caughtError: unknown = null;
+
+  try {
+    actor = await requireTenantActor();
+    const parsed = ReinviteInputSchema.parse({
+      employee_id: formData.get("employee_id"),
+      return_to: optionalString(formData.get("return_to")),
+    });
+    employeeId = parsed.employee_id;
+    returnTo = safeReturnPath(parsed.return_to, "/employees");
+
+    await reinviteEmployee(actor, parsed.employee_id);
+  } catch (error) {
+    failed = true;
+    errorCode = getErrorCode(error);
+    caughtError = error;
+  }
+
+  const durationMs = Date.now() - start;
+  if (caughtError !== null) {
+    captureActionError("reinviteEmployee", caughtError, {
+      actor_user_id: actor?.authUserId ?? null,
+      actor_tenant_id: actor?.tenantId ?? null,
+      employee_id: employeeId || null,
+    });
+    logAction({
+      action: "reinviteEmployee",
+      actorUserId: actor?.authUserId ?? null,
+      actorTenantId: actor?.tenantId ?? null,
+      durationMs,
+      outcome: "fail",
+      error: caughtError,
+      requestId,
+    });
+  } else {
+    logAction({
+      action: "reinviteEmployee",
+      actorUserId: actor!.authUserId,
+      actorTenantId: actor!.tenantId,
+      durationMs,
+      outcome: "ok",
+      requestId,
+    });
+  }
+
+  if (failed) {
+    redirect(`${returnTo}?error=${encodeURIComponent(errorCode)}&employee=${encodeURIComponent(employeeId)}`);
+  }
+
+  redirect(`${returnTo}?status=reinvited&employee=${encodeURIComponent(employeeId)}`);
+}
+
+export async function generateActivationLinkAction(formData: FormData): Promise<void> {
+  let failed = false;
+  let errorCode = "UNKNOWN";
+  let employeeId = "";
+  let returnTo = "/employees";
+  let activationLink = "";
+
+  // Observability instrumentation (Phase 1C).
+  const start = Date.now();
+  const requestId = crypto.randomUUID();
+  let actor: Awaited<ReturnType<typeof requireTenantActor>> | null = null;
+  let caughtError: unknown = null;
+
+  try {
+    actor = await requireTenantActor();
+    const parsed = ActivationLinkInputSchema.parse({
+      employee_id: formData.get("employee_id"),
+      return_to: optionalString(formData.get("return_to")),
+    });
+    employeeId = parsed.employee_id;
+    returnTo = safeReturnPath(parsed.return_to, "/employees");
+
+    const result = await generateEmployeeActivationLink(actor, parsed.employee_id);
+    activationLink = result.activationLink;
+  } catch (error) {
+    failed = true;
+    errorCode = getErrorCode(error);
+    caughtError = error;
+  }
+
+  const durationMs = Date.now() - start;
+  if (caughtError !== null) {
+    captureActionError("generateActivationLink", caughtError, {
+      actor_user_id: actor?.authUserId ?? null,
+      actor_tenant_id: actor?.tenantId ?? null,
+      employee_id: employeeId || null,
+    });
+    logAction({
+      action: "generateActivationLink",
+      actorUserId: actor?.authUserId ?? null,
+      actorTenantId: actor?.tenantId ?? null,
+      durationMs,
+      outcome: "fail",
+      error: caughtError,
+      requestId,
+    });
+  } else {
+    logAction({
+      action: "generateActivationLink",
+      actorUserId: actor!.authUserId,
+      actorTenantId: actor!.tenantId,
+      durationMs,
+      outcome: "ok",
+      requestId,
+    });
+  }
+
+  if (failed) {
+    redirect(`${returnTo}?error=${encodeURIComponent(errorCode)}&employee=${encodeURIComponent(employeeId)}`);
+  }
+
+  redirect(
+    `${returnTo}?status=activation_link_ready&employee=${encodeURIComponent(employeeId)}&activation_link=${encodeURIComponent(activationLink)}`,
+  );
+}
+
+export async function uploadEmployeeDocumentAction(formData: FormData): Promise<void> {
+  let failed = false;
+  let errorCode = "UNKNOWN";
+  let employeeId = "";
+  let returnTo = "/employees";
+
+  const start = Date.now();
+  const requestId = crypto.randomUUID();
+  let actor: Awaited<ReturnType<typeof requireTenantActor>> | null = null;
+  let caughtError: unknown = null;
+
+  try {
+    actor = await requireTenantActor();
+    const file = formData.get("file");
+    if (!(file instanceof File) || file.size === 0) {
+      throw new Error("INVALID_INPUT");
+    }
+
+    const parsed = UploadDocumentInputSchema.parse({
+      employee_id: formData.get("employee_id"),
+      type: formData.get("type"),
+      signed_at: optionalString(formData.get("signed_at")),
+      expires_at: optionalString(formData.get("expires_at")),
+      return_to: optionalString(formData.get("return_to")),
+    });
+
+    employeeId = parsed.employee_id;
+    returnTo = safeReturnPath(parsed.return_to, "/employees");
+
+    await uploadDocument(actor, {
+      employeeId: parsed.employee_id,
+      type: parsed.type,
+      file,
+      signedAt: parsed.signed_at ?? null,
+      expiresAt: parsed.expires_at ?? null,
+    });
+  } catch (error) {
+    failed = true;
+    errorCode = getErrorCode(error);
+    caughtError = error;
+  }
+
+  const durationMs = Date.now() - start;
+  if (caughtError !== null) {
+    captureActionError("uploadEmployeeDocument", caughtError, {
+      actor_user_id: actor?.authUserId ?? null,
+      actor_tenant_id: actor?.tenantId ?? null,
+      employee_id: employeeId || null,
+    });
+    logAction({
+      action: "uploadEmployeeDocument",
+      actorUserId: actor?.authUserId ?? null,
+      actorTenantId: actor?.tenantId ?? null,
+      durationMs,
+      outcome: "fail",
+      error: caughtError,
+      requestId,
+    });
+  } else {
+    logAction({
+      action: "uploadEmployeeDocument",
+      actorUserId: actor!.authUserId,
+      actorTenantId: actor!.tenantId,
+      durationMs,
+      outcome: "ok",
+      requestId,
+    });
+  }
+
+  if (failed) {
+    redirect(`${returnTo}?error=${encodeURIComponent(errorCode)}&employee=${encodeURIComponent(employeeId)}`);
+  }
+
+  redirect(`${returnTo}?status=document_uploaded&employee=${encodeURIComponent(employeeId)}`);
+}
+
+export async function downloadEmployeeDocumentAction(formData: FormData): Promise<void> {
+  let failed = false;
+  let errorCode = "UNKNOWN";
+  let returnTo = "/employees";
+  let documentId = "";
+  let signedUrl = "";
+
+  try {
+    const actor = await requireTenantActor();
+    const parsed = DownloadDocumentInputSchema.parse({
+      document_id: formData.get("document_id"),
+      return_to: optionalString(formData.get("return_to")),
+    });
+    documentId = parsed.document_id;
+    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    signedUrl = await getSignedDownloadUrl(actor, parsed.document_id);
   } catch (error) {
     failed = true;
     errorCode = getErrorCode(error);
   }
 
   if (failed) {
-    redirect(`/employees?error=${encodeURIComponent(errorCode)}`);
+    redirect(`${returnTo}?error=${encodeURIComponent(errorCode)}&document=${encodeURIComponent(documentId)}`);
   }
 
-  redirect("/employees?status=archived");
+  redirect(signedUrl);
+}
+
+export async function deleteEmployeeDocumentAction(formData: FormData): Promise<void> {
+  let failed = false;
+  let errorCode = "UNKNOWN";
+  let employeeId = "";
+  let returnTo = "/employees";
+
+  const start = Date.now();
+  const requestId = crypto.randomUUID();
+  let actor: Awaited<ReturnType<typeof requireTenantActor>> | null = null;
+  let caughtError: unknown = null;
+
+  try {
+    actor = await requireTenantActor();
+    const parsed = DeleteDocumentInputSchema.parse({
+      document_id: formData.get("document_id"),
+      employee_id: formData.get("employee_id"),
+      return_to: optionalString(formData.get("return_to")),
+    });
+    employeeId = parsed.employee_id;
+    returnTo = safeReturnPath(parsed.return_to, "/employees");
+
+    await softDeleteDocument(actor, parsed.document_id);
+  } catch (error) {
+    failed = true;
+    errorCode = getErrorCode(error);
+    caughtError = error;
+  }
+
+  const durationMs = Date.now() - start;
+  if (caughtError !== null) {
+    captureActionError("deleteEmployeeDocument", caughtError, {
+      actor_user_id: actor?.authUserId ?? null,
+      actor_tenant_id: actor?.tenantId ?? null,
+      employee_id: employeeId || null,
+    });
+    logAction({
+      action: "deleteEmployeeDocument",
+      actorUserId: actor?.authUserId ?? null,
+      actorTenantId: actor?.tenantId ?? null,
+      durationMs,
+      outcome: "fail",
+      error: caughtError,
+      requestId,
+    });
+  } else {
+    logAction({
+      action: "deleteEmployeeDocument",
+      actorUserId: actor!.authUserId,
+      actorTenantId: actor!.tenantId,
+      durationMs,
+      outcome: "ok",
+      requestId,
+    });
+  }
+
+  if (failed) {
+    redirect(`${returnTo}?error=${encodeURIComponent(errorCode)}&employee=${encodeURIComponent(employeeId)}`);
+  }
+
+  redirect(`${returnTo}?status=document_deleted&employee=${encodeURIComponent(employeeId)}`);
+}
+
+export async function exportEmployeeDueDiligencePackAction(formData: FormData): Promise<void> {
+  let failed = false;
+  let errorCode = "UNKNOWN";
+  let employeeId = "";
+  let returnTo = "/employees";
+  let signedUrl = "";
+
+  try {
+    const actor = await requireTenantActor();
+    const parsed = ExportDueDiligencePackInputSchema.parse({
+      employee_id: formData.get("employee_id"),
+      return_to: optionalString(formData.get("return_to")),
+    });
+    employeeId = parsed.employee_id;
+    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    signedUrl = await exportEmployeeDueDiligencePackUrl(actor, parsed.employee_id);
+  } catch (error) {
+    failed = true;
+    errorCode = getErrorCode(error);
+  }
+
+  if (failed) {
+    redirect(`${returnTo}?error=${encodeURIComponent(errorCode)}&employee=${encodeURIComponent(employeeId)}`);
+  }
+
+  redirect(signedUrl);
+}
+
+export async function exportFinanceHandoffAction(formData: FormData): Promise<void> {
+  let failed = false;
+  let errorCode = "UNKNOWN";
+  let returnTo = "/employees";
+  let signedUrl = "";
+
+  try {
+    const actor = await requireTenantActor();
+    const parsed = ExportFinanceHandoffInputSchema.parse({
+      return_to: optionalString(formData.get("return_to")),
+    });
+    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    signedUrl = await exportFinanceHandoffUrl(actor);
+  } catch (error) {
+    failed = true;
+    errorCode = getErrorCode(error);
+  }
+
+  if (failed) {
+    redirect(`${returnTo}?error=${encodeURIComponent(errorCode)}`);
+  }
+
+  redirect(signedUrl);
 }
