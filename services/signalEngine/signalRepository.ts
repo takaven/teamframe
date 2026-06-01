@@ -54,7 +54,17 @@ export function createSignalRepository(): SignalRepository {
     async createSignal(draft: SignalInsertDraft): Promise<string> {
       const { data, error } = await supabase
         .from("risk_signals")
-        .insert(draft)
+        .insert({
+          tenant_id: draft.tenant_id,
+          kind: draft.kind,
+          trigger_reason: draft.trigger_reason,
+          severity: draft.severity,
+          subject_employee_id: draft.subject_employee_id,
+          evidence: draft.evidence,
+          first_seen_at: draft.first_seen_at,
+          last_seen_at: draft.last_seen_at,
+          resolved_at: draft.resolved_at,
+        })
         .select("id")
         .single();
 
@@ -67,7 +77,15 @@ export function createSignalRepository(): SignalRepository {
     },
 
     async createAction(draft: ActionInsertDraft): Promise<void> {
-      const { error } = await supabase.from("action_items").insert(draft);
+      const { error } = await supabase.from("action_items").insert({
+        tenant_id: draft.tenant_id,
+        risk_signal_id: draft.risk_signal_id,
+        subject_employee_id: draft.subject_employee_id,
+        category: draft.category,
+        title: draft.title,
+        suggested_action: draft.suggested_action,
+        status: draft.status,
+      });
       if (error) {
         throw new Error(`SIGNAL_EMIT_ACTION_CREATE_FAILED: ${error.message}`);
       }
