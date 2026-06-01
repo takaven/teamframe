@@ -49,8 +49,9 @@ function consumeRateLimit(
   return true;
 }
 
-function getClientIpAddress(): string {
-  const forwardedFor = headers().get("x-forwarded-for") ?? "";
+async function getClientIpAddress(): Promise<string> {
+  const requestHeaders = await headers();
+  const forwardedFor = requestHeaders.get("x-forwarded-for") ?? "";
   const firstHop = forwardedFor.split(",")[0]?.trim();
   return firstHop || "unknown";
 }
@@ -63,7 +64,7 @@ export async function sendMagicLink(formData: FormData): Promise<void> {
   }
   const email = parsed.data;
   const nowMs = Date.now();
-  const clientIp = getClientIpAddress();
+  const clientIp = await getClientIpAddress();
 
   if (
     !consumeRateLimit(
