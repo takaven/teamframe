@@ -4,6 +4,7 @@ import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 import { SignalSection } from "@/app/dashboard/SignalSection";
 import type { DashboardSignal } from "@/app/dashboard/RiskCard";
 import { runSignalEngineForTenant } from "@/services/signalEngine";
+import { SignOutButton } from "@/components/SignOutButton";
 
 export const dynamic = "force-dynamic";
 
@@ -250,11 +251,12 @@ export default async function DashboardPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
-      <nav className="mb-6 flex gap-4 text-[14px] text-ink-500">
+      <nav className="mb-6 flex items-center gap-4 text-[14px] text-ink-500">
         <span className="text-ink-900 font-medium">Dashboard</span>
         <Link href="/employees" className="hover:text-ink-900 transition">Team roster</Link>
         <Link href="/onboarding" className="hover:text-ink-900 transition">Onboarding</Link>
         <Link href="/leaves" className="hover:text-ink-900 transition">Leaves</Link>
+        <SignOutButton className="ml-auto" />
       </nav>
 
       <header className="grid gap-4 border-b border-ink-300/60 pb-5 lg:grid-cols-[1fr_auto] lg:items-end">

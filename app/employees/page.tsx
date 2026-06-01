@@ -21,6 +21,7 @@ import {
   reinviteEmployeeAction,
   uploadEmployeeDocumentAction,
 } from "./actions";
+import { SignOutButton } from "@/components/SignOutButton";
 
 export const dynamic = "force-dynamic";
 
@@ -102,11 +103,12 @@ export default async function EmployeesPage({
   if (actor.role !== "admin") {
     return (
       <main className="mx-auto max-w-3xl px-6 py-14">
-        <nav className="mb-6 flex gap-4 text-[14px] text-ink-500">
+        <nav className="mb-6 flex items-center gap-4 text-[14px] text-ink-500">
           <Link href="/dashboard" className="hover:text-ink-900 transition">Dashboard</Link>
           <span className="text-ink-900 font-medium">Team roster</span>
           <Link href="/onboarding" className="hover:text-ink-900 transition">Onboarding</Link>
           <Link href="/leaves" className="hover:text-ink-900 transition">Leaves</Link>
+          <SignOutButton className="ml-auto" />
         </nav>
         <div className="space-y-2 border-b border-ink-300/60 pb-5">
           <p className="text-[12px] tracking-[0.14em] text-ink-500">Restricted</p>
@@ -191,11 +193,12 @@ export default async function EmployeesPage({
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-14">
-      <nav className="mb-6 flex gap-4 text-[14px] text-ink-500">
+      <nav className="mb-6 flex items-center gap-4 text-[14px] text-ink-500">
         <Link href="/dashboard" className="hover:text-ink-900 transition">Dashboard</Link>
         <span className="text-ink-900 font-medium">Team roster</span>
         <Link href="/onboarding" className="hover:text-ink-900 transition">Onboarding</Link>
         <Link href="/leaves" className="hover:text-ink-900 transition">Leaves</Link>
+        <SignOutButton className="ml-auto" />
       </nav>
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink-300/60 pb-5">
         <div className="space-y-2">

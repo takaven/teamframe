@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { requireTenantActor } from "@/middleware/rbac";
 import { getEmployee } from "@/services/employeeService";
+import { SignOutButton } from "@/components/SignOutButton";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,7 @@ export default async function MePage({
   if (!actor.employeeId) {
     return (
       <main className="mx-auto max-w-3xl px-6 py-14">
-        <nav className="mb-6 flex gap-4 text-[14px] text-ink-500">
+        <nav className="mb-6 flex items-center gap-4 text-[14px] text-ink-500">
           <span className="text-ink-900 font-medium">Me</span>
           <Link href="/onboarding" className="hover:text-ink-900 transition">
             Onboarding
@@ -43,6 +44,7 @@ export default async function MePage({
           <Link href="/leaves" className="hover:text-ink-900 transition">
             Leaves
           </Link>
+          <SignOutButton className="ml-auto" />
         </nav>
         <section className="mt-8 rounded-xl border border-dashed border-ink-300/80 bg-white/60 p-8 text-center">
           <p className="text-[15px] text-ink-700">
@@ -60,7 +62,7 @@ export default async function MePage({
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-14">
-      <nav className="mb-6 flex gap-4 text-[14px] text-ink-500">
+      <nav className="mb-6 flex items-center gap-4 text-[14px] text-ink-500">
         <span className="text-ink-900 font-medium">Me</span>
         <Link href="/onboarding" className="hover:text-ink-900 transition">
           Onboarding
@@ -68,6 +70,7 @@ export default async function MePage({
         <Link href="/leaves" className="hover:text-ink-900 transition">
           Leaves
         </Link>
+        <SignOutButton className="ml-auto" />
       </nav>
 
       {successMessage ? (

@@ -160,7 +160,7 @@ export async function submitLeaveRequest(
   }
 
   const created = data as LeaveRow;
-  await writeAudit(actor, "leave.submitted", created.id);
+  await writeAudit(actor, "leave.submitted", created.id, true);
 
   // Fire first_leave_requested once per tenant
   const countResult = await supabase

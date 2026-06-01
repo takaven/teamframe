@@ -7,6 +7,7 @@ import {
 import { listEmployeesForAdmin } from "@/services/employeeService";
 import Link from "next/link";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
+import { SignOutButton } from "@/components/SignOutButton";
 import { assignOnboardingTaskAction, completeOnboardingTaskAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -78,11 +79,12 @@ export default async function OnboardingPage({
 
     return (
       <main className="mx-auto max-w-5xl px-6 py-14">
-        <nav className="mb-6 flex gap-4 text-[14px] text-ink-500">
+        <nav className="mb-6 flex items-center gap-4 text-[14px] text-ink-500">
           <Link href="/dashboard" className="hover:text-ink-900 transition">Dashboard</Link>
           <Link href="/employees" className="hover:text-ink-900 transition">Employees</Link>
           <span className="text-ink-900 font-medium">Onboarding</span>
           <Link href="/leaves" className="hover:text-ink-900 transition">Leaves</Link>
+          <SignOutButton className="ml-auto" />
         </nav>
 
         <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink-300/60 pb-5">
@@ -239,10 +241,11 @@ export default async function OnboardingPage({
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-14">
-      <nav className="mb-6 flex gap-4 text-[14px] text-ink-500">
+      <nav className="mb-6 flex items-center gap-4 text-[14px] text-ink-500">
         <Link href="/me" className="hover:text-ink-900 transition">Me</Link>
         <span className="text-ink-900 font-medium">Onboarding</span>
         <Link href="/leaves" className="hover:text-ink-900 transition">Leaves</Link>
+        <SignOutButton className="ml-auto" />
       </nav>
 
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink-300/60 pb-5">
