@@ -40,4 +40,4 @@ These findings are synthesized from five separate audit reports (archived in `au
 |----|---------|----------------|-------------|--------|-----------------------|
 | M18 | Remove dead openaiApiKey getter | `lib/db/env.ts` | Audits 1, 4 | Closed | Commit cc13faf |
 | M19 | Clean up /lib/ai references in docs and .env.example | `docs/architecture.md`, `docs/ai-boundaries.md`, `.env.example` | Audits 1, 4 | Closed | Commit cc13faf + .env cleanup |
-| M20 | Confirm Supabase backup tier (PITR enabled) and document recovery procedure | Operational — no code change | Meta-review | Open | TBD |
+| M20 | Confirm Supabase backup tier (PITR enabled) and document recovery procedure | Operational — no code change | Meta-review | Open | docs/launch/verification/m20-backup-pitr-recovery-evidence.md |
