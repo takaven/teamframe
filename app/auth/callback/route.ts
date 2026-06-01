@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/db/supabaseServer";
 import { resolveIdentity } from "@/lib/rbac/roles";
+import { track } from "@/lib/telemetry/track";
 
 const NEXT_ALLOWLIST = ["/dashboard", "/employees", "/leaves", "/onboarding", "/me"] as const;
 
@@ -144,6 +145,13 @@ export async function GET(request: Request) {
     if (identity.role === "employee" && (!identity.employeeId || !identity.tenantId)) {
       return callbackErrorRedirect(url, "invalid_tenant");
     }
+
+    await track({
+      tenantId: identity.tenantId,
+      userId: identity.authUserId,
+      eventName: "session_started",
+      properties: { role: identity.role },
+    });
 
     return successRedirect(url, next, identity.role);
   } catch (error) {
