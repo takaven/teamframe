@@ -11,6 +11,10 @@ do $$ begin
   create type employee_setup_status as enum ('incomplete', 'ready', 'active');
 exception when duplicate_object then null; end $$;
 
+do $$ begin
+  create type employment_type as enum ('full_time', 'part_time', 'contractor', 'intern');
+exception when duplicate_object then null; end $$;
+
 create table if not exists employees (
   id              uuid primary key default gen_random_uuid(),
   tenant_id       uuid        not null references companies(id) on delete restrict,
@@ -21,6 +25,7 @@ create table if not exists employees (
   department      text        not null,
   timezone        text        not null,
   manager_id      uuid        references employees(id) on delete set null,
+  employment_type employment_type not null default 'full_time',
   status          employee_status        not null default 'active',
   grade           text,
   setup_status    employee_setup_status  not null default 'incomplete',
@@ -103,6 +108,30 @@ create index if not exists employees_tenant_id_idx  on employees(tenant_id);
 create index if not exists employees_auth_user_id_idx on employees(auth_user_id);
 create index if not exists employees_status_idx     on employees(status);
 create index if not exists employees_deleted_at_idx on employees(deleted_at);
+
+-- FPORS pivot (Wave 1): lifecycle + jurisdiction signals
+do $$ begin
+  create type employee_lifecycle_state as enum ('preboarding', 'active', 'on_leave', 'offboarding', 'exited');
+exception when duplicate_object then null; end $$;
+
+do $$ begin
+  alter type employee_lifecycle_state add value if not exists 'on_leave';
+exception when duplicate_object then null; end $$;
+
+do $$ begin
+  alter type employee_lifecycle_state add value if not exists 'offboarding';
+exception when duplicate_object then null; end $$;
+
+alter table employees add column if not exists lifecycle_state employee_lifecycle_state not null default 'active';
+alter table employees add column if not exists employment_type employment_type not null default 'full_time';
+alter table employees add column if not exists start_date date;
+alter table employees add column if not exists end_date date;
+alter table employees add column if not exists country text;
+
+create index if not exists employees_lifecycle_state_idx on employees(lifecycle_state);
+create index if not exists employees_employment_type_idx on employees(employment_type);
+create index if not exists employees_start_date_idx on employees(start_date);
+create index if not exists employees_end_date_idx on employees(end_date);
 
 create or replace function employees_touch_updated_at()
 returns trigger

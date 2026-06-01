@@ -7,13 +7,14 @@ import { listPendingLeavesWithEmployee, type PendingLeaveWithEmployee } from "@/
 import Link from "next/link";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
+import { SignOutButton } from "@/components/SignOutButton";
 import { submitLeaveAction, decideLeaveAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
 const STATUS_COPY: Record<string, string> = {
-  submitted: "Leave request submitted.",
-  decided: "Decision recorded.",
+  decided_approved: "Request approved.",
+  decided_rejected: "Request rejected.",
 };
 
 const ERROR_COPY: Record<string, string> = {
@@ -81,7 +82,7 @@ export default async function LeavesPage({
 
     return (
       <main className="mx-auto max-w-5xl px-6 py-14">
-        <nav className="mb-6 flex gap-4 text-[14px] text-ink-500">
+        <nav className="mb-6 flex items-center gap-4 text-[14px] text-ink-500">
           <Link href="/dashboard" className="hover:text-ink-900 transition">
             Dashboard
           </Link>
@@ -89,6 +90,7 @@ export default async function LeavesPage({
             Employees
           </Link>
           <span className="text-ink-900 font-medium">Leaves</span>
+          <SignOutButton className="ml-auto" />
         </nav>
 
         <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink-300/60 pb-5">
@@ -212,17 +214,15 @@ export default async function LeavesPage({
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-14">
-      <nav className="mb-6 flex gap-4 text-[14px] text-ink-500">
+      <nav className="mb-6 flex items-center gap-4 text-[14px] text-ink-500">
         <Link href="/me" className="hover:text-ink-900 transition">
-          My space
+          Me
         </Link>
-        <Link href="/dashboard" className="hover:text-ink-900 transition">
-          Dashboard
-        </Link>
-        <Link href="/employees" className="hover:text-ink-900 transition">
-          Employees
+        <Link href="/onboarding" className="hover:text-ink-900 transition">
+          Onboarding
         </Link>
         <span className="text-ink-900 font-medium">Leaves</span>
+        <SignOutButton className="ml-auto" />
       </nav>
 
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink-300/60 pb-5">

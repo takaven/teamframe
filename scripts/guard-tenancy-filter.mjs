@@ -55,7 +55,13 @@ const MAX_CHAIN_CHARS = 4000;
 // the same table from a different function in the same file still fails.
 // `enclosingFn` matches the nearest preceding `function <name>(` or
 // `async function <name>(` token before the `.from(...)` site.
-const ALLOWLIST = [];
+const ALLOWLIST = [
+  {
+    file: "services/signalEngine/scheduledRunner.ts",
+    table: "companies",
+    enclosingFn: "runSignalsForAllTenants",
+  },
+];
 
 // ── Non-DB `.from(...)` patterns that should be ignored entirely ───────────
 // These are not Supabase database queries.

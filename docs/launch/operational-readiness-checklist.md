@@ -2,6 +2,8 @@
 
 All items must be checked before public launch. Each item links to the relevant runbook or verification artifact where one exists.
 
+Primary M20 evidence artifact: `docs/launch/verification/m20-backup-pitr-recovery-evidence.md`
+
 ## Infrastructure
 
 - [ ] Supabase project on Pro tier (or equivalent plan with daily backups)

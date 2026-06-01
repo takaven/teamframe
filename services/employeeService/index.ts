@@ -37,9 +37,17 @@ export type OrgChartEmployee = {
   status: "active" | "on_leave" | "inactive";
 };
 
+export type EmploymentType = "full_time" | "part_time" | "contractor" | "intern";
+export type EmployeeLifecycleState = "preboarding" | "active" | "on_leave" | "offboarding" | "exited";
+
 export type EmployeeFullRecord = OrgChartEmployee & {
   email: string;
   timezone: string;
+  employment_type: EmploymentType;
+  country: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  lifecycle_state: EmployeeLifecycleState;
   grade: string | null;
   setup_status: "incomplete" | "ready" | "active";
   invite_attempt_count: number;
@@ -63,7 +71,16 @@ const EMPLOYEE_TELEMETRY_COLUMNS = [
   "activated_at",
 ] as const;
 
+const EMPLOYEE_PROFILE_COLUMNS = [
+  "employment_type",
+  "country",
+  "start_date",
+  "end_date",
+  "lifecycle_state",
+] as const;
+
 type EmployeeTelemetryColumn = (typeof EMPLOYEE_TELEMETRY_COLUMNS)[number];
+type EmployeeProfileColumn = (typeof EMPLOYEE_PROFILE_COLUMNS)[number];
 
 type EmployeeTelemetryCapabilities = {
   checkedAt: string;
@@ -98,6 +115,14 @@ function extractMissingTelemetryColumns(
   message: string,
   candidates: readonly EmployeeTelemetryColumn[] = EMPLOYEE_TELEMETRY_COLUMNS,
 ): EmployeeTelemetryColumn[] {
+  const lower = message.toLowerCase();
+  return candidates.filter((column) => lower.includes(column));
+}
+
+function extractMissingProfileColumns(
+  message: string,
+  candidates: readonly EmployeeProfileColumn[] = EMPLOYEE_PROFILE_COLUMNS,
+): EmployeeProfileColumn[] {
   const lower = message.toLowerCase();
   return candidates.filter((column) => lower.includes(column));
 }
@@ -224,10 +249,13 @@ export async function listEmployeesForAdmin(actor: Actor): Promise<EmployeeFullR
   const tenantId = requireTenant(actor);
   const capabilities = await detectEmployeeTelemetryCapabilities();
   const baseSelect =
+    "id, tenant_id, full_name, email, role_title, department, timezone, manager_id, status, employment_type, country, start_date, end_date, lifecycle_state, grade, setup_status, created_at, updated_at";
+  const legacyBaseSelect =
     "id, tenant_id, full_name, email, role_title, department, timezone, manager_id, status, grade, setup_status, created_at, updated_at";
   const telemetrySelect =
     "invite_attempt_count, invite_last_attempt_at, invite_last_sent_at, invite_last_error, activated_at";
   const selectColumns = capabilities.limitedMode ? baseSelect : `${baseSelect}, ${telemetrySelect}`;
+  const legacySelectColumns = capabilities.limitedMode ? legacyBaseSelect : `${legacyBaseSelect}, ${telemetrySelect}`;
 
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
@@ -237,11 +265,36 @@ export async function listEmployeesForAdmin(actor: Actor): Promise<EmployeeFullR
     .is("deleted_at", null)
     .order("full_name", { ascending: true });
 
-  if (error) {
+  if (!error) {
+    return ((data ?? []) as EmployeeRow[]).map(toEmployeeFullRecord);
+  }
+
+  const missingProfileColumns = isSchemaMissingColumnError(error.message)
+    ? extractMissingProfileColumns(error.message)
+    : [];
+
+  if (missingProfileColumns.length === 0) {
     throw new Error(`EMPLOYEE_LIST_FAILED: ${error.message}`);
   }
 
-  return ((data ?? []) as EmployeeRow[]).map(toEmployeeFullRecord);
+  console.warn("EMPLOYEE_SCHEMA_CAPABILITY_WARN", {
+    mode: "limited_profile",
+    reason: "columns_missing",
+    missing_columns: missingProfileColumns,
+  });
+
+  const { data: legacyData, error: legacyError } = await supabase
+    .from("employees")
+    .select(legacySelectColumns)
+    .eq("tenant_id", tenantId)
+    .is("deleted_at", null)
+    .order("full_name", { ascending: true });
+
+  if (legacyError) {
+    throw new Error(`EMPLOYEE_LIST_FAILED: ${legacyError.message}`);
+  }
+
+  return ((legacyData ?? []) as EmployeeRow[]).map(toEmployeeFullRecord);
 }
 
 const CreateEmployeeSchema = z.object({
@@ -250,6 +303,10 @@ const CreateEmployeeSchema = z.object({
   role_title: z.string().trim().min(1).max(200),
   department: z.string().trim().min(1).max(120),
   timezone: z.string().trim().min(1).max(100),
+  employment_type: z.enum(["full_time", "part_time", "contractor", "intern"]),
+  country: z.string().trim().min(2).max(100),
+  start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
   manager_id: z.string().uuid().nullable().optional(),
   grade: z.string().trim().max(100).nullable().optional(),
   status: z.enum(["active", "on_leave", "inactive"]).optional(),
@@ -261,9 +318,14 @@ const UpdateEmployeeSchema = z.object({
   role_title: z.string().trim().min(1).max(200).optional(),
   department: z.string().trim().min(1).max(120).optional(),
   timezone: z.string().trim().min(1).max(100).optional(),
+  employment_type: z.enum(["full_time", "part_time", "contractor", "intern"]).optional(),
+  country: z.string().trim().min(2).max(100).optional(),
+  start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
   manager_id: z.string().uuid().nullable().optional(),
   grade: z.string().trim().max(100).nullable().optional(),
   status: z.enum(["active", "on_leave", "inactive"]).optional(),
+  lifecycle_state: z.enum(["preboarding", "active", "on_leave", "offboarding", "exited"]).optional(),
   setup_status: z.enum(["incomplete", "ready", "active"]).optional(),
 });
 
@@ -303,17 +365,6 @@ function requireAdmin(actor: Actor): void {
   }
 }
 
-function toOrgChartEmployee(row: EmployeeRow): OrgChartEmployee {
-  return {
-    id: row.id,
-    full_name: row.full_name,
-    role_title: row.role_title,
-    department: row.department,
-    manager_id: row.manager_id,
-    status: row.status,
-  };
-}
-
 function toEmployeeFullRecord(row: EmployeeRow): EmployeeFullRecord {
   const maybeTelemetry = row as EmployeeRow & {
     invite_attempt_count?: number;
@@ -322,6 +373,15 @@ function toEmployeeFullRecord(row: EmployeeRow): EmployeeFullRecord {
     invite_last_error?: string | null;
     activated_at?: string | null;
   };
+  const maybeProfile = row as EmployeeRow & {
+    employment_type?: EmploymentType;
+    country?: string | null;
+    start_date?: string | null;
+    end_date?: string | null;
+    lifecycle_state?: EmployeeLifecycleState;
+  };
+  const fallbackLifecycleState: EmployeeLifecycleState =
+    row.status === "inactive" ? "exited" : row.status === "on_leave" ? "on_leave" : "active";
 
   return {
     id: row.id,
@@ -332,6 +392,11 @@ function toEmployeeFullRecord(row: EmployeeRow): EmployeeFullRecord {
     status: row.status,
     email: row.email,
     timezone: row.timezone,
+    employment_type: maybeProfile.employment_type ?? "full_time",
+    country: maybeProfile.country ?? null,
+    start_date: maybeProfile.start_date ?? null,
+    end_date: maybeProfile.end_date ?? null,
+    lifecycle_state: maybeProfile.lifecycle_state ?? fallbackLifecycleState,
     grade: row.grade,
     setup_status: row.setup_status,
     invite_attempt_count: maybeTelemetry.invite_attempt_count ?? 0,
@@ -757,23 +822,6 @@ async function writeAudit(
   }
 }
 
-export async function listOrgChart(actor: Actor): Promise<OrgChartEmployee[]> {
-  const tenantId = requireTenant(actor);
-  const supabase = createServiceRoleClient();
-  const { data, error } = await supabase
-    .from("employees")
-    .select("id, full_name, role_title, department, manager_id, status, tenant_id")
-    .eq("tenant_id", tenantId)
-    .is("deleted_at", null)
-    .order("full_name", { ascending: true });
-
-  if (error) {
-    throw new Error(`EMPLOYEE_LIST_FAILED: ${error.message}`);
-  }
-
-  return ((data ?? []) as EmployeeRow[]).map(toOrgChartEmployee);
-}
-
 export async function getEmployee(
   actor: Actor,
   employeeId: string,
@@ -787,7 +835,7 @@ export async function getEmployee(
   const { data, error } = await supabase
     .from("employees")
     .select(
-      "id, tenant_id, full_name, email, role_title, department, timezone, manager_id, status, grade, setup_status, created_at, updated_at",
+      "id, tenant_id, full_name, email, role_title, department, timezone, manager_id, status, employment_type, country, start_date, end_date, lifecycle_state, grade, setup_status, created_at, updated_at",
     )
     .eq("tenant_id", tenantId)
     .eq("id", employeeId)
@@ -819,13 +867,17 @@ export async function createEmployee(actor: Actor, input: unknown): Promise<Empl
       role_title: parsed.role_title,
       department: parsed.department,
       timezone: parsed.timezone,
+      employment_type: parsed.employment_type,
+      country: parsed.country,
+      start_date: parsed.start_date,
+      end_date: parsed.end_date ?? null,
       manager_id: parsed.manager_id ?? null,
       grade: parsed.grade ?? null,
       status: parsed.status ?? "active",
       setup_status: parsed.setup_status ?? "incomplete",
     } as never)
     .select(
-      "id, tenant_id, full_name, email, role_title, department, timezone, manager_id, status, grade, setup_status, created_at, updated_at",
+      "id, tenant_id, full_name, email, role_title, department, timezone, manager_id, status, employment_type, country, start_date, end_date, lifecycle_state, grade, setup_status, created_at, updated_at",
     )
     .single();
 
@@ -921,7 +973,7 @@ export async function updateEmployee(
     .eq("updated_at", expectedUpdatedAt)
     .is("deleted_at", null)
     .select(
-      "id, tenant_id, full_name, email, role_title, department, timezone, manager_id, status, grade, setup_status, created_at, updated_at",
+      "id, tenant_id, full_name, email, role_title, department, timezone, manager_id, status, employment_type, country, start_date, end_date, lifecycle_state, grade, setup_status, created_at, updated_at",
     )
     .maybeSingle();
 
@@ -956,7 +1008,7 @@ export async function softDeleteEmployee(
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from("employees")
-    .update({ deleted_at: new Date().toISOString() } as never)
+    .update({ deleted_at: new Date().toISOString(), lifecycle_state: "exited" } as never)
     .eq("tenant_id", tenantId)
     .eq("id", employeeId)
     .eq("updated_at", expectedUpdatedAt)
@@ -974,11 +1026,6 @@ export async function softDeleteEmployee(
       throw new Error("STALE_WRITE");
     }
     throw new Error("NOT_FOUND");
-  }
-
-  const exists = await rowExistsForTenant(actor, employeeId);
-  if (exists) {
-    throw new Error("STALE_WRITE");
   }
 
   await writeAudit(actor, "employee.archived", employeeId, true);

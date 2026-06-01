@@ -1,31 +1,40 @@
 import { requireTenantActor } from "@/middleware/rbac";
-import { OrgChart } from "@/components/OrgChart";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import {
-  getEmployeeTelemetryCapabilities,
   INVITE_RESEND_COOLDOWN_SECONDS,
   listEmployeesForAdmin,
-  listOrgChart,
 } from "@/services/employeeService";
+import { listDocumentsForEmployee } from "@/services/documentService";
 import Link from "next/link";
 import { CopyInviteEmailButton } from "./CopyInviteEmailButton";
 import {
   createEmployeeAction,
+  deleteEmployeeDocumentAction,
+  downloadEmployeeDocumentAction,
+  exportFinanceHandoffAction,
+  exportEmployeeDueDiligencePackAction,
   generateActivationLinkAction,
+  startOffboardingAction,
   updateEmployeeAction,
   archiveEmployeeAction,
   reinviteEmployeeAction,
+  uploadEmployeeDocumentAction,
 } from "./actions";
+import { SignOutButton } from "@/components/SignOutButton";
 
 export const dynamic = "force-dynamic";
 
 const STATUS_COPY: Record<string, string> = {
   created: "Employee created.",
   updated: "Employee updated.",
+  offboarding_started: "Offboarding started.",
   archived: "Employee archived.",
   reinvited: "Invite link sent. The employee should use the newest email only.",
   activation_link_ready: "Activation link generated.",
+  document_uploaded: "Document uploaded.",
+  document_deleted: "Document deleted.",
+  due_diligence_pack_exported: "Due diligence pack prepared.",
 };
 
 const ERROR_COPY: Record<string, string> = {
@@ -48,6 +57,12 @@ const ERROR_COPY: Record<string, string> = {
   EMPLOYEE_ACTIVATION_LINK_FAILED: "Could not generate an activation link. Re-send invite and retry.",
   EMPLOYEE_ALREADY_ACTIVE: "This employee is already activated.",
   AUDIT_LOG_FAILED: "Could not record required audit trail. No change was applied.",
+  DOCUMENT_UPLOAD_FAILED: "Document upload failed.",
+  DOCUMENT_RECORD_CREATE_FAILED: "Document could not be saved.",
+  DOCUMENT_LIST_FAILED: "Could not load documents for this employee.",
+  DOCUMENT_FETCH_FAILED: "Document could not be found.",
+  DOCUMENT_SIGNED_URL_FAILED: "Could not generate document download link.",
+  DOCUMENT_DELETE_FAILED: "Could not delete document.",
   INVALID_INPUT: "Input validation failed.",
   UNKNOWN: "Something went wrong. Refresh and try again.",
 };
@@ -86,36 +101,36 @@ export default async function EmployeesPage({
   const errorMessage = error ? (ERROR_COPY[error] ?? ERROR_COPY.UNKNOWN) : null;
 
   if (actor.role !== "admin") {
-    const employees = await listOrgChart(actor);
     return (
-      <main className="mx-auto max-w-5xl px-6 py-14">
-        <nav className="mb-6 flex gap-4 text-[14px] text-ink-500">
-          <Link href="/me" className="hover:text-ink-900 transition">My space</Link>
-          <span className="text-ink-900 font-medium">Employees</span>
-          <Link href="/org-chart" className="hover:text-ink-900 transition">Org chart</Link>
+      <main className="mx-auto max-w-3xl px-6 py-14">
+        <nav className="mb-6 flex items-center gap-4 text-[14px] text-ink-500">
+          <Link href="/dashboard" className="hover:text-ink-900 transition">Dashboard</Link>
+          <span className="text-ink-900 font-medium">Team roster</span>
           <Link href="/onboarding" className="hover:text-ink-900 transition">Onboarding</Link>
           <Link href="/leaves" className="hover:text-ink-900 transition">Leaves</Link>
+          <SignOutButton className="ml-auto" />
         </nav>
-        <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink-300/60 pb-5">
-          <div className="space-y-2">
-            <p className="text-[12px] tracking-[0.14em] text-ink-500">Directory</p>
-            <h1 className="text-[34px] leading-tight tracking-tight">People map</h1>
-          </div>
+        <div className="space-y-2 border-b border-ink-300/60 pb-5">
+          <p className="text-[12px] tracking-[0.14em] text-ink-500">Restricted</p>
+          <h1 className="text-[34px] leading-tight tracking-tight">Team roster</h1>
         </div>
         <p className="mt-7 max-w-prose text-[15px] text-ink-700">
-          Team structure with role, department, and reporting lines.
+          The team roster is admin-only in TeamFrame. Ask your founder or admin to share what you need.
         </p>
-        <section className="mt-9">
-          <OrgChart employees={employees} />
-        </section>
       </main>
     );
   }
 
-  const [employees, telemetryCapabilities] = await Promise.all([
-    listEmployeesForAdmin(actor),
-    getEmployeeTelemetryCapabilities(actor),
-  ]);
+  const employees = await listEmployeesForAdmin(actor);
+  const employeeDocuments = await Promise.all(
+    employees.map(async (employee) => ({
+      employeeId: employee.id,
+      documents: await listDocumentsForEmployee(actor, employee.id),
+    })),
+  );
+  const documentsByEmployee = new Map(
+    employeeDocuments.map((item) => [item.employeeId, item.documents]),
+  );
   const invitePending = employees.filter((e) => e.status !== "inactive" && e.setup_status === "incomplete").length;
   const inviteSent = employees.filter((e) => e.status !== "inactive" && e.setup_status === "ready").length;
   const inviteActivated = employees.filter((e) => e.setup_status === "active").length;
@@ -178,37 +193,23 @@ export default async function EmployeesPage({
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-14">
-      <nav className="mb-6 flex gap-4 text-[14px] text-ink-500">
-        <span className="text-ink-900 font-medium">Employees</span>
-        <Link href="/org-chart" className="hover:text-ink-900 transition">Org chart</Link>
+      <nav className="mb-6 flex items-center gap-4 text-[14px] text-ink-500">
+        <Link href="/dashboard" className="hover:text-ink-900 transition">Dashboard</Link>
+        <span className="text-ink-900 font-medium">Team roster</span>
         <Link href="/onboarding" className="hover:text-ink-900 transition">Onboarding</Link>
         <Link href="/leaves" className="hover:text-ink-900 transition">Leaves</Link>
+        <SignOutButton className="ml-auto" />
       </nav>
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink-300/60 pb-5">
         <div className="space-y-2">
           <p className="text-[12px] tracking-[0.14em] text-ink-500">Admin queue</p>
-          <h1 className="text-[34px] leading-tight tracking-tight">Employee pipeline</h1>
+          <h1 className="text-[34px] leading-tight tracking-tight">Team roster</h1>
         </div>
       </div>
 
       <p className="mt-7 max-w-2xl text-[15px] text-ink-700">
         Add teammates, track invite progress, and keep onboarding moving from one place.
       </p>
-
-      <div className="mt-4 rounded-lg border border-ink-300/70 bg-white/70 px-4 py-3 text-[13px] text-ink-700">
-        <p>
-          Schema visibility: checked {formatDateTime(telemetryCapabilities.checkedAt)} against {telemetryCapabilities.schemaBaseline.totalFiles} expected schema files.
-        </p>
-        <p className="mt-1 text-[12px] text-ink-500">
-          Latest expected migration file: {telemetryCapabilities.schemaBaseline.latestFile}.
-        </p>
-      </div>
-
-      {telemetryCapabilities.limitedMode ? (
-        <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-800">
-          Limited telemetry mode: invite diagnostics are partially unavailable because schema columns are missing ({telemetryCapabilities.missingColumns.join(", ")}).
-        </p>
-      ) : null}
 
       <section className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
@@ -278,12 +279,57 @@ export default async function EmployeesPage({
             required
             className="rounded-md border border-ink-300 px-3 py-2 text-[14px]"
           />
+          <select
+            name="employment_type"
+            defaultValue="full_time"
+            required
+            className="rounded-md border border-ink-300 px-3 py-2 text-[14px] bg-white"
+          >
+            <option value="full_time">full_time</option>
+            <option value="part_time">part_time</option>
+            <option value="contractor">contractor</option>
+            <option value="intern">intern</option>
+          </select>
+          <input
+            name="country"
+            placeholder="Country (e.g. UAE)"
+            required
+            className="rounded-md border border-ink-300 px-3 py-2 text-[14px]"
+          />
+          <input
+            name="start_date"
+            type="date"
+            required
+            className="rounded-md border border-ink-300 px-3 py-2 text-[14px]"
+          />
+          <input
+            name="end_date"
+            type="date"
+            className="rounded-md border border-ink-300 px-3 py-2 text-[14px]"
+          />
           <PendingSubmitButton
             idleLabel="Create employee"
             pendingLabel="Creating..."
             className="rounded-md bg-ink-900 px-4 py-2 text-[14px] font-medium text-paper disabled:cursor-not-allowed disabled:bg-ink-300"
           />
         </form>
+      </section>
+
+      <section className="mt-5 rounded-xl border border-ink-300/70 bg-white/75 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-[12px] tracking-[0.12em] text-ink-500">Finance export</p>
+            <p className="mt-1 text-[14px] text-ink-700">Download a finance handoff package (CSV + spreadsheet-friendly TSV).</p>
+          </div>
+          <form action={exportFinanceHandoffAction}>
+            <input type="hidden" name="return_to" value="/employees" />
+            <PendingSubmitButton
+              idleLabel="Export finance handoff"
+              pendingLabel="Preparing export..."
+              className="rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-200 disabled:text-ink-400"
+            />
+          </form>
+        </div>
       </section>
 
       <section className="mt-8 space-y-4">
@@ -297,6 +343,7 @@ export default async function EmployeesPage({
               {(() => {
                 const resendCooldownSeconds = getResendCooldownSeconds(employee.invite_last_attempt_at);
                 const resendBlocked = resendCooldownSeconds > 0;
+                const documents = documentsByEmployee.get(employee.id) ?? [];
                 const resendGuidance = resendBlocked
                   ? `Re-send cooldown active: retry in ${resendCooldownSeconds}s.`
                   : "If delivery is delayed, use Re-send invite first, then activation link as fallback.";
@@ -366,6 +413,33 @@ export default async function EmployeesPage({
                   className="rounded-md border border-ink-300 px-3 py-2 text-[14px]"
                 />
                 <select
+                  name="employment_type"
+                  defaultValue={employee.employment_type}
+                  className="rounded-md border border-ink-300 px-3 py-2 text-[14px] bg-white"
+                >
+                  <option value="full_time">full_time</option>
+                  <option value="part_time">part_time</option>
+                  <option value="contractor">contractor</option>
+                  <option value="intern">intern</option>
+                </select>
+                <input
+                  name="country"
+                  defaultValue={employee.country ?? ""}
+                  className="rounded-md border border-ink-300 px-3 py-2 text-[14px]"
+                />
+                <input
+                  name="start_date"
+                  type="date"
+                  defaultValue={employee.start_date ?? ""}
+                  className="rounded-md border border-ink-300 px-3 py-2 text-[14px]"
+                />
+                <input
+                  name="end_date"
+                  type="date"
+                  defaultValue={employee.end_date ?? ""}
+                  className="rounded-md border border-ink-300 px-3 py-2 text-[14px]"
+                />
+                <select
                   name="status"
                   defaultValue={employee.status}
                   className="rounded-md border border-ink-300 px-3 py-2 text-[14px]"
@@ -387,6 +461,102 @@ export default async function EmployeesPage({
                 <p>Last sent: {formatDateTime(employee.invite_last_sent_at)}</p>
                 <p>Activation: {formatDateTime(employee.activated_at)}</p>
               </div>
+
+              <section className="mt-4 rounded-md border border-ink-200 bg-white px-3 py-3">
+                <h4 className="text-[13px] font-medium text-ink-900">Documents</h4>
+
+                <form action={uploadEmployeeDocumentAction} className="mt-3 grid gap-2 md:grid-cols-4" encType="multipart/form-data">
+                  <input type="hidden" name="employee_id" value={employee.id} />
+                  <input type="hidden" name="return_to" value="/employees" />
+                  <select
+                    name="type"
+                    defaultValue="contract"
+                    className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] bg-white"
+                  >
+                    <option value="contract">contract</option>
+                    <option value="cv">cv</option>
+                    <option value="jd">jd</option>
+                    <option value="photo">photo</option>
+                  </select>
+                  <input
+                    name="file"
+                    type="file"
+                    required
+                    className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px]"
+                  />
+                  <input
+                    name="signed_at"
+                    type="date"
+                    className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px]"
+                  />
+                  <input
+                    name="expires_at"
+                    type="date"
+                    className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px]"
+                  />
+                  <PendingSubmitButton
+                    idleLabel="Upload document"
+                    pendingLabel="Uploading..."
+                    className="rounded-md border border-ink-300 px-3 py-1.5 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-200 disabled:text-ink-400"
+                  />
+                </form>
+
+                {documents.length === 0 ? (
+                  <p className="mt-3 text-[12px] text-ink-500">No documents uploaded.</p>
+                ) : (
+                  <ul className="mt-3 space-y-2">
+                    {documents.map((document) => (
+                      <li key={document.id} className="rounded-md border border-ink-200 px-3 py-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="text-[12px] text-ink-700">
+                            <p className="font-medium text-ink-900">{document.type.toUpperCase()}</p>
+                            <p>Uploaded {formatDateTime(document.created_at)}</p>
+                            <p>Signed: {document.signed_at ? formatDateTime(document.signed_at) : "-"}</p>
+                            <p>Expires: {document.expires_at ? formatDateTime(document.expires_at) : "-"}</p>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <form action={downloadEmployeeDocumentAction}>
+                              <input type="hidden" name="document_id" value={document.id} />
+                              <input type="hidden" name="return_to" value="/employees" />
+                              <PendingSubmitButton
+                                idleLabel="Download"
+                                pendingLabel="Preparing..."
+                                className="rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-200 disabled:text-ink-400"
+                              />
+                            </form>
+                            <form action={deleteEmployeeDocumentAction}>
+                              <input type="hidden" name="document_id" value={document.id} />
+                              <input type="hidden" name="employee_id" value={employee.id} />
+                              <input type="hidden" name="return_to" value="/employees" />
+                              <ConfirmSubmitButton
+                                idleLabel="Delete"
+                                pendingLabel="Deleting..."
+                                confirmMessage="Delete this document from active records?"
+                                className="rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-200 disabled:text-ink-400"
+                              />
+                            </form>
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <form action={exportEmployeeDueDiligencePackAction}>
+                    <input type="hidden" name="employee_id" value={employee.id} />
+                    <input type="hidden" name="return_to" value="/employees" />
+                    <PendingSubmitButton
+                      idleLabel="Export due diligence pack"
+                      pendingLabel="Preparing pack..."
+                      className="rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-200 disabled:text-ink-400"
+                    />
+                  </form>
+                  <p className="text-[12px] text-ink-500">
+                    Includes employment record, documents, policy acknowledgements, and asset-related logs.
+                  </p>
+                </div>
+              </section>
 
               <div className="mt-3 flex flex-wrap items-center gap-2 sm:gap-3">
                 <div className="w-full sm:w-auto">
@@ -416,6 +586,17 @@ export default async function EmployeesPage({
                     </form>
                   </>
                 ) : null}
+                <form action={startOffboardingAction} className="w-full sm:w-auto">
+                  <input type="hidden" name="employee_id" value={employee.id} />
+                  <input type="hidden" name="expected_updated_at" value={employee.updated_at} />
+                  <input type="hidden" name="return_to" value="/employees" />
+                  <ConfirmSubmitButton
+                    idleLabel="Start offboarding"
+                    pendingLabel="Starting..."
+                    confirmMessage={`Start offboarding for ${employee.full_name}?`}
+                    className="w-full rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-200 disabled:text-ink-400 sm:w-auto"
+                  />
+                </form>
                 <form action={archiveEmployeeAction} className="w-full sm:w-auto">
                   <input type="hidden" name="employee_id" value={employee.id} />
                   <input type="hidden" name="expected_updated_at" value={employee.updated_at} />

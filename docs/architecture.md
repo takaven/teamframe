@@ -8,7 +8,6 @@ TeamFrame is a **lightweight HR structure system** for startups with **6–25 em
 ## Tech Stack
 - **Frontend**: Next.js App Router, TypeScript, TailwindCSS
 - **Backend**: Supabase Postgres, Supabase Storage, Supabase Auth
-- **AI**: OpenAI API, server-side only, isolated in `/lib/ai`
 - **Deployment**: Vercel
 
 ## Request Flow (mandatory)
@@ -27,10 +26,10 @@ No layer may be skipped. No client may bypass the middleware. No service-role ke
 
 | Layer | Allowed | Forbidden |
 |---|---|---|
-| Frontend (`/app`, `/components`) | rendering, form state, UX-only role hints | authoritative permission checks, direct Supabase calls with the service role, calling `/lib/ai` directly |
+| Frontend (`/app`, `/components`) | rendering, form state, UX-only role hints | authoritative permission checks, direct Supabase calls with the service role |
 | API Routes / Server Actions | parse + validate input, invoke middleware, call services, shape response | embedding business rules inline, talking to the DB directly |
 | RBAC Middleware (`/middleware`) | resolve session, attach role, gate by role | data fetching, business logic |
-| Service Layer (`/services`) | enforce domain invariants, call DB, call `/lib/ai`, write audit logs | reading session/role itself (must be passed in), bypassing RBAC |
+| Service Layer (`/services`) | enforce domain invariants, call DB, write audit logs | reading session/role itself (must be passed in), bypassing RBAC |
 | Database (`/schemas`) | persist state | application logic |
 
 ## Security Baseline
@@ -46,7 +45,6 @@ No layer may be skipped. No client may bypass the middleware. No service-role ke
 - onboarding document hub
 - minimal leave tracking
 - company updates
-- two constrained AI helpers (bio + contract template)
 
 Anything outside this list is V2.
 

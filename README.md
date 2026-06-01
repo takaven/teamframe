@@ -14,8 +14,10 @@ As of the latest commit on `main`, the running app provides:
 
 - **Auth** — Supabase magic-link sign-in (`/auth`, `/auth/callback`, `/auth/check-email`, `/auth/logout`).
 - **Dashboard** (`/dashboard`) — real employee counts (total / active / on leave / inactive) with an honest empty state when no employees exist.
-- **Employees** (`/employees`) — admins can create / update / archive; non-admins see a read-only org-chart view.
-- **Org chart** (`/org-chart`) — whitelist-only employee-scope view.
+- **Employees** (`/employees`) — admins manage the team roster.
+- **Onboarding** (`/onboarding`) — employees complete their onboarding checklist; admins assign and monitor tasks.
+- **Leaves** (`/leaves`) — employees submit leave requests; admins approve or reject from the queue.
+- **Self-service** (`/me`) — employee profile landing and hub for self-service actions.
 - **Tenant safety** — server-side role resolution via `requireTenantActor`, every service call takes an explicit `Actor`, RLS on every table.
 
 Everything in the next section ("What TeamFrame is") describes the V1 *target surface*. Items not in the list above are **not yet in the UI**.
@@ -27,13 +29,13 @@ Everything in the next section ("What TeamFrame is") describes the V1 *target su
 The product targets exactly these things:
 
 - **Employee directory** — who's on the team _(shipped)_
-- **Org visibility** — a simple org chart _(shipped)_
-- **Onboarding document hub** — upload, download, grouped export _(schema + service scaffolded; no UI yet)_
-- **Minimal leave tracking** — request, approve, reject _(schema + service scaffolded; no UI yet)_
+- **Onboarding task tracking** — employee checklist; admin assignment _(shipped)_
+- **Document expiry tracking** — passports, visas, work permits _(in flight — signal engine shipped; document upload UI in progress)_
+- **Leave tracking** — request, approve, reject _(shipped)_
 
 Nothing more.
 
-Company announcements are **parked**: not in V1 sprint scope. The `company_updates.sql` schema file remains in `/schemas` as a future hook but has no service, no UI, and no roadmap commitment until activation telemetry justifies it.
+Company announcements and org charts were **removed** in the FPORS pivot (see `docs/business/blueprint-locked.md`). TeamFrame is not an HR system; it is a check-engine light for founder people-ops risk. Pivot deletion log: `docs/business/pivot-deletion-list.md`.
 
 ---
 
@@ -99,9 +101,10 @@ Full detail: [`docs/architecture.md`](docs/architecture.md).
 
 ```
 /app
-  /dashboard          # live counts (real data) + empty state
-  /employees          # directory + admin CRUD + actions
-  /org-chart          # read-only org view
+  /dashboard          # risk dashboard (FPORS) — rebuild in flight (Wave 3)
+  /employees          # team roster + admin CRUD + actions
+  /onboarding         # onboarding readiness (preboarding signals)
+  /leaves             # leave tracking (slimmed)
   /auth               # magic-link sign-in + callback + logout
 
 /lib
@@ -109,12 +112,12 @@ Full detail: [`docs/architecture.md`](docs/architecture.md).
   /rbac               # role types + resolver
 
 /components
-  /OrgChart           # the only component used by /app today
+  # shared UI primitives
 
 /services
   /employeeService    # shipped; explicit Actor on every call
-  /documentService    # scaffolded, not yet surfaced in UI
-  /leaveService       # scaffolded, not yet surfaced in UI
+  /documentService    # scaffolded; signal engine wired; upload UI in progress
+  /leaveService       # shipped; submit/approve/reject wired end-to-end
 
 /middleware
   auth.ts             # session resolution
@@ -122,11 +125,13 @@ Full detail: [`docs/architecture.md`](docs/architecture.md).
 
 /schemas
   employees.sql, employee_profiles.sql, compensation.sql, documents.sql,
-  leaves.sql, company_updates.sql, audit_logs.sql
+  leaves.sql, audit_logs.sql, risk_signals.sql, action_items.sql
 
 /docs
   architecture.md, drift-guard.md, rbac-rules.md, auth-rules.md,
-  ai-boundaries.md, bootstrap-prompt.md, 14-day-sprint-tracker.md
+  ai-boundaries.md, bootstrap-prompt.md,
+  business/blueprint-locked.md, business/signal-rules.md,
+  business/pivot-deletion-list.md, business/weekend-execution-plan.md
 ```
 
 ---
@@ -234,7 +239,7 @@ The CI workflow runs install, environment validation, lint, typecheck, and build
 
 - `main` — production-ready only. No direct pushes. PR + at least one review.
 - `develop` — integration branch.
-- `feature/*` — isolated feature work (`feature/auth`, `feature/rbac`, `feature/org-chart`, etc.).
+- `feature/*` — isolated feature work (`feature/auth`, `feature/rbac`, etc.).
 
 Required GitHub protections for `main`:
 - pull request review required
