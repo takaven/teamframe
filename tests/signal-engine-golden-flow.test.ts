@@ -111,7 +111,7 @@ describe("signal engine golden flow", () => {
     expect(repository.signals).toHaveLength(1);
     expect(repository.actions).toHaveLength(1);
 
-    const action = repository.actions[0];
+    const action = repository.actions[0]!;
     const visible = isDashboardVisible({
       lifecycle_state: employee.lifecycle_state,
       signalKind: "incomplete_offboarding",
