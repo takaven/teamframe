@@ -77,6 +77,22 @@ using (
   and (tenant_id is null or tenant_id = current_actor_tenant_id())
 );
 
+drop policy if exists analytics_events_insert_blocked on analytics_events;
+create policy analytics_events_insert_blocked on analytics_events
+for insert
+with check (false);
+
+drop policy if exists analytics_events_update_blocked on analytics_events;
+create policy analytics_events_update_blocked on analytics_events
+for update
+using (false)
+with check (false);
+
+drop policy if exists analytics_events_delete_blocked on analytics_events;
+create policy analytics_events_delete_blocked on analytics_events
+for delete
+using (false);
+
 drop policy if exists companies_select_tenant_scoped on companies;
 create policy companies_select_tenant_scoped on companies
 for select
@@ -124,6 +140,14 @@ using (
   and tenant_id = current_actor_tenant_id()
 )
 with check (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+);
+
+drop policy if exists employees_delete_admin on employees;
+create policy employees_delete_admin on employees
+for delete
+using (
   is_current_actor_admin()
   and tenant_id = current_actor_tenant_id()
 );
@@ -178,6 +202,14 @@ using (
   and tenant_id = current_actor_tenant_id()
 )
 with check (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+);
+
+drop policy if exists onboarding_tasks_delete_admin on onboarding_tasks;
+create policy onboarding_tasks_delete_admin on onboarding_tasks
+for delete
+using (
   is_current_actor_admin()
   and tenant_id = current_actor_tenant_id()
 );
@@ -276,6 +308,14 @@ with check (
   and tenant_id = current_actor_tenant_id()
 );
 
+drop policy if exists leaves_delete_admin on leaves;
+create policy leaves_delete_admin on leaves
+for delete
+using (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+);
+
 drop policy if exists audit_logs_admin_only on audit_logs;
 create policy audit_logs_admin_only on audit_logs
 for select
@@ -291,6 +331,17 @@ with check (
   is_current_actor_admin()
   and tenant_id = current_actor_tenant_id()
 );
+
+drop policy if exists audit_logs_update_blocked on audit_logs;
+create policy audit_logs_update_blocked on audit_logs
+for update
+using (false)
+with check (false);
+
+drop policy if exists audit_logs_delete_blocked on audit_logs;
+create policy audit_logs_delete_blocked on audit_logs
+for delete
+using (false);
 
 drop policy if exists risk_signals_select_admin on risk_signals;
 create policy risk_signals_select_admin on risk_signals
@@ -408,4 +459,24 @@ with check (
         and deleted_at is null
     )
   )
+);
+
+drop policy if exists acknowledgements_update_admin on acknowledgements;
+create policy acknowledgements_update_admin on acknowledgements
+for update
+using (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+)
+with check (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+);
+
+drop policy if exists acknowledgements_delete_admin on acknowledgements;
+create policy acknowledgements_delete_admin on acknowledgements
+for delete
+using (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
 );
