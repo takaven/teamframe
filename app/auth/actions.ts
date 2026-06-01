@@ -8,12 +8,52 @@
  */
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { z } from "zod";
 import { env } from "@/lib/db/env";
 import { createServerClient } from "@/lib/db/supabaseServer";
 import { resolveIdentity } from "@/lib/rbac/roles";
 
 const EmailSchema = z.string().trim().toLowerCase().email();
+const EMAIL_RATE_LIMIT_MAX = 3;
+const EMAIL_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
+const IP_RATE_LIMIT_MAX = 5;
+const IP_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+
+type RateLimitWindow = {
+  count: number;
+  windowStartMs: number;
+};
+
+const emailRateLimitStore = new Map<string, RateLimitWindow>();
+const ipRateLimitStore = new Map<string, RateLimitWindow>();
+
+function consumeRateLimit(
+  store: Map<string, RateLimitWindow>,
+  key: string,
+  maxCount: number,
+  windowMs: number,
+  nowMs: number,
+): boolean {
+  const current = store.get(key);
+  if (!current || nowMs - current.windowStartMs >= windowMs) {
+    store.set(key, { count: 1, windowStartMs: nowMs });
+    return true;
+  }
+
+  if (current.count >= maxCount) {
+    return false;
+  }
+
+  store.set(key, { count: current.count + 1, windowStartMs: current.windowStartMs });
+  return true;
+}
+
+function getClientIpAddress(): string {
+  const forwardedFor = headers().get("x-forwarded-for") ?? "";
+  const firstHop = forwardedFor.split(",")[0]?.trim();
+  return firstHop || "unknown";
+}
 
 export async function sendMagicLink(formData: FormData): Promise<void> {
   const raw = formData.get("email");
@@ -22,6 +62,24 @@ export async function sendMagicLink(formData: FormData): Promise<void> {
     redirect(`/auth?error=invalid_email`);
   }
   const email = parsed.data;
+  const nowMs = Date.now();
+  const clientIp = getClientIpAddress();
+
+  if (
+    !consumeRateLimit(
+      emailRateLimitStore,
+      email,
+      EMAIL_RATE_LIMIT_MAX,
+      EMAIL_RATE_LIMIT_WINDOW_MS,
+      nowMs,
+    )
+  ) {
+    redirect("/auth?error=rate_limited");
+  }
+
+  if (!consumeRateLimit(ipRateLimitStore, clientIp, IP_RATE_LIMIT_MAX, IP_RATE_LIMIT_WINDOW_MS, nowMs)) {
+    redirect("/auth?error=rate_limited");
+  }
 
   const supabase = await createServerClient();
 
