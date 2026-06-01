@@ -1,8 +1,8 @@
 /**
  * Role + identity resolution for TeamFrame.
  *
- * Magic-link-only auth means every actor is keyed by their email. The
- * Supabase auth user is linked to a row in `employees` by that email.
+ * TeamFrame uses two-tier auth: admins sign in with email + password, while
+ * employees use magic links. Every actor is keyed by their Supabase Auth email.
  *
  *   auth.users.id (session)
  *     → employees.email match
