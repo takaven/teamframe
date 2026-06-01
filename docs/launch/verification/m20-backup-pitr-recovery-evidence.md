@@ -14,23 +14,25 @@ Evidence rule:
 ## Section 1 - Supabase Backup Configuration
 
 ### Environment
-- Project Name:
-- Project ID:
-- Region:
+- Project Name: TeamFrame (production name to confirm in Supabase dashboard)
+- Project ID: `eucnsrtdjxcylknbuglw` (derived from `NEXT_PUBLIC_SUPABASE_URL`)
+- Region: Pending operator verification in Supabase dashboard
 
 ### Backup Tier
-- Current Supabase Plan:
-- Backup Enabled: Yes / No
-- PITR Enabled: Yes / No
+- Current Supabase Plan: Pending operator verification
+- Backup Enabled: Pending operator verification (Yes / No)
+- PITR Enabled: Pending operator verification (Yes / No)
 
 ### Evidence
-- Screenshot attached: Yes / No
-- Screenshot path or URL:
-- Date Verified:
-- Verified By:
+- Screenshot attached: No
+- Screenshot path or URL: TBD
+- Date Verified: 2026-06-01 (partial, local evidence only)
+- Verified By: Repo Orchestrator (local environment check)
+- Additional Evidence: `NEXT_PUBLIC_SUPABASE_URL=https://eucnsrtdjxcylknbuglw.supabase.co`
+- CLI Evidence: Supabase CLI unavailable locally (`supabase: command not found`)
 
 Result:
-- PASS / FAIL
+- FAIL (dashboard-level backup/PITR evidence not yet attached)
 
 ---
 
@@ -38,22 +40,27 @@ Result:
 
 ### Recovery Point Objective (RPO)
 Maximum acceptable data loss:
+- Pending approval
 
 ### Recovery Time Objective (RTO)
 Maximum acceptable recovery duration:
+- Pending approval
 
 Approved By:
+- Pending
 
 Date:
+- Pending
 
 Result:
-- PASS / FAIL
+- FAIL (RPO/RTO not approved)
 
 ---
 
 ## Section 3 - Recovery Procedure
 
 Documented Procedure Location:
+- Pending (must point to a concrete restore runbook path)
 
 Procedure Includes:
 - Restore initiation steps
@@ -63,13 +70,14 @@ Procedure Includes:
 - Communication procedure
 
 Result:
-- PASS / FAIL
+- FAIL (procedure not linked)
 
 ---
 
 ## Section 4 - Restore Test
 
 ### Test Date
+- Pending
 
 ### Test Type
 - PITR restore
@@ -91,6 +99,7 @@ Result:
 
 ### Outcome
 PASS / FAIL
+- FAIL (restore test not yet executed)
 
 Notes:
 
@@ -102,23 +111,30 @@ Evidence links (logs, screenshots, query output):
 
 Backup Configuration Verified:
 - PASS / FAIL
+- FAIL
 
 Recovery Objectives Defined:
 - PASS / FAIL
+- FAIL
 
 Recovery Procedure Documented:
 - PASS / FAIL
+- FAIL
 
 Restore Test Completed:
 - PASS / FAIL
+- FAIL
 
 M20 Status:
 - CLOSED
 - OPEN
+- OPEN
 
 Approved By:
+- Pending
 
 Date:
+- Pending
 
 ---
 
