@@ -4,6 +4,36 @@ Tracks the status of each weekend execution block as it completes.
 
 ---
 
+## Finalisation Wave 0 — 2026-07-03
+
+**Block:** v1.0 Finalisation Wave 0 — parity check, rollback tag, baseline capture
+**Branch:** local finalisation (recreated from unmerged PR #82; GitHub CI unavailable — account billing lock)
+**Status:** COMPLETE
+
+**Parity verdict:**
+- Offline ZIP working tree verified byte-identical to `main@0644029` (recursive diff excluding `.git`/`node_modules`: zero differences).
+
+**Rollback point:**
+- Annotated tag `pre-finalisation-2026-07-03` created on `main@0644029` and pushed to origin (before local-only mode began).
+
+**Baseline evidence summary (main@0644029):**
+- `npm ci`: PASS (clean install from committed lockfile)
+- `npm run typecheck`: PASS (`tsc --noEmit`, no errors)
+- `npm test`: PASS (5 files, 13 tests)
+- `npm run guards`: PASS (all 4 guards — instrumentation, health-contract, telemetry: 10 mutations covered, tenancy-filter: 18 service files scanned)
+- `npm run build`: PASS with known Sentry/OpenTelemetry require-expression and webpack PackFileCacheStrategy warnings (unchanged from 31 May baseline); 8/8 static pages, 12 routes
+
+**Secrets sweep:**
+- CLEAN. Only tracked env files are `.env.example` and `.env.staging.example`, both blank templates. No hits for service-role keys, JWTs, assigned tokens, private keys, or credentialed connection strings anywhere in the tree.
+
+**Governance note:**
+- Blueprint §18 written approvals recorded: Finalisation Plan v1.1 (founder-approved 2026-07-03) D2 approves completing the policy acknowledgement loop (extends blueprint §7 phasing — completes already-built `unacknowledged_policy` signal, not new scope) and D6 approves static onboarding template packs + due dates (no reminders/automation, consistent with README non-goal on workflow automation).
+
+**Process note:**
+- Finalisation proceeds LOCAL-ONLY per founder directive (2026-07-03): no pushes, PRs, merges, remote tags, or repo-settings changes. Gate chain enforced locally per wave. `docs/drift-guard.md` (dangling README link) recreated locally in this commit.
+
+---
+
 ## Launch Sprint Wave 0 — 31 May 2026
 
 **Block:** Wave 0 Baseline Capture + Execution Freeze
