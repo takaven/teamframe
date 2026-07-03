@@ -84,6 +84,7 @@ export default async function OnboardingPage({
           <Link href="/employees" className="hover:text-ink-900 transition">Employees</Link>
           <span className="text-ink-900 font-medium">Onboarding</span>
           <Link href="/leaves" className="hover:text-ink-900 transition">Leaves</Link>
+          <Link href="/policies" className="hover:text-ink-900 transition">Policies</Link>
           <SignOutButton className="ml-auto" />
         </nav>
 

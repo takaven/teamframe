@@ -198,6 +198,7 @@ export default async function EmployeesPage({
         <span className="text-ink-900 font-medium">Team roster</span>
         <Link href="/onboarding" className="hover:text-ink-900 transition">Onboarding</Link>
         <Link href="/leaves" className="hover:text-ink-900 transition">Leaves</Link>
+        <Link href="/policies" className="hover:text-ink-900 transition">Policies</Link>
         <SignOutButton className="ml-auto" />
       </nav>
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink-300/60 pb-5">
