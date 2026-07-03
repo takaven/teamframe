@@ -8,7 +8,8 @@
  *  - DSN-gated: dormant when SENTRY_DSN is absent
  *  - zero performance tracing
  *  - PII stripped via beforeSend
- *  - next.config.ts NOT wrapped (deferred)
+ *  - next.config.ts wrapped with withSentryConfig (Wave 4); source-map upload
+ *    gated on SENTRY_AUTH_TOKEN
  *
  * @see https://docs.sentry.io/platforms/javascript/guides/nextjs/
  */
