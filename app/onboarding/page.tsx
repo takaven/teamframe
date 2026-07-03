@@ -5,15 +5,18 @@ import {
   type OnboardingTask,
 } from "@/services/onboardingService";
 import { listEmployeesForAdmin } from "@/services/employeeService";
+import { isTaskOverdue } from "@/services/onboardingService/templates";
 import Link from "next/link";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { SignOutButton } from "@/components/SignOutButton";
+import { AssignPackForm } from "./AssignPackForm";
 import { assignOnboardingTaskAction, completeOnboardingTaskAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
 const STATUS_COPY: Record<string, string> = {
   assigned: "Task assigned and ready for the employee.",
+  pack_assigned: "Pack assigned. The employee's checklist is ready.",
   completed: "Task marked complete.",
 };
 
@@ -21,10 +24,13 @@ const ERROR_COPY: Record<string, string> = {
   FORBIDDEN: "You do not have permission for that action.",
   NO_TENANT_CONTEXT: "Session error — please sign out and back in.",
   NO_EMPLOYEE_RECORD: "Your account is not linked to an employee profile yet.",
+  NOT_FOUND: "That employee could not be found.",
   STALE_WRITE: "This item changed. Refresh and try again.",
   MISSING_EXPECTED_UPDATED_AT: "This action is out of date. Refresh and retry.",
   INVALID_INPUT: "Check your input and try again.",
   ONBOARDING_ASSIGN_FAILED: "Could not assign task.",
+  ONBOARDING_UNKNOWN_PACK: "That template pack does not exist. Refresh and try again.",
+  ONBOARDING_PACK_EMPTY: "All tasks were removed from the pack. Keep at least one task, or use the single-task form.",
   ONBOARDING_COMPLETE_FAILED: "Could not complete task.",
   UNKNOWN: "Something went wrong. Refresh and try again.",
 };
@@ -35,6 +41,28 @@ function formatDate(iso: string): string {
     month: "short",
     year: "numeric",
   });
+}
+
+function formatDueDate(iso: string): string {
+  return new Date(`${iso.slice(0, 10)}T00:00:00Z`).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+function DueDateBadge({ task }: { task: Pick<OnboardingTask, "due_date" | "status"> }) {
+  if (!task.due_date) return null;
+  return isTaskOverdue(task.due_date, task.status) ? (
+    <p>
+      <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+        Overdue — was due {formatDueDate(task.due_date)}
+      </span>
+    </p>
+  ) : (
+    <p className="text-[12px] text-ink-500">Due {formatDueDate(task.due_date)}</p>
+  );
 }
 
 function TaskStatusBadge({ status }: { status: OnboardingTask["status"] }) {
@@ -127,7 +155,30 @@ export default async function OnboardingPage({
         ) : null}
 
         <section className="mt-8 rounded-xl border border-ink-300/70 bg-white/80 p-5">
-          <h2 className="text-[19px] font-medium tracking-tight">Assign task</h2>
+          <h2 className="text-[19px] font-medium tracking-tight">Assign a template pack</h2>
+          <p className="mt-1 text-[14px] text-ink-500">
+            Pre-fill a first-two-weeks checklist. Remove any task before assigning; due dates come from the employee&apos;s start date.
+          </p>
+          {employees.length === 0 ? (
+            <p className="mt-3 text-[14px] text-ink-500">
+              You do not have employees to assign yet.{" "}
+              <Link href="/employees" className="underline hover:text-ink-900">Add an employee</Link> first.
+            </p>
+          ) : (
+            <AssignPackForm
+              employees={employees.map((e) => ({
+                id: e.id,
+                full_name: e.full_name,
+                role_title: e.role_title,
+                start_date: e.start_date,
+                created_at: e.created_at,
+              }))}
+            />
+          )}
+        </section>
+
+        <section className="mt-5 rounded-xl border border-ink-300/70 bg-white/80 p-5">
+          <h2 className="text-[19px] font-medium tracking-tight">Assign a single task</h2>
           {employees.length === 0 ? (
             <p className="mt-3 text-[14px] text-ink-500">
               You do not have employees to assign yet.{" "}
@@ -183,6 +234,7 @@ export default async function OnboardingPage({
                     <p className="text-[12px] text-ink-500">
                       {employeeMap.get(task.employee_id) ?? task.employee_id} · Assigned {formatDate(task.created_at)}
                     </p>
+                    <DueDateBadge task={task} />
                   </div>
                   <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
                     <TaskStatusBadge status={task.status} />
@@ -322,6 +374,7 @@ export default async function OnboardingPage({
                     <div className="min-w-0 flex-1 space-y-1">
                       <p className="text-[15px] text-ink-900">{task.title}</p>
                       <p className="text-[12px] text-ink-500">Added {formatDate(task.created_at)}</p>
+                      <DueDateBadge task={task} />
                       <p className="text-[12px] text-ink-500">Complete this once the step is finished.</p>
                     </div>
                     <form action={completeOnboardingTaskAction}>

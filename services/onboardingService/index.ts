@@ -3,7 +3,10 @@
  *
  * Scope lock (see docs/drift-guard.md):
  *  - assign task, complete task, list tasks
- *  - NO templates, NO due dates, NO notifications, NO multi-step workflows
+ *  - static template packs (services/onboardingService/templates.ts) expand
+ *    into ordinary tasks at assign time — no template tables, no template UI
+ *  - optional per-task due date — NO reminders, NO notifications,
+ *    NO multi-step workflows (Wave 2, gap audit 2026-05-30)
  */
 
 import "server-only";
@@ -12,6 +15,7 @@ import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 import { track } from "@/lib/telemetry/track";
 import { logAction } from "@/lib/telemetry/logger";
 import { captureActionError } from "@/lib/telemetry/sentry";
+import { expandTemplatePack } from "./templates";
 
 export type OnboardingTaskStatus = "pending" | "completed";
 
@@ -21,10 +25,14 @@ export type OnboardingTask = {
   title: string;
   status: OnboardingTaskStatus;
   assigned_by: string;
+  due_date: string | null;
   completed_at: string | null;
   created_at: string;
   updated_at: string;
 };
+
+const TASK_SELECT =
+  "id, tenant_id, employee_id, title, status, assigned_by, due_date, completed_at, created_at, updated_at";
 
 type OnboardingTaskRow = OnboardingTask & { tenant_id: string };
 
@@ -127,7 +135,7 @@ export async function listOnboardingTasksForEmployee(
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from("onboarding_tasks")
-    .select("id, tenant_id, employee_id, title, status, assigned_by, completed_at, created_at, updated_at")
+    .select(TASK_SELECT)
     .eq("tenant_id", tenantId)
     .eq("employee_id", employeeId)
     .order("created_at", { ascending: true });
@@ -143,7 +151,7 @@ export async function listAllOnboardingTasks(actor: Actor): Promise<OnboardingTa
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from("onboarding_tasks")
-    .select("id, tenant_id, employee_id, title, status, assigned_by, completed_at, created_at, updated_at")
+    .select(TASK_SELECT)
     .eq("tenant_id", tenantId)
     .order("created_at", { ascending: true });
 
@@ -168,7 +176,7 @@ export async function assignOnboardingTask(
       status: "pending",
       assigned_by: actor.authUserId,
     } as never)
-    .select("id, tenant_id, employee_id, title, status, assigned_by, completed_at, created_at, updated_at")
+    .select(TASK_SELECT)
     .single();
 
   if (error) throw new Error(`ONBOARDING_ASSIGN_FAILED: ${error.message}`);
@@ -188,6 +196,75 @@ export async function assignOnboardingTask(
 
   const { tenant_id: _t, ...row } = created;
   return row;
+}
+
+/**
+ * Assign a static template pack to an employee (Wave 2).
+ *
+ * Expands the pack server-side — only the pack id and the kept task indexes
+ * are trusted from the client. Due dates are computed from the employee's
+ * start date (falling back to their created date when start date is unset).
+ */
+export async function assignOnboardingPack(
+  actor: Actor,
+  input: { employeeId: string; packId: string; keptIndexes: number[] },
+): Promise<OnboardingTask[]> {
+  requireAdmin(actor);
+  const tenantId = requireTenant(actor);
+  const supabase = createServiceRoleClient();
+
+  const { data: employeeData, error: employeeError } = await supabase
+    .from("employees")
+    .select("id, start_date, created_at")
+    .eq("tenant_id", tenantId)
+    .eq("id", input.employeeId)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (employeeError) throw new Error(`ONBOARDING_ASSIGN_FAILED: ${employeeError.message}`);
+  if (!employeeData) throw new Error("NOT_FOUND");
+
+  const employee = employeeData as { start_date: string | null; created_at: string };
+  const baseDate = employee.start_date ?? employee.created_at;
+  const tasks = expandTemplatePack(input.packId, input.keptIndexes, baseDate);
+  if (tasks.length === 0) throw new Error("ONBOARDING_PACK_EMPTY");
+
+  const { data, error } = await supabase
+    .from("onboarding_tasks")
+    .insert(
+      tasks.map((task) => ({
+        tenant_id: tenantId,
+        employee_id: input.employeeId,
+        title: task.title,
+        status: "pending",
+        assigned_by: actor.authUserId,
+        due_date: task.due_date,
+      })) as never,
+    )
+    .select(TASK_SELECT);
+
+  if (error) throw new Error(`ONBOARDING_ASSIGN_FAILED: ${error.message}`);
+
+  const created = (data ?? []) as OnboardingTaskRow[];
+  await writeAudit(actor, "onboarding.pack_assigned", input.employeeId);
+
+  // Fire first_onboarding_assigned once per tenant — a pack can be the very
+  // first assignment, in which case the tenant total equals this batch size.
+  const countResult = await supabase
+    .from("onboarding_tasks")
+    .select("id", { count: "exact", head: true })
+    .eq("tenant_id", tenantId);
+  if ((countResult.count ?? 0) === created.length && created.length > 0) {
+    await track({
+      tenantId,
+      userId: actor.authUserId,
+      eventName: "first_onboarding_assigned",
+      properties: { pack_id: input.packId, task_count: created.length },
+    });
+    await maybeFireActivationCompleted(tenantId, actor.authUserId);
+  }
+
+  return created.map(({ tenant_id: _tenant, ...row }) => row);
 }
 
 export async function completeOnboardingTask(
@@ -214,7 +291,7 @@ export async function completeOnboardingTask(
   }
 
   const { data, error } = await query
-    .select("id, tenant_id, employee_id, title, status, assigned_by, completed_at, created_at, updated_at")
+    .select(TASK_SELECT)
     .maybeSingle();
 
   if (error) throw new Error(`ONBOARDING_COMPLETE_FAILED: ${error.message}`);

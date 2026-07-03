@@ -3,13 +3,23 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireTenantActor } from "@/middleware/rbac";
-import { assignOnboardingTask, completeOnboardingTask } from "@/services/onboardingService";
+import {
+  assignOnboardingPack,
+  assignOnboardingTask,
+  completeOnboardingTask,
+} from "@/services/onboardingService";
 import { logAction } from "@/lib/telemetry/logger";
 import { captureActionError } from "@/lib/telemetry/sentry";
 
 const AssignSchema = z.object({
   employee_id: z.string().uuid(),
   title: z.string().trim().min(1),
+});
+
+const AssignPackSchema = z.object({
+  employee_id: z.string().uuid(),
+  pack_id: z.enum(["every_hire", "engineering", "operations"]),
+  task_indexes: z.array(z.coerce.number().int().min(0)).min(1),
 });
 
 const CompleteSchema = z.object({
@@ -82,6 +92,66 @@ export async function assignOnboardingTaskAction(formData: FormData): Promise<vo
     redirect(`/onboarding?error=${encodeURIComponent(errorCode)}`);
   }
   redirect("/onboarding?status=assigned");
+}
+
+export async function assignOnboardingPackAction(formData: FormData): Promise<void> {
+  let failed = false;
+  let errorCode = "UNKNOWN";
+
+  // Observability instrumentation (matches assignOnboardingTaskAction).
+  const start = Date.now();
+  const requestId = crypto.randomUUID();
+  let actor: Awaited<ReturnType<typeof requireTenantActor>> | null = null;
+  let caughtError: unknown = null;
+
+  try {
+    actor = await requireTenantActor();
+    const parsed = AssignPackSchema.parse({
+      employee_id: formData.get("employee_id"),
+      pack_id: formData.get("pack_id"),
+      task_indexes: formData.getAll("task_index"),
+    });
+    await assignOnboardingPack(actor, {
+      employeeId: parsed.employee_id,
+      packId: parsed.pack_id,
+      keptIndexes: parsed.task_indexes,
+    });
+  } catch (error) {
+    failed = true;
+    errorCode = getErrorCode(error);
+    caughtError = error;
+  }
+
+  const durationMs = Date.now() - start;
+  if (caughtError !== null) {
+    captureActionError("assignOnboardingPack", caughtError, {
+      actor_user_id: actor?.authUserId ?? null,
+      actor_tenant_id: actor?.tenantId ?? null,
+    });
+    logAction({
+      action: "assignOnboardingPack",
+      actorUserId: actor?.authUserId ?? null,
+      actorTenantId: actor?.tenantId ?? null,
+      durationMs,
+      outcome: "fail",
+      error: caughtError,
+      requestId,
+    });
+  } else {
+    logAction({
+      action: "assignOnboardingPack",
+      actorUserId: actor!.authUserId,
+      actorTenantId: actor!.tenantId,
+      durationMs,
+      outcome: "ok",
+      requestId,
+    });
+  }
+
+  if (failed) {
+    redirect(`/onboarding?error=${encodeURIComponent(errorCode)}`);
+  }
+  redirect("/onboarding?status=pack_assigned");
 }
 
 export async function completeOnboardingTaskAction(formData: FormData): Promise<void> {
