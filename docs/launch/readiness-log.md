@@ -4,6 +4,31 @@ Tracks the status of each weekend execution block as it completes.
 
 ---
 
+## Finalisation Wave 4 — 2026-07-03
+
+**Block:** v1.0 Finalisation Wave 4 — ops closeout (local code portions)
+**Branch:** `wave-4-ops-closeout` (merged to local main as checkpoint `23b4a35`)
+**Status:** COMPLETE (local-only; dashboard evidence awaits founder)
+
+**Shipped:**
+- Sentry: `next.config.ts` wrapped with `withSentryConfig`; source-map upload, log verbosity, and build telemetry all gated on `SENTRY_AUTH_TOKEN` — credential-less build proven green. `.env.example` updated (SENTRY_AUTH_TOKEN/ORG/PROJECT). `scripts/sentry-test-event.mjs` + `npm run sentry:test-event` for one-off DSN verification; founder steps in `docs/launch/verification/sentry-completion.md`.
+- BUG-1 (no-silent-failures audit) FIXED: `services/documentService/index.ts:424` — compensating storage delete result now checked; failures logged (`DOCUMENT_COMPENSATING_DELETE_FAILED`) + `captureActionError`; regression test added.
+- BUG-2 verified ALREADY FIXED (Phase 1C): `services/onboardingService/index.ts:86-110` destructures and handles the Supabase error. Audit rows updated with file:line.
+- seed:demo: full demo tenant — 1 red (expired Emirates ID), 2 yellow (expiring passport, missing contract), 1 resolved signal, mid-onboarding employee with overdue due-date task, published-but-unacknowledged policy, pending leave; idempotent, `.example`-domain fakes; plan logic factored into `scripts/lib/demo-plan.mjs` and test-locked.
+- M20: founder step-by-step for PITR (Path A) vs daily-backup decision (Path B), evidence template with `[FOUNDER]` blanks, tested-restore procedure added to `docs/launch/runbooks/rollback-procedure.md`.
+
+**Gate chain (local):**
+- `npm run typecheck`: PASS
+- `npm test`: PASS (10 files, 55/55 tests)
+- `npm run guards`: PASS (4/4)
+- `npm run build` (without SENTRY_AUTH_TOKEN): PASS (13 routes)
+
+**Awaiting founder (dashboard-only):** M20 evidence fields (path decision, retention, screenshots, restore-test), Sentry DSN provisioning + test-event ID.
+
+**Runtime-unverified (no live credentials):** seed:demo against a live DB; sentry test event; source-map upload with a real token.
+
+---
+
 ## Finalisation Wave 3 — 2026-07-03
 
 **Block:** v1.0 Finalisation Wave 3 — UI elevation ("calm instrument panel")
