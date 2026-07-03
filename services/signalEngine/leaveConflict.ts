@@ -70,8 +70,30 @@ export async function reconcileLeaveConflictSignals(params: {
     if (signal.subject_employee_id) openByEmployeeId.set(signal.subject_employee_id, signal);
   }
 
+  // Manual resolution path: pending overlaps are fixed by rejecting one request
+  // in /leaves, but approved-approved overlaps have no edit surface in V1. An
+  // admin who has reviewed the overlap resolves via the dashboard "Mark done"
+  // action. Mirrors unacknowledgedPolicy/activeAccessAfterExit.
+  const { data: completedActionData, error: completedActionError } = await supabase
+    .from("action_items")
+    .select("subject_employee_id")
+    .eq("tenant_id", params.tenantId)
+    .eq("category", "leave_conflict")
+    .eq("status", "done");
+
+  if (completedActionError) {
+    throw new Error(`LEAVE_CONFLICT_COMPLETED_ACTION_QUERY_FAILED: ${completedActionError.message}`);
+  }
+
+  const completedByEmployeeId = new Set(
+    ((completedActionData ?? []) as { subject_employee_id: string | null }[])
+      .map((row) => row.subject_employee_id)
+      .filter((value): value is string => Boolean(value)),
+  );
+
   const desired = new Map<string, { count: number }>();
   for (const [employeeId, employeeLeaves] of leavesByEmployeeId.entries()) {
+    if (completedByEmployeeId.has(employeeId)) continue;
     const sorted = [...employeeLeaves].sort((a, b) => a.start_date.localeCompare(b.start_date));
     let count = 0;
     for (let index = 1; index < sorted.length; index += 1) {

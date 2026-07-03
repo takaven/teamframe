@@ -90,15 +90,18 @@ function signalCtas(kind: string): {
   secondaryHref: string;
 } {
   if (kind === "incomplete_onboarding") {
-    return { primaryLabel: "Resolve", primaryHref: "/onboarding", secondaryLabel: "View details", secondaryHref: "/dashboard" };
+    return { primaryLabel: "View details", primaryHref: "/onboarding", secondaryLabel: "Resolve", secondaryHref: "/onboarding" };
   }
   if (kind === "leave_conflict") {
-    return { primaryLabel: "View details", primaryHref: "/leaves", secondaryLabel: "Resolve", secondaryHref: "/dashboard" };
+    return { primaryLabel: "View details", primaryHref: "/leaves", secondaryLabel: "Resolve", secondaryHref: "/leaves" };
   }
   if (kind === "missing_contract" || kind === "expired_document" || kind === "expiring_document" || kind === "missing_jurisdiction_requirement") {
-    return { primaryLabel: "Open record", primaryHref: "/employees", secondaryLabel: "Resolve", secondaryHref: "/dashboard" };
+    return { primaryLabel: "Open record", primaryHref: "/employees", secondaryLabel: "Resolve", secondaryHref: "/employees" };
   }
-  return { primaryLabel: "Resolve", primaryHref: "/employees", secondaryLabel: "View details", secondaryHref: "/dashboard" };
+  if (kind === "unacknowledged_policy") {
+    return { primaryLabel: "Resolve", primaryHref: "/policies", secondaryLabel: "View details", secondaryHref: "/policies" };
+  }
+  return { primaryLabel: "Resolve", primaryHref: "/employees", secondaryLabel: "View details", secondaryHref: "/employees" };
 }
 
 function fallbackWrong(kind: string): string {
@@ -256,6 +259,7 @@ export default async function DashboardPage() {
         <Link href="/employees" className="hover:text-ink-900 transition">Team roster</Link>
         <Link href="/onboarding" className="hover:text-ink-900 transition">Onboarding</Link>
         <Link href="/leaves" className="hover:text-ink-900 transition">Leaves</Link>
+        <Link href="/policies" className="hover:text-ink-900 transition">Policies</Link>
         <SignOutButton className="ml-auto" />
       </nav>
 
