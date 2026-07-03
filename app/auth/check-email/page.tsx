@@ -1,12 +1,15 @@
 import Link from "next/link";
+import { ResendLinkForm } from "./ResendLinkForm";
 
 export default async function CheckEmailPage({
   searchParams,
 }: {
-  searchParams: Promise<{ email?: string }>;
+  searchParams: Promise<{ email?: string; error?: string; resent?: string }>;
 }) {
-  const { email } = await searchParams;
+  const { email, error, resent } = await searchParams;
   const recipient = email && email.length > 0 ? email : "your inbox";
+  const rateLimited = error === "rate_limited";
+  const wasResent = resent === "1" && !rateLimited;
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-16">
@@ -21,15 +24,32 @@ export default async function CheckEmailPage({
         </p>
       </div>
 
-      <Link
-        href="/auth"
-        className="mt-10 inline-flex w-fit items-center text-[14px] text-ink-700 underline decoration-ink-300 underline-offset-4 transition hover:decoration-ink-900"
-      >
-        Use a different email
-      </Link>
+      {wasResent ? (
+        <p className="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-[14px] text-emerald-700">
+          A fresh link is on its way. Only the newest link will work.
+        </p>
+      ) : null}
+      {rateLimited ? (
+        <p role="alert" className="mt-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-[14px] text-amber-700">
+          You&apos;ve requested several links in a short time, so we&apos;ve paused sending to
+          protect your account. Wait about 10 minutes, then try again — or use a link already
+          in your inbox.
+        </p>
+      ) : null}
+
+      <div className="mt-10 flex flex-wrap items-center gap-4">
+        {email && email.length > 0 ? <ResendLinkForm email={email} /> : null}
+        <Link
+          href="/auth"
+          className="inline-flex w-fit items-center text-[14px] text-ink-700 underline decoration-ink-300 underline-offset-4 transition hover:decoration-ink-900"
+        >
+          Use a different email
+        </Link>
+      </div>
 
       <p className="mt-12 text-[12px] text-ink-500">
-        Didn&apos;t receive it? Check spam, or ask your admin to confirm you&apos;re on the team.
+        Didn&apos;t receive it after a minute? Check spam, resend the link, or ask your admin to
+        confirm you&apos;re on the team.
       </p>
     </main>
   );
