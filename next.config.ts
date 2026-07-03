@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const securityHeaders = [
   {
@@ -47,4 +48,36 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+/**
+ * Sentry build-time wrapper (Wave 4).
+ *
+ * Source-map upload is gated on SENTRY_AUTH_TOKEN: local and CI builds without
+ * the token must stay green and must not attempt any network call to Sentry.
+ * Runtime error capture is independently gated on SENTRY_DSN /
+ * NEXT_PUBLIC_SENTRY_DSN in the three sentry.*.config.ts files.
+ */
+const hasSentryAuthToken = Boolean(process.env.SENTRY_AUTH_TOKEN);
+
+export default withSentryConfig(nextConfig, {
+  // Org/project are only needed when uploading source maps.
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+
+  // Hard gate: no token → no source-map upload, no upload warnings treated as
+  // anything other than informational. Build output stays identical to an
+  // unwrapped build apart from Sentry's webpack instrumentation.
+  sourcemaps: {
+    disable: !hasSentryAuthToken,
+  },
+
+  // Keep credential-less builds quiet; surface upload logs only when a token
+  // is present (i.e. a release build that actually uploads).
+  silent: !hasSentryAuthToken,
+
+  // No telemetry to Sentry from the build toolchain.
+  telemetry: false,
+
+  // Strip Sentry debug logger statements from production bundles.
+  disableLogger: true,
+});

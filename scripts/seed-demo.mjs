@@ -1,17 +1,25 @@
 /**
  * TeamFrame FPORS demo seed.
  *
- * Creates a deterministic demo tenant with screenshot-ready states:
- * - At least one red signal
- * - At least one yellow signal
- * - At least one resolved signal
- * - At least one action item generated from signals
+ * Applies the pure plan from scripts/lib/demo-plan.mjs (unit-tested in
+ * tests/seed-demo-plan.test.ts) to a deterministic demo tenant. Idempotent:
+ * safe to re-run; existing demo rows are updated in place, signals/actions
+ * are reset and recreated.
+ *
+ * The seeded tenant makes every demo category visible:
+ * - one open red signal, two open yellow signals, one resolved signal
+ *   (each with a linked action item)
+ * - an employee mid-onboarding with an OVERDUE pending task (due_date column)
+ * - one expiring document (within 30 days)
+ * - one published-but-unacknowledged policy (Wave 1 policies loop)
+ * - one pending leave request
  */
 
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
+import { buildDemoPlan } from "./lib/demo-plan.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, "..");
@@ -27,18 +35,6 @@ if (!url || !serviceKey) {
 const supabase = createClient(url, serviceKey, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
-
-function isoDaysFromNow(days) {
-  const d = new Date();
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString();
-}
-
-function dateOnlyDaysFromNow(days) {
-  const d = new Date();
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
 
 async function getOrCreateCompany(slug, name) {
   const { data: existing, error: selErr } = await supabase
@@ -106,12 +102,12 @@ async function upsertEmployee(tenantId, input) {
   return created.id;
 }
 
-async function upsertDocument(tenantId, input) {
+async function upsertDocument(tenantId, employeeId, input) {
   const { data: existing, error: selErr } = await supabase
     .from("documents")
     .select("id")
     .eq("tenant_id", tenantId)
-    .eq("employee_id", input.employee_id)
+    .eq("employee_id", employeeId)
     .eq("document_type", input.document_type)
     .is("deleted_at", null)
     .maybeSingle();
@@ -120,11 +116,11 @@ async function upsertDocument(tenantId, input) {
 
   const payload = {
     tenant_id: tenantId,
-    employee_id: input.employee_id,
-    subject_person_id: input.employee_id,
+    employee_id: employeeId,
+    subject_person_id: employeeId,
     document_type: input.document_type,
     type: input.type,
-    file_url: input.file_url,
+    file_url: `${tenantId}/${employeeId}/${input.file_name}`,
     signed_at: input.signed_at,
     expires_at: input.expires_at,
   };
@@ -143,6 +139,140 @@ async function upsertDocument(tenantId, input) {
 
   if (insErr || !created) {
     throw new Error(`DOCUMENT_CREATE_FAILED: ${insErr?.message ?? "no row"}`);
+  }
+
+  return created.id;
+}
+
+/**
+ * Idempotent by (tenant_id, employee_id, title). Uses the due_date column
+ * added in Wave 2. `assignedBy` has no FK — the demo tenant has no auth user,
+ * so the founder's employee id stands in as a stable, clearly-internal value.
+ */
+async function upsertOnboardingTask(tenantId, employeeId, assignedBy, input) {
+  const { data: existing, error: selErr } = await supabase
+    .from("onboarding_tasks")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("employee_id", employeeId)
+    .eq("title", input.title)
+    .maybeSingle();
+
+  if (selErr) throw new Error(`ONBOARDING_TASK_LOOKUP_FAILED: ${selErr.message}`);
+
+  const payload = {
+    tenant_id: tenantId,
+    employee_id: employeeId,
+    title: input.title,
+    status: input.status,
+    assigned_by: assignedBy,
+    due_date: input.due_date,
+    completed_at: input.completed_at,
+  };
+
+  if (existing?.id) {
+    const { error: updErr } = await supabase
+      .from("onboarding_tasks")
+      .update(payload)
+      .eq("id", existing.id);
+    if (updErr) throw new Error(`ONBOARDING_TASK_UPDATE_FAILED: ${updErr.message}`);
+    return existing.id;
+  }
+
+  const { data: created, error: insErr } = await supabase
+    .from("onboarding_tasks")
+    .insert(payload)
+    .select("id")
+    .single();
+
+  if (insErr || !created) {
+    throw new Error(`ONBOARDING_TASK_CREATE_FAILED: ${insErr?.message ?? "no row"}`);
+  }
+
+  return created.id;
+}
+
+/**
+ * Idempotent by (tenant_id, title). Deliberately seeds NO acknowledgements,
+ * so a published policy stays unacknowledged for every employee — the Wave 1
+ * policies loop (publish → employees acknowledge) is demonstrable end-to-end.
+ */
+async function upsertPolicy(tenantId, input) {
+  const { data: existing, error: selErr } = await supabase
+    .from("policies")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("title", input.title)
+    .maybeSingle();
+
+  if (selErr) throw new Error(`POLICY_LOOKUP_FAILED: ${selErr.message}`);
+
+  const payload = {
+    tenant_id: tenantId,
+    title: input.title,
+    body: input.body,
+    version: input.version,
+    is_published: input.is_published,
+  };
+
+  if (existing?.id) {
+    const { error: updErr } = await supabase.from("policies").update(payload).eq("id", existing.id);
+    if (updErr) throw new Error(`POLICY_UPDATE_FAILED: ${updErr.message}`);
+    return existing.id;
+  }
+
+  const { data: created, error: insErr } = await supabase
+    .from("policies")
+    .insert(payload)
+    .select("id")
+    .single();
+
+  if (insErr || !created) {
+    throw new Error(`POLICY_CREATE_FAILED: ${insErr?.message ?? "no row"}`);
+  }
+
+  return created.id;
+}
+
+/**
+ * Idempotent per (tenant_id, employee_id, status): the demo needs exactly one
+ * pending leave in the queue, so an existing pending row has its dates
+ * refreshed instead of accumulating duplicates across re-runs.
+ */
+async function upsertLeave(tenantId, employeeId, input) {
+  const { data: existingRows, error: selErr } = await supabase
+    .from("leaves")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("employee_id", employeeId)
+    .eq("status", input.status)
+    .limit(1);
+
+  if (selErr) throw new Error(`LEAVE_LOOKUP_FAILED: ${selErr.message}`);
+
+  const payload = {
+    tenant_id: tenantId,
+    employee_id: employeeId,
+    start_date: input.start_date,
+    end_date: input.end_date,
+    status: input.status,
+  };
+
+  const existing = existingRows?.[0];
+  if (existing?.id) {
+    const { error: updErr } = await supabase.from("leaves").update(payload).eq("id", existing.id);
+    if (updErr) throw new Error(`LEAVE_UPDATE_FAILED: ${updErr.message}`);
+    return existing.id;
+  }
+
+  const { data: created, error: insErr } = await supabase
+    .from("leaves")
+    .insert(payload)
+    .select("id")
+    .single();
+
+  if (insErr || !created) {
+    throw new Error(`LEAVE_CREATE_FAILED: ${insErr?.message ?? "no row"}`);
   }
 
   return created.id;
@@ -202,7 +332,7 @@ async function createSignalWithAction(tenantId, input) {
   }
 }
 
-async function summarizeSignals(tenantId) {
+async function summarizeDemoState(tenantId, todayDateOnly) {
   const { data: signals, error: signalErr } = await supabase
     .from("risk_signals")
     .select("id, kind, severity, resolved_at")
@@ -219,144 +349,102 @@ async function summarizeSignals(tenantId) {
 
   if (actionErr) throw new Error(`ACTION_SUMMARY_FAILED: ${actionErr.message}`);
 
+  const { data: tasks, error: taskErr } = await supabase
+    .from("onboarding_tasks")
+    .select("id, status, due_date")
+    .eq("tenant_id", tenantId);
+
+  if (taskErr) throw new Error(`TASK_SUMMARY_FAILED: ${taskErr.message}`);
+
+  const { data: leaves, error: leaveErr } = await supabase
+    .from("leaves")
+    .select("id, status")
+    .eq("tenant_id", tenantId);
+
+  if (leaveErr) throw new Error(`LEAVE_SUMMARY_FAILED: ${leaveErr.message}`);
+
+  const { data: policies, error: policyErr } = await supabase
+    .from("policies")
+    .select("id, is_published")
+    .eq("tenant_id", tenantId);
+
+  if (policyErr) throw new Error(`POLICY_SUMMARY_FAILED: ${policyErr.message}`);
+
   const redOpen = (signals ?? []).filter((s) => s.severity === "red" && s.resolved_at == null).length;
   const yellowOpen = (signals ?? []).filter((s) => s.severity === "yellow" && s.resolved_at == null).length;
   const resolved = (signals ?? []).filter((s) => s.resolved_at != null).length;
   const openActions = (actions ?? []).filter((a) => a.status === "open" || a.status === "in_progress").length;
+  const overdueTasks = (tasks ?? []).filter(
+    (t) => t.status === "pending" && t.due_date != null && t.due_date < todayDateOnly,
+  ).length;
+  const pendingLeaves = (leaves ?? []).filter((l) => l.status === "pending").length;
+  const publishedPolicies = (policies ?? []).filter((p) => p.is_published).length;
 
   console.log("\nDemo state summary");
   console.log(`- Open red signals: ${redOpen}`);
   console.log(`- Open yellow signals: ${yellowOpen}`);
   console.log(`- Resolved signals: ${resolved}`);
   console.log(`- Open action items: ${openActions}`);
+  console.log(`- Overdue pending onboarding tasks: ${overdueTasks}`);
+  console.log(`- Pending leave requests: ${pendingLeaves}`);
+  console.log(`- Published policies (unacknowledged by design): ${publishedPolicies}`);
 }
 
 async function main() {
-  const tenantId = await getOrCreateCompany("demo-fpors", "Demo FPORS Startup");
+  const now = new Date();
+  const plan = buildDemoPlan(now);
 
-  const founderId = await upsertEmployee(tenantId, {
-    full_name: "Sara Founder",
-    email: "sara.founder@demo-fpors.example",
-    role_title: "Founder",
-    department: "Leadership",
-    timezone: "Asia/Dubai",
-    status: "active",
-    lifecycle_state: "active",
-    start_date: dateOnlyDaysFromNow(-120),
-    country: "UAE",
-  });
+  const tenantId = await getOrCreateCompany(plan.company.slug, plan.company.name);
 
-  const operatorId = await upsertEmployee(tenantId, {
-    full_name: "Lina Operations",
-    email: "lina.ops@demo-fpors.example",
-    role_title: "Operations Manager",
-    department: "Operations",
-    timezone: "Asia/Dubai",
-    status: "active",
-    lifecycle_state: "active",
-    start_date: dateOnlyDaysFromNow(-40),
-    country: "UAE",
-  });
+  const employeeIdsByKey = new Map();
+  for (const employee of plan.employees) {
+    const { key, ...input } = employee;
+    employeeIdsByKey.set(key, await upsertEmployee(tenantId, input));
+  }
 
-  const newHireId = await upsertEmployee(tenantId, {
-    full_name: "Omar New Hire",
-    email: "omar.newhire@demo-fpors.example",
-    role_title: "Software Engineer",
-    department: "Engineering",
-    timezone: "Asia/Dubai",
-    status: "active",
-    lifecycle_state: "preboarding",
-    start_date: dateOnlyDaysFromNow(14),
-    country: "UAE",
-  });
+  const documentIdsByKey = new Map();
+  for (const document of plan.documents) {
+    const { key, employeeKey, ...input } = document;
+    const employeeId = employeeIdsByKey.get(employeeKey);
+    if (!employeeId) throw new Error(`PLAN_INVALID: unknown employee key ${employeeKey}`);
+    documentIdsByKey.set(key, await upsertDocument(tenantId, employeeId, input));
+  }
 
-  const founderPassportId = await upsertDocument(tenantId, {
-    employee_id: founderId,
-    document_type: "passport",
-    type: "CV",
-    file_url: `${tenantId}/${founderId}/demo-passport.pdf`,
-    signed_at: isoDaysFromNow(-150),
-    expires_at: isoDaysFromNow(240),
-  });
+  const assignedBy = employeeIdsByKey.get("founder");
+  for (const task of plan.onboardingTasks) {
+    const { employeeKey, ...input } = task;
+    const employeeId = employeeIdsByKey.get(employeeKey);
+    if (!employeeId) throw new Error(`PLAN_INVALID: unknown employee key ${employeeKey}`);
+    await upsertOnboardingTask(tenantId, employeeId, assignedBy, input);
+  }
 
-  const operatorEmiratesId = await upsertDocument(tenantId, {
-    employee_id: operatorId,
-    document_type: "emirates_id",
-    type: "PHOTO",
-    file_url: `${tenantId}/${operatorId}/demo-emirates-id.pdf`,
-    signed_at: isoDaysFromNow(-300),
-    expires_at: isoDaysFromNow(-5),
-  });
+  for (const policy of plan.policies) {
+    await upsertPolicy(tenantId, policy);
+  }
 
-  const newHirePassportId = await upsertDocument(tenantId, {
-    employee_id: newHireId,
-    document_type: "passport",
-    type: "CV",
-    file_url: `${tenantId}/${newHireId}/demo-passport-newhire.pdf`,
-    signed_at: null,
-    expires_at: isoDaysFromNow(25),
-  });
+  for (const leave of plan.leaves) {
+    const { employeeKey, ...input } = leave;
+    const employeeId = employeeIdsByKey.get(employeeKey);
+    if (!employeeId) throw new Error(`PLAN_INVALID: unknown employee key ${employeeKey}`);
+    await upsertLeave(tenantId, employeeId, input);
+  }
 
   await resetSignalState(tenantId);
 
-  await createSignalWithAction(tenantId, {
-    kind: "expired_document",
-    severity: "red",
-    subject_employee_id: operatorId,
-    subject_document_id: operatorEmiratesId,
-    action_title: "Upload renewed Emirates ID",
-    action_status: "open",
-    evidence: {
-      what_is_wrong: "Emirates ID is expired.",
-      why_it_matters: "This can block operations and create compliance risk for the company.",
-      what_to_do_next: "Upload renewed Emirates ID.",
-    },
-  });
+  for (const signal of plan.signals) {
+    const { employeeKey, documentKey, ...input } = signal;
+    const employeeId = employeeIdsByKey.get(employeeKey);
+    if (!employeeId) throw new Error(`PLAN_INVALID: unknown employee key ${employeeKey}`);
+    const documentId = documentKey ? documentIdsByKey.get(documentKey) : null;
+    if (documentKey && !documentId) throw new Error(`PLAN_INVALID: unknown document key ${documentKey}`);
+    await createSignalWithAction(tenantId, {
+      ...input,
+      subject_employee_id: employeeId,
+      subject_document_id: documentId ?? null,
+    });
+  }
 
-  await createSignalWithAction(tenantId, {
-    kind: "expiring_document",
-    severity: "yellow",
-    subject_employee_id: newHireId,
-    subject_document_id: newHirePassportId,
-    action_title: "Request renewal for passport",
-    action_status: "open",
-    evidence: {
-      what_is_wrong: "Passport is expiring soon.",
-      why_it_matters: "Travel and onboarding can be blocked if renewal is delayed.",
-      what_to_do_next: "Request passport renewal now.",
-    },
-  });
-
-  await createSignalWithAction(tenantId, {
-    kind: "missing_contract",
-    severity: "yellow",
-    subject_employee_id: newHireId,
-    subject_document_id: null,
-    action_title: "Upload signed contract",
-    action_status: "open",
-    evidence: {
-      what_is_wrong: "New hire has no signed contract on file.",
-      why_it_matters: "Starting work without a signed contract creates legal and compliance risk.",
-      what_to_do_next: "Upload a signed contract before start date.",
-    },
-  });
-
-  await createSignalWithAction(tenantId, {
-    kind: "expiring_document",
-    severity: "yellow",
-    subject_employee_id: founderId,
-    subject_document_id: founderPassportId,
-    action_title: "Request renewal for passport",
-    action_status: "done",
-    resolved_at: new Date().toISOString(),
-    evidence: {
-      what_is_wrong: "Passport had been expiring soon.",
-      why_it_matters: "Founders need uninterrupted travel and compliance readiness.",
-      what_to_do_next: "Renewed passport uploaded.",
-    },
-  });
-
-  await summarizeSignals(tenantId);
+  await summarizeDemoState(tenantId, now.toISOString().slice(0, 10));
 
   console.log("\nSeed complete for tenant:", tenantId);
 }

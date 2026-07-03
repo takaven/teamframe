@@ -37,10 +37,10 @@ Each server action, service function, and middleware guard was inspected for:
 | `app/onboarding/actions.ts:70` | `completeOnboardingTaskAction` failure | `response` redirect only | GAP — needs instrumentation | Wire logger + captureActionError in Weekend 3 |
 | `services/employeeService/index.ts:~200` | `createEmployee` — `writeAudit` failure | `console` warn (audit_log write fail, non-fatal) | OK — sufficient visibility | Consider promoting to `sentry` for audit reliability |
 | `services/documentService/index.ts:87` | `uploadDocument` — storage upload fails → record never created | throw `DOCUMENT_UPLOAD_FAILED` (propagates to action) | OK — sufficient visibility | Action layer currently lacks logger; wire in Weekend 3 |
-| `services/documentService/index.ts:103` | `uploadDocument` — DB insert fails → compensating storage delete | throw `DOCUMENT_RECORD_CREATE_FAILED`. Storage remove result is ignored | BUG — swallowed defect | Storage remove result must be checked; log failure if remove also fails |
+| `services/documentService/index.ts:103` | `uploadDocument` — DB insert fails → compensating storage delete | throw `DOCUMENT_RECORD_CREATE_FAILED`. Remove result now checked; failure → `console.error` + `captureActionError` | ~~BUG — swallowed defect~~ FIXED (Wave 4) | Fixed at `services/documentService/index.ts:424` with regression test `tests/document-upload-compensation.test.ts` |
 | `services/leaveService/index.ts:60` | `writeAudit` when `required=false` — DB insert error | `console` error only | GAP — needs instrumentation | Promote to Sentry capture for audit integrity |
 | `services/onboardingService/index.ts:54` | `writeAudit` failure | `console` error only | GAP — needs instrumentation | Promote to Sentry capture for audit integrity |
-| `services/onboardingService/index.ts:80` | `maybeFireActivationCompleted` — query error swallowed | `none` (data ?? [] falls through) | BUG — swallowed defect | Add console.warn + Sentry capture; activation funnel silently broken |
+| `services/onboardingService/index.ts:80` | `maybeFireActivationCompleted` — query error swallowed | `error` destructured; failure → `logAction(fail)` + `captureActionError`, non-fatal return | ~~BUG — swallowed defect~~ FIXED (Phase 1C) | Fixed at `services/onboardingService/index.ts:86-110`; re-verified Wave 4 |
 | `middleware/auth.ts:29` | `requireAuthSession` — `getUser()` network failure | throw `UNAUTHENTICATED` (propagates) | OK — sufficient visibility | — |
 | `middleware/rbac.ts:50` | `getActor()` — any exception caught, returns null | `none` (catch {} silences all errors) | GAP — needs instrumentation | Log non-auth errors before returning null |
 | `lib/telemetry/track.ts:45` | Insert failure for non-23505 errors | `console` warn only | OK — intentional silent | Documented as approved pattern: telemetry must never break user flows |
@@ -63,17 +63,17 @@ Each server action, service function, and middleware guard was inspected for:
 
 ## Critical Findings
 
-### BUG-1: `services/documentService/index.ts` — compensating delete result ignored
-When a document upload succeeds in storage but the DB insert fails, the service attempts to remove the orphaned storage object. The result of that `remove()` call is not checked. If the remove also fails, a storage object is leaked with no trace in any log or error system.
+### BUG-1: `services/documentService/index.ts` — compensating delete result ignored — FIXED (Wave 4)
+When a document upload succeeds in storage but the DB insert fails, the service attempts to remove the orphaned storage object. The result of that `remove()` call was not checked. If the remove also failed, a storage object was leaked with no trace in any log or error system.
 
 **Risk:** Storage cost leak + orphaned objects with no audit trail.  
-**Weekend 3 action:** Check remove result, log failure with `console.error` + `captureActionError`.
+**Resolution (Wave 4):** `remove()` result destructured and checked at `services/documentService/index.ts:424`; failure emits structured `console.error` (`DOCUMENT_COMPENSATING_DELETE_FAILED` with storage path) + `captureActionError("uploadDocumentCompensatingDelete", ...)`. Regression test: `tests/document-upload-compensation.test.ts`.
 
-### BUG-2: `services/onboardingService/index.ts` — `maybeFireActivationCompleted` swallows query errors
-The function uses `const { data } = await supabase.from(...).select(...)` with no destructuring of `error`. A DB failure silently returns `data = null`, which is treated as "no events fired", so `activation_completed` is never emitted. The activation funnel breaks silently with no log.
+### BUG-2: `services/onboardingService/index.ts` — `maybeFireActivationCompleted` swallows query errors — FIXED (Phase 1C, re-verified Wave 4)
+The function used `const { data } = await supabase.from(...).select(...)` with no destructuring of `error`. A DB failure silently returned `data = null`, which was treated as "no events fired", so `activation_completed` was never emitted.
 
 **Risk:** Activation metrics are permanently wrong for affected tenants with no observable signal.  
-**Weekend 3 action:** Destructure `error`, add `console.warn` + `captureActionError`.
+**Resolution (Phase 1C):** `error` destructured at `services/onboardingService/index.ts:86`; failure path (lines 92-110) emits `logAction(outcome: "fail")` + `captureActionError`, then returns non-fatally. Re-verified in place during Wave 4.
 
 ---
 
@@ -82,7 +82,7 @@ The function uses `const { data } = await supabase.from(...).select(...)` with n
 1. Wire `createEmployeeAction`, `archiveEmployeeAction`, `reinviteEmployeeAction` with `logAction` + `captureActionError`
 2. Wire `submitLeaveAction`, `completeOnboardingTaskAction` with `logAction` + `captureActionError`
 3. Wire `continueCurrentSessionAction` with observability
-4. Fix BUG-1: check compensating storage remove result in `documentService.uploadDocument`
-5. Fix BUG-2: destructure and check `error` in `maybeFireActivationCompleted`
+4. ~~Fix BUG-1: check compensating storage remove result in `documentService.uploadDocument`~~ DONE (Wave 4)
+5. ~~Fix BUG-2: destructure and check `error` in `maybeFireActivationCompleted`~~ DONE (Phase 1C)
 6. Promote audit-log write failures in `leaveService` and `onboardingService` to Sentry
 7. Log non-auth exceptions in `middleware/rbac.ts:getActor()`

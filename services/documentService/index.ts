@@ -417,7 +417,24 @@ export async function uploadDocument(
       .single();
 
     if (error) {
-      await supabase.storage.from(DOCUMENT_BUCKET).remove([path]);
+      // Compensating delete: the storage object exists but the DB row does not.
+      // BUG-1 fix (Wave 4, no-silent-failures audit): the remove result must be
+      // checked — a failed compensation means an orphaned file in the bucket,
+      // which must be visible to operators, not silent.
+      const { error: removeError } = await supabase.storage.from(DOCUMENT_BUCKET).remove([path]);
+      if (removeError) {
+        console.error("DOCUMENT_COMPENSATING_DELETE_FAILED", {
+          tenant_id: tenantId,
+          employee_id: input.employeeId,
+          storage_path: path,
+          ...toStorageErrorLog(removeError),
+        });
+        captureActionError("uploadDocumentCompensatingDelete", removeError, {
+          actor_user_id: actor.authUserId,
+          actor_tenant_id: actor.tenantId ?? null,
+          storage_path: path,
+        });
+      }
       throw new Error(`DOCUMENT_RECORD_CREATE_FAILED: ${error.message}`);
     }
 
