@@ -90,6 +90,9 @@ export default async function LeavesPage({
             Employees
           </Link>
           <span className="text-ink-900 font-medium">Leaves</span>
+          <Link href="/policies" className="hover:text-ink-900 transition">
+            Policies
+          </Link>
           <SignOutButton className="ml-auto" />
         </nav>
 

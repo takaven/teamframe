@@ -111,8 +111,32 @@ export async function reconcileMissingJurisdictionRequirementSignals(params: {
     if (signal.subject_employee_id) openByEmployeeId.set(signal.subject_employee_id, signal);
   }
 
+  // Manual resolution path: the V1 upload UI cannot store jurisdiction document
+  // types (the documents.type enum is locked to CV/CONTRACT/JD/PHOTO), so an
+  // admin who has verified the requirement offline resolves via the dashboard
+  // "Mark done" action. Mirrors unacknowledgedPolicy/activeAccessAfterExit.
+  const { data: completedActionData, error: completedActionError } = await supabase
+    .from("action_items")
+    .select("subject_employee_id")
+    .eq("tenant_id", params.tenantId)
+    .eq("category", "missing_jurisdiction_requirement")
+    .eq("status", "done");
+
+  if (completedActionError) {
+    throw new Error(
+      `MISSING_JURISDICTION_REQUIREMENT_COMPLETED_ACTION_QUERY_FAILED: ${completedActionError.message}`,
+    );
+  }
+
+  const completedByEmployeeId = new Set(
+    ((completedActionData ?? []) as { subject_employee_id: string | null }[])
+      .map((row) => row.subject_employee_id)
+      .filter((value): value is string => Boolean(value)),
+  );
+
   const desired = new Map<string, { severity: SignalSeverity; requiredDocument: string; country: string }>();
   for (const employee of employees) {
+    if (completedByEmployeeId.has(employee.id)) continue;
     const country = employee.country?.trim();
     if (!country) continue;
     const requiredDocument = getRequiredDocumentForCountry(country);

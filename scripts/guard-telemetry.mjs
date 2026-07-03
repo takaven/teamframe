@@ -51,6 +51,11 @@ const ALLOWLIST = [
   // app/onboarding/actions.ts
   { file: "app/onboarding/actions.ts", fn: "completeOnboardingTaskAction" },
   { file: "app/onboarding/actions.ts", fn: "assignOnboardingTaskAction"   },
+  // app/policies/actions.ts (Wave 1 — minimal policy loop)
+  { file: "app/policies/actions.ts",  fn: "createPolicyAction"           },
+  { file: "app/policies/actions.ts",  fn: "publishPolicyAction"          },
+  { file: "app/policies/actions.ts",  fn: "archivePolicyAction"          },
+  { file: "app/policies/actions.ts",  fn: "acknowledgePolicyAction"      },
   // services/documentService/index.ts (no Action suffix — service layer)
   { file: "services/documentService/index.ts", fn: "uploadDocument" },
 ];

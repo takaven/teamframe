@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { CookieOptions } from "@supabase/ssr";
 import { createServerClient } from "@supabase/ssr";
 
-const PROTECTED_PREFIXES = ["/dashboard", "/employees", "/leaves", "/onboarding", "/me"] as const;
+const PROTECTED_PREFIXES = ["/dashboard", "/employees", "/leaves", "/onboarding", "/policies", "/me"] as const;
 const PUBLIC_PATHS = ["/admin/login"] as const;
 
 function isProtectedPath(pathname: string): boolean {
@@ -75,6 +75,8 @@ export const config = {
     "/employees/:path*",
     "/leaves/:path*",
     "/onboarding/:path*",
+    "/policies/:path*",
+    "/policies",
     "/admin/login",
     "/me/:path*",
     "/me",
