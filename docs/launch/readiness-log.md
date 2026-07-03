@@ -4,6 +4,34 @@ Tracks the status of each weekend execution block as it completes.
 
 ---
 
+## Finalisation Wave 1 — 2026-07-03
+
+**Block:** v1.0 Finalisation Wave 1 — minimal policy loop + signal resolution audit
+**Branch:** `wave-1-policy-loop` (merged to local main as checkpoint `e0c50ee`)
+**Status:** COMPLETE (local-only)
+
+**Shipped:**
+- `services/policyService/index.ts` — create/publish/archive/list (admin), listUnacknowledgedForEmployee/acknowledge (employee); Zod-validated, Actor-scoped, publish/archive/acknowledge audit-logged.
+- `/policies` admin page (create draft, publish, archive, ack progress) + nav links; middleware protection.
+- `/me` "Policies to acknowledge" block with one-click acknowledge.
+- Signal gap fixes: `missing_jurisdiction_requirement` and `leave_conflict` gained the mark-done suppression path (previously unresolvable); dashboard `signalCtas()` now land on the surface where each fix happens.
+- `docs/launch/verification/signal-resolution-matrix.md` — **10/10 SignalKinds resolvable** (was 7/10).
+
+**Gate chain (local):**
+- `npm run typecheck`: PASS (zero errors)
+- `npm test`: PASS (7 files, 20/20 tests; was 5 files/13 on baseline)
+- `npm run guards`: PASS (4/4; telemetry now enforces 14 mutations incl. 4 new policy actions; tenancy-filter 19 service files)
+- `npm run build`: PASS (compiled 39.9s, 8/8 static pages, `/policies` route present)
+- `npm run lint`: PASS (no warnings)
+
+**Unverified (no live credentials in local environment):**
+- Browser-level end-to-end against a real Supabase tenant (RLS in anger, magic-link acknowledge flow); `policies_set_updated_at` trigger interaction. Verification is unit/reconcile-level against the vitest Supabase mock.
+
+**Follow-up recorded (not in scope):**
+- Real fix for jurisdiction documents needs a `documents.type` enum migration (proposal documented in the signal-resolution matrix). `docs/business/signal-rules.md` and README module list lag the code (docs pass candidate).
+
+---
+
 ## Finalisation Wave 0 — 2026-07-03
 
 **Block:** v1.0 Finalisation Wave 0 — parity check, rollback tag, baseline capture
