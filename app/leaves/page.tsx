@@ -4,10 +4,11 @@ import {
   type LeaveRecord,
 } from "@/services/leaveService";
 import { listPendingLeavesWithEmployee, type PendingLeaveWithEmployee } from "@/services/leaveService";
-import Link from "next/link";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
-import { SignOutButton } from "@/components/SignOutButton";
+import { AppShell } from "@/components/AppShell";
+import { EmptyState } from "@/components/EmptyState";
+import { StatusPill, type StatusPillTone } from "@/components/StatusPill";
 import { submitLeaveAction, decideLeaveAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -51,18 +52,17 @@ function leaveStatusHelp(status: LeaveRecord["status"]): string {
   return "Not approved this time. You can submit a new request if plans change.";
 }
 
+const LEAVE_STATUS_TONE: Record<LeaveRecord["status"], StatusPillTone> = {
+  pending: "amber",
+  approved: "green",
+  rejected: "red",
+};
+
 function StatusBadge({ status }: { status: LeaveRecord["status"] }) {
-  const styles: Record<LeaveRecord["status"], string> = {
-    pending: "bg-amber-50 text-amber-700 border-amber-200",
-    approved: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    rejected: "bg-red-50 text-red-700 border-red-200",
-  };
   return (
-    <span
-      className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium capitalize ${styles[status]}`}
-    >
+    <StatusPill tone={LEAVE_STATUS_TONE[status]} className="capitalize">
       {status}
-    </span>
+    </StatusPill>
   );
 }
 
@@ -82,19 +82,7 @@ export default async function LeavesPage({
 
     return (
       <main className="mx-auto max-w-5xl px-6 py-14">
-        <nav className="mb-6 flex items-center gap-4 text-[14px] text-ink-500">
-          <Link href="/dashboard" className="hover:text-ink-900 transition">
-            Dashboard
-          </Link>
-          <Link href="/employees" className="hover:text-ink-900 transition">
-            Employees
-          </Link>
-          <span className="text-ink-900 font-medium">Leaves</span>
-          <Link href="/policies" className="hover:text-ink-900 transition">
-            Policies
-          </Link>
-          <SignOutButton className="ml-auto" />
-        </nav>
+        <AppShell actor={actor} activePath="/leaves" />
 
         <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink-300/60 pb-5">
           <div className="space-y-2">
@@ -107,11 +95,11 @@ export default async function LeavesPage({
         <section className="mt-7 grid gap-4 sm:grid-cols-3">
           <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
             <p className="text-[12px] text-ink-500">Needs decision</p>
-            <p className="mt-2 text-[24px] tracking-tight">{pending.length}</p>
+            <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{pending.length}</p>
           </article>
           <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
             <p className="text-[12px] text-ink-500">Oldest request age</p>
-            <p className="mt-2 text-[24px] tracking-tight">
+            <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">
               {pending[0] ? `${Math.max(1, Math.ceil((Date.now() - new Date(pending[0].created_at).getTime()) / (1000 * 60 * 60 * 24)))}d` : "0d"}
             </p>
           </article>
@@ -138,17 +126,16 @@ export default async function LeavesPage({
         ) : null}
 
         {pending.length === 0 ? (
-          <section className="mt-10 rounded-xl border border-dashed border-ink-300/80 bg-white/60 p-8 text-center">
-            <p className="text-[16px] text-ink-700">No pending leave requests.</p>
-            <p className="mt-2 text-[14px] text-ink-500">
-              New requests from employees will appear here with clear submission timing and approval state.
-            </p>
-          </section>
+          <EmptyState
+            className="mt-10"
+            message="No pending leave requests."
+            hint="New requests from employees will appear here with clear submission timing and approval state."
+          />
         ) : (
           <section className="mt-8 rounded-xl border border-ink-300/70 bg-white/80">
             <div className="border-b border-ink-300/60 px-5 py-4">
               <h2 className="text-[17px] font-medium tracking-tight">
-                Pending — {pending.length}
+                Pending — <span className="font-mono tabular-nums">{pending.length}</span>
               </h2>
             </div>
             <ul className="divide-y divide-ink-300/40">
@@ -158,16 +145,14 @@ export default async function LeavesPage({
                     <p className="text-[13px] text-ink-900 font-medium">
                       {leave.employee_full_name} <span className="text-[12px] text-ink-500 font-normal">({leave.employee_role_title})</span>
                     </p>
-                    <p className="text-[15px] text-ink-900">
+                    <p className="font-mono text-[15px] tabular-nums text-ink-900">
                       {formatDate(leave.start_date)} → {formatDate(leave.end_date)}
                     </p>
                     <p className="text-[12px] text-ink-500">
-                      Submitted {formatDate(leave.created_at)}
+                      Submitted <span className="font-mono tabular-nums">{formatDate(leave.created_at)}</span>
                     </p>
                     <p className="mt-1">
-                      <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
-                        Needs decision
-                      </span>
+                      <StatusPill tone="amber">Needs decision</StatusPill>
                     </p>
                   </div>
                   <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:flex-nowrap">
@@ -197,7 +182,7 @@ export default async function LeavesPage({
                         idleLabel="Reject request"
                         pendingLabel="Rejecting..."
                         confirmMessage={`Reject leave request from ${leave.employee_full_name}?`}
-                        className="w-full rounded-full border border-ink-300 px-4 py-1.5 text-[13px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-200 disabled:text-ink-400 sm:w-auto"
+                        className="w-full rounded-full border border-ink-300 px-4 py-1.5 text-[13px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300 sm:w-auto"
                       />
                     </form>
                   </div>
@@ -217,16 +202,7 @@ export default async function LeavesPage({
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-14">
-      <nav className="mb-6 flex items-center gap-4 text-[14px] text-ink-500">
-        <Link href="/me" className="hover:text-ink-900 transition">
-          Me
-        </Link>
-        <Link href="/onboarding" className="hover:text-ink-900 transition">
-          Onboarding
-        </Link>
-        <span className="text-ink-900 font-medium">Leaves</span>
-        <SignOutButton className="ml-auto" />
-      </nav>
+      <AppShell actor={actor} activePath="/leaves" />
 
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink-300/60 pb-5">
         <div className="space-y-2">
@@ -286,14 +262,11 @@ export default async function LeavesPage({
           </form>
         </section>
       ) : (
-        <section className="mt-8 rounded-xl border border-dashed border-ink-300/80 bg-white/60 p-8 text-center">
-          <p className="text-[15px] text-ink-700">
-            Your account is not linked to an employee profile.
-          </p>
-          <p className="mt-2 text-[14px] text-ink-500">
-            Ask your admin to add you as an employee.
-          </p>
-        </section>
+        <EmptyState
+          className="mt-8"
+          message="Your account is not linked to an employee profile."
+          hint="Ask your admin to add you as an employee."
+        />
       )}
 
       {myLeaves.length > 0 ? (
@@ -306,27 +279,31 @@ export default async function LeavesPage({
             {myLeaves.map((leave) => (
               <li key={leave.id} className="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
                 <div className="min-w-0 flex-1 space-y-1">
-                  <p className="text-[15px] text-ink-900">
+                  <p className="font-mono text-[15px] tabular-nums text-ink-900">
                     {formatDate(leave.start_date)} → {formatDate(leave.end_date)}
                   </p>
                   <p className="text-[12px] text-ink-500">
-                    {leaveLengthLabel(leave.start_date, leave.end_date)} · Submitted {formatDate(leave.created_at)}
+                    <span className="font-mono tabular-nums">{leaveLengthLabel(leave.start_date, leave.end_date)}</span> · Submitted{" "}
+                    <span className="font-mono tabular-nums">{formatDate(leave.created_at)}</span>
                   </p>
                   <p className="text-[12px] text-ink-500">{leaveStatusHelp(leave.status)}</p>
                 </div>
                 <div className="space-y-1 text-left sm:text-right">
                   <StatusBadge status={leave.status} />
-                  <p className="text-[12px] text-ink-500">Last updated {formatDate(leave.updated_at)}</p>
+                  <p className="text-[12px] text-ink-500">
+                    Last updated <span className="font-mono tabular-nums">{formatDate(leave.updated_at)}</span>
+                  </p>
                 </div>
               </li>
             ))}
           </ul>
         </section>
       ) : actor.employeeId ? (
-        <section className="mt-6 rounded-xl border border-dashed border-ink-300/80 bg-white/60 p-6 text-center">
-          <p className="text-[15px] text-ink-700">You have not requested time off yet.</p>
-          <p className="mt-2 text-[14px] text-ink-500">When you do, approvals and updates will appear here automatically.</p>
-        </section>
+        <EmptyState
+          className="mt-6 py-6"
+          message="You have not requested time off yet."
+          hint="When you do, approvals and updates will appear here automatically."
+        />
       ) : null}
     </main>
   );

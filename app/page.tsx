@@ -1,35 +1,100 @@
 import Link from "next/link";
 
+// PLACEHOLDER: replace with the real pilot-request address before launch.
+// The founder owns this value; keep the mailto pattern.
+const PILOT_MAILTO =
+  "mailto:pilot@teamframe.example?subject=TeamFrame%20pilot%20request";
+
+const FEATURES = [
+  {
+    kicker: "See",
+    title: "Risk signals dashboard",
+    body: "One screen answers three questions: what is broken right now, what will break next, and what needs action today. Red, amber, and green — nothing else.",
+  },
+  {
+    kicker: "Prove",
+    title: "One-click investor Due-Diligence Pack",
+    body: "Contracts, employment records, policy acknowledgements, and asset logs exported in one click when an investor or auditor asks.",
+  },
+  {
+    kicker: "Start",
+    title: "48–72h operator-led setup",
+    body: "An experienced people-ops operator loads your team, configures your country pack, and hands you a working system — not an empty database.",
+  },
+] as const;
+
 export default function Home() {
   return (
     <main className="mx-auto min-h-screen max-w-5xl px-6 py-10 md:py-14">
       <header className="flex items-center justify-between border-b border-ink-300/60 pb-5">
-        <span className="text-[15px] font-medium tracking-tight">TeamFrame</span>
+        <span className="font-display text-[18px] font-medium tracking-tight">TeamFrame</span>
+        <Link href="/auth" className="text-[14px] text-ink-700 transition hover:text-ink-900">
+          Sign in
+        </Link>
       </header>
 
-      <section className="mt-12 max-w-2xl space-y-5">
-        <p className="text-[12px] tracking-[0.14em] text-ink-500">People operations for small teams</p>
-        <h1 className="text-[44px] leading-[1.02] tracking-tight md:text-[62px]">
-          A calm directory
-          <br />
-          for startup teams.
+      <section className="mt-14 max-w-3xl space-y-6">
+        <p className="text-[12px] uppercase tracking-[0.14em] text-ink-500">
+          Founder people-ops risk &amp; readiness
+        </p>
+        <h1 className="font-display text-[34px] font-medium leading-[1.12] tracking-tight md:text-[48px]">
+          TeamFrame does more than manage your people — it prevents your people
+          operations from breaking.
         </h1>
-        <p className="max-w-xl text-[17px] leading-relaxed text-ink-700">
-          Employees, roles, and org chart in one place. Built for focused teams of 6&ndash;25.
+        <p className="max-w-2xl text-[17px] leading-relaxed text-ink-700">
+          Built for founder-led teams of 5–20 with no HR function yet. TeamFrame
+          watches the records you already keep — contracts, documents, policies,
+          leave — and raises a signal the moment something is missing, expiring,
+          or incomplete. Each signal explains what is wrong, why it matters, and
+          what to do next; resolve it and the dashboard clears. Signal, action,
+          resolution — that is the whole loop.
         </p>
 
         <div className="flex flex-wrap items-center gap-4 pt-2">
+          <a
+            href={PILOT_MAILTO}
+            className="inline-flex items-center justify-center rounded-full bg-ink-900 px-6 py-3 text-[15px] font-medium text-paper transition hover:bg-ink-700"
+          >
+            Request a pilot
+          </a>
           <Link
             href="/auth"
-            className="inline-flex items-center justify-center rounded-full bg-ink-900 px-6 py-3 text-[15px] font-medium text-paper transition hover:bg-ink-700"
+            className="inline-flex items-center justify-center rounded-full border border-ink-300 px-6 py-3 text-[15px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900"
           >
             Sign in
           </Link>
         </div>
       </section>
 
+      <section className="mt-16 grid gap-4 md:grid-cols-3">
+        {FEATURES.map((feature) => (
+          <article
+            key={feature.title}
+            className="rounded-xl border border-ink-300/70 bg-white/75 p-5 transition hover:border-ink-900"
+          >
+            <p className="text-[12px] uppercase tracking-[0.12em] text-ink-500">{feature.kicker}</p>
+            <h2 className="mt-2 text-[19px] leading-snug tracking-tight">{feature.title}</h2>
+            <p className="mt-2 text-[14px] leading-relaxed text-ink-500">{feature.body}</p>
+          </article>
+        ))}
+      </section>
+
+      {/*
+        SCREENSHOT SLOT — intentionally empty.
+        Founder: drop 1–2 real product screenshots here (dashboard at
+        1280px, signal card close-up) once staging data is presentable.
+        No mockups, no placeholder imagery before then.
+      */}
+
+      <section className="mt-16 border-t border-ink-300/60 pt-8">
+        <p className="max-w-2xl text-[15px] leading-relaxed text-ink-700">
+          Built by an HR practitioner who has run people-ops across UAE,
+          Mauritius and global banking.
+        </p>
+      </section>
+
       <footer className="mt-16 border-t border-ink-300/60 pt-5 text-[12px] text-ink-500">
-        TeamFrame &middot; {new Date().getFullYear()}
+        TeamFrame &middot; <span className="font-mono tabular-nums">{new Date().getFullYear()}</span>
       </footer>
     </main>
   );

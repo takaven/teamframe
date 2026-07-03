@@ -4,7 +4,8 @@ import { requireTenantActor } from "@/middleware/rbac";
 import { getEmployee } from "@/services/employeeService";
 import { listUnacknowledgedForEmployee, type PolicyRecord } from "@/services/policyService";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
-import { SignOutButton } from "@/components/SignOutButton";
+import { AppShell } from "@/components/AppShell";
+import { EmptyState } from "@/components/EmptyState";
 import { acknowledgePolicyAction } from "@/app/policies/actions";
 
 export const dynamic = "force-dynamic";
@@ -54,24 +55,12 @@ export default async function MePage({
   if (!actor.employeeId) {
     return (
       <main className="mx-auto max-w-3xl px-6 py-14">
-        <nav className="mb-6 flex items-center gap-4 text-[14px] text-ink-500">
-          <span className="text-ink-900 font-medium">Me</span>
-          <Link href="/onboarding" className="hover:text-ink-900 transition">
-            Onboarding
-          </Link>
-          <Link href="/leaves" className="hover:text-ink-900 transition">
-            Leaves
-          </Link>
-          <SignOutButton className="ml-auto" />
-        </nav>
-        <section className="mt-8 rounded-xl border border-dashed border-ink-300/80 bg-white/60 p-8 text-center">
-          <p className="text-[15px] text-ink-700">
-            Your account is not yet linked to an employee profile.
-          </p>
-          <p className="mt-2 text-[14px] text-ink-500">
-            Ask your admin to add you as an employee.
-          </p>
-        </section>
+        <AppShell actor={actor} activePath="/me" />
+        <EmptyState
+          className="mt-8"
+          message="Your account is not yet linked to an employee profile."
+          hint="Ask your admin to add you as an employee."
+        />
       </main>
     );
   }
@@ -86,16 +75,7 @@ export default async function MePage({
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-14">
-      <nav className="mb-6 flex items-center gap-4 text-[14px] text-ink-500">
-        <span className="text-ink-900 font-medium">Me</span>
-        <Link href="/onboarding" className="hover:text-ink-900 transition">
-          Onboarding
-        </Link>
-        <Link href="/leaves" className="hover:text-ink-900 transition">
-          Leaves
-        </Link>
-        <SignOutButton className="ml-auto" />
-      </nav>
+      <AppShell actor={actor} activePath="/me" />
 
       {successMessage ? (
         <p className="mt-0 mb-6 rounded-lg border border-accent/70 bg-white/80 px-4 py-3 text-[14px] text-accent">
@@ -124,7 +104,7 @@ export default async function MePage({
       <dl className="mt-8 grid gap-4 sm:grid-cols-2">
         <div className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
           <dt className="text-[12px] text-ink-500">Start date</dt>
-          <dd className="mt-1 text-[16px] text-ink-900">{formatDate(employee.start_date)}</dd>
+          <dd className="mt-1 font-mono text-[16px] tabular-nums text-ink-900">{formatDate(employee.start_date)}</dd>
         </div>
         <div className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
           <dt className="text-[12px] text-ink-500">Employment type</dt>
@@ -144,7 +124,7 @@ export default async function MePage({
         <section className="mt-8 rounded-xl border border-ink-300/70 bg-white/80">
           <div className="border-b border-ink-300/60 px-5 py-4">
             <h2 className="text-[17px] font-medium tracking-tight">
-              Policies to acknowledge — {unacknowledgedPolicies.length}
+              Policies to acknowledge — <span className="font-mono tabular-nums">{unacknowledgedPolicies.length}</span>
             </h2>
             <p className="mt-1 text-[13px] text-ink-500">
               Read each policy, then confirm you have understood it. Your acknowledgement is recorded.
@@ -157,13 +137,13 @@ export default async function MePage({
                   <div className="min-w-0 flex-1 space-y-1">
                     <p className="text-[15px] text-ink-900 font-medium">
                       {policy.title}{" "}
-                      <span className="text-[12px] text-ink-500 font-normal">v{policy.version}</span>
+                      <span className="font-mono text-[12px] tabular-nums text-ink-500 font-normal">v{policy.version}</span>
                     </p>
                     <details>
                       <summary className="cursor-pointer text-[12px] text-ink-500 hover:text-ink-900 transition">
                         Read policy text
                       </summary>
-                      <p className="mt-2 whitespace-pre-wrap rounded-md border border-ink-200 bg-ink-50/50 px-3 py-2 text-[13px] text-ink-700">
+                      <p className="mt-2 whitespace-pre-wrap rounded-md border border-ink-300/50 bg-ink-100/40 px-3 py-2 text-[13px] text-ink-700">
                         {policy.body}
                       </p>
                     </details>

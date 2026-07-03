@@ -77,7 +77,7 @@ export default async function AuthPage({
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-16">
       <div className="space-y-2">
-        <p className="text-[12px] uppercase tracking-[0.18em] text-ink-500">
+        <p className="font-display text-[13px] uppercase tracking-[0.18em] text-ink-500">
           TeamFrame
         </p>
         <h1 className="text-[32px] leading-tight tracking-tight">Sign in.</h1>
@@ -89,7 +89,7 @@ export default async function AuthPage({
       {error === "callback_failed" && errorMessage ? (
         <section className="mt-8 rounded-xl border border-ink-300/80 bg-white/80 px-4 py-4">
           <p className="text-[12px] uppercase tracking-[0.14em] text-ink-500">{callbackTitle}</p>
-          <p role="alert" className="mt-2 text-[14px] text-ink-800">{errorMessage}</p>
+          <p role="alert" className="mt-2 text-[14px] text-ink-700">{errorMessage}</p>
           {showSessionRecoveryActions ? (
             <div className="mt-4 flex flex-col gap-2 sm:flex-row">
               <form action={continueCurrentSessionAction} className="flex-1">

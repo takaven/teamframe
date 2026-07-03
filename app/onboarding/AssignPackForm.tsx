@@ -103,7 +103,7 @@ export function AssignPackForm({ employees }: { employees: AssignPackEmployee[] 
       </div>
 
       {pack ? (
-        <div className="rounded-md border border-ink-200 bg-ink-50/50 px-4 py-3">
+        <div className="rounded-md border border-ink-300/50 bg-ink-100/40 px-4 py-3">
           <p className="text-[13px] text-ink-700">{pack.description}</p>
           {keptIndexes.length === 0 ? (
             <p className="mt-3 text-[13px] text-ink-500">
@@ -117,7 +117,7 @@ export function AssignPackForm({ employees }: { employees: AssignPackEmployee[] 
                 return (
                   <li
                     key={index}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-ink-200 bg-white px-3 py-2"
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-ink-300/50 bg-white px-3 py-2"
                   >
                     <input type="hidden" name="task_index" value={index} />
                     <div className="min-w-0 flex-1">

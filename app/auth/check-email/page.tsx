@@ -25,12 +25,12 @@ export default async function CheckEmailPage({
       </div>
 
       {wasResent ? (
-        <p className="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-[14px] text-emerald-700">
+        <p className="mt-6 rounded-lg border border-signal-green/30 bg-signal-green/10 px-4 py-3 text-[14px] text-signal-green">
           A fresh link is on its way. Only the newest link will work.
         </p>
       ) : null}
       {rateLimited ? (
-        <p role="alert" className="mt-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-[14px] text-amber-700">
+        <p role="alert" className="mt-6 rounded-lg border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 text-[14px] text-signal-amber">
           You&apos;ve requested several links in a short time, so we&apos;ve paused sending to
           protect your account. Wait about 10 minutes, then try again — or use a link already
           in your inbox.

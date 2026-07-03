@@ -4,7 +4,7 @@ import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 import { SignalSection } from "@/app/dashboard/SignalSection";
 import type { DashboardSignal } from "@/app/dashboard/RiskCard";
 import { runSignalEngineForTenant } from "@/services/signalEngine";
-import { SignOutButton } from "@/components/SignOutButton";
+import { AppShell } from "@/components/AppShell";
 
 export const dynamic = "force-dynamic";
 
@@ -254,40 +254,44 @@ export default async function DashboardPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
-      <nav className="mb-6 flex items-center gap-4 text-[14px] text-ink-500">
-        <span className="text-ink-900 font-medium">Dashboard</span>
-        <Link href="/employees" className="hover:text-ink-900 transition">Team roster</Link>
-        <Link href="/onboarding" className="hover:text-ink-900 transition">Onboarding</Link>
-        <Link href="/leaves" className="hover:text-ink-900 transition">Leaves</Link>
-        <Link href="/policies" className="hover:text-ink-900 transition">Policies</Link>
-        <SignOutButton className="ml-auto" />
-      </nav>
+      <AppShell actor={actor} activePath="/dashboard" />
 
       <header className="grid gap-4 border-b border-ink-300/60 pb-5 lg:grid-cols-[1fr_auto] lg:items-end">
         <div className="space-y-2">
           <p className="text-[12px] tracking-[0.14em] text-ink-500">Founder view</p>
-          <h1 className="text-[34px] leading-tight tracking-tight">People-ops risk dashboard</h1>
+          <h1 className="font-display text-[34px] font-medium leading-tight tracking-tight">
+            People-ops risk dashboard
+          </h1>
           <p className="max-w-3xl text-[14px] text-ink-500">
             In under two minutes: what needs attention now, why it matters, and what has already been resolved.
           </p>
         </div>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <article className="rounded-xl border border-red-300/80 bg-red-50/70 px-3 py-2">
-            <p className="text-[11px] text-red-700">Urgent</p>
-            <p className="text-[22px] tracking-tight text-red-900">{redSignals.length}</p>
+          <article className="rounded-xl border border-ink-300/70 bg-white/80 px-3 py-2">
+            <p className="flex items-center gap-1.5 text-[11px] text-ink-500">
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-signal-red" aria-hidden="true" />
+              Urgent
+            </p>
+            <p className="font-mono text-[22px] tracking-tight tabular-nums text-ink-900">{redSignals.length}</p>
           </article>
-          <article className="rounded-xl border border-amber-300/80 bg-amber-50/70 px-3 py-2">
-            <p className="text-[11px] text-amber-700">Important</p>
-            <p className="text-[22px] tracking-tight text-amber-900">{yellowSignals.length}</p>
+          <article className="rounded-xl border border-ink-300/70 bg-white/80 px-3 py-2">
+            <p className="flex items-center gap-1.5 text-[11px] text-ink-500">
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-signal-amber" aria-hidden="true" />
+              Important
+            </p>
+            <p className="font-mono text-[22px] tracking-tight tabular-nums text-ink-900">{yellowSignals.length}</p>
           </article>
-          <article className="rounded-xl border border-emerald-300/80 bg-emerald-50/70 px-3 py-2">
-            <p className="text-[11px] text-emerald-700">Resolved</p>
-            <p className="text-[22px] tracking-tight text-emerald-900">{resolvedSignals.length}</p>
+          <article className="rounded-xl border border-ink-300/70 bg-white/80 px-3 py-2">
+            <p className="flex items-center gap-1.5 text-[11px] text-ink-500">
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-signal-green" aria-hidden="true" />
+              Resolved
+            </p>
+            <p className="font-mono text-[22px] tracking-tight tabular-nums text-ink-900">{resolvedSignals.length}</p>
           </article>
-          <article className="rounded-xl border border-ink-300/80 bg-white/80 px-3 py-2">
+          <article className="rounded-xl border border-ink-300/70 bg-white/80 px-3 py-2">
             <p className="text-[11px] text-ink-500">Open actions</p>
-            <p className="text-[22px] tracking-tight text-ink-900">{openActions}</p>
+            <p className="font-mono text-[22px] tracking-tight tabular-nums text-ink-900">{openActions}</p>
           </article>
         </div>
       </header>
