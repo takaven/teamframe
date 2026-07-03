@@ -4,6 +4,32 @@ Tracks the status of each weekend execution block as it completes.
 
 ---
 
+## Finalisation Wave 3 — 2026-07-03
+
+**Block:** v1.0 Finalisation Wave 3 — UI elevation ("calm instrument panel")
+**Branch:** `wave-3-ui-elevation` (merged to local main as checkpoint `6505830`)
+**Status:** COMPLETE (local-only)
+
+**Shipped (presentation only; routes/actions/data flow frozen):**
+- Design tokens: `--color-signal-red/amber/green` (mapped to existing RiskCard tones), `--font-mono` (IBM Plex Mono), `--font-display` (Fraunces 500/600), all via next/font.
+- `components/AppShell.tsx`: shared top nav across all authed pages (admin: Dashboard/Employees/Onboarding/Leaves/Policies; employee: Me/Onboarding/Leaves), Fraunces wordmark, active-link state, SignOutButton.
+- Risk Pulse (admin-only, server-rendered): dot + label from `countOpenSignals` — the single service-layer addition (Actor-scoped, read-only, one query); links to /dashboard; failures caught + logged, never crash the page.
+- `StatusPill` + `EmptyState` components adopted on every list surface; RiskCard status spine (white card, 3px severity left border, severity pill); counts/dates in mono with tabular-nums; 150ms ease transitions.
+- Landing page rebuilt per blueprint §1/§2: signal-loop explanation, three feature blocks (risk dashboard / one-click DD pack / 48-72h setup), founder-authority line, "Request a pilot" mailto (PLACEHOLDER address marked for founder) + Sign in. Factual claims only; marked screenshot slot.
+- Bug found & fixed in passing: undefined ink shades (ink-50/200/400/600/800) generated no CSS under Tailwind v4 — loading skeletons were invisible; usages normalised.
+
+**Gate chain (local):**
+- `npm run typecheck`: PASS
+- `npm test`: PASS (8 files, 38/38 tests)
+- `npm run guards`: PASS (4/4; tenancy-filter 20 service files)
+- `npm run build`: PASS (compiled 32.8s, 13 routes, `/` static 106 kB first-load; Google Fonts fetched successfully at build time)
+
+**Static QA:** all 10 surfaces pass static review (AppShell/role links, tokens, mono metrics, EmptyState, status spine, 360px width safety) — table in `docs/launch/ui-elevation-report.md`.
+
+**Unverified (no live credentials):** browser-level QA at 360px/1280px with real data; Risk Pulse against a live signals table. Reserved for the founder's staging pass.
+
+---
+
 ## Finalisation Wave 2 — 2026-07-03
 
 **Block:** v1.0 Finalisation Wave 2 — demo-killer fixes (gap audit RED items)
