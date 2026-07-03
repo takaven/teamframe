@@ -4,6 +4,30 @@ Tracks the status of each weekend execution block as it completes.
 
 ---
 
+## Finalisation Wave 2 — 2026-07-03
+
+**Block:** v1.0 Finalisation Wave 2 — demo-killer fixes (gap audit RED items)
+**Branch:** `wave-2-demo-fixes` (merged to local main as checkpoint `930ec6d`)
+**Status:** COMPLETE (local-only)
+
+**Shipped:**
+- `/employees` de-engineered: schema-capability checks routed to server log (`logSchemaCapability`, PII-scrubbed), panel plumbing removed; rows expand via server-rendered `<details>` into a detail area (profile fields, relocated documents block, prominent Due Diligence Pack export).
+- Onboarding: nullable `due_date` column (idempotent migration), 3 static template packs (Every hire / Engineering / Operations) expanded server-side with due dates from start date, pack selector with removable pre-filled tasks; due dates + overdue amber on task rows. No reminders/notifications.
+- `/auth/check-email`: "Resend link" reusing the same rate-limited `sendMagicLink` (60s client cooldown, honest rate-limit copy, enumeration guard intact).
+- Empty states: "No employees yet." anchors to the Add form; documents block given the same sentence+CTA pattern.
+- V2 scope parked in `docs/launch/parking-lot.md` (leave balances/types, calendar, CSV import, notifications); gap-audit addendum re-grades `/employees` 🔴→🟢, `/onboarding` 🔴→🟢 (demo), `/auth/check-email` 🟡→🟢.
+
+**Gate chain (local):**
+- `npm run typecheck`: PASS
+- `npm test`: PASS (8 files, 38/38 tests)
+- `npm run guards`: PASS (4/4; telemetry enforces 15 mutations; tenancy-filter 20 service files)
+- `npm run build`: PASS (13 routes, 8/8 static pages; pre-existing OpenTelemetry warning only)
+
+**Unverified (no live credentials):**
+- Live pack assignment (due_date insert, audit row, activation event), `db:apply` of the new column on a real database, live magic-link resend + rate limiter across real requests, browser click-through of expand/collapse and resend cooldown.
+
+---
+
 ## Finalisation Wave 1 — 2026-07-03
 
 **Block:** v1.0 Finalisation Wave 1 — minimal policy loop + signal resolution audit
