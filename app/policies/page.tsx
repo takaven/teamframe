@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { requireTenantActor } from "@/middleware/rbac";
 import { listPolicies, type PolicyAdminRecord } from "@/services/policyService";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
-import { SignOutButton } from "@/components/SignOutButton";
+import { AppShell } from "@/components/AppShell";
+import { EmptyState } from "@/components/EmptyState";
+import { StatusPill, type StatusPillTone } from "@/components/StatusPill";
 import { archivePolicyAction, createPolicyAction, publishPolicyAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -41,26 +42,26 @@ function formatDate(iso: string): string {
 
 function policyState(policy: PolicyAdminRecord): {
   label: "Draft" | "Published" | "Archived";
-  tone: string;
+  tone: StatusPillTone;
   help: string;
 } {
   if (policy.archived_at) {
     return {
       label: "Archived",
-      tone: "border-ink-300 bg-ink-100 text-ink-700",
+      tone: "neutral",
       help: `Archived ${formatDate(policy.archived_at)}. No longer requires acknowledgement.`,
     };
   }
   if (policy.is_published) {
     return {
       label: "Published",
-      tone: "border-emerald-200 bg-emerald-50 text-emerald-700",
+      tone: "green",
       help: `${policy.acknowledged_count} of ${policy.active_employee_count} team member${policy.active_employee_count === 1 ? "" : "s"} acknowledged v${policy.version}.`,
     };
   }
   return {
     label: "Draft",
-    tone: "border-amber-200 bg-amber-50 text-amber-700",
+    tone: "amber",
     help: "Not visible to employees until published.",
   };
 }
@@ -91,22 +92,7 @@ export default async function PoliciesPage({
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-14">
-      <nav className="mb-6 flex items-center gap-4 text-[14px] text-ink-500">
-        <Link href="/dashboard" className="hover:text-ink-900 transition">
-          Dashboard
-        </Link>
-        <Link href="/employees" className="hover:text-ink-900 transition">
-          Employees
-        </Link>
-        <Link href="/onboarding" className="hover:text-ink-900 transition">
-          Onboarding
-        </Link>
-        <Link href="/leaves" className="hover:text-ink-900 transition">
-          Leaves
-        </Link>
-        <span className="text-ink-900 font-medium">Policies</span>
-        <SignOutButton className="ml-auto" />
-      </nav>
+      <AppShell actor={actor} activePath="/policies" />
 
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink-300/60 pb-5">
         <div className="space-y-2">
@@ -121,15 +107,15 @@ export default async function PoliciesPage({
       <section className="mt-7 grid gap-4 sm:grid-cols-3">
         <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
           <p className="text-[12px] text-ink-500">Published</p>
-          <p className="mt-2 text-[24px] tracking-tight">{published.length}</p>
+          <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{published.length}</p>
         </article>
         <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
           <p className="text-[12px] text-ink-500">Drafts</p>
-          <p className="mt-2 text-[24px] tracking-tight">{drafts.length}</p>
+          <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{drafts.length}</p>
         </article>
         <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
           <p className="text-[12px] text-ink-500">Acknowledgements outstanding</p>
-          <p className="mt-2 text-[24px] tracking-tight">{awaiting}</p>
+          <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{awaiting}</p>
         </article>
       </section>
 
@@ -192,16 +178,17 @@ export default async function PoliciesPage({
       </section>
 
       {policies.length === 0 ? (
-        <section className="mt-8 rounded-xl border border-dashed border-ink-300/80 bg-white/60 p-8 text-center">
-          <p className="text-[16px] text-ink-700">No policies yet.</p>
-          <p className="mt-2 text-[14px] text-ink-500">
-            Create your first policy above, then publish it to start collecting acknowledgements.
-          </p>
-        </section>
+        <EmptyState
+          className="mt-8"
+          message="No policies yet."
+          hint="Create your first policy above, then publish it to start collecting acknowledgements."
+        />
       ) : (
         <section className="mt-8 rounded-xl border border-ink-300/70 bg-white/80">
           <div className="border-b border-ink-300/60 px-5 py-4">
-            <h2 className="text-[17px] font-medium tracking-tight">All policies — {policies.length}</h2>
+            <h2 className="text-[17px] font-medium tracking-tight">
+              All policies — <span className="font-mono tabular-nums">{policies.length}</span>
+            </h2>
           </div>
           <ul className="divide-y divide-ink-300/40">
             {policies.map((policy) => {
@@ -212,24 +199,21 @@ export default async function PoliciesPage({
                     <div className="min-w-0 flex-1 space-y-1">
                       <p className="text-[15px] text-ink-900 font-medium">
                         {policy.title}{" "}
-                        <span className="text-[12px] text-ink-500 font-normal">v{policy.version}</span>
+                        <span className="font-mono text-[12px] tabular-nums text-ink-500 font-normal">v{policy.version}</span>
                       </p>
                       <p>
-                        <span
-                          className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${state.tone}`}
-                        >
-                          {state.label}
-                        </span>
+                        <StatusPill tone={state.tone}>{state.label}</StatusPill>
                       </p>
                       <p className="text-[12px] text-ink-500">{state.help}</p>
                       <p className="text-[12px] text-ink-500">
-                        Created {formatDate(policy.created_at)} · Updated {formatDate(policy.updated_at)}
+                        Created <span className="font-mono tabular-nums">{formatDate(policy.created_at)}</span> · Updated{" "}
+                        <span className="font-mono tabular-nums">{formatDate(policy.updated_at)}</span>
                       </p>
                       <details className="mt-1">
                         <summary className="cursor-pointer text-[12px] text-ink-500 hover:text-ink-900 transition">
                           Read policy text
                         </summary>
-                        <p className="mt-2 whitespace-pre-wrap rounded-md border border-ink-200 bg-ink-50/50 px-3 py-2 text-[13px] text-ink-700">
+                        <p className="mt-2 whitespace-pre-wrap rounded-md border border-ink-300/50 bg-ink-100/40 px-3 py-2 text-[13px] text-ink-700">
                           {policy.body}
                         </p>
                       </details>
@@ -254,7 +238,7 @@ export default async function PoliciesPage({
                             idleLabel="Archive"
                             pendingLabel="Archiving..."
                             confirmMessage={`Archive "${policy.title}" v${policy.version}? Employees will no longer be asked to acknowledge it.`}
-                            className="w-full rounded-full border border-ink-300 px-4 py-1.5 text-[13px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-200 disabled:text-ink-400 sm:w-auto"
+                            className="w-full rounded-full border border-ink-300 px-4 py-1.5 text-[13px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300 sm:w-auto"
                           />
                         </form>
                       ) : null}

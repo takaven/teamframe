@@ -46,7 +46,7 @@ export function ResendLinkForm({ email }: { email: string }) {
       <button
         type="submit"
         disabled={coolingDown}
-        className="inline-flex items-center rounded-full border border-ink-300 px-4 py-1.5 text-[14px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-200 disabled:text-ink-400"
+        className="inline-flex items-center rounded-full border border-ink-300 px-4 py-1.5 text-[14px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300"
       >
         {coolingDown ? `Resend available in ${remaining}s` : "Resend link"}
       </button>

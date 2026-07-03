@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { executeActionItemAction } from "@/app/dashboard/actions";
+import { StatusPill, type StatusPillTone } from "@/components/StatusPill";
 
 export type DashboardSignal = {
   id: string;
@@ -37,18 +38,24 @@ function formatUpdated(iso: string): string {
   });
 }
 
-function getCardTone(lane: DashboardSignal["lane"]): string {
-  if (lane === "red") return "border-red-300 bg-red-50/70";
-  if (lane === "yellow") return "border-amber-300 bg-amber-50/70";
-  return "border-emerald-300 bg-emerald-50/60";
+// Status spine: white card, 3px left border in the severity token.
+function getSpineTone(lane: DashboardSignal["lane"]): string {
+  if (lane === "red") return "border-l-signal-red";
+  if (lane === "yellow") return "border-l-signal-amber";
+  return "border-l-signal-green";
 }
 
-function getStatusPillTone(status: DashboardSignal["actionStatus"]): string {
-  if (status === "open") return "border-red-200 bg-red-50 text-red-700";
-  if (status === "in_progress") return "border-amber-200 bg-amber-50 text-amber-700";
-  if (status === "done") return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  if (status === "dismissed") return "border-ink-300 bg-ink-100 text-ink-700";
-  return "border-ink-300 bg-white text-ink-700";
+function getSeverityPill(lane: DashboardSignal["lane"]): { tone: StatusPillTone; label: string } {
+  if (lane === "red") return { tone: "red", label: "Urgent" };
+  if (lane === "yellow") return { tone: "amber", label: "Attention" };
+  return { tone: "green", label: "Resolved" };
+}
+
+function getStatusPillTone(status: DashboardSignal["actionStatus"]): StatusPillTone {
+  if (status === "open") return "red";
+  if (status === "in_progress") return "amber";
+  if (status === "done") return "green";
+  return "neutral";
 }
 
 function getStatusLabel(status: DashboardSignal["actionStatus"]): string {
@@ -60,22 +67,27 @@ function getStatusLabel(status: DashboardSignal["actionStatus"]): string {
 }
 
 export function RiskCard({ signal }: RiskCardProps) {
+  const severityPill = getSeverityPill(signal.lane);
+
   return (
-    <article className={`rounded-xl border p-4 ${getCardTone(signal.lane)}`}>
+    <article
+      className={`rounded-xl border border-ink-300/70 border-l-[3px] bg-white p-4 transition ${getSpineTone(signal.lane)}`}
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="flex flex-wrap items-center gap-2 text-[12px] tracking-[0.08em] text-ink-500">
+            <StatusPill tone={severityPill.tone}>{severityPill.label}</StatusPill>
             <span>{signal.subjectName}</span>
-            <span className="rounded-full border border-ink-300 bg-white/70 px-2 py-0.5 text-[11px] tracking-normal text-ink-700">
-              {signal.category}
+            <StatusPill tone="neutral">{signal.category}</StatusPill>
+            <span>
+              <span className="font-mono tabular-nums">{signal.count}</span> item{signal.count === 1 ? "" : "s"}
             </span>
-            <span>{signal.count} item{signal.count === 1 ? "" : "s"}</span>
           </div>
           <h3 className="mt-1 text-[18px] leading-tight tracking-tight">{signal.title}</h3>
         </div>
-        <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${getStatusPillTone(signal.actionStatus)}`}>
+        <StatusPill tone={getStatusPillTone(signal.actionStatus)}>
           {getStatusLabel(signal.actionStatus)}
-        </span>
+        </StatusPill>
       </div>
 
       <div className="mt-3 space-y-2 text-[14px] text-ink-700">
@@ -85,7 +97,9 @@ export function RiskCard({ signal }: RiskCardProps) {
       </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-ink-300/60 pt-3">
-        <p className="text-[12px] text-ink-500">Updated {formatUpdated(signal.updatedAt)}</p>
+        <p className="text-[12px] text-ink-500">
+          Updated <span className="font-mono tabular-nums">{formatUpdated(signal.updatedAt)}</span>
+        </p>
         <div className="flex flex-wrap gap-2">
           {signal.actionItemId && signal.actionStatus === "open" ? (
             <form action={executeActionItemAction}>
@@ -93,7 +107,7 @@ export function RiskCard({ signal }: RiskCardProps) {
               <input type="hidden" name="nextStatus" value="in_progress" />
               <button
                 type="submit"
-                className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-[12px] text-amber-800 transition hover:border-amber-500"
+                className="rounded-full border border-signal-amber/40 bg-white px-3 py-1.5 text-[12px] text-signal-amber transition hover:border-signal-amber"
               >
                 Execute action
               </button>
@@ -106,7 +120,7 @@ export function RiskCard({ signal }: RiskCardProps) {
               <input type="hidden" name="nextStatus" value="done" />
               <button
                 type="submit"
-                className="rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-[12px] text-emerald-800 transition hover:border-emerald-500"
+                className="rounded-full border border-signal-green/40 bg-white px-3 py-1.5 text-[12px] text-signal-green transition hover:border-signal-green"
               >
                 Mark done
               </button>

@@ -6,7 +6,6 @@ import {
   listEmployeesForAdmin,
 } from "@/services/employeeService";
 import { listDocumentsForEmployee } from "@/services/documentService";
-import Link from "next/link";
 import { CopyInviteEmailButton } from "./CopyInviteEmailButton";
 import {
   createEmployeeAction,
@@ -21,7 +20,9 @@ import {
   reinviteEmployeeAction,
   uploadEmployeeDocumentAction,
 } from "./actions";
-import { SignOutButton } from "@/components/SignOutButton";
+import { AppShell } from "@/components/AppShell";
+import { EmptyState } from "@/components/EmptyState";
+import { StatusPill, type StatusPillTone } from "@/components/StatusPill";
 
 export const dynamic = "force-dynamic";
 
@@ -103,13 +104,7 @@ export default async function EmployeesPage({
   if (actor.role !== "admin") {
     return (
       <main className="mx-auto max-w-3xl px-6 py-14">
-        <nav className="mb-6 flex items-center gap-4 text-[14px] text-ink-500">
-          <Link href="/dashboard" className="hover:text-ink-900 transition">Dashboard</Link>
-          <span className="text-ink-900 font-medium">Team roster</span>
-          <Link href="/onboarding" className="hover:text-ink-900 transition">Onboarding</Link>
-          <Link href="/leaves" className="hover:text-ink-900 transition">Leaves</Link>
-          <SignOutButton className="ml-auto" />
-        </nav>
+        <AppShell actor={actor} activePath="/employees" />
         <div className="space-y-2 border-b border-ink-300/60 pb-5">
           <p className="text-[12px] tracking-[0.14em] text-ink-500">Restricted</p>
           <h1 className="text-[34px] leading-tight tracking-tight">Team roster</h1>
@@ -138,20 +133,20 @@ export default async function EmployeesPage({
 
   function inviteState(employeeRecord: (typeof employees)[number]): {
     label: "Pending delivery" | "Sent" | "Activated" | "Archived" | "Delivery failed" | "Rate limited";
-    tone: string;
+    tone: StatusPillTone;
     help: string;
   } {
     if (employeeRecord.status === "inactive") {
       return {
         label: "Archived",
-        tone: "border-ink-300 bg-ink-100 text-ink-700",
+        tone: "neutral",
         help: "This profile is archived and hidden from active workflows.",
       };
     }
     if (employeeRecord.setup_status === "active") {
       return {
         label: "Activated",
-        tone: "border-emerald-200 bg-emerald-50 text-emerald-700",
+        tone: "green",
         help: employeeRecord.activated_at
           ? `Activated on ${formatDateTime(employeeRecord.activated_at)}.`
           : "Invite accepted and employee can access TeamFrame.",
@@ -160,21 +155,21 @@ export default async function EmployeesPage({
     if (employeeRecord.invite_last_error === "EMPLOYEE_INVITE_RATE_LIMIT") {
       return {
         label: "Rate limited",
-        tone: "border-amber-200 bg-amber-50 text-amber-700",
+        tone: "amber",
         help: "Invite provider throttled this address. Wait briefly, then use Re-send invite or the activation link.",
       };
     }
     if (employeeRecord.invite_last_error) {
       return {
         label: "Delivery failed",
-        tone: "border-red-200 bg-red-50 text-red-700",
+        tone: "red",
         help: `Last invite error: ${employeeRecord.invite_last_error}. Use Re-send invite or generate a new activation link.`,
       };
     }
     if (employeeRecord.setup_status === "ready") {
       return {
         label: "Sent",
-        tone: "border-sky-200 bg-sky-50 text-sky-700",
+        tone: "info",
         help: isInviteExpired(employeeRecord.invite_last_sent_at)
           ? "Invite was sent and may be expiring soon. Re-send invite or generate a fresh activation link."
           : "Invite sent and waiting for first login.",
@@ -183,7 +178,7 @@ export default async function EmployeesPage({
 
     return {
       label: "Pending delivery",
-      tone: "border-amber-200 bg-amber-50 text-amber-700",
+      tone: "amber",
       help:
         employeeRecord.invite_attempt_count > 0
           ? "Invite is still pending delivery. Re-send invite if the employee has not received it."
@@ -193,14 +188,7 @@ export default async function EmployeesPage({
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-14">
-      <nav className="mb-6 flex items-center gap-4 text-[14px] text-ink-500">
-        <Link href="/dashboard" className="hover:text-ink-900 transition">Dashboard</Link>
-        <span className="text-ink-900 font-medium">Team roster</span>
-        <Link href="/onboarding" className="hover:text-ink-900 transition">Onboarding</Link>
-        <Link href="/leaves" className="hover:text-ink-900 transition">Leaves</Link>
-        <Link href="/policies" className="hover:text-ink-900 transition">Policies</Link>
-        <SignOutButton className="ml-auto" />
-      </nav>
+      <AppShell actor={actor} activePath="/employees" />
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink-300/60 pb-5">
         <div className="space-y-2">
           <p className="text-[12px] tracking-[0.14em] text-ink-500">Admin queue</p>
@@ -215,19 +203,19 @@ export default async function EmployeesPage({
       <section className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
           <p className="text-[12px] text-ink-500">Invite pending</p>
-          <p className="mt-2 text-[24px] tracking-tight">{invitePending}</p>
+          <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{invitePending}</p>
         </article>
         <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
           <p className="text-[12px] text-ink-500">Invite sent</p>
-          <p className="mt-2 text-[24px] tracking-tight">{inviteSent}</p>
+          <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{inviteSent}</p>
         </article>
         <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
           <p className="text-[12px] text-ink-500">Signed in and active</p>
-          <p className="mt-2 text-[24px] tracking-tight">{inviteActivated}</p>
+          <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{inviteActivated}</p>
         </article>
         <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
           <p className="text-[12px] text-ink-500">Archived profiles</p>
-          <p className="mt-2 text-[24px] tracking-tight">{archived}</p>
+          <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{archived}</p>
         </article>
       </section>
 
@@ -327,7 +315,7 @@ export default async function EmployeesPage({
             <PendingSubmitButton
               idleLabel="Export finance handoff"
               pendingLabel="Preparing export..."
-              className="rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-200 disabled:text-ink-400"
+              className="rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300"
             />
           </form>
         </div>
@@ -335,15 +323,10 @@ export default async function EmployeesPage({
 
       <section className="mt-8 space-y-4">
         {employees.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-ink-300/80 bg-white/60 px-5 py-8 text-center">
-            <p className="text-[15px] text-ink-700">No employees yet — your first teammate is one form away.</p>
-            <a
-              href="#add-employee"
-              className="mt-2 inline-flex items-center gap-1 text-[14px] text-ink-700 underline decoration-ink-300 underline-offset-4 transition hover:decoration-ink-900"
-            >
-              &uarr; Use the Add employee form above
-            </a>
-          </div>
+          <EmptyState
+            message="No employees yet — your first teammate is one form away."
+            cta={{ label: "↑ Use the Add employee form above", href: "#add-employee" }}
+          />
         ) : (
           employees.map((employee) => (
             <article key={employee.id} className="rounded-xl border border-ink-300/70 bg-white/80 p-5">
@@ -360,19 +343,19 @@ export default async function EmployeesPage({
                 return (
                   <>
               {status === "reinvited" && employeeParam === employee.id ? (
-                <p className="mb-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-[13px] text-emerald-700">
+                <p className="mb-3 rounded-md border border-signal-green/30 bg-signal-green/10 px-3 py-2 text-[13px] text-signal-green">
                   Invite re-sent to this employee.
                 </p>
               ) : null}
               {status === "activation_link_ready" && employeeParam === employee.id && activationLink ? (
-                <div className="mb-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-[13px] text-emerald-700">
+                <div className="mb-3 rounded-md border border-signal-green/30 bg-signal-green/10 px-3 py-2 text-[13px] text-signal-green">
                   <p>Activation link generated for this employee.</p>
                   <div className="mt-2 flex flex-wrap items-center gap-3">
                     <a
                       href={activationLink}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-[12px] underline decoration-emerald-300 underline-offset-4"
+                      className="text-[12px] underline decoration-signal-green/40 underline-offset-4"
                     >
                       Open activation link
                     </a>
@@ -391,9 +374,9 @@ export default async function EmployeesPage({
                     <h3 className="text-[19px] font-medium tracking-tight">{employee.full_name}</h3>
                     <p className="text-[13px] text-ink-500">{employee.email}</p>
                     <p className="mt-2">
-                      <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium uppercase tracking-[0.08em] ${state.tone}`}>
+                      <StatusPill tone={state.tone} className="uppercase tracking-[0.08em]">
                         {state.label}
-                      </span>
+                      </StatusPill>
                     </p>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-2">
@@ -411,7 +394,7 @@ export default async function EmployeesPage({
 
                 <p className="mt-2 text-[12px] text-ink-500">{state.help}</p>
 
-                <dl className="mt-4 grid gap-x-6 gap-y-3 rounded-md border border-ink-200 bg-white px-4 py-3 text-[13px] sm:grid-cols-2 lg:grid-cols-4">
+                <dl className="mt-4 grid gap-x-6 gap-y-3 rounded-md border border-ink-300/50 bg-white px-4 py-3 text-[13px] sm:grid-cols-2 lg:grid-cols-4">
                   <div>
                     <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Email</dt>
                     <dd className="mt-0.5 text-ink-900">{employee.email}</dd>
@@ -446,7 +429,7 @@ export default async function EmployeesPage({
                   </div>
                 </dl>
 
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-ink-300 bg-ink-50/60 px-4 py-3">
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-ink-300 bg-ink-100/50 px-4 py-3">
                   <div>
                     <p className="text-[13px] font-medium text-ink-900">Due diligence pack</p>
                     <p className="text-[12px] text-ink-500">
@@ -520,14 +503,14 @@ export default async function EmployeesPage({
                 />
               </form>
 
-              <div className="mt-3 rounded-md border border-ink-200 bg-ink-50/50 px-3 py-2 text-[12px] text-ink-600">
-                <p>Invite attempts: {employee.invite_attempt_count}</p>
-                <p>Last attempt: {formatDateTime(employee.invite_last_attempt_at)}</p>
-                <p>Last sent: {formatDateTime(employee.invite_last_sent_at)}</p>
-                <p>Activation: {formatDateTime(employee.activated_at)}</p>
+              <div className="mt-3 rounded-md border border-ink-300/50 bg-ink-100/40 px-3 py-2 text-[12px] text-ink-500">
+                <p>Invite attempts: <span className="font-mono tabular-nums">{employee.invite_attempt_count}</span></p>
+                <p>Last attempt: <span className="font-mono tabular-nums">{formatDateTime(employee.invite_last_attempt_at)}</span></p>
+                <p>Last sent: <span className="font-mono tabular-nums">{formatDateTime(employee.invite_last_sent_at)}</span></p>
+                <p>Activation: <span className="font-mono tabular-nums">{formatDateTime(employee.activated_at)}</span></p>
               </div>
 
-              <section className="mt-4 rounded-md border border-ink-200 bg-white px-3 py-3">
+              <section className="mt-4 rounded-md border border-ink-300/50 bg-white px-3 py-3">
                 <h4 className="text-[13px] font-medium text-ink-900">Documents</h4>
 
                 <form action={uploadEmployeeDocumentAction} className="mt-3 grid gap-2 md:grid-cols-4" encType="multipart/form-data">
@@ -562,24 +545,25 @@ export default async function EmployeesPage({
                   <PendingSubmitButton
                     idleLabel="Upload document"
                     pendingLabel="Uploading..."
-                    className="rounded-md border border-ink-300 px-3 py-1.5 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-200 disabled:text-ink-400"
+                    className="rounded-md border border-ink-300 px-3 py-1.5 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300"
                   />
                 </form>
 
                 {documents.length === 0 ? (
-                  <p className="mt-3 text-[12px] text-ink-500">
-                    No documents uploaded yet. Add a contract or ID with the upload form above.
-                  </p>
+                  <EmptyState
+                    message="No documents uploaded yet. Add a contract or ID with the upload form above."
+                    className="mt-3 px-3 py-4"
+                  />
                 ) : (
                   <ul className="mt-3 space-y-2">
                     {documents.map((document) => (
-                      <li key={document.id} className="rounded-md border border-ink-200 px-3 py-2">
+                      <li key={document.id} className="rounded-md border border-ink-300/50 px-3 py-2">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="text-[12px] text-ink-700">
                             <p className="font-medium text-ink-900">{document.type.toUpperCase()}</p>
-                            <p>Uploaded {formatDateTime(document.created_at)}</p>
-                            <p>Signed: {document.signed_at ? formatDateTime(document.signed_at) : "-"}</p>
-                            <p>Expires: {document.expires_at ? formatDateTime(document.expires_at) : "-"}</p>
+                            <p>Uploaded <span className="font-mono tabular-nums">{formatDateTime(document.created_at)}</span></p>
+                            <p>Signed: <span className="font-mono tabular-nums">{document.signed_at ? formatDateTime(document.signed_at) : "-"}</span></p>
+                            <p>Expires: <span className="font-mono tabular-nums">{document.expires_at ? formatDateTime(document.expires_at) : "-"}</span></p>
                           </div>
                           <div className="flex flex-wrap items-center gap-2">
                             <form action={downloadEmployeeDocumentAction}>
@@ -588,7 +572,7 @@ export default async function EmployeesPage({
                               <PendingSubmitButton
                                 idleLabel="Download"
                                 pendingLabel="Preparing..."
-                                className="rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-200 disabled:text-ink-400"
+                                className="rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300"
                               />
                             </form>
                             <form action={deleteEmployeeDocumentAction}>
@@ -599,7 +583,7 @@ export default async function EmployeesPage({
                                 idleLabel="Delete"
                                 pendingLabel="Deleting..."
                                 confirmMessage="Delete this document from active records?"
-                                className="rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-200 disabled:text-ink-400"
+                                className="rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300"
                               />
                             </form>
                           </div>
@@ -625,7 +609,7 @@ export default async function EmployeesPage({
                         pendingLabel="Sending..."
                         disabled={resendBlocked}
                         disabledLabel={`Retry in ${resendCooldownSeconds}s`}
-                        className="w-full rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-200 disabled:text-ink-400 sm:w-auto"
+                        className="w-full rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300 sm:w-auto"
                       />
                     </form>
                     <form action={generateActivationLinkAction} className="w-full sm:w-auto">
@@ -634,7 +618,7 @@ export default async function EmployeesPage({
                       <PendingSubmitButton
                         idleLabel="Generate activation link"
                         pendingLabel="Generating..."
-                        className="w-full rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-200 disabled:text-ink-400 sm:w-auto"
+                        className="w-full rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300 sm:w-auto"
                       />
                     </form>
                   </>
@@ -647,7 +631,7 @@ export default async function EmployeesPage({
                     idleLabel="Start offboarding"
                     pendingLabel="Starting..."
                     confirmMessage={`Start offboarding for ${employee.full_name}?`}
-                    className="w-full rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-200 disabled:text-ink-400 sm:w-auto"
+                    className="w-full rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300 sm:w-auto"
                   />
                 </form>
                 <form action={archiveEmployeeAction} className="w-full sm:w-auto">
@@ -658,7 +642,7 @@ export default async function EmployeesPage({
                     idleLabel="Archive employee"
                     pendingLabel="Archiving..."
                     confirmMessage={`Archive ${employee.full_name}? This removes them from active workflows.`}
-                    className="w-full rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-200 disabled:text-ink-400 sm:w-auto"
+                    className="w-full rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300 sm:w-auto"
                   />
                 </form>
               </div>
