@@ -9,7 +9,23 @@
   --color-paper: #fafaf7;
   --color-accent: #1f5f4a;
 
+  /*
+   * Severity tokens — the single source of truth for signal colour.
+   * Mapped to the text tones RiskCard already used (Tailwind red-700 /
+   * amber-700 / emerald-700) so adoption changes consistency, not hue.
+   * Tints derive from these via opacity modifiers (e.g. bg-signal-red/10).
+   */
+  --color-signal-red: #b91c1c;
+  --color-signal-amber: #b45309;
+  --color-signal-green: #047857;
+
   --font-sans: "IBM Plex Sans", "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+
+  /* Metrics, counts, and dates. --font-plex-mono is set by next/font in app/layout.tsx. */
+  --font-mono: var(--font-plex-mono), "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  /* Display face — wordmark and dashboard H1 only. --font-fraunces is set by next/font. */
+  --font-display: var(--font-fraunces), Fraunces, Georgia, "Times New Roman", serif;
 }
 
 html,

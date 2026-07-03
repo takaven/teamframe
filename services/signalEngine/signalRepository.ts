@@ -10,6 +10,51 @@ import type {
 
 type SupabaseSignalIdRow = { id: string };
 
+export type OpenSignalCounts = {
+  red: number;
+  yellow: number;
+};
+
+type ActorScope = {
+  role: "admin" | "employee";
+  tenantId: string | null;
+};
+
+/**
+ * Read-only count of open (unresolved) risk signals for the actor's tenant,
+ * split by severity. Powers the Risk Pulse element in the AppShell.
+ *
+ * Wave 3 note: this is the single allowed service-layer addition for the UI
+ * elevation pass. One cheap round-trip — selects only the `severity` column
+ * of unresolved rows (bounded at target scale of 5–20 employees) and counts
+ * in memory, so red vs yellow comes from a single query.
+ */
+export async function countOpenSignals(actor: ActorScope): Promise<OpenSignalCounts> {
+  if (actor.role !== "admin") {
+    throw new Error("FORBIDDEN");
+  }
+  if (!actor.tenantId) {
+    throw new Error("NO_TENANT_CONTEXT");
+  }
+
+  const supabase: any = createServiceRoleClient();
+  const { data, error } = await supabase
+    .from("risk_signals")
+    .select("severity")
+    .eq("tenant_id", actor.tenantId)
+    .is("resolved_at", null);
+
+  if (error) {
+    throw new Error(`SIGNAL_COUNT_FAILED: ${error.message}`);
+  }
+
+  const rows = (data ?? []) as Array<{ severity: "red" | "yellow" }>;
+  return {
+    red: rows.filter((row) => row.severity === "red").length,
+    yellow: rows.filter((row) => row.severity === "yellow").length,
+  };
+}
+
 export function createSignalRepository(): SignalRepository {
   const supabase: any = createServiceRoleClient();
 
