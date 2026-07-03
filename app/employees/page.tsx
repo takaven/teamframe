@@ -245,7 +245,7 @@ export default async function EmployeesPage({
         </p>
       ) : null}
 
-      <section className="mt-8 rounded-xl border border-ink-300/70 bg-white/80 p-5">
+      <section id="add-employee" className="mt-8 rounded-xl border border-ink-300/70 bg-white/80 p-5">
         <h2 className="text-[19px] font-medium tracking-tight">Add employee</h2>
         <form action={createEmployeeAction} className="mt-4 grid gap-3 md:grid-cols-2">
           <input
@@ -335,8 +335,14 @@ export default async function EmployeesPage({
 
       <section className="mt-8 space-y-4">
         {employees.length === 0 ? (
-          <div className="rounded-xl border border-ink-300/70 bg-white/80 px-5 py-6 text-[14px] text-ink-500">
-            No employees yet.
+          <div className="rounded-xl border border-dashed border-ink-300/80 bg-white/60 px-5 py-8 text-center">
+            <p className="text-[15px] text-ink-700">No employees yet — your first teammate is one form away.</p>
+            <a
+              href="#add-employee"
+              className="mt-2 inline-flex items-center gap-1 text-[14px] text-ink-700 underline decoration-ink-300 underline-offset-4 transition hover:decoration-ink-900"
+            >
+              &uarr; Use the Add employee form above
+            </a>
           </div>
         ) : (
           employees.map((employee) => (
@@ -345,6 +351,8 @@ export default async function EmployeesPage({
                 const resendCooldownSeconds = getResendCooldownSeconds(employee.invite_last_attempt_at);
                 const resendBlocked = resendCooldownSeconds > 0;
                 const documents = documentsByEmployee.get(employee.id) ?? [];
+                const state = inviteState(employee);
+                const detailOpen = employeeParam === employee.id;
                 const resendGuidance = resendBlocked
                   ? `Re-send cooldown active: retry in ${resendCooldownSeconds}s.`
                   : "If delivery is delayed, use Re-send invite first, then activation link as fallback.";
@@ -377,28 +385,84 @@ export default async function EmployeesPage({
                   </div>
                 </div>
               ) : null}
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-[19px] font-medium tracking-tight">{employee.full_name}</h3>
-                  <p className="text-[13px] text-ink-500">{employee.email}</p>
-                  {(() => {
-                    const state = inviteState(employee);
-                    return (
-                      <>
-                        <p className="mt-2">
-                          <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium uppercase tracking-[0.08em] ${state.tone}`}>
-                            {state.label}
-                          </span>
-                        </p>
-                        <p className="mt-1 text-[12px] text-ink-500">{state.help}</p>
-                      </>
-                    );
-                  })()}
+              <details open={detailOpen} className="group">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 [&::-webkit-details-marker]:hidden">
+                  <div>
+                    <h3 className="text-[19px] font-medium tracking-tight">{employee.full_name}</h3>
+                    <p className="text-[13px] text-ink-500">{employee.email}</p>
+                    <p className="mt-2">
+                      <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium uppercase tracking-[0.08em] ${state.tone}`}>
+                        {state.label}
+                      </span>
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-2">
+                    <span className="text-[12px] tracking-[0.12em] text-ink-500">
+                      {employee.status.replace("_", " ")}
+                    </span>
+                    <span className="text-[12px] text-ink-700 underline decoration-ink-300 underline-offset-4 group-open:hidden">
+                      View details
+                    </span>
+                    <span className="hidden text-[12px] text-ink-700 underline decoration-ink-300 underline-offset-4 group-open:inline">
+                      Hide details
+                    </span>
+                  </div>
+                </summary>
+
+                <p className="mt-2 text-[12px] text-ink-500">{state.help}</p>
+
+                <dl className="mt-4 grid gap-x-6 gap-y-3 rounded-md border border-ink-200 bg-white px-4 py-3 text-[13px] sm:grid-cols-2 lg:grid-cols-4">
+                  <div>
+                    <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Email</dt>
+                    <dd className="mt-0.5 text-ink-900">{employee.email}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Role title</dt>
+                    <dd className="mt-0.5 text-ink-900">{employee.role_title}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Department</dt>
+                    <dd className="mt-0.5 text-ink-900">{employee.department}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Timezone</dt>
+                    <dd className="mt-0.5 text-ink-900">{employee.timezone}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Country</dt>
+                    <dd className="mt-0.5 text-ink-900">{employee.country ?? "-"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Lifecycle state</dt>
+                    <dd className="mt-0.5 text-ink-900">{employee.lifecycle_state.replace("_", " ")}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Invite state</dt>
+                    <dd className="mt-0.5 text-ink-900">{state.label}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Employment</dt>
+                    <dd className="mt-0.5 text-ink-900">{employee.employment_type.replace("_", " ")}</dd>
+                  </div>
+                </dl>
+
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-ink-300 bg-ink-50/60 px-4 py-3">
+                  <div>
+                    <p className="text-[13px] font-medium text-ink-900">Due diligence pack</p>
+                    <p className="text-[12px] text-ink-500">
+                      Employment record, documents, policy acknowledgements, and asset-related logs in one export.
+                    </p>
+                  </div>
+                  <form action={exportEmployeeDueDiligencePackAction}>
+                    <input type="hidden" name="employee_id" value={employee.id} />
+                    <input type="hidden" name="return_to" value="/employees" />
+                    <PendingSubmitButton
+                      idleLabel="Export due diligence pack"
+                      pendingLabel="Preparing pack..."
+                      className="rounded-md bg-ink-900 px-4 py-2 text-[13px] font-medium text-paper transition hover:bg-ink-700 disabled:cursor-not-allowed disabled:bg-ink-300"
+                    />
+                  </form>
                 </div>
-                <span className="text-[12px] tracking-[0.12em] text-ink-500">
-                  {employee.status.replace("_", " ")}
-                </span>
-              </div>
 
               <form action={updateEmployeeAction} className="mt-4 grid gap-3 md:grid-cols-4">
                 <input type="hidden" name="employee_id" value={employee.id} />
@@ -503,7 +567,9 @@ export default async function EmployeesPage({
                 </form>
 
                 {documents.length === 0 ? (
-                  <p className="mt-3 text-[12px] text-ink-500">No documents uploaded.</p>
+                  <p className="mt-3 text-[12px] text-ink-500">
+                    No documents uploaded yet. Add a contract or ID with the upload form above.
+                  </p>
                 ) : (
                   <ul className="mt-3 space-y-2">
                     {documents.map((document) => (
@@ -543,20 +609,6 @@ export default async function EmployeesPage({
                   </ul>
                 )}
 
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <form action={exportEmployeeDueDiligencePackAction}>
-                    <input type="hidden" name="employee_id" value={employee.id} />
-                    <input type="hidden" name="return_to" value="/employees" />
-                    <PendingSubmitButton
-                      idleLabel="Export due diligence pack"
-                      pendingLabel="Preparing pack..."
-                      className="rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-200 disabled:text-ink-400"
-                    />
-                  </form>
-                  <p className="text-[12px] text-ink-500">
-                    Includes employment record, documents, policy acknowledgements, and asset-related logs.
-                  </p>
-                </div>
               </section>
 
               <div className="mt-3 flex flex-wrap items-center gap-2 sm:gap-3">
@@ -611,6 +663,7 @@ export default async function EmployeesPage({
                 </form>
               </div>
               <p className="mt-2 text-[12px] text-ink-500">{resendGuidance}</p>
+              </details>
                   </>
                 );
               })()}
