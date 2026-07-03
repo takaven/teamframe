@@ -219,13 +219,13 @@ Full table: `docs/launch/no-silent-failures-audit.md`
 | Wire `createEmployeeAction`, `archiveEmployeeAction`, `reinviteEmployeeAction` | D4 GAP | Medium |
 | Wire `submitLeaveAction`, `completeOnboardingTaskAction` | D4 GAP | Medium |
 | Wire `continueCurrentSessionAction` | D4 GAP | Medium |
-| Fix BUG-1: check compensating storage delete result in `documentService.uploadDocument` | D4 BUG | High |
-| Fix BUG-2: destructure `error` in `maybeFireActivationCompleted` | D4 BUG | High |
+| ~~Fix BUG-1: check compensating storage delete result in `documentService.uploadDocument`~~ | ~~D4 BUG~~ | RESOLVED — fixed Wave 4 (`services/documentService/index.ts:424` + `tests/document-upload-compensation.test.ts`) |
+| ~~Fix BUG-2: destructure `error` in `maybeFireActivationCompleted`~~ | ~~D4 BUG~~ | RESOLVED — fixed Phase 1C (`services/onboardingService/index.ts:86-110`), re-verified Wave 4 |
 | Promote audit-log write failures to Sentry in `leaveService`, `onboardingService` | D4 GAP | Medium |
 | Log non-auth errors in `middleware/rbac.ts:getActor()` | D4 GAP | Low |
 | ~~Merge `phase-1a/foundation` → `main`~~ | ~~Precondition~~ | RESOLVED — merged via PR #58 |
-| Provision Sentry DSN and verify test event | D1 PARTIAL | Before launch |
-| Source map upload + `withSentryConfig` wrapper | Deferred | Before launch |
+| Provision Sentry DSN and verify test event | D1 PARTIAL | Before launch — founder steps + evidence template: `docs/launch/verification/sentry-completion.md` (Wave 4) |
+| ~~Source map upload + `withSentryConfig` wrapper~~ | ~~Deferred~~ | RESOLVED — wrapped Wave 4 (`next.config.ts`), upload gated on `SENTRY_AUTH_TOKEN` |
 
 ---
 
@@ -241,10 +241,10 @@ Full table: `docs/launch/no-silent-failures-audit.md`
 
 ## 12. Explicitly Unfinished Items
 
-- [ ] Sentry DSN not provisioned — D1 is PARTIAL. Cannot produce Sentry event ID.
+- [ ] Sentry DSN not provisioned — D1 is PARTIAL. Cannot produce Sentry event ID. (Wave 4: founder steps + test-event script documented in `docs/launch/verification/sentry-completion.md`.)
 - [ ] `.env.staging.example` not updated — blocked until `phase-1a/foundation` merges.
-- [ ] `withSentryConfig` wrapper for `next.config.ts` — deferred to a future weekend.
-- [ ] Source map upload (`SENTRY_AUTH_TOKEN`) — deferred.
+- [x] `withSentryConfig` wrapper for `next.config.ts` — done Wave 4.
+- [x] Source map upload (`SENTRY_AUTH_TOKEN`) — wired Wave 4, gated on token presence; upload itself awaits founder token.
 - [ ] Playwright tests for health endpoint — deferred.
 - [ ] Auth subsystem probe in `/api/health` — explicitly deferred (no probe = no false confidence).
 - [x] `phase-1a/foundation` merged to `main` (PR #58, `a93f360`); this branch rebased cleanly.
