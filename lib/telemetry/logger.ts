@@ -33,6 +33,42 @@ function sanitiseErrorMessage(msg: string): string {
     .slice(0, 500); // cap length — no unbounded strings in logs
 }
 
+export interface LogSchemaCapabilityInput {
+  domain: string; // service domain, e.g. "employees"
+  mode: string; // e.g. "limited_telemetry" | "limited_profile"
+  reason: string; // e.g. "columns_missing" | "probe_error"
+  missingColumns?: readonly string[];
+  message?: string;
+}
+
+/**
+ * Server-log-only schema-capability warning.
+ *
+ * Wave 2 (gap audit 2026-05-30, Gap 1): schema drift diagnostics must never
+ * reach a customer surface. Services route capability-check output here so it
+ * lands in the structured server log and nowhere else.
+ */
+export function logSchemaCapability(input: LogSchemaCapabilityInput): void {
+  try {
+    const base: Record<string, unknown> = {
+      ts: new Date().toISOString(),
+      event: "SCHEMA_CAPABILITY_WARN",
+      domain: input.domain,
+      mode: input.mode,
+      reason: input.reason,
+    };
+    if (input.missingColumns && input.missingColumns.length > 0) {
+      base.missing_columns = [...input.missingColumns];
+    }
+    if (input.message) {
+      base.message_sanitised = sanitiseErrorMessage(input.message);
+    }
+    console.warn(JSON.stringify(scrubPII(base)));
+  } catch {
+    // Never throw — telemetry failure must not break user flows.
+  }
+}
+
 export function logAction(input: LogActionInput): void {
   try {
     const requestId = input.requestId ?? crypto.randomUUID();

@@ -59,6 +59,10 @@ async function getClientIpAddress(): Promise<string> {
 
 export async function sendMagicLink(formData: FormData): Promise<void> {
   const raw = formData.get("email");
+  // Resend from /auth/check-email (Wave 2): same action, same rate limits —
+  // only the redirect target changes so the user stays on the waiting page
+  // and sees honest rate-limit copy there instead of being bounced to /auth.
+  const isCheckEmailResend = formData.get("context") === "check_email";
   const parsed = EmailSchema.safeParse(raw);
   if (!parsed.success) {
     redirect(`/auth?error=invalid_email`);
@@ -66,6 +70,9 @@ export async function sendMagicLink(formData: FormData): Promise<void> {
   const email = parsed.data;
   const nowMs = Date.now();
   const clientIp = await getClientIpAddress();
+  const rateLimitedTarget = isCheckEmailResend
+    ? `/auth/check-email?email=${encodeURIComponent(email)}&error=rate_limited`
+    : "/auth?error=rate_limited";
 
   if (
     !consumeRateLimit(
@@ -76,11 +83,11 @@ export async function sendMagicLink(formData: FormData): Promise<void> {
       nowMs,
     )
   ) {
-    redirect("/auth?error=rate_limited");
+    redirect(rateLimitedTarget);
   }
 
   if (!consumeRateLimit(ipRateLimitStore, clientIp, IP_RATE_LIMIT_MAX, IP_RATE_LIMIT_WINDOW_MS, nowMs)) {
-    redirect("/auth?error=rate_limited");
+    redirect(rateLimitedTarget);
   }
 
   const supabase = await createServerClient();
@@ -106,7 +113,9 @@ export async function sendMagicLink(formData: FormData): Promise<void> {
   // In all cases land on /auth/check-email — never reveal whether the email
   // is a known user (prevents enumeration).
 
-  redirect(`/auth/check-email?email=${encodeURIComponent(email)}`);
+  redirect(
+    `/auth/check-email?email=${encodeURIComponent(email)}${isCheckEmailResend ? "&resent=1" : ""}`,
+  );
 }
 
 export async function logoutAction(): Promise<void> {

@@ -1,6 +1,8 @@
 -- TeamFrame V1 — onboarding_tasks
--- Scope lock: assign + complete only.
--- No multi-step workflows, no templates, no due dates, no notifications.
+-- Scope lock: assign + complete, with an optional per-task due date.
+-- Templates are static packs in code (services/onboardingService/templates.ts);
+-- there is no template table. No multi-step workflows, no reminders,
+-- no notifications (Wave 2, gap audit 2026-05-30).
 
 do $$ begin
   create type onboarding_task_status as enum ('pending', 'completed');
@@ -13,6 +15,7 @@ create table if not exists onboarding_tasks (
   title        text        not null check (char_length(trim(title)) > 0),
   status       onboarding_task_status not null default 'pending',
   assigned_by  uuid        not null,
+  due_date     date,
   completed_at timestamptz,
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now(),
@@ -21,6 +24,9 @@ create table if not exists onboarding_tasks (
     (status = 'pending'   and completed_at is null)
   )
 );
+
+-- Wave 2 additive migration: existing deployments predate the due_date column.
+alter table onboarding_tasks add column if not exists due_date date;
 
 create index if not exists onboarding_tasks_employee_id_idx on onboarding_tasks(employee_id);
 create index if not exists onboarding_tasks_tenant_id_idx   on onboarding_tasks(tenant_id);

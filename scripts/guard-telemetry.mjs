@@ -51,6 +51,8 @@ const ALLOWLIST = [
   // app/onboarding/actions.ts
   { file: "app/onboarding/actions.ts", fn: "completeOnboardingTaskAction" },
   { file: "app/onboarding/actions.ts", fn: "assignOnboardingTaskAction"   },
+  // Wave 2 — static template pack assignment (gap audit 2026-05-30, Gap 5)
+  { file: "app/onboarding/actions.ts", fn: "assignOnboardingPackAction"   },
   // app/policies/actions.ts (Wave 1 — minimal policy loop)
   { file: "app/policies/actions.ts",  fn: "createPolicyAction"           },
   { file: "app/policies/actions.ts",  fn: "publishPolicyAction"          },

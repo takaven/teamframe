@@ -17,6 +17,7 @@ import type { Actor } from "@/middleware/rbac";
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 import { env } from "@/lib/db/env";
 import { track } from "@/lib/telemetry/track";
+import { logSchemaCapability } from "@/lib/telemetry/logger";
 import { maybeFireActivationCompleted } from "@/services/onboardingService";
 
 export const ORG_CHART_FIELDS = [
@@ -86,10 +87,6 @@ type EmployeeTelemetryCapabilities = {
   checkedAt: string;
   missingColumns: EmployeeTelemetryColumn[];
   limitedMode: boolean;
-  schemaBaseline: {
-    totalFiles: number;
-    latestFile: string;
-  };
 };
 
 let employeeTelemetryCapabilitiesCache:
@@ -102,10 +99,6 @@ let employeeTelemetryCapabilitiesCache:
 const EMPLOYEE_TELEMETRY_CACHE_TTL_MS = 5 * 60 * 1000;
 const MAX_LISTUSERS_PAGES = 10;
 const LISTUSERS_PAGE_SIZE = 100;
-const SCHEMA_BASELINE = {
-  totalFiles: 14,
-  latestFile: "tenancy_rls.sql",
-} as const;
 
 function isSchemaMissingColumnError(message: string): boolean {
   return message.toLowerCase().includes("does not exist");
@@ -143,13 +136,13 @@ function noteMissingTelemetryColumns(columns: EmployeeTelemetryColumn[], reason:
     checkedAt: new Date().toISOString(),
     missingColumns: merged,
     limitedMode: merged.length > 0,
-    schemaBaseline: SCHEMA_BASELINE,
   });
 
-  console.warn("EMPLOYEE_SCHEMA_CAPABILITY_WARN", {
+  logSchemaCapability({
+    domain: "employees",
     mode: "limited_telemetry",
     reason,
-    missing_columns: merged,
+    missingColumns: merged,
   });
 }
 
@@ -191,7 +184,8 @@ async function detectEmployeeTelemetryCapabilities(): Promise<EmployeeTelemetryC
       for (const column of remaining) {
         if (!missingColumns.includes(column)) missingColumns.push(column);
       }
-      console.warn("EMPLOYEE_SCHEMA_CAPABILITY_WARN", {
+      logSchemaCapability({
+        domain: "employees",
         mode: "limited_telemetry",
         reason: "probe_error",
         message: error.message,
@@ -206,7 +200,8 @@ async function detectEmployeeTelemetryCapabilities(): Promise<EmployeeTelemetryC
       for (const column of remaining) {
         if (!missingColumns.includes(column)) missingColumns.push(column);
       }
-      console.warn("EMPLOYEE_SCHEMA_CAPABILITY_WARN", {
+      logSchemaCapability({
+        domain: "employees",
         mode: "limited_telemetry",
         reason: "probe_error",
         message: error.message,
@@ -224,24 +219,18 @@ async function detectEmployeeTelemetryCapabilities(): Promise<EmployeeTelemetryC
     checkedAt: new Date().toISOString(),
     missingColumns,
     limitedMode: missingColumns.length > 0,
-    schemaBaseline: SCHEMA_BASELINE,
   });
 
   if (capabilities.limitedMode) {
-    console.warn("EMPLOYEE_SCHEMA_CAPABILITY_WARN", {
+    logSchemaCapability({
+      domain: "employees",
       mode: "limited_telemetry",
       reason: "columns_missing",
-      missing_columns: capabilities.missingColumns,
-      checked_at: capabilities.checkedAt,
+      missingColumns: capabilities.missingColumns,
     });
   }
 
   return capabilities;
-}
-
-export async function getEmployeeTelemetryCapabilities(actor: Actor): Promise<EmployeeTelemetryCapabilities> {
-  requireAdmin(actor);
-  return detectEmployeeTelemetryCapabilities();
 }
 
 export async function listEmployeesForAdmin(actor: Actor): Promise<EmployeeFullRecord[]> {
@@ -277,10 +266,11 @@ export async function listEmployeesForAdmin(actor: Actor): Promise<EmployeeFullR
     throw new Error(`EMPLOYEE_LIST_FAILED: ${error.message}`);
   }
 
-  console.warn("EMPLOYEE_SCHEMA_CAPABILITY_WARN", {
+  logSchemaCapability({
+    domain: "employees",
     mode: "limited_profile",
     reason: "columns_missing",
-    missing_columns: missingProfileColumns,
+    missingColumns: missingProfileColumns,
   });
 
   const { data: legacyData, error: legacyError } = await supabase
