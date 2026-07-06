@@ -1,0 +1,60 @@
+# TeamFrame — Supabase auth contract as code (see docs/auth-rules.md).
+#
+# This file intentionally configures ONLY the auth settings TeamFrame requires.
+# Push it to your Supabase project with:
+#
+#   npx supabase link --project-ref <your-project-ref>
+#   npx supabase config push
+#
+# `link` asks for your Supabase login the first time (or set SUPABASE_ACCESS_TOKEN).
+# `config push` prints a diff of what will change on the remote project and asks
+# for confirmation. Verified working on the free tier.
+#
+# The same settings can be applied by hand in the dashboard — the exact click
+# paths are in START_HERE.md step 6.
+
+project_id = "teamframe"
+
+[auth]
+enabled = true
+# Base URL used in magic-link emails ({{ .SiteURL }}) and the redirect allowlist.
+# Local install: http://localhost:3030. For production, change this to your
+# deployed domain before pushing (or set it in the dashboard).
+site_url = "http://localhost:3030"
+# Allow every path under the site URL (e.g. /auth/callback) as a redirect target.
+additional_redirect_urls = ["http://localhost:3030/**"]
+# Admin-invite only: nobody can self-register (docs/auth-rules.md).
+enable_signup = false
+enable_anonymous_sign_ins = false
+enable_manual_linking = false
+# Admins sign in with email + password (min 8 chars, enforced by seed:admin too).
+minimum_password_length = 8
+
+[auth.email]
+# Email provider stays enabled: admins use password sign-in, employees use
+# magic links. Signup remains blocked by the global enable_signup = false.
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
+
+# Magic-link email template (token_hash shape — see docs/auth-rules.md).
+#
+# COMMENTED OUT ON PURPOSE — honest free-tier limitation, verified 2026-07-06:
+# pushing an email template to a free-tier project that still uses Supabase's
+# built-in mailer fails with:
+#   "Email template modification is not available for free tier projects using
+#    the default email provider. Please upgrade your plan or configure a custom
+#    SMTP provider."
+# The built-in mailer also only delivers to your project's team-member email
+# addresses and is heavily rate-limited — so employee magic-link sign-in
+# requires custom SMTP (or a paid plan) either way. Admin password login at
+# /admin/login needs no email at all and works immediately.
+#
+# Once you have configured custom SMTP (dashboard: Authentication → Emails →
+# SMTP settings) or upgraded, uncomment the block below and re-run
+# `npx supabase config push`. The template file lives at
+# supabase/templates/magic-link.html.
+#
+# [auth.email.template.magic_link]
+# subject = "Sign in to TeamFrame"
+# content_path = "./supabase/templates/magic-link.html"

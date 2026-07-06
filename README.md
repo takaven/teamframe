@@ -184,36 +184,57 @@ idempotent and safe to re-run. `storage:setup` creates the private `documents`
 bucket with the V1 file-type and size limits.
 
 ### 5. Configure Supabase auth
-```bash
-npm run auth:lock
-```
+
 Admins sign in with email + password at `/admin/login`; employees sign in with magic links at `/auth`.
 
-In Supabase Auth:
-- Enable Email + Password sign-ins for admins.
-- Disable new user signups so random emails cannot self-register.
+Required project settings (the auth contract, see `docs/auth-rules.md`):
+- Email provider enabled (password + magic-link sign-ins).
+- New user signups **disabled** so random emails cannot self-register.
+- Site URL = your `SITE_URL` (local: `http://localhost:3030`), with `http://localhost:3030/**` in the redirect allowlist.
 - Do not add password reset, email change, OAuth, MFA, or other auth flows in V1.
 
-Also set the Supabase **Magic Link** email template to:
+**Automated route (recommended):** the contract is committed as `supabase/config.toml`. Push it with:
 
-```text
-{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=magiclink
+```bash
+npx supabase link --project-ref <your-project-ref>
+npx supabase config push
 ```
 
-For local development, `{{ .SiteURL }}` resolves to `http://localhost:3030`
-when the Supabase Site URL is configured to match `SITE_URL`.
+**Dashboard route:** Authentication → *Sign In / Providers* (User Signups: disable signups; Auth Providers: Email on) and Authentication → *URL Configuration* (Site URL + redirect URLs).
+
+**Magic-link email template (manual, honest limitation):** employee magic-link emails need the template
+`{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=magiclink` — but on the free tier with
+Supabase's built-in mailer, template modification is rejected and delivery only reaches project
+team-member addresses. Configure custom SMTP (Authentication → *Emails* → SMTP settings) or a paid plan
+first, then either set the template in Authentication → *Emails* → Templates or uncomment the
+`[auth.email.template.magic_link]` block in `supabase/config.toml` and re-run `npx supabase config push`.
+Admin password login works without any email configuration. Full step-by-step: `START_HERE.md` step 6.
 
 ### 6. Seed the bootstrap admin
 ```bash
-npm run seed:admin -- you@yourcompany.com "Your Name" "Founder" "Leadership" "UTC"
+SEED_ADMIN_PASSWORD='<choose-a-password>' npm run seed:admin -- you@yourcompany.com "Your Name" "Founder" "Leadership" "UTC"
 ```
-This invites the user via magic link, stamps `app_metadata.role = "admin"`, and creates the matching `employees` row. Re-running is safe.
+One command, no dashboard steps: creates the tenant, creates the auth user with a password (no
+invite email is sent, so any domain works), stamps `app_metadata.role = "admin"` **and**
+`app_metadata.tenant_id`, creates the matching `employees` row, then verifies the login by signing
+in with the anon key and signing out. The password is read from `SEED_ADMIN_PASSWORD` and never
+printed. Re-running is safe (it re-stamps claims and resets the password).
 
-### 7. Run
+### 7. Verify the installation
+```bash
+npm run verify:install
+```
+Asserts (PASS/FAIL each, non-zero exit on failure): schemas apply in order, the live tenant-resolution
+function is the JWT-only V2 (no email fallback), required tables/views/functions exist with RLS enabled,
+`seed:admin` produces a password-login-capable admin, and `seed:demo` is idempotent (two runs, identical
+row counts).
+
+### 8. Run
 ```bash
 npm run dev
 ```
-Open `http://localhost:3030/auth`, enter the same email, click the link in your inbox, and you'll land on `/dashboard` as an authenticated admin.
+Open `http://localhost:3030/admin/login`, sign in with your admin email and the `SEED_ADMIN_PASSWORD`
+value, and you'll land on `/dashboard`.
 
 ## Deployment confidence
 

@@ -71,9 +71,10 @@ followed by verification and (only in a real incident) env-var cutover.
 - Auth: users live in the restored project's `auth` schema; magic links and admin
   passwords carry over, but active sessions signed against the old project's JWT
   secret die at cutover — all users must sign in again. Announce this.
-- Re-run `npm run auth:lock` (Supabase auth contract) and re-verify the Supabase
-  email (SMTP/Resend) settings on the new project — provider settings are
-  project-level and may not carry over.
+- Re-apply the Supabase auth contract on the new project (`npx supabase link
+  --project-ref <new-ref>` then `npx supabase config push`, or the dashboard
+  route in START_HERE.md step 6) and re-verify the Supabase email (SMTP/Resend)
+  settings — provider settings are project-level and may not carry over.
 - The old project should be paused, not deleted, until the incident post-mortem
   closes.
 - Rehearsal teardown: delete the throwaway project after recording evidence in

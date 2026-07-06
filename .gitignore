@@ -147,3 +147,6 @@ vite.config.ts.timestamp-*
 
 # Local CI replay artifacts (run logs, not source)
 .ci/replays/
+
+# Supabase CLI link state (per-machine, not source)
+supabase/.temp/
