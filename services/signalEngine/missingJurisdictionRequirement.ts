@@ -40,6 +40,8 @@ function getRequiredDocumentForCountry(country: string): string {
 }
 
 function formatDocumentLabel(documentType: string): string {
+  if (documentType === "emirates_id") return "Emirates ID";
+  if (documentType === "right_to_work") return "right-to-work document";
   return documentType.replace(/_/g, " ");
 }
 

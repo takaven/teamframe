@@ -56,7 +56,7 @@ export default async function AdminLoginPage({
           </p>
           <h1 className="text-[32px] leading-tight tracking-tight">Sign in to TeamFrame.</h1>
           <p className="text-[15px] text-ink-700">
-            Use the admin password set in Supabase. Employees should continue with magic links.
+            Sign in with your admin email and password. Employees sign in with a magic link instead.
           </p>
         </div>
 
@@ -96,7 +96,7 @@ export default async function AdminLoginPage({
           </button>
 
           {errorMessage ? (
-            <p role="alert" className="text-[13px] text-accent">
+            <p role="alert" className="text-[13px] text-signal-red">
               {errorMessage}
             </p>
           ) : null}

@@ -109,7 +109,7 @@ export function RiskCard({ signal }: RiskCardProps) {
                 type="submit"
                 className="rounded-full border border-signal-amber/40 bg-white px-3 py-1.5 text-[12px] text-signal-amber transition hover:border-signal-amber"
               >
-                Execute action
+                Start action
               </button>
             </form>
           ) : null}
@@ -133,12 +133,14 @@ export function RiskCard({ signal }: RiskCardProps) {
           >
             {signal.primaryCtaLabel}
           </Link>
-          <Link
-            href={signal.secondaryCtaHref}
-            className="rounded-full bg-ink-900 px-3 py-1.5 text-[12px] text-paper transition hover:bg-ink-700"
-          >
-            {signal.actionTitle ?? signal.secondaryCtaLabel}
-          </Link>
+          {signal.lane !== "resolved" ? (
+            <Link
+              href={signal.secondaryCtaHref}
+              className="rounded-full bg-ink-900 px-3 py-1.5 text-[12px] text-paper transition hover:bg-ink-700"
+            >
+              {signal.actionTitle ?? signal.secondaryCtaLabel}
+            </Link>
+          ) : null}
         </div>
       </div>
     </article>

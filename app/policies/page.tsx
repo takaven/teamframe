@@ -127,7 +127,7 @@ export default async function PoliciesPage({
       {errorMessage ? (
         <p
           role="alert"
-          className="mt-7 rounded-lg border border-ink-300/80 bg-white/80 px-4 py-3 text-[14px] text-ink-700"
+          className="mt-7 rounded-lg border border-signal-red/30 bg-signal-red/10 px-4 py-3 text-[14px] text-signal-red"
         >
           {errorMessage}
         </p>
@@ -140,33 +140,41 @@ export default async function PoliciesPage({
         </p>
         <form action={createPolicyAction} className="mt-4 grid gap-3">
           <div className="grid gap-3 md:grid-cols-[1fr_140px]">
-            <input
-              name="title"
-              placeholder="Policy title (e.g. Remote work policy)"
-              required
-              maxLength={200}
-              className="rounded-md border border-ink-300 px-3 py-2 text-[14px]"
-            />
-            <input
-              name="version"
-              type="number"
-              min={1}
-              max={1000}
-              step={1}
-              defaultValue={1}
-              required
-              aria-label="Version"
-              className="rounded-md border border-ink-300 px-3 py-2 text-[14px]"
-            />
+            <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+              Title
+              <input
+                name="title"
+                placeholder="e.g. Remote work policy"
+                required
+                maxLength={200}
+                className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+              Version
+              <input
+                name="version"
+                type="number"
+                min={1}
+                max={1000}
+                step={1}
+                defaultValue={1}
+                required
+                className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+              />
+            </label>
           </div>
-          <textarea
-            name="body"
-            placeholder="Policy text (plain text)"
-            required
-            rows={6}
-            maxLength={20000}
-            className="rounded-md border border-ink-300 px-3 py-2 text-[14px]"
-          />
+          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+            Policy text
+            <textarea
+              name="body"
+              placeholder="Write the policy in plain text"
+              required
+              rows={6}
+              maxLength={20000}
+              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+            />
+          </label>
           <div>
             <PendingSubmitButton
               idleLabel="Create draft"

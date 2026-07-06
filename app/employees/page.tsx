@@ -64,7 +64,7 @@ const ERROR_COPY: Record<string, string> = {
   DOCUMENT_FETCH_FAILED: "Document could not be found.",
   DOCUMENT_SIGNED_URL_FAILED: "Could not generate document download link.",
   DOCUMENT_DELETE_FAILED: "Could not delete document.",
-  INVALID_INPUT: "Input validation failed.",
+  INVALID_INPUT: "Could not save — check the email address and the other fields, then try again.",
   UNKNOWN: "Something went wrong. Refresh and try again.",
 };
 
@@ -227,7 +227,7 @@ export default async function EmployeesPage({
       {errorMessage ? (
         <p
           role="alert"
-          className="mt-7 rounded-lg border border-ink-300/80 bg-white/80 px-4 py-3 text-[14px] text-ink-700"
+          className="mt-7 rounded-lg border border-signal-red/30 bg-signal-red/10 px-4 py-3 text-[14px] text-signal-red"
         >
           {errorMessage}
         </p>
@@ -236,71 +236,100 @@ export default async function EmployeesPage({
       <section id="add-employee" className="mt-8 rounded-xl border border-ink-300/70 bg-white/80 p-5">
         <h2 className="text-[19px] font-medium tracking-tight">Add employee</h2>
         <form action={createEmployeeAction} className="mt-4 grid gap-3 md:grid-cols-2">
-          <input
-            name="full_name"
-            placeholder="Full name"
-            required
-            className="rounded-md border border-ink-300 px-3 py-2 text-[14px]"
-          />
-          <input
-            name="email"
-            type="email"
-            placeholder="work@company.com"
-            required
-            className="rounded-md border border-ink-300 px-3 py-2 text-[14px]"
-          />
-          <input
-            name="role_title"
-            placeholder="Role title"
-            required
-            className="rounded-md border border-ink-300 px-3 py-2 text-[14px]"
-          />
-          <input
-            name="department"
-            placeholder="Department"
-            required
-            className="rounded-md border border-ink-300 px-3 py-2 text-[14px]"
-          />
-          <input
-            name="timezone"
-            placeholder="Timezone (e.g. UTC)"
-            defaultValue="UTC"
-            required
-            className="rounded-md border border-ink-300 px-3 py-2 text-[14px]"
-          />
-          <select
-            name="employment_type"
-            defaultValue="full_time"
-            required
-            className="rounded-md border border-ink-300 px-3 py-2 text-[14px] bg-white"
-          >
-            <option value="full_time">full_time</option>
-            <option value="part_time">part_time</option>
-            <option value="contractor">contractor</option>
-            <option value="intern">intern</option>
-          </select>
-          <input
-            name="country"
-            placeholder="Country (e.g. UAE)"
-            required
-            className="rounded-md border border-ink-300 px-3 py-2 text-[14px]"
-          />
-          <input
-            name="start_date"
-            type="date"
-            required
-            className="rounded-md border border-ink-300 px-3 py-2 text-[14px]"
-          />
-          <input
-            name="end_date"
-            type="date"
-            className="rounded-md border border-ink-300 px-3 py-2 text-[14px]"
-          />
-          <PendingSubmitButton
-            idleLabel="Create employee"
-            pendingLabel="Creating..."
-            className="rounded-md bg-ink-900 px-4 py-2 text-[14px] font-medium text-paper disabled:cursor-not-allowed disabled:bg-ink-300"
-          />
+          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+            Full name
+            <input
+              name="full_name"
+              placeholder="e.g. Amina Rahman"
+              required
+              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+            Work email
+            <input
+              name="email"
+              type="email"
+              placeholder="work@company.com"
+              required
+              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+            Role title
+            <input
+              name="role_title"
+              placeholder="e.g. Software Engineer"
+              required
+              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+            Department
+            <input
+              name="department"
+              placeholder="e.g. Engineering"
+              required
+              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+            Timezone
+            <input
+              name="timezone"
+              placeholder="e.g. UTC"
+              defaultValue="UTC"
+              required
+              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+            Employment type
+            <select
+              name="employment_type"
+              defaultValue="full_time"
+              required
+              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900 bg-white"
+            >
+              <option value="full_time">Full time</option>
+              <option value="part_time">Part time</option>
+              <option value="contractor">Contractor</option>
+              <option value="intern">Intern</option>
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+            Country
+            <input
+              name="country"
+              placeholder="e.g. UAE"
+              required
+              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+            Start date
+            <input
+              name="start_date"
+              type="date"
+              required
+              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+            End date (optional)
+            <input
+              name="end_date"
+              type="date"
+              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+            />
+          </label>
+          <div className="flex flex-col justify-end">
+            <PendingSubmitButton
+              idleLabel="Create employee"
+              pendingLabel="Creating..."
+              className="rounded-md bg-ink-900 px-4 py-2 text-[14px] font-medium text-paper disabled:cursor-not-allowed disabled:bg-ink-300"
+            />
+          </div>
         </form>
       </section>
 
@@ -380,7 +409,7 @@ export default async function EmployeesPage({
                     </p>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-2">
-                    <span className="text-[12px] tracking-[0.12em] text-ink-500">
+                    <span className="text-[12px] capitalize tracking-[0.12em] text-ink-500">
                       {employee.status.replace("_", " ")}
                     </span>
                     <span className="text-[12px] text-ink-700 underline decoration-ink-300 underline-offset-4 group-open:hidden">
@@ -417,7 +446,7 @@ export default async function EmployeesPage({
                   </div>
                   <div>
                     <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Lifecycle state</dt>
-                    <dd className="mt-0.5 text-ink-900">{employee.lifecycle_state.replace("_", " ")}</dd>
+                    <dd className="mt-0.5 capitalize text-ink-900">{employee.lifecycle_state.replace("_", " ")}</dd>
                   </div>
                   <div>
                     <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Invite state</dt>
@@ -425,7 +454,7 @@ export default async function EmployeesPage({
                   </div>
                   <div>
                     <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Employment</dt>
-                    <dd className="mt-0.5 text-ink-900">{employee.employment_type.replace("_", " ")}</dd>
+                    <dd className="mt-0.5 capitalize text-ink-900">{employee.employment_type.replace("_", " ")}</dd>
                   </div>
                 </dl>
 
@@ -450,57 +479,80 @@ export default async function EmployeesPage({
               <form action={updateEmployeeAction} className="mt-4 grid gap-3 md:grid-cols-4">
                 <input type="hidden" name="employee_id" value={employee.id} />
                 <input type="hidden" name="expected_updated_at" value={employee.updated_at} />
-                <input
-                  name="role_title"
-                  defaultValue={employee.role_title}
-                  className="rounded-md border border-ink-300 px-3 py-2 text-[14px]"
-                />
-                <input
-                  name="department"
-                  defaultValue={employee.department}
-                  className="rounded-md border border-ink-300 px-3 py-2 text-[14px]"
-                />
-                <select
-                  name="employment_type"
-                  defaultValue={employee.employment_type}
-                  className="rounded-md border border-ink-300 px-3 py-2 text-[14px] bg-white"
-                >
-                  <option value="full_time">full_time</option>
-                  <option value="part_time">part_time</option>
-                  <option value="contractor">contractor</option>
-                  <option value="intern">intern</option>
-                </select>
-                <input
-                  name="country"
-                  defaultValue={employee.country ?? ""}
-                  className="rounded-md border border-ink-300 px-3 py-2 text-[14px]"
-                />
-                <input
-                  name="start_date"
-                  type="date"
-                  defaultValue={employee.start_date ?? ""}
-                  className="rounded-md border border-ink-300 px-3 py-2 text-[14px]"
-                />
-                <input
-                  name="end_date"
-                  type="date"
-                  defaultValue={employee.end_date ?? ""}
-                  className="rounded-md border border-ink-300 px-3 py-2 text-[14px]"
-                />
-                <select
-                  name="status"
-                  defaultValue={employee.status}
-                  className="rounded-md border border-ink-300 px-3 py-2 text-[14px]"
-                >
-                  <option value="active">active</option>
-                  <option value="on_leave">on_leave</option>
-                  <option value="inactive">inactive</option>
-                </select>
-                <PendingSubmitButton
-                  idleLabel="Save"
-                  pendingLabel="Saving..."
-                  className="rounded-md bg-ink-900 px-3 py-2 text-[14px] font-medium text-paper transition hover:bg-ink-700 disabled:cursor-not-allowed disabled:bg-ink-300"
-                />
+                <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+                  Role title
+                  <input
+                    name="role_title"
+                    defaultValue={employee.role_title}
+                    className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+                  Department
+                  <input
+                    name="department"
+                    defaultValue={employee.department}
+                    className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+                  Employment type
+                  <select
+                    name="employment_type"
+                    defaultValue={employee.employment_type}
+                    className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900 bg-white"
+                  >
+                    <option value="full_time">Full time</option>
+                    <option value="part_time">Part time</option>
+                    <option value="contractor">Contractor</option>
+                    <option value="intern">Intern</option>
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+                  Country
+                  <input
+                    name="country"
+                    defaultValue={employee.country ?? ""}
+                    className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+                  Start date
+                  <input
+                    name="start_date"
+                    type="date"
+                    defaultValue={employee.start_date ?? ""}
+                    className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+                  End date
+                  <input
+                    name="end_date"
+                    type="date"
+                    defaultValue={employee.end_date ?? ""}
+                    className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+                  Status
+                  <select
+                    name="status"
+                    defaultValue={employee.status}
+                    className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900 bg-white"
+                  >
+                    <option value="active">Active</option>
+                    <option value="on_leave">On leave</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </label>
+                <div className="flex flex-col justify-end">
+                  <PendingSubmitButton
+                    idleLabel="Save"
+                    pendingLabel="Saving..."
+                    className="rounded-md bg-ink-900 px-3 py-2 text-[14px] font-medium text-paper transition hover:bg-ink-700 disabled:cursor-not-allowed disabled:bg-ink-300"
+                  />
+                </div>
               </form>
 
               <div className="mt-3 rounded-md border border-ink-300/50 bg-ink-100/40 px-3 py-2 text-[12px] text-ink-500">
@@ -516,32 +568,44 @@ export default async function EmployeesPage({
                 <form action={uploadEmployeeDocumentAction} className="mt-3 grid gap-2 md:grid-cols-4" encType="multipart/form-data">
                   <input type="hidden" name="employee_id" value={employee.id} />
                   <input type="hidden" name="return_to" value="/employees" />
-                  <select
-                    name="type"
-                    defaultValue="contract"
-                    className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] bg-white"
-                  >
-                    <option value="contract">contract</option>
-                    <option value="cv">cv</option>
-                    <option value="jd">jd</option>
-                    <option value="photo">photo</option>
-                  </select>
-                  <input
-                    name="file"
-                    type="file"
-                    required
-                    className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px]"
-                  />
-                  <input
-                    name="signed_at"
-                    type="date"
-                    className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px]"
-                  />
-                  <input
-                    name="expires_at"
-                    type="date"
-                    className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px]"
-                  />
+                  <label className="flex flex-col gap-1 text-[11px] text-ink-500">
+                    Document type
+                    <select
+                      name="type"
+                      defaultValue="contract"
+                      className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900 bg-white"
+                    >
+                      <option value="contract">Contract</option>
+                      <option value="cv">CV</option>
+                      <option value="jd">Job description</option>
+                      <option value="photo">Photo</option>
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-1 text-[11px] text-ink-500">
+                    File
+                    <input
+                      name="file"
+                      type="file"
+                      required
+                      className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-[11px] text-ink-500">
+                    Signed on (optional)
+                    <input
+                      name="signed_at"
+                      type="date"
+                      className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-[11px] text-ink-500">
+                    Expires on (optional)
+                    <input
+                      name="expires_at"
+                      type="date"
+                      className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900"
+                    />
+                  </label>
                   <PendingSubmitButton
                     idleLabel="Upload document"
                     pendingLabel="Uploading..."
@@ -646,7 +710,9 @@ export default async function EmployeesPage({
                   />
                 </form>
               </div>
-              <p className="mt-2 text-[12px] text-ink-500">{resendGuidance}</p>
+              {employee.setup_status !== "active" && employee.status !== "inactive" ? (
+                <p className="mt-2 text-[12px] text-ink-500">{resendGuidance}</p>
+              ) : null}
               </details>
                   </>
                 );

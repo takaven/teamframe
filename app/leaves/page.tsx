@@ -119,7 +119,7 @@ export default async function LeavesPage({
         {errorMessage ? (
           <p
             role="alert"
-            className="mt-7 rounded-lg border border-ink-300/80 bg-white/80 px-4 py-3 text-[14px] text-ink-700"
+            className="mt-7 rounded-lg border border-signal-red/30 bg-signal-red/10 px-4 py-3 text-[14px] text-signal-red"
           >
             {errorMessage}
           </p>
@@ -220,7 +220,7 @@ export default async function LeavesPage({
       {errorMessage ? (
         <p
           role="alert"
-          className="mt-7 rounded-lg border border-ink-300/80 bg-white/80 px-4 py-3 text-[14px] text-ink-700"
+          className="mt-7 rounded-lg border border-signal-red/30 bg-signal-red/10 px-4 py-3 text-[14px] text-signal-red"
         >
           {errorMessage}
         </p>
