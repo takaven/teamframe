@@ -56,8 +56,11 @@ async function fireEvent(tenantId, userId, eventName, properties = {}) {
 // ── 1. Resolve tenant ───────────────────────────────────────────────────────
 section("1. Resolve tenant");
 
-// Prefer the tenant that already has company_created fired (that's the real seeded one).
-// Fall back to any company with an admin employee.
+// Explicit override first (SMOKE_TENANT_ID) — needed on shared staging projects
+// where the earliest company_created event can belong to a stale test tenant
+// that has no auth-linked employees. Otherwise prefer the tenant that already
+// has company_created fired (that's the real seeded one), then fall back to
+// any company with an admin employee.
 const { data: eventRows } = await sb
   .from("analytics_events")
   .select("tenant_id")
@@ -65,7 +68,7 @@ const { data: eventRows } = await sb
   .order("created_at", { ascending: true })
   .limit(1);
 
-let TENANT_ID = eventRows?.[0]?.tenant_id ?? null;
+let TENANT_ID = process.env.SMOKE_TENANT_ID ?? eventRows?.[0]?.tenant_id ?? null;
 
 if (!TENANT_ID) {
   // Fallback: first real company (skip placeholder UUID)

@@ -66,5 +66,6 @@ dashboard/employees/leaves/onboarding/policies (skeleton shade fix),
 
 Browser-level QA at **360px and 1280px** (real data, real signals) remains
 outstanding — this wave's responsive verification was static JSX review only.
-Also replace the `PILOT_MAILTO` placeholder address in `app/page.tsx` and drop
-real screenshots into the marked slot on the landing page.
+Also set `NEXT_PUBLIC_PILOT_CONTACT_EMAIL` (the pilot CTA in `app/page.tsx` is
+env-driven; unset hides the CTA) and drop real screenshots into the marked slot
+on the landing page.

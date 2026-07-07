@@ -74,8 +74,22 @@ In the Supabase Dashboard (or via Management API), the following must be true:
 | Confirm email | disabled for password signups |
 | OAuth providers | all disabled |
 
-`npm run auth:lock` will assert these settings and refuse to proceed if any
-are misconfigured.
+Two working ways to apply these settings:
+
+1. **Config as code (recommended):** the contract is committed in
+   `supabase/config.toml`. Apply with `npx supabase link --project-ref <ref>`
+   then `npx supabase config push` (prints a diff, asks to confirm; works on
+   the free tier — verified). Re-running when nothing changed reports
+   "Remote Auth config is up to date".
+2. **Dashboard:** Authentication → *Sign In / Providers* (User Signups →
+   disable signups; Auth Providers → Email enabled) and Authentication →
+   *URL Configuration* (Site URL, redirect URLs).
+
+Free-tier caveat (verified): the magic-link email **template** cannot be
+modified while the project uses Supabase's built-in mailer, and that mailer
+only delivers to project team-member addresses. Custom SMTP (Authentication →
+*Emails* → SMTP settings) or a paid plan is required for employee magic-link
+delivery. Admin password login requires no email configuration.
 
 ## Magic-link email template
 

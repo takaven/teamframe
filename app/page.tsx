@@ -1,9 +1,13 @@
 import Link from "next/link";
 
-// PLACEHOLDER: replace with the real pilot-request address before launch.
-// The founder owns this value; keep the mailto pattern.
-const PILOT_MAILTO =
-  "mailto:pilot@teamframe.example?subject=TeamFrame%20pilot%20request";
+// Pilot-request contact address. Set NEXT_PUBLIC_PILOT_CONTACT_EMAIL in the
+// environment (see .env.example). The founder owns this value; keep the
+// mailto pattern. If unset, the "Request a pilot" CTA is not rendered —
+// an honest omission beats a dead placeholder address.
+const PILOT_CONTACT_EMAIL = process.env.NEXT_PUBLIC_PILOT_CONTACT_EMAIL;
+const PILOT_MAILTO = PILOT_CONTACT_EMAIL
+  ? `mailto:${PILOT_CONTACT_EMAIL}?subject=TeamFrame%20pilot%20request`
+  : null;
 
 const FEATURES = [
   {
@@ -51,12 +55,14 @@ export default function Home() {
         </p>
 
         <div className="flex flex-wrap items-center gap-4 pt-2">
-          <a
-            href={PILOT_MAILTO}
-            className="inline-flex items-center justify-center rounded-full bg-ink-900 px-6 py-3 text-[15px] font-medium text-paper transition hover:bg-ink-700"
-          >
-            Request a pilot
-          </a>
+          {PILOT_MAILTO ? (
+            <a
+              href={PILOT_MAILTO}
+              className="inline-flex items-center justify-center rounded-full bg-ink-900 px-6 py-3 text-[15px] font-medium text-paper transition hover:bg-ink-700"
+            >
+              Request a pilot
+            </a>
+          ) : null}
           <Link
             href="/auth"
             className="inline-flex items-center justify-center rounded-full border border-ink-300 px-6 py-3 text-[15px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900"

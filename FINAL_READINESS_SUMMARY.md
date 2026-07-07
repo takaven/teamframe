@@ -39,8 +39,8 @@ One-time setup against a fresh Supabase project (full detail: README "Getting st
 1. `npm ci`
 2. Copy `.env.example` → `.env.local`; fill `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SITE_URL=http://localhost:3030`. Then `npm run env:check`.
 3. `npm run db:apply` (idempotent; includes the new `onboarding_tasks.due_date` column) and `npm run storage:setup`.
-4. `npm run auth:lock`; in Supabase Auth enable email+password, disable self-signup, set the Magic Link template per README §5.
-5. `npm run seed:admin -- you@yourcompany.com "Your Name" "Founder" "Leadership" "UTC"`
+4. Apply the Supabase auth contract: `npx supabase link --project-ref <ref>` then `npx supabase config push` (or the dashboard route per README §5 / START_HERE.md step 6). Magic-link template requires custom SMTP or paid tier — honest manual step; admin password login needs no email.
+5. `SEED_ADMIN_PASSWORD='<password>' npm run seed:admin -- you@yourcompany.com "Your Name" "Founder" "Leadership" "UTC"` — one command: password login, admin role, and tenant claim all set; then `npm run verify:install`.
 6. **Demo data:** `npm run seed:demo` — idempotent; creates a demo tenant with 1 red signal (expired Emirates ID), 2 yellow (expiring passport +25d, missing contract), 1 resolved signal, a mid-onboarding employee with an overdue task, a published-but-unacknowledged policy ("Demo Code of Conduct"), and a pending leave. All identities are `.example`-domain fakes.
 7. `npm run dev` → http://localhost:3030
 
@@ -52,7 +52,7 @@ Sign-in: **admins** email+password at `/admin/login`; **employees** magic link a
 2. **Reconcile local main with GitHub** — local main is 20 commits ahead of origin; when ready: push the branch, or close PRs #82/#83 as superseded. (Local commits `ff7578b` contain their reviewed content.)
 3. **M20 backup/PITR** — follow `docs/launch/verification/m20-backup-pitr-recovery-evidence.md` Section 0 (Path A: enable PITR / Path B: daily-backup decision); fill the `[FOUNDER]` fields; run the tested-restore procedure in `docs/launch/runbooks/rollback-procedure.md`.
 4. **Sentry** — provision DSN per `docs/launch/verification/sentry-completion.md`; set `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_AUTH_TOKEN` in Vercel; `npm run sentry:test-event`; record the event ID.
-5. **Landing page pilot address** — replace the `PILOT_MAILTO` placeholder in `app/page.tsx`.
+5. **Landing page pilot address** — set `NEXT_PUBLIC_PILOT_CONTACT_EMAIL` in the deploy environment (app/page.tsx reads it; when unset, the "Request a pilot" CTA is not rendered).
 6. **Staging verification pass** — `npm run verify:parity`, `npm run verify:rls`, `npm run smoke:core-loop` against staging; browser QA at 360px/1280px (checklist: `docs/launch/ui-elevation-report.md`); run `seed:demo` live; acknowledge a policy end-to-end and watch the signal resolve.
 
 ## 5. Exact deployment steps (production)
@@ -60,7 +60,7 @@ Sign-in: **admins** email+password at `/admin/login`; **employees** magic link a
 From `docs/launch/deployment-runbook.md` (Option A — Vercel):
 
 1. Pre-deploy on the release tree: `npm ci && npm run env:check && npm run lint && npm run typecheck && npm run guards && npm run build` — all must pass.
-2. Apply schema to production Supabase: `npm run db:apply` (idempotent; required this release for `onboarding_tasks.due_date`), `npm run storage:setup`, `npm run auth:lock`.
+2. Apply schema to production Supabase: `npm run db:apply` (idempotent; required this release for `onboarding_tasks.due_date`), `npm run storage:setup`, then the auth contract via `npx supabase config push` (see START_HERE.md step 6).
 3. `vercel link` (one-time), then `vercel env add` for: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SITE_URL`, `HEALTHCHECK_SECRET` (`openssl rand -hex 32`), `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_AUTH_TOKEN`.
 4. `vercel --prod`
 5. Post-deploy verification: `curl -sf https://DOMAIN/api/health` → `{"status":"ok"}`; authenticated health check with `X-Healthcheck-Key`; `/dashboard` redirects to `/auth` unauthenticated; admin password login round-trip; employee magic-link round-trip; one full core loop (create employee → upload document → signal fires → resolve); security headers per `docs/launch/verification/security-smoke-test.md`.

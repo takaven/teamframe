@@ -149,6 +149,28 @@ before update on employees
 for each row
 execute function employees_touch_updated_at();
 
+-- Forward declaration for fresh databases: the real definition lives in
+-- tenancy_rls.sql / tenancy_rls_v2.sql (applied later in SCHEMA_ORDER).
+-- The stub returns NULL (matches no rows) so the view below can be created
+-- before the tenancy helpers are applied. `create or replace` in the tenancy
+-- files overwrites it with the JWT-based implementation.
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where p.proname = 'current_actor_tenant_id'
+      and n.nspname = 'public'
+  ) then
+    create function current_actor_tenant_id()
+    returns uuid
+    language sql
+    stable
+    as 'select null::uuid';
+  end if;
+end $$;
+
 create or replace view employees_public as
 select
   id,

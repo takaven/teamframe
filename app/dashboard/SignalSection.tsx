@@ -33,7 +33,7 @@ export function SignalSection({ title, subtitle, lane, signals }: SignalSectionP
           </h2>
           <p className="text-[13px] text-ink-500">{subtitle}</p>
         </div>
-        <div className="rounded-full border border-ink-300 bg-white/70 px-3 py-1 text-[12px] text-ink-700">
+        <div className="shrink-0 whitespace-nowrap rounded-full border border-ink-300 bg-white/70 px-3 py-1 text-[12px] text-ink-700">
           <span className="font-mono tabular-nums">{signals.length}</span> item{signals.length === 1 ? "" : "s"}
         </div>
       </div>

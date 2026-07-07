@@ -36,7 +36,7 @@ export function AuthForm({ errorMessage }: { errorMessage: string | null }) {
       <SubmitButton />
 
       {errorMessage ? (
-        <p role="alert" className="text-[13px] text-accent">
+        <p role="alert" className="text-[13px] text-signal-red">
           {errorMessage}
         </p>
       ) : null}
