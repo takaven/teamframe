@@ -33,7 +33,7 @@ Counts are affected **element nodes** by impact (critical / serious / moderate /
 
 | Item | Change | Commit |
 |---|---|---|
-| `color-contrast` (serious, 8 nodes, `/dashboard`) | `app/globals.css`: `--color-signal-amber` `#b45309` (amber-700) → `#92400e` (amber-800). Amber-700 text on the `bg-signal-amber/10` pill tint over the paper background computes ~4.37:1; amber-800 clears 4.5:1 on every amber tint in use (≈5.5:1 on the pill tint, ≈7:1 on white). Token-only change — no component restructuring. | see commit on `phase-5-acceptance` (recorded below in repo history) |
+| `color-contrast` (serious, 8 nodes, `/dashboard`) | `app/globals.css`: `--color-signal-amber` `#b45309` (amber-700) → `#92400e` (amber-800). Amber-700 text on the `bg-signal-amber/10` pill tint over the paper background computes ~4.37:1; amber-800 clears 4.5:1 on every amber tint in use (≈5.5:1 on the pill tint, ≈7:1 on white). Token-only change — no component restructuring. | `e8ca5f6` |
 
 ## Axe results — after fix (this repo served on :3031)
 
