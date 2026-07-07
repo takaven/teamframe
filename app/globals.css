@@ -12,11 +12,14 @@
   /*
    * Severity tokens — the single source of truth for signal colour.
    * Mapped to the text tones RiskCard already used (Tailwind red-700 /
-   * amber-700 / emerald-700) so adoption changes consistency, not hue.
+   * amber-800 / emerald-700) so adoption changes consistency, not hue.
    * Tints derive from these via opacity modifiers (e.g. bg-signal-red/10).
    */
   --color-signal-red: #b91c1c;
-  --color-signal-amber: #b45309;
+  /* amber-800: amber-700 (#b45309) fails WCAG AA (~4.37:1) as text on the
+   * bg-signal-amber/10 pill tint; #92400e clears 4.5:1 on every amber tint
+   * in use (axe color-contrast, dashboard signal pills). */
+  --color-signal-amber: #92400e;
   --color-signal-green: #047857;
 
   --font-sans: "IBM Plex Sans", "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
