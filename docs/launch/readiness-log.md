@@ -4,6 +4,26 @@ Tracks the status of each weekend execution block as it completes.
 
 ---
 
+## Finalisation Phase 5 — 2026-07-06
+
+**Block:** Product completion and plug-and-play acceptance (real environment)
+**Branch:** `phase-5-acceptance` (merged to local main as checkpoint `2ff1424`)
+**Status:** COMPLETE
+
+**Environment:** fresh Supabase project `teamframe-staging-acceptance` (ref `zydhgtmgrbdyghmvuldc`, eu-central-1), created for acceptance only; production project untouched.
+
+**Evidence documents (all in-tree):**
+- `docs/launch/FINAL_VISUAL_UX_AUDIT.md` — real Chromium QA at 1440/1024/390; 67+ captures in `docs/launch/screenshots/`; 14 issues (8+6), all Critical/High/Medium fixed with re-capture proof.
+- `docs/launch/FINAL_STAGING_ACCEPTANCE.md` — 11/11 E2E flows PASS incl. cross-tenant denial (UI + PostgREST probes + rejected cross-tenant INSERTs); `verify:rls` 7/7; core-loop smoke pass.
+- `docs/launch/verification/plug-and-play-rehearsal.md` — clean-install rehearsal from fresh export, attempt 2 zero-deviation after START_HERE fix.
+- `docs/launch/verification/accessibility-basics.md` — axe (WCAG A/AA) clean after one AA-contrast token fix; 4 manual checks (keyboard-only, visible focus, labels/errors, 200% zoom) all PASS.
+
+**Fresh-install defects found & fixed this phase:** `tenancy_rls_v2.sql` missing from SCHEMA_ORDER (insecure fallback would have shipped on fresh installs); `employees_public` view forward-dependency; `seed:admin` produced unusable admins (no password, no tenant claim, invite crash) — rewritten with self-verified login; nonexistent `auth:lock` references (6) replaced with verified `supabase config push` contract; PILOT_MAILTO placeholder → `NEXT_PUBLIC_PILOT_CONTACT_EMAIL` (CTA honestly omitted when unset). New `npm run verify:install` (5 assertions) added to the documented install.
+
+**Platform limits (honest):** magic-link email template + delivery to arbitrary addresses require custom SMTP or paid tier — explicit manual step 6c in START_HERE.md; admin password login unaffected.
+
+---
+
 ## Finalisation Wave 4 — 2026-07-03
 
 **Block:** v1.0 Finalisation Wave 4 — ops closeout (local code portions)
