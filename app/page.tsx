@@ -1,4 +1,6 @@
 import Link from "next/link";
+import Image from "next/image";
+import dashboardShot from "@/public/marketing/dashboard-risk-signals.png";
 
 // Pilot-request contact address. Set NEXT_PUBLIC_PILOT_CONTACT_EMAIL in the
 // environment (see .env.example). The founder owns this value; keep the
@@ -65,11 +67,32 @@ export default function Home() {
           ) : null}
           <Link
             href="/auth"
-            className="inline-flex items-center justify-center rounded-full border border-ink-300 px-6 py-3 text-[15px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900"
+            className={
+              PILOT_MAILTO
+                ? "inline-flex items-center justify-center rounded-full border border-ink-300 px-6 py-3 text-[15px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900"
+                : "inline-flex items-center justify-center rounded-full bg-ink-900 px-6 py-3 text-[15px] font-medium text-paper transition hover:bg-ink-700"
+            }
           >
             Sign in
           </Link>
         </div>
+      </section>
+
+      {/* Real product, real demo data — captured from the seeded risk dashboard. */}
+      <section className="mt-14" aria-label="Product preview">
+        <figure className="overflow-hidden rounded-2xl border border-ink-300/70 bg-white/80 p-2 shadow-sm md:p-3">
+          <Image
+            src={dashboardShot}
+            alt="TeamFrame people-ops risk dashboard: urgent signals with what is wrong, why it matters, and the next action for each"
+            priority
+            className="w-full rounded-xl border border-ink-300/50"
+            sizes="(max-width: 1024px) 100vw, 976px"
+          />
+          <figcaption className="px-2 pb-1 pt-3 text-[12px] text-ink-500">
+            The risk dashboard on demo data — every signal explains what is wrong, why it
+            matters, and what to do next.
+          </figcaption>
+        </figure>
       </section>
 
       <section className="mt-16 grid gap-4 md:grid-cols-3">
@@ -84,13 +107,6 @@ export default function Home() {
           </article>
         ))}
       </section>
-
-      {/*
-        SCREENSHOT SLOT — intentionally empty.
-        Founder: drop 1–2 real product screenshots here (dashboard at
-        1280px, signal card close-up) once staging data is presentable.
-        No mockups, no placeholder imagery before then.
-      */}
 
       <section className="mt-16 border-t border-ink-300/60 pt-8">
         <p className="max-w-2xl text-[15px] leading-relaxed text-ink-700">

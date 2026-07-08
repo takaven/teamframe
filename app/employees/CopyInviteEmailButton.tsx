@@ -32,7 +32,7 @@ export function CopyInviteEmailButton({
     <button
       type="button"
       onClick={copyEmail}
-      className="text-[13px] text-ink-700 underline decoration-ink-300 underline-offset-4"
+      className="w-full rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 sm:w-auto"
       aria-label={`Copy value ${email}`}
     >
       {copied ? copiedText : idleText}

@@ -76,6 +76,7 @@ export default async function AuthPage({
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-16">
+      <section className="rounded-2xl border border-ink-300/70 bg-white/85 p-6 shadow-sm">
       <div className="space-y-2">
         <p className="font-display text-[13px] uppercase tracking-[0.18em] text-ink-500">
           TeamFrame
@@ -87,7 +88,7 @@ export default async function AuthPage({
       </div>
 
       {error === "callback_failed" && errorMessage ? (
-        <section className="mt-8 rounded-xl border border-ink-300/80 bg-white/80 px-4 py-4">
+        <section className="mt-8 rounded-xl border border-ink-300/80 bg-ink-100/50 px-4 py-4">
           <p className="text-[12px] uppercase tracking-[0.14em] text-ink-500">{callbackTitle}</p>
           <p role="alert" className="mt-2 text-[14px] text-ink-700">{errorMessage}</p>
           {showSessionRecoveryActions ? (
@@ -119,7 +120,9 @@ export default async function AuthPage({
         </p>
       ) : null}
 
-      <AuthForm errorMessage={errorMessage} />
+      {/* The callback failure is already explained in the panel above — do not repeat it under the form. */}
+      <AuthForm errorMessage={error === "callback_failed" ? null : errorMessage} />
+      </section>
 
       <p className="mt-10 text-[12px] text-ink-500">
         Employees use magic links.{" "}

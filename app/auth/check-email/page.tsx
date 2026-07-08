@@ -13,6 +13,7 @@ export default async function CheckEmailPage({
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-16">
+      <section className="rounded-2xl border border-ink-300/70 bg-white/85 p-6 shadow-sm">
       <div className="space-y-3">
         <p className="text-[12px] uppercase tracking-[0.18em] text-ink-500">
           Link sent
@@ -47,7 +48,9 @@ export default async function CheckEmailPage({
         </Link>
       </div>
 
-      <p className="mt-12 text-[12px] text-ink-500">
+      </section>
+
+      <p className="mt-10 text-[12px] text-ink-500">
         Didn&apos;t receive it after a minute? Check spam, resend the link, or ask your admin to
         confirm you&apos;re on the team.
       </p>

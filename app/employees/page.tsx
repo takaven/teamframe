@@ -68,6 +68,17 @@ const ERROR_COPY: Record<string, string> = {
   UNKNOWN: "Something went wrong. Refresh and try again.",
 };
 
+// Plain-English reasons for a failed invite delivery. Shown to admins in the
+// roster — never surface raw error codes to customers.
+const INVITE_FAILURE_COPY: Record<string, string> = {
+  EMPLOYEE_INVITE_FAILED: "The last invite email could not be delivered.",
+  EMPLOYEE_INVITE_TENANT_CONFLICT: "This email is already linked to another company.",
+  EMPLOYEE_INVITE_REDIRECT_MISMATCH: "Invite delivery is blocked by the sign-in redirect configuration.",
+  EMPLOYEE_INVITE_PROVIDER_CONFIG: "The invite email provider is not fully configured.",
+  EMPLOYEE_INVITE_USER_LOOKUP_FAILED: "The invite could not be linked to this person's account.",
+  EMPLOYEE_INVITE_METADATA_FAILED: "The invite was sent but account setup did not finish.",
+};
+
 function isInviteExpired(lastSentAt: string | null): boolean {
   if (!lastSentAt) return false;
   const ageMs = Date.now() - new Date(lastSentAt).getTime();
@@ -75,7 +86,7 @@ function isInviteExpired(lastSentAt: string | null): boolean {
 }
 
 function formatDateTime(iso: string | null): string {
-  if (!iso) return "-";
+  if (!iso) return "—";
   return new Date(iso).toLocaleString("en-GB", {
     day: "numeric",
     month: "short",
@@ -160,10 +171,13 @@ export default async function EmployeesPage({
       };
     }
     if (employeeRecord.invite_last_error) {
+      const reason =
+        INVITE_FAILURE_COPY[employeeRecord.invite_last_error] ??
+        "The last invite email could not be delivered.";
       return {
         label: "Delivery failed",
         tone: "red",
-        help: `Last invite error: ${employeeRecord.invite_last_error}. Use Re-send invite or generate a new activation link.`,
+        help: `${reason} Use Re-send invite or generate a new activation link.`,
       };
     }
     if (employeeRecord.setup_status === "ready") {
@@ -233,128 +247,11 @@ export default async function EmployeesPage({
         </p>
       ) : null}
 
-      <section id="add-employee" className="mt-8 rounded-xl border border-ink-300/70 bg-white/80 p-5">
-        <h2 className="text-[19px] font-medium tracking-tight">Add employee</h2>
-        <form action={createEmployeeAction} className="mt-4 grid gap-3 md:grid-cols-2">
-          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
-            Full name
-            <input
-              name="full_name"
-              placeholder="e.g. Amina Rahman"
-              required
-              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
-            Work email
-            <input
-              name="email"
-              type="email"
-              placeholder="work@company.com"
-              required
-              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
-            Role title
-            <input
-              name="role_title"
-              placeholder="e.g. Software Engineer"
-              required
-              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
-            Department
-            <input
-              name="department"
-              placeholder="e.g. Engineering"
-              required
-              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
-            Timezone
-            <input
-              name="timezone"
-              placeholder="e.g. UTC"
-              defaultValue="UTC"
-              required
-              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
-            Employment type
-            <select
-              name="employment_type"
-              defaultValue="full_time"
-              required
-              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900 bg-white"
-            >
-              <option value="full_time">Full time</option>
-              <option value="part_time">Part time</option>
-              <option value="contractor">Contractor</option>
-              <option value="intern">Intern</option>
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
-            Country
-            <input
-              name="country"
-              placeholder="e.g. UAE"
-              required
-              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
-            Start date
-            <input
-              name="start_date"
-              type="date"
-              required
-              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
-            End date (optional)
-            <input
-              name="end_date"
-              type="date"
-              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
-            />
-          </label>
-          <div className="flex flex-col justify-end">
-            <PendingSubmitButton
-              idleLabel="Create employee"
-              pendingLabel="Creating..."
-              className="rounded-md bg-ink-900 px-4 py-2 text-[14px] font-medium text-paper disabled:cursor-not-allowed disabled:bg-ink-300"
-            />
-          </div>
-        </form>
-      </section>
-
-      <section className="mt-5 rounded-xl border border-ink-300/70 bg-white/75 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-[12px] tracking-[0.12em] text-ink-500">Finance export</p>
-            <p className="mt-1 text-[14px] text-ink-700">Download a finance handoff package (CSV + spreadsheet-friendly TSV).</p>
-          </div>
-          <form action={exportFinanceHandoffAction}>
-            <input type="hidden" name="return_to" value="/employees" />
-            <PendingSubmitButton
-              idleLabel="Export finance handoff"
-              pendingLabel="Preparing export..."
-              className="rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300"
-            />
-          </form>
-        </div>
-      </section>
-
       <section className="mt-8 space-y-4">
         {employees.length === 0 ? (
           <EmptyState
             message="No employees yet — your first teammate is one form away."
-            cta={{ label: "↑ Use the Add employee form above", href: "#add-employee" }}
+            cta={{ label: "↓ Use the Add employee form below", href: "#add-employee" }}
           />
         ) : (
           employees.map((employee) => (
@@ -470,7 +367,7 @@ export default async function EmployeesPage({
                     <input type="hidden" name="return_to" value="/employees" />
                     <PendingSubmitButton
                       idleLabel="Export due diligence pack"
-                      pendingLabel="Preparing pack..."
+                      pendingLabel="Preparing pack…"
                       className="rounded-md bg-ink-900 px-4 py-2 text-[13px] font-medium text-paper transition hover:bg-ink-700 disabled:cursor-not-allowed disabled:bg-ink-300"
                     />
                   </form>
@@ -549,18 +446,30 @@ export default async function EmployeesPage({
                 <div className="flex flex-col justify-end">
                   <PendingSubmitButton
                     idleLabel="Save"
-                    pendingLabel="Saving..."
+                    pendingLabel="Saving…"
                     className="rounded-md bg-ink-900 px-3 py-2 text-[14px] font-medium text-paper transition hover:bg-ink-700 disabled:cursor-not-allowed disabled:bg-ink-300"
                   />
                 </div>
               </form>
 
-              <div className="mt-3 rounded-md border border-ink-300/50 bg-ink-100/40 px-3 py-2 text-[12px] text-ink-500">
-                <p>Invite attempts: <span className="font-mono tabular-nums">{employee.invite_attempt_count}</span></p>
-                <p>Last attempt: <span className="font-mono tabular-nums">{formatDateTime(employee.invite_last_attempt_at)}</span></p>
-                <p>Last sent: <span className="font-mono tabular-nums">{formatDateTime(employee.invite_last_sent_at)}</span></p>
-                <p>Activation: <span className="font-mono tabular-nums">{formatDateTime(employee.activated_at)}</span></p>
-              </div>
+              <dl className="mt-3 grid gap-x-6 gap-y-2 rounded-md border border-ink-300/50 bg-ink-100/40 px-4 py-3 text-[12px] sm:grid-cols-2 lg:grid-cols-4">
+                <div>
+                  <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Invite attempts</dt>
+                  <dd className="mt-0.5 font-mono tabular-nums text-ink-700">{employee.invite_attempt_count}</dd>
+                </div>
+                <div>
+                  <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Last attempted</dt>
+                  <dd className="mt-0.5 font-mono tabular-nums text-ink-700">{formatDateTime(employee.invite_last_attempt_at)}</dd>
+                </div>
+                <div>
+                  <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Last delivered</dt>
+                  <dd className="mt-0.5 font-mono tabular-nums text-ink-700">{formatDateTime(employee.invite_last_sent_at)}</dd>
+                </div>
+                <div>
+                  <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Activated</dt>
+                  <dd className="mt-0.5 font-mono tabular-nums text-ink-700">{formatDateTime(employee.activated_at)}</dd>
+                </div>
+              </dl>
 
               <section className="mt-4 rounded-md border border-ink-300/50 bg-white px-3 py-3">
                 <h4 className="text-[13px] font-medium text-ink-900">Documents</h4>
@@ -608,7 +517,7 @@ export default async function EmployeesPage({
                   </label>
                   <PendingSubmitButton
                     idleLabel="Upload document"
-                    pendingLabel="Uploading..."
+                    pendingLabel="Uploading…"
                     className="rounded-md border border-ink-300 px-3 py-1.5 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300"
                   />
                 </form>
@@ -635,7 +544,7 @@ export default async function EmployeesPage({
                               <input type="hidden" name="return_to" value="/employees" />
                               <PendingSubmitButton
                                 idleLabel="Download"
-                                pendingLabel="Preparing..."
+                                pendingLabel="Preparing…"
                                 className="rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300"
                               />
                             </form>
@@ -645,7 +554,7 @@ export default async function EmployeesPage({
                               <input type="hidden" name="return_to" value="/employees" />
                               <ConfirmSubmitButton
                                 idleLabel="Delete"
-                                pendingLabel="Deleting..."
+                                pendingLabel="Deleting…"
                                 confirmMessage="Delete this document from active records?"
                                 className="rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300"
                               />
@@ -670,7 +579,7 @@ export default async function EmployeesPage({
                       <input type="hidden" name="return_to" value="/employees" />
                       <PendingSubmitButton
                         idleLabel="Re-send invite"
-                        pendingLabel="Sending..."
+                        pendingLabel="Sending…"
                         disabled={resendBlocked}
                         disabledLabel={`Retry in ${resendCooldownSeconds}s`}
                         className="w-full rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300 sm:w-auto"
@@ -681,7 +590,7 @@ export default async function EmployeesPage({
                       <input type="hidden" name="return_to" value="/employees" />
                       <PendingSubmitButton
                         idleLabel="Generate activation link"
-                        pendingLabel="Generating..."
+                        pendingLabel="Generating…"
                         className="w-full rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300 sm:w-auto"
                       />
                     </form>
@@ -693,7 +602,7 @@ export default async function EmployeesPage({
                   <input type="hidden" name="return_to" value="/employees" />
                   <ConfirmSubmitButton
                     idleLabel="Start offboarding"
-                    pendingLabel="Starting..."
+                    pendingLabel="Starting…"
                     confirmMessage={`Start offboarding for ${employee.full_name}?`}
                     className="w-full rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300 sm:w-auto"
                   />
@@ -704,7 +613,7 @@ export default async function EmployeesPage({
                   <input type="hidden" name="return_to" value="/employees" />
                   <ConfirmSubmitButton
                     idleLabel="Archive employee"
-                    pendingLabel="Archiving..."
+                    pendingLabel="Archiving…"
                     confirmMessage={`Archive ${employee.full_name}? This removes them from active workflows.`}
                     className="w-full rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300 sm:w-auto"
                   />
@@ -721,6 +630,123 @@ export default async function EmployeesPage({
           ))
         )}
       </section>
+      <section id="add-employee" className="mt-8 rounded-xl border border-ink-300/70 bg-white/80 p-5">
+        <h2 className="text-[19px] font-medium tracking-tight">Add employee</h2>
+        <form action={createEmployeeAction} className="mt-4 grid gap-3 md:grid-cols-2">
+          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+            Full name
+            <input
+              name="full_name"
+              placeholder="e.g. Amina Rahman"
+              required
+              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+            Work email
+            <input
+              name="email"
+              type="email"
+              placeholder="work@company.com"
+              required
+              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+            Role title
+            <input
+              name="role_title"
+              placeholder="e.g. Software Engineer"
+              required
+              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+            Department
+            <input
+              name="department"
+              placeholder="e.g. Engineering"
+              required
+              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+            Timezone
+            <input
+              name="timezone"
+              placeholder="e.g. UTC"
+              defaultValue="UTC"
+              required
+              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+            Employment type
+            <select
+              name="employment_type"
+              defaultValue="full_time"
+              required
+              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900 bg-white"
+            >
+              <option value="full_time">Full time</option>
+              <option value="part_time">Part time</option>
+              <option value="contractor">Contractor</option>
+              <option value="intern">Intern</option>
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+            Country
+            <input
+              name="country"
+              placeholder="e.g. UAE"
+              required
+              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+            Start date
+            <input
+              name="start_date"
+              type="date"
+              required
+              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+            End date (optional)
+            <input
+              name="end_date"
+              type="date"
+              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+            />
+          </label>
+          <div className="flex flex-col justify-end">
+            <PendingSubmitButton
+              idleLabel="Create employee"
+              pendingLabel="Creating…"
+              className="rounded-md bg-ink-900 px-4 py-2 text-[14px] font-medium text-paper disabled:cursor-not-allowed disabled:bg-ink-300"
+            />
+          </div>
+        </form>
+      </section>
+
+      <section className="mt-5 rounded-xl border border-ink-300/70 bg-white/75 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-[12px] tracking-[0.12em] text-ink-500">Finance export</p>
+            <p className="mt-1 text-[14px] text-ink-700">Download a finance handoff package (CSV + spreadsheet-friendly TSV).</p>
+          </div>
+          <form action={exportFinanceHandoffAction}>
+            <input type="hidden" name="return_to" value="/employees" />
+            <PendingSubmitButton
+              idleLabel="Export finance handoff"
+              pendingLabel="Preparing export…"
+              className="rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300"
+            />
+          </form>
+        </div>
+      </section>
+
     </main>
   );
 }

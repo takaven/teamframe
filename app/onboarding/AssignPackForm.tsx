@@ -151,7 +151,7 @@ export function AssignPackForm({ employees }: { employees: AssignPackEmployee[] 
 
       <PendingSubmitButton
         idleLabel={keptIndexes.length > 0 ? `Assign ${keptIndexes.length} tasks` : "Assign pack"}
-        pendingLabel="Assigning..."
+        pendingLabel="Assigning…"
         disabled={!pack || keptIndexes.length === 0}
         className="rounded-full bg-ink-900 px-5 py-2 text-[14px] font-medium text-paper transition hover:bg-ink-700 disabled:cursor-not-allowed disabled:bg-ink-300"
       />

@@ -166,7 +166,7 @@ export default async function LeavesPage({
                       <input type="hidden" name="decision" value="approved" />
                       <PendingSubmitButton
                         idleLabel="Approve request"
-                        pendingLabel="Approving..."
+                        pendingLabel="Approving…"
                         className="w-full rounded-full bg-ink-900 px-4 py-1.5 text-[13px] font-medium text-paper transition hover:bg-ink-700 disabled:cursor-not-allowed disabled:bg-ink-300 sm:w-auto"
                       />
                     </form>
@@ -180,7 +180,7 @@ export default async function LeavesPage({
                       <input type="hidden" name="decision" value="rejected" />
                       <ConfirmSubmitButton
                         idleLabel="Reject request"
-                        pendingLabel="Rejecting..."
+                        pendingLabel="Rejecting…"
                         confirmMessage={`Reject leave request from ${leave.employee_full_name}?`}
                         className="w-full rounded-full border border-ink-300 px-4 py-1.5 text-[13px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300 sm:w-auto"
                       />
@@ -256,7 +256,7 @@ export default async function LeavesPage({
             </div>
             <PendingSubmitButton
               idleLabel="Submit request"
-              pendingLabel="Submitting..."
+              pendingLabel="Submitting…"
               className="rounded-full bg-ink-900 px-5 py-2 text-[14px] font-medium text-paper transition hover:bg-ink-700 disabled:cursor-not-allowed disabled:bg-ink-300"
             />
           </form>

@@ -111,7 +111,7 @@ export default async function OnboardingPage({
 
         <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink-300/60 pb-5">
           <div className="space-y-2">
-            <p className="text-[12px] tracking-[0.14em] text-ink-500">Admin</p>
+            <p className="text-[12px] tracking-[0.14em] text-ink-500">Admin queue</p>
             <h1 className="text-[34px] leading-tight tracking-tight">Onboarding tasks</h1>
             <p className="text-[14px] text-ink-500">
               Assign first-week tasks so every employee knows what to do next.
@@ -207,7 +207,7 @@ export default async function OnboardingPage({
               </div>
               <PendingSubmitButton
                 idleLabel="Assign"
-                pendingLabel="Assigning..."
+                pendingLabel="Assigning…"
                 className="rounded-full bg-ink-900 px-5 py-2 text-[14px] font-medium text-paper transition hover:bg-ink-700 disabled:cursor-not-allowed disabled:bg-ink-300"
               />
             </form>

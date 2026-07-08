@@ -15,20 +15,28 @@ const ERROR_COPY: Record<string, string> = {
 async function signInAdminAction(formData: FormData): Promise<void> {
   "use server";
 
+  // Keep the typed email across a failed attempt so the admin only has to
+  // re-enter the password. Never carry the password.
+  const rawEmail = formData.get("email");
+  const emailParam =
+    typeof rawEmail === "string" && rawEmail.length > 0 && rawEmail.length <= 254
+      ? `&email=${encodeURIComponent(rawEmail.trim())}`
+      : "";
+
   const parsed = CredentialsSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
   });
 
   if (!parsed.success) {
-    redirect("/admin/login?error=invalid_credentials");
+    redirect(`/admin/login?error=invalid_credentials${emailParam}`);
   }
 
   const supabase = await createServerClient();
   const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
 
   if (error || !data.session?.user) {
-    redirect("/admin/login?error=invalid_credentials");
+    redirect(`/admin/login?error=invalid_credentials${emailParam}`);
   }
 
   if (data.session.user.app_metadata?.role !== "admin") {
@@ -42,10 +50,11 @@ async function signInAdminAction(formData: FormData): Promise<void> {
 export default async function AdminLoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; email?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, email } = await searchParams;
   const errorMessage = error ? ERROR_COPY[error] : null;
+  const prefillEmail = error && typeof email === "string" ? email.slice(0, 254) : "";
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-16">
@@ -71,6 +80,7 @@ export default async function AdminLoginPage({
             autoComplete="email"
             required
             inputMode="email"
+            defaultValue={prefillEmail}
             placeholder="admin@company.com"
             className="w-full rounded-full border border-ink-300 bg-white px-5 py-3 text-[15px] outline-none transition focus:border-ink-900"
           />

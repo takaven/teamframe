@@ -96,7 +96,7 @@ export default async function PoliciesPage({
 
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink-300/60 pb-5">
         <div className="space-y-2">
-          <p className="text-[12px] tracking-[0.14em] text-ink-500">Admin</p>
+          <p className="text-[12px] tracking-[0.14em] text-ink-500">Admin queue</p>
           <h1 className="text-[34px] leading-tight tracking-tight">Policies</h1>
           <p className="text-[14px] text-ink-500">
             Publish the rules your team works by and collect acknowledgements as compliance proof.
@@ -178,7 +178,7 @@ export default async function PoliciesPage({
           <div>
             <PendingSubmitButton
               idleLabel="Create draft"
-              pendingLabel="Creating..."
+              pendingLabel="Creating…"
               className="rounded-full bg-ink-900 px-5 py-2 text-[14px] font-medium text-paper transition hover:bg-ink-700 disabled:cursor-not-allowed disabled:bg-ink-300"
             />
           </div>
@@ -233,7 +233,7 @@ export default async function PoliciesPage({
                           <input type="hidden" name="expected_updated_at" value={policy.updated_at} />
                           <PendingSubmitButton
                             idleLabel="Publish"
-                            pendingLabel="Publishing..."
+                            pendingLabel="Publishing…"
                             className="w-full rounded-full bg-ink-900 px-4 py-1.5 text-[13px] font-medium text-paper transition hover:bg-ink-700 disabled:cursor-not-allowed disabled:bg-ink-300 sm:w-auto"
                           />
                         </form>
@@ -244,7 +244,7 @@ export default async function PoliciesPage({
                           <input type="hidden" name="expected_updated_at" value={policy.updated_at} />
                           <ConfirmSubmitButton
                             idleLabel="Archive"
-                            pendingLabel="Archiving..."
+                            pendingLabel="Archiving…"
                             confirmMessage={`Archive "${policy.title}" v${policy.version}? Employees will no longer be asked to acknowledge it.`}
                             className="w-full rounded-full border border-ink-300 px-4 py-1.5 text-[13px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300 sm:w-auto"
                           />

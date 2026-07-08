@@ -154,7 +154,7 @@ export default async function MePage({
                     <input type="hidden" name="return_to" value="/me" />
                     <ConfirmSubmitButton
                       idleLabel="I acknowledge"
-                      pendingLabel="Recording..."
+                      pendingLabel="Recording…"
                       confirmMessage={`Acknowledge "${policy.title}" v${policy.version}? This confirms you have read and understood it.`}
                       className="w-full rounded-full bg-ink-900 px-4 py-1.5 text-[13px] font-medium text-paper transition hover:bg-ink-700 disabled:cursor-not-allowed disabled:bg-ink-300 sm:w-auto"
                     />
