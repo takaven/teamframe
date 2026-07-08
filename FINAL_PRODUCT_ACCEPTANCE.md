@@ -53,7 +53,35 @@ Required operator actions:
 - `npm run guards` — PASS (4/4)
 - `npm run build` — PASS (credential-less)
 
-## 4. Production activation runbook (the only remaining work)
+## 4. INDEPENDENT VISUAL AND COMMERCIAL ACCEPTANCE
+
+**Reviewed 8 July 2026** by an independent pass that did not rely on any prior audit: real Chromium against the live seeded staging project, every public/admin/employee route and state, at 1440×900 / 1024×768 / 390×844 / 200% zoom. Evidence: [INDEPENDENT_VISUAL_UX_AUDIT.md](docs/launch/INDEPENDENT_VISUAL_UX_AUDIT.md) + before/after captures in [independent-visual-review/](docs/launch/independent-visual-review/). Bar applied: strong enough to show a paying client of a USD 2,000/month managed people-ops service without apology.
+
+Findings: 15 issues (3 HIGH — no landing product visual, broken CTA hierarchy, raw invite error code on a customer surface; 5 MEDIUM; 7 LOW). All CRITICAL/HIGH/MEDIUM fixed and re-captured (commit `4d02e7c`); 3 LOWs accepted with rationale. Axe re-run on all 13 changed routes: 0 violations. Gate chain green after fixes.
+
+| Area | Grade |
+|---|---|
+| Landing-page clarity (5-second test) | PASS |
+| Brand consistency | PASS |
+| Dashboard hierarchy | PASS |
+| Risk visibility | PASS |
+| Navigation | PASS |
+| Form usability | PASS |
+| Employee-page usability | PASS |
+| Mobile quality | PASS |
+| Empty/loading/error states | PASS |
+| Customer-facing language | PASS |
+| Commercial credibility | PASS |
+| Premium presentation | PASS |
+
+```text
+VISUAL AND UX ACCEPTANCE:
+PASS
+```
+
+The overall verdict **FINISHED — PLUG AND PLAY** is hereby confirmed, no longer provisional.
+
+## 5. Production activation runbook (the only remaining work)
 
 1. **Deploy:** follow START_HERE.md §Deploy / deployment-runbook Option A against the production Supabase project (db:apply → storage:setup → config push → Vercel env vars → `vercel --prod` → post-deploy validation incl. health checks, both auth tiers, one full core loop, security headers). Production also needs custom SMTP for employee magic-link email delivery (free-tier mailer cannot serve customers).
 2. **Sentry:** provision DSN, set the three env vars in Vercel, `npm run sentry:test-event`, record the event ID in sentry-completion.md.
