@@ -4,6 +4,42 @@ Tracks the status of each weekend execution block as it completes.
 
 ---
 
+## PR #84 Reconciliation Blocker Fixes — 2026-08-04
+
+**Block:** Independent review blocker fixes for GitHub reconciliation
+**Branch:** `codex/reconcile-local-main`
+**Checkpoint:** `6eddb21`
+**Status:** CODE FIXES COMPLETE; GitHub protected-branch check still blocked before runner startup
+
+**Context:** PR #84 aligns GitHub with the canonical local product history. A
+post-reconciliation independent review requested changes before merge. The
+review was checked against the local code, and the confirmed issues were fixed
+instead of blindly accepting the handover.
+
+**Fixed:**
+- Dashboard page and dashboard action endpoint now require admin tenant role before service-role reads/mutations.
+- Identity resolution now scopes email fallback to the JWT tenant and hard-fails an existing `auth_user_id` link that belongs to another tenant before any link/activation write.
+- Manual dashboard resolution for `leave_conflict`, `missing_jurisdiction_requirement`, and `unacknowledged_policy` now stores evidence fingerprints; new policy/jurisdiction/leave evidence recurs as a fresh signal.
+- Policy create/publish/archive/acknowledge writes now go through transactional database RPCs that write the audit record in the same database transaction.
+- Acknowledgements now have same-tenant policy/employee constraints plus stricter acknowledgement RLS checks.
+
+**Gate chain on `6eddb21`:**
+- `npm run typecheck`: PASS
+- `npm test`: PASS (12 files, 63/63 tests)
+- `npm run guards`: PASS
+- `npm run build`: PASS
+- Vercel preview on PR #84: PASS
+
+**Still blocked outside code:** GitHub `Gate Chain (Strict)` fails before a
+runner starts (`runner_id=0`, no steps/logs). Protected `main` cannot be updated
+until GitHub Actions/runner availability is fixed and the check is rerun green.
+
+**Not validated locally:** `npm run db:apply` could not reach the configured
+database host (`ENOTFOUND` for the local `SUPABASE_DB_URL` host), so SQL apply
+must be validated once the connection string is corrected.
+
+---
+
 ## Finalisation Phase 5 — 2026-07-06
 
 **Block:** Product completion and plug-and-play acceptance (real environment)

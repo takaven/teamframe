@@ -1,5 +1,17 @@
 # TeamFrame — Final Product Acceptance
 
+> **Current review status — 4 August 2026:** this document records the July
+> acceptance evidence for `main@f2a259f`. A later independent review of PR #84
+> found five security/integrity blockers. They are fixed in PR head
+> `6eddb21` (`codex/reconcile-local-main`): admin-only dashboard access,
+> tenant-safe identity binding, recurring signal fingerprints after manual
+> resolution, transactional policy/audit RPCs, and same-tenant acknowledgement
+> integrity. Fresh local gates on `6eddb21` passed: `npm run typecheck`,
+> `npm test` (12 files / 63 tests), `npm run guards`, and `npm run build`.
+> Vercel passed. GitHub `Gate Chain (Strict)` is still blocked outside the code:
+> it fails before runner startup (`runner_id=0`, no steps/logs). Do not treat
+> GitHub `main` as reconciled until PR #84 merges after that check can run.
+
 **Date:** 6 July 2026
 **Tree:** local `main` (Phase 5 checkpoint `2ff1424` + readiness entry; final gate chain run on this exact tree — results in §3)
 **Acceptance environment:** live Supabase project `teamframe-staging-acceptance` (`zydhgtmgrbdyghmvuldc`), real Chromium via Playwright, clean-install rehearsal from a fresh export.
@@ -52,6 +64,21 @@ Required operator actions:
 - `npm test` — PASS (10 files, 55/55)
 - `npm run guards` — PASS (4/4)
 - `npm run build` — PASS (credential-less)
+
+## 3A. Current PR #84 reconciliation gate (4 August 2026)
+
+Run on `codex/reconcile-local-main@6eddb21` after the independent blocker review:
+
+- `npm run typecheck` — PASS
+- `npm test` — PASS (12 files, 63/63)
+- `npm run guards` — PASS
+- `npm run build` — PASS
+- Vercel preview — PASS
+- GitHub `Gate Chain (Strict)` — BLOCKED before runner startup (`runner_id=0`, no steps/logs)
+
+`npm run db:apply` was not able to validate the new SQL locally because the
+configured `SUPABASE_DB_URL` host did not resolve (`ENOTFOUND`). Validate schema
+apply once the database connection string is corrected.
 
 ## 4. INDEPENDENT VISUAL AND COMMERCIAL ACCEPTANCE
 

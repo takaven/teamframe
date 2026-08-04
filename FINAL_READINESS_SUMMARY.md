@@ -1,5 +1,15 @@
 # TeamFrame — Final Readiness Summary (v1.0 local finalisation)
 
+> **Current review status — 4 August 2026:** this July summary is historical.
+> The current reconciliation branch is `codex/reconcile-local-main@6eddb21`
+> for PR #84. It includes post-review blocker fixes for dashboard
+> authorization, tenant-bound identity resolution, recurring manually resolved
+> signals, transactional policy/audit writes, and same-tenant acknowledgement
+> integrity. Local gates on `6eddb21` are green: typecheck, 63/63 tests, guards,
+> and build. Vercel is green. GitHub `Gate Chain (Strict)` still fails before
+> runner startup (`runner_id=0`, no steps/logs), so protected `main` is not yet
+> reconciled.
+
 **Date:** 3 July 2026
 **Working copy:** `C:\Users\isuda\Dev\TeamFrame-canonical` (local main, checkpointed per wave)
 **Baseline:** `main@0644029` (= remote main; rollback tag `pre-finalisation-2026-07-03` on origin)
@@ -48,8 +58,8 @@ Sign-in: **admins** email+password at `/admin/login`; **employees** magic link a
 
 ## 4. Remaining production-only actions (founder / dashboard access required)
 
-1. **GitHub Actions billing lock** — unblock at github.com → Settings → Billing; then re-run `Gate Chain (Strict)` on main. Release approval stays blocked until it passes on the final main.
-2. **Reconcile local main with GitHub** — local main is 20 commits ahead of origin; when ready: push the branch, or close PRs #82/#83 as superseded. (Local commits `ff7578b` contain their reviewed content.)
+1. **GitHub Actions billing / runner lock** — unblock at github.com → Settings → Billing / Actions; then re-run `Gate Chain (Strict)` on PR #84. Release approval stays blocked until it passes on the final head.
+2. **Reconcile GitHub main** — PR #84 (`codex/reconcile-local-main`) is open and mergeable at `6eddb21`; merge it after the required check can run green. GitHub `main` still points at `0644029`.
 3. **M20 backup/PITR** — follow `docs/launch/verification/m20-backup-pitr-recovery-evidence.md` Section 0 (Path A: enable PITR / Path B: daily-backup decision); fill the `[FOUNDER]` fields; run the tested-restore procedure in `docs/launch/runbooks/rollback-procedure.md`.
 4. **Sentry** — provision DSN per `docs/launch/verification/sentry-completion.md`; set `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_AUTH_TOKEN` in Vercel; `npm run sentry:test-event`; record the event ID.
 5. **Landing page pilot address** — set `NEXT_PUBLIC_PILOT_CONTACT_EMAIL` in the deploy environment (app/page.tsx reads it; when unset, the "Request a pilot" CTA is not rendered).
