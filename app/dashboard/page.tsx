@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireTenantActor } from "@/middleware/rbac";
+import { requireTenantRole } from "@/middleware/rbac";
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 import { SignalSection } from "@/app/dashboard/SignalSection";
 import type { DashboardSignal } from "@/app/dashboard/RiskCard";
@@ -188,7 +188,7 @@ function toDashboardSignal(params: {
 }
 
 export default async function DashboardPage() {
-  const actor = await requireTenantActor();
+  const actor = await requireTenantRole("admin");
   const supabase = createServiceRoleClient();
 
   await runSignalEngineForTenant({

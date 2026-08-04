@@ -73,28 +73,6 @@ const AcknowledgePolicySchema = z.object({
   policyVersion: z.number().int().min(1),
 });
 
-async function writeAudit(
-  actor: Actor,
-  actionType: string,
-  targetId?: string,
-  required = false,
-): Promise<void> {
-  const tenantId = requireTenant(actor);
-  const supabase = createServiceRoleClient();
-  const { error } = await supabase.from("audit_logs").insert({
-    tenant_id: tenantId,
-    actor_user_id: actor.authUserId,
-    action_type: actionType,
-    target_id: targetId ?? null,
-  } as never);
-  if (error) {
-    if (required) {
-      throw new Error(`AUDIT_LOG_FAILED: ${error.message}`);
-    }
-    console.error("AUDIT_LOG_WRITE_FAILED", error.message);
-  }
-}
-
 function stripTenant(row: PolicyRow): PolicyRecord {
   const { tenant_id: _tenantId, ...record } = row;
   return record;
@@ -113,24 +91,20 @@ export async function createPolicy(
 
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
-    .from("policies")
-    .insert({
-      tenant_id: tenantId,
-      title: parsed.data.title,
-      body: parsed.data.body,
-      version: parsed.data.version,
-      is_published: false,
+    .rpc("teamframe_create_policy", {
+      p_tenant_id: tenantId,
+      p_actor_user_id: actor.authUserId,
+      p_title: parsed.data.title,
+      p_body: parsed.data.body,
+      p_version: parsed.data.version,
     } as never)
-    .select(POLICY_COLUMNS)
     .single();
 
   if (error || !data) {
     throw new Error(`POLICY_CREATE_FAILED: ${error?.message ?? "no row"}`);
   }
 
-  const created = data as PolicyRow;
-  await writeAudit(actor, "policy.created", created.id, true);
-  return stripTenant(created);
+  return stripTenant(data as PolicyRow);
 }
 
 export async function publishPolicy(
@@ -144,14 +118,12 @@ export async function publishPolicy(
 
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
-    .from("policies")
-    .update({ is_published: true } as never)
-    .eq("tenant_id", tenantId)
-    .eq("id", policyId)
-    .eq("is_published", false)
-    .eq("updated_at", expectedUpdatedAt)
-    .is("archived_at", null)
-    .select(POLICY_COLUMNS)
+    .rpc("teamframe_publish_policy", {
+      p_tenant_id: tenantId,
+      p_actor_user_id: actor.authUserId,
+      p_policy_id: policyId,
+      p_expected_updated_at: expectedUpdatedAt,
+    } as never)
     .maybeSingle();
 
   if (error) {
@@ -161,7 +133,6 @@ export async function publishPolicy(
     throw new Error("STALE_WRITE");
   }
 
-  await writeAudit(actor, "policy.published", policyId, true);
   return stripTenant(data as PolicyRow);
 }
 
@@ -176,13 +147,12 @@ export async function archivePolicy(
 
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
-    .from("policies")
-    .update({ archived_at: new Date().toISOString() } as never)
-    .eq("tenant_id", tenantId)
-    .eq("id", policyId)
-    .eq("updated_at", expectedUpdatedAt)
-    .is("archived_at", null)
-    .select(POLICY_COLUMNS)
+    .rpc("teamframe_archive_policy", {
+      p_tenant_id: tenantId,
+      p_actor_user_id: actor.authUserId,
+      p_policy_id: policyId,
+      p_expected_updated_at: expectedUpdatedAt,
+    } as never)
     .maybeSingle();
 
   if (error) {
@@ -192,7 +162,6 @@ export async function archivePolicy(
     throw new Error("STALE_WRITE");
   }
 
-  await writeAudit(actor, "policy.archived", policyId, true);
   return stripTenant(data as PolicyRow);
 }
 
@@ -334,46 +303,15 @@ export async function acknowledgePolicy(
     throw new Error("STALE_WRITE");
   }
 
-  const { data: existingAck, error: existingAckError } = await supabase
-    .from("acknowledgements")
-    .select("id, policy_id, policy_version, employee_id, acknowledged_at")
-    .eq("tenant_id", tenantId)
-    .eq("policy_id", policy.id)
-    .eq("policy_version", policy.version)
-    .eq("employee_id", employeeId)
-    .maybeSingle();
+  const { error: acknowledgeError } = await supabase.rpc("teamframe_acknowledge_policy", {
+    p_tenant_id: tenantId,
+    p_actor_user_id: actor.authUserId,
+    p_employee_id: employeeId,
+    p_policy_id: policy.id,
+    p_policy_version: policy.version,
+  } as never);
 
-  if (existingAckError) {
-    throw new Error(`POLICY_ACKNOWLEDGE_FAILED: ${existingAckError.message}`);
+  if (acknowledgeError) {
+    throw new Error(`POLICY_ACKNOWLEDGE_FAILED: ${acknowledgeError.message}`);
   }
-  if (existingAck) {
-    // Idempotent: already acknowledged this version — nothing to change.
-    return;
-  }
-
-  const { data: insertedAck, error: insertError } = await supabase
-    .from("acknowledgements")
-    .insert({
-      tenant_id: tenantId,
-      policy_id: policy.id,
-      policy_version: policy.version,
-      employee_id: employeeId,
-    } as never)
-    .select("id")
-    .single();
-
-  if (insertError || !insertedAck) {
-    // Unique-violation means a concurrent acknowledge won the race — treat as done.
-    if ((insertError as { code?: string } | null)?.code === "23505") {
-      return;
-    }
-    throw new Error(`POLICY_ACKNOWLEDGE_FAILED: ${insertError?.message ?? "no row"}`);
-  }
-
-  await writeAudit(
-    actor,
-    "policy.acknowledged",
-    (insertedAck as { id: string }).id,
-    true,
-  );
 }

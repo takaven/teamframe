@@ -21,7 +21,12 @@ type DocumentRow = {
   deleted_at: string | null;
 };
 
-type RiskSignalRow = { id: string; subject_employee_id: string | null; resolved_at: string | null };
+type RiskSignalRow = {
+  id: string;
+  subject_employee_id: string | null;
+  evidence?: { evidence_fingerprint?: string } | null;
+  resolved_at: string | null;
+};
 type ActionItemRow = { id: string; risk_signal_id: string; status: string };
 
 function normalizeDocumentType(row: Pick<DocumentRow, "document_type" | "type">): string {
@@ -43,6 +48,10 @@ function formatDocumentLabel(documentType: string): string {
   if (documentType === "emirates_id") return "Emirates ID";
   if (documentType === "right_to_work") return "right-to-work document";
   return documentType.replace(/_/g, " ");
+}
+
+function requirementFingerprint(country: string, requiredDocument: string): string {
+  return `missing_jurisdiction_requirement:${country.trim().toLowerCase()}:${requiredDocument}`;
 }
 
 export type MissingJurisdictionRequirementReconcileResult = {
@@ -98,7 +107,7 @@ export async function reconcileMissingJurisdictionRequirementSignals(params: {
 
   const { data: openSignalData, error: openSignalError } = await supabase
     .from("risk_signals")
-    .select("id, subject_employee_id, resolved_at")
+    .select("id, subject_employee_id, evidence, resolved_at")
     .eq("tenant_id", params.tenantId)
     .eq("kind", "missing_jurisdiction_requirement")
     .is("resolved_at", null);
@@ -116,10 +125,11 @@ export async function reconcileMissingJurisdictionRequirementSignals(params: {
   // Manual resolution path: the V1 upload UI cannot store jurisdiction document
   // types (the documents.type enum is locked to CV/CONTRACT/JD/PHOTO), so an
   // admin who has verified the requirement offline resolves via the dashboard
-  // "Mark done" action. Mirrors unacknowledgedPolicy/activeAccessAfterExit.
+  // "Mark done" action. The completed action suppresses only the exact
+  // country+document fingerprint reviewed; changed requirements recur.
   const { data: completedActionData, error: completedActionError } = await supabase
     .from("action_items")
-    .select("subject_employee_id")
+    .select("subject_employee_id, risk_signal_id")
     .eq("tenant_id", params.tenantId)
     .eq("category", "missing_jurisdiction_requirement")
     .eq("status", "done");
@@ -130,24 +140,59 @@ export async function reconcileMissingJurisdictionRequirementSignals(params: {
     );
   }
 
-  const completedByEmployeeId = new Set(
-    ((completedActionData ?? []) as { subject_employee_id: string | null }[])
-      .map((row) => row.subject_employee_id)
-      .filter((value): value is string => Boolean(value)),
-  );
+  const completedActions = (completedActionData ?? []) as {
+    subject_employee_id: string | null;
+    risk_signal_id: string | null;
+  }[];
+  const completedSignalIds = completedActions
+    .map((row) => row.risk_signal_id)
+    .filter((value): value is string => Boolean(value));
+  const completedFingerprintsByEmployeeId = new Map<string, Set<string>>();
 
-  const desired = new Map<string, { severity: SignalSeverity; requiredDocument: string; country: string }>();
+  if (completedSignalIds.length > 0) {
+    const { data: completedSignalData, error: completedSignalError } = await supabase
+      .from("risk_signals")
+      .select("id, evidence")
+      .eq("tenant_id", params.tenantId)
+      .eq("kind", "missing_jurisdiction_requirement")
+      .in("id", completedSignalIds);
+
+    if (completedSignalError) {
+      throw new Error(
+        `MISSING_JURISDICTION_REQUIREMENT_COMPLETED_SIGNAL_QUERY_FAILED: ${completedSignalError.message}`,
+      );
+    }
+
+    const fingerprintBySignalId = new Map(
+      ((completedSignalData ?? []) as Array<{ id: string; evidence: { evidence_fingerprint?: string } | null }>)
+        .map((row) => [row.id, row.evidence?.evidence_fingerprint])
+        .filter((entry): entry is [string, string] => typeof entry[1] === "string" && entry[1].length > 0),
+    );
+    for (const action of completedActions) {
+      if (!action.subject_employee_id || !action.risk_signal_id) continue;
+      const fingerprint = fingerprintBySignalId.get(action.risk_signal_id);
+      if (!fingerprint) continue;
+      if (!completedFingerprintsByEmployeeId.has(action.subject_employee_id)) {
+        completedFingerprintsByEmployeeId.set(action.subject_employee_id, new Set<string>());
+      }
+      completedFingerprintsByEmployeeId.get(action.subject_employee_id)?.add(fingerprint);
+    }
+  }
+
+  const desired = new Map<string, { severity: SignalSeverity; requiredDocument: string; country: string; fingerprint: string }>();
   for (const employee of employees) {
-    if (completedByEmployeeId.has(employee.id)) continue;
     const country = employee.country?.trim();
     if (!country) continue;
     const requiredDocument = getRequiredDocumentForCountry(country);
     const docs = documentTypesByEmployeeId.get(employee.id) ?? new Set<string>();
     if (docs.has(requiredDocument)) continue;
+    const fingerprint = requirementFingerprint(country, requiredDocument);
+    if (completedFingerprintsByEmployeeId.get(employee.id)?.has(fingerprint)) continue;
     desired.set(employee.id, {
       severity: employee.lifecycle_state === "active" || employee.lifecycle_state === "offboarding" ? "red" : "yellow",
       requiredDocument,
       country,
+      fingerprint,
     });
   }
 
@@ -162,6 +207,7 @@ export async function reconcileMissingJurisdictionRequirementSignals(params: {
       trigger_reason: "missing_jurisdiction_requirement",
       subject_employee_id: employeeId,
       rule_version: "missing_jurisdiction_requirement_v1",
+      evidence_fingerprint: entry.fingerprint,
       country: entry.country,
       required_document: entry.requiredDocument,
       what_is_wrong: `The required ${label} for ${entry.country} is missing.`,

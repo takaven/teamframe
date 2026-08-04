@@ -64,6 +64,19 @@ export async function requireRole(role: Role): Promise<Actor> {
   return actor;
 }
 
+export async function requireTenantRole(role: Role): Promise<Actor & { tenantId: string }> {
+  const actor = await requireRole(role);
+  if (!actor.tenantId) {
+    console.error("[TENANT_RESOLUTION_FAIL] requireTenantRole: actor has no tenantId", {
+      authUserId: actor.authUserId,
+      email: actor.email,
+      role: actor.role,
+    });
+    throw new MissingTenantContextError();
+  }
+  return { ...actor, tenantId: actor.tenantId };
+}
+
 export async function requireSelfOrAdmin(targetEmployeeId: string): Promise<Actor> {
   const actor = await requireActor();
   if (actor.role === "admin") return actor;

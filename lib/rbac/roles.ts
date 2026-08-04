@@ -65,11 +65,21 @@ export async function resolveIdentity(authUserId: string): Promise<ResolvedIdent
       }
     | null;
 
-  if (!employee) {
+  if (employee && (!jwtTenantId || employee.tenant_id !== jwtTenantId)) {
+    console.error("[TENANT_MISMATCH] employee auth_user_id link differs from JWT app_metadata.tenant_id", {
+      authUserId: data.user.id,
+      employeeTenantId: employee.tenant_id,
+      jwtTenantId,
+    });
+    throw new Error("RBAC: tenant mismatch");
+  }
+
+  if (!employee && jwtTenantId) {
     const { data: employeeByEmail, error: empErr } = await supabase
       .from("employees")
       .select("id, tenant_id, auth_user_id, setup_status")
       .eq("email", email)
+      .eq("tenant_id", jwtTenantId)
       .is("deleted_at", null)
       .limit(2);
 
@@ -95,6 +105,7 @@ export async function resolveIdentity(authUserId: string): Promise<ResolvedIdent
       .from("employees")
       .update({ auth_user_id: data.user.id } as never)
       .eq("id", employee.id)
+      .eq("tenant_id", employee.tenant_id)
       .is("auth_user_id", null);
   }
 
@@ -124,14 +135,6 @@ export async function resolveIdentity(authUserId: string): Promise<ResolvedIdent
           .is("deleted_at", null);
       }
     }
-  }
-
-  if (employee && jwtTenantId && employee.tenant_id !== jwtTenantId) {
-    console.warn("[TENANT_MISMATCH] employee row tenant differs from JWT app_metadata.tenant_id", {
-      authUserId: data.user.id,
-      employeeTenantId: employee.tenant_id,
-      jwtTenantId,
-    });
   }
 
   return {

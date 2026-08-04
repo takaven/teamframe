@@ -11,11 +11,20 @@ type LeaveRow = {
   status: "pending" | "approved" | "rejected";
 };
 
-type RiskSignalRow = { id: string; subject_employee_id: string | null; resolved_at: string | null };
+type RiskSignalRow = {
+  id: string;
+  subject_employee_id: string | null;
+  evidence?: { evidence_fingerprint?: string } | null;
+  resolved_at: string | null;
+};
 type ActionItemRow = { id: string; risk_signal_id: string; status: string };
 
 function hasOverlap(a: LeaveRow, b: LeaveRow): boolean {
   return a.start_date <= b.end_date && b.start_date <= a.end_date;
+}
+
+function conflictFingerprint(overlapPairs: string[]): string {
+  return `leave_conflict:${overlapPairs.sort().join("|")}`;
 }
 
 export type LeaveConflictReconcileResult = {
@@ -55,7 +64,7 @@ export async function reconcileLeaveConflictSignals(params: {
 
   const { data: openSignalData, error: openSignalError } = await supabase
     .from("risk_signals")
-    .select("id, subject_employee_id, resolved_at")
+    .select("id, subject_employee_id, evidence, resolved_at")
     .eq("tenant_id", params.tenantId)
     .eq("kind", "leave_conflict")
     .is("resolved_at", null);
@@ -73,10 +82,11 @@ export async function reconcileLeaveConflictSignals(params: {
   // Manual resolution path: pending overlaps are fixed by rejecting one request
   // in /leaves, but approved-approved overlaps have no edit surface in V1. An
   // admin who has reviewed the overlap resolves via the dashboard "Mark done"
-  // action. Mirrors unacknowledgedPolicy/activeAccessAfterExit.
+  // action. The completed action suppresses only the exact overlap fingerprint
+  // that was reviewed; new/different overlaps must recur.
   const { data: completedActionData, error: completedActionError } = await supabase
     .from("action_items")
-    .select("subject_employee_id")
+    .select("subject_employee_id, risk_signal_id")
     .eq("tenant_id", params.tenantId)
     .eq("category", "leave_conflict")
     .eq("status", "done");
@@ -85,23 +95,59 @@ export async function reconcileLeaveConflictSignals(params: {
     throw new Error(`LEAVE_CONFLICT_COMPLETED_ACTION_QUERY_FAILED: ${completedActionError.message}`);
   }
 
-  const completedByEmployeeId = new Set(
-    ((completedActionData ?? []) as { subject_employee_id: string | null }[])
-      .map((row) => row.subject_employee_id)
-      .filter((value): value is string => Boolean(value)),
-  );
+  const completedActions = (completedActionData ?? []) as {
+    subject_employee_id: string | null;
+    risk_signal_id: string | null;
+  }[];
+  const completedSignalIds = completedActions
+    .map((row) => row.risk_signal_id)
+    .filter((value): value is string => Boolean(value));
+  const completedFingerprintsByEmployeeId = new Map<string, Set<string>>();
 
-  const desired = new Map<string, { count: number }>();
+  if (completedSignalIds.length > 0) {
+    const { data: completedSignalData, error: completedSignalError } = await supabase
+      .from("risk_signals")
+      .select("id, evidence")
+      .eq("tenant_id", params.tenantId)
+      .eq("kind", "leave_conflict")
+      .in("id", completedSignalIds);
+
+    if (completedSignalError) {
+      throw new Error(`LEAVE_CONFLICT_COMPLETED_SIGNAL_QUERY_FAILED: ${completedSignalError.message}`);
+    }
+
+    const fingerprintBySignalId = new Map(
+      ((completedSignalData ?? []) as Array<{ id: string; evidence: { evidence_fingerprint?: string } | null }>)
+        .map((row) => [row.id, row.evidence?.evidence_fingerprint])
+        .filter((entry): entry is [string, string] => typeof entry[1] === "string" && entry[1].length > 0),
+    );
+    for (const action of completedActions) {
+      if (!action.subject_employee_id || !action.risk_signal_id) continue;
+      const fingerprint = fingerprintBySignalId.get(action.risk_signal_id);
+      if (!fingerprint) continue;
+      if (!completedFingerprintsByEmployeeId.has(action.subject_employee_id)) {
+        completedFingerprintsByEmployeeId.set(action.subject_employee_id, new Set<string>());
+      }
+      completedFingerprintsByEmployeeId.get(action.subject_employee_id)?.add(fingerprint);
+    }
+  }
+
+  const desired = new Map<string, { count: number; fingerprint: string }>();
   for (const [employeeId, employeeLeaves] of leavesByEmployeeId.entries()) {
-    if (completedByEmployeeId.has(employeeId)) continue;
     const sorted = [...employeeLeaves].sort((a, b) => a.start_date.localeCompare(b.start_date));
     let count = 0;
+    const overlapPairs: string[] = [];
     for (let index = 1; index < sorted.length; index += 1) {
       if (hasOverlap(sorted[index - 1] as LeaveRow, sorted[index] as LeaveRow)) {
         count += 1;
+        const pair = [sorted[index - 1]?.id, sorted[index]?.id].filter(Boolean).sort().join("+");
+        overlapPairs.push(pair);
       }
     }
-    if (count > 0) desired.set(employeeId, { count });
+    if (count <= 0) continue;
+    const fingerprint = conflictFingerprint(overlapPairs);
+    if (completedFingerprintsByEmployeeId.get(employeeId)?.has(fingerprint)) continue;
+    desired.set(employeeId, { count, fingerprint });
   }
 
   let createdSignals = 0;
@@ -114,6 +160,7 @@ export async function reconcileLeaveConflictSignals(params: {
       trigger_reason: "leave_conflict",
       subject_employee_id: employeeId,
       rule_version: "leave_conflict_v1",
+      evidence_fingerprint: entry.fingerprint,
       overlap_count: entry.count,
       what_is_wrong: `${entry.count} overlapping leave request${entry.count === 1 ? " was" : "s were"} found.`,
       why_it_matters: "Conflicting leave records can confuse approvals and planning coverage.",

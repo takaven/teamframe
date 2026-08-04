@@ -250,6 +250,7 @@ using (
       select id
       from employees
       where lower(email) = current_actor_email()
+        and tenant_id = current_actor_tenant_id()
         and deleted_at is null
     )
   )
@@ -278,6 +279,7 @@ using (
       select id
       from employees
       where lower(email) = current_actor_email()
+        and tenant_id = current_actor_tenant_id()
         and deleted_at is null
     )
   )
@@ -440,6 +442,7 @@ using (
       select id
       from employees
       where lower(email) = current_actor_email()
+        and tenant_id = current_actor_tenant_id()
         and deleted_at is null
     )
   )
@@ -456,8 +459,16 @@ with check (
       select id
       from employees
       where lower(email) = current_actor_email()
+        and tenant_id = current_actor_tenant_id()
         and deleted_at is null
     )
+  )
+  and policy_id in (
+    select id
+    from policies
+    where tenant_id = current_actor_tenant_id()
+      and is_published
+      and archived_at is null
   )
 );
 

@@ -14,6 +14,7 @@ const db = {
 };
 
 let nextId = 1;
+let failNextPolicyRpc = false;
 
 function makeBuilder(table: keyof typeof db) {
   let mode: "select" | "insert" | "update" = "select";
@@ -91,6 +92,106 @@ function makeBuilder(table: keyof typeof db) {
 vi.mock("@/lib/db/supabaseServer", () => ({
   createServiceRoleClient: () => ({
     from: (table: string) => makeBuilder(table as keyof typeof db),
+    rpc: (fn: string, params: Row) => {
+      if (failNextPolicyRpc) {
+        failNextPolicyRpc = false;
+        return {
+          single: async () => ({ data: null, error: { message: "audit insert failed" } }),
+          maybeSingle: async () => ({ data: null, error: { message: "audit insert failed" } }),
+          then: (resolve: (value: unknown) => unknown) =>
+            resolve({ data: null, error: { message: "audit insert failed" } }),
+        };
+      }
+
+      if (fn === "teamframe_create_policy") {
+        const policy = {
+          id: `policies-${nextId++}`,
+          tenant_id: params.p_tenant_id,
+          title: params.p_title,
+          body: params.p_body,
+          version: params.p_version,
+          is_published: false,
+          created_at: "2026-07-01T00:00:00Z",
+          updated_at: "2026-07-01T00:00:00Z",
+          archived_at: null,
+        };
+        db.policies.push(policy);
+        db.audit_logs.push({
+          id: `audit_logs-${nextId++}`,
+          tenant_id: params.p_tenant_id,
+          actor_user_id: params.p_actor_user_id,
+          action_type: "policy.created",
+          target_id: policy.id,
+        });
+        return {
+          single: async () => ({ data: policy, error: null }),
+          maybeSingle: async () => ({ data: policy, error: null }),
+          then: (resolve: (value: unknown) => unknown) => resolve({ data: policy, error: null }),
+        };
+      }
+
+      if (fn === "teamframe_publish_policy") {
+        const policy = db.policies.find(
+          (row) =>
+            row.id === params.p_policy_id &&
+            row.tenant_id === params.p_tenant_id &&
+            row.is_published === false &&
+            row.updated_at === params.p_expected_updated_at &&
+            row.archived_at == null,
+        );
+        if (policy) {
+          policy.is_published = true;
+          db.audit_logs.push({
+            id: `audit_logs-${nextId++}`,
+            tenant_id: params.p_tenant_id,
+            actor_user_id: params.p_actor_user_id,
+            action_type: "policy.published",
+            target_id: policy.id,
+          });
+        }
+        return {
+          single: async () => ({ data: policy ?? null, error: null }),
+          maybeSingle: async () => ({ data: policy ?? null, error: null }),
+          then: (resolve: (value: unknown) => unknown) => resolve({ data: policy ?? null, error: null }),
+        };
+      }
+
+      if (fn === "teamframe_acknowledge_policy") {
+        const existing = db.acknowledgements.find(
+          (row) =>
+            row.tenant_id === params.p_tenant_id &&
+            row.policy_id === params.p_policy_id &&
+            row.policy_version === params.p_policy_version &&
+            row.employee_id === params.p_employee_id,
+        );
+        if (existing) {
+          return {
+            then: (resolve: (value: unknown) => unknown) => resolve({ data: existing.id, error: null }),
+          };
+        }
+        const ack = {
+          id: `acknowledgements-${nextId++}`,
+          tenant_id: params.p_tenant_id,
+          policy_id: params.p_policy_id,
+          policy_version: params.p_policy_version,
+          employee_id: params.p_employee_id,
+          acknowledged_at: "2026-07-02T00:00:00Z",
+        };
+        db.acknowledgements.push(ack);
+        db.audit_logs.push({
+          id: `audit_logs-${nextId++}`,
+          tenant_id: params.p_tenant_id,
+          actor_user_id: params.p_actor_user_id,
+          action_type: "policy.acknowledged",
+          target_id: ack.id,
+        });
+        return {
+          then: (resolve: (value: unknown) => unknown) => resolve({ data: ack.id, error: null }),
+        };
+      }
+
+      throw new Error(`Unhandled rpc ${fn}`);
+    },
   }),
 }));
 
@@ -127,6 +228,7 @@ beforeEach(() => {
   db.action_items = [];
   db.audit_logs = [];
   nextId = 1;
+  failNextPolicyRpc = false;
 });
 
 describe("policy loop — unacknowledged policy signals", () => {
@@ -223,6 +325,7 @@ describe("policy loop — unacknowledged policy signals", () => {
         kind: "unacknowledged_policy",
         severity: "yellow",
         subject_employee_id: "emp-a",
+        evidence: { evidence_fingerprint: "unacknowledged_policy:11111111-1111-4111-8111-111111111111:1" },
         resolved_at: null,
       },
     ];
@@ -286,6 +389,79 @@ describe("policy loop — unacknowledged policy signals", () => {
     expect(pending).toHaveLength(0);
   });
 
+  it("creates a fresh signal when a new policy version is missing after manual resolution", async () => {
+    db.employees = [
+      { id: "emp-a", tenant_id: "TENANT_A", lifecycle_state: "active", deleted_at: null },
+    ];
+    db.policies = [
+      {
+        id: "11111111-1111-4111-8111-111111111111",
+        tenant_id: "TENANT_A",
+        title: "Code of conduct",
+        body: "Old version.",
+        version: 1,
+        is_published: true,
+        created_at: "2026-07-01T00:00:00Z",
+        updated_at: "2026-07-01T00:00:00Z",
+        archived_at: null,
+      },
+      {
+        id: "22222222-2222-4222-8222-222222222222",
+        tenant_id: "TENANT_A",
+        title: "Security policy",
+        body: "New version.",
+        version: 2,
+        is_published: true,
+        created_at: "2026-07-02T00:00:00Z",
+        updated_at: "2026-07-02T00:00:00Z",
+        archived_at: null,
+      },
+    ];
+    db.acknowledgements = [
+      {
+        id: "ack-old",
+        tenant_id: "TENANT_A",
+        policy_id: "11111111-1111-4111-8111-111111111111",
+        policy_version: 1,
+        employee_id: "emp-a",
+      },
+    ];
+    db.risk_signals = [
+      {
+        id: "signal-old",
+        tenant_id: "TENANT_A",
+        kind: "unacknowledged_policy",
+        severity: "yellow",
+        subject_employee_id: "emp-a",
+        evidence: { evidence_fingerprint: "unacknowledged_policy:11111111-1111-4111-8111-111111111111:1" },
+        resolved_at: "2026-07-03T00:00:00Z",
+      },
+    ];
+    db.action_items = [
+      {
+        id: "action-done",
+        tenant_id: "TENANT_A",
+        risk_signal_id: "signal-old",
+        subject_employee_id: "emp-a",
+        category: "unacknowledged_policy",
+        status: "done",
+        resolved_at: "2026-07-03T00:00:00Z",
+      },
+    ];
+
+    const result = await reconcileUnacknowledgedPolicySignals({
+      tenantId: "TENANT_A",
+      actorUserId: "admin-user",
+      now: new Date("2026-07-04T00:00:00Z"),
+    });
+
+    expect(result.createdSignals).toBe(1);
+    const newSignal = db.risk_signals.find((s) => s.id !== "signal-old");
+    expect(newSignal?.evidence).toMatchObject({
+      evidence_fingerprint: "unacknowledged_policy:22222222-2222-4222-8222-222222222222:2",
+    });
+  });
+
   it("refuses acknowledgement of drafts, archived policies, and stale versions", async () => {
     db.employees = [
       { id: "emp-a", tenant_id: "TENANT_A", lifecycle_state: "active", deleted_at: null },
@@ -340,5 +516,20 @@ describe("policy loop — unacknowledged policy signals", () => {
     // Only the live, published, non-archived policy is surfaced to the employee.
     const pending = await listUnacknowledgedForEmployee(employeeActor);
     expect(pending.map((p) => p.id)).toEqual(["44444444-4444-4444-8444-444444444444"]);
+  });
+
+  it("does not commit a policy row when the transactional policy RPC fails", async () => {
+    failNextPolicyRpc = true;
+
+    await expect(
+      createPolicy(adminActor, {
+        title: "Security policy",
+        body: "Keep audit evidence complete.",
+        version: 1,
+      }),
+    ).rejects.toThrow("POLICY_CREATE_FAILED");
+
+    expect(db.policies).toHaveLength(0);
+    expect(db.audit_logs).toHaveLength(0);
   });
 });

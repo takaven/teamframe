@@ -31,6 +31,7 @@ type RiskSignalRow = {
   id: string;
   kind: string;
   subject_employee_id: string | null;
+  evidence?: { evidence_fingerprint?: string } | null;
   resolved_at: string | null;
 };
 
@@ -46,6 +47,10 @@ export type UnacknowledgedPolicyReconcileResult = {
   updatedSignals: number;
   resolvedSignals: number;
 };
+
+function policyFingerprint(missingPolicyKeys: string[]): string {
+  return `unacknowledged_policy:${missingPolicyKeys.sort().join("|")}`;
+}
 
 export async function reconcileUnacknowledgedPolicySignals(params: {
   tenantId: string;
@@ -98,7 +103,7 @@ export async function reconcileUnacknowledgedPolicySignals(params: {
 
   const { data: completedActionData, error: completedActionError } = await supabase
     .from("action_items")
-    .select("subject_employee_id")
+    .select("subject_employee_id, risk_signal_id")
     .eq("tenant_id", params.tenantId)
     .eq("category", "unacknowledged_policy")
     .eq("status", "done");
@@ -107,15 +112,46 @@ export async function reconcileUnacknowledgedPolicySignals(params: {
     throw new Error(`UNACKNOWLEDGED_POLICY_COMPLETED_ACTION_QUERY_FAILED: ${completedActionError.message}`);
   }
 
-  const completedByEmployeeId = new Set(
-    ((completedActionData ?? []) as { subject_employee_id: string | null }[])
-      .map((row) => row.subject_employee_id)
-      .filter((value): value is string => Boolean(value)),
-  );
+  const completedActions = (completedActionData ?? []) as {
+    subject_employee_id: string | null;
+    risk_signal_id: string | null;
+  }[];
+  const completedSignalIds = completedActions
+    .map((row) => row.risk_signal_id)
+    .filter((value): value is string => Boolean(value));
+  const completedFingerprintsByEmployeeId = new Map<string, Set<string>>();
+
+  if (completedSignalIds.length > 0) {
+    const { data: completedSignalData, error: completedSignalError } = await supabase
+      .from("risk_signals")
+      .select("id, evidence")
+      .eq("tenant_id", params.tenantId)
+      .eq("kind", "unacknowledged_policy")
+      .in("id", completedSignalIds);
+
+    if (completedSignalError) {
+      throw new Error(`UNACKNOWLEDGED_POLICY_COMPLETED_SIGNAL_QUERY_FAILED: ${completedSignalError.message}`);
+    }
+
+    const fingerprintBySignalId = new Map(
+      ((completedSignalData ?? []) as Array<{ id: string; evidence: { evidence_fingerprint?: string } | null }>)
+        .map((row) => [row.id, row.evidence?.evidence_fingerprint])
+        .filter((entry): entry is [string, string] => typeof entry[1] === "string" && entry[1].length > 0),
+    );
+    for (const action of completedActions) {
+      if (!action.subject_employee_id || !action.risk_signal_id) continue;
+      const fingerprint = fingerprintBySignalId.get(action.risk_signal_id);
+      if (!fingerprint) continue;
+      if (!completedFingerprintsByEmployeeId.has(action.subject_employee_id)) {
+        completedFingerprintsByEmployeeId.set(action.subject_employee_id, new Set<string>());
+      }
+      completedFingerprintsByEmployeeId.get(action.subject_employee_id)?.add(fingerprint);
+    }
+  }
 
   const { data: openSignalData, error: openSignalError } = await supabase
     .from("risk_signals")
-    .select("id, kind, subject_employee_id, resolved_at")
+    .select("id, kind, subject_employee_id, evidence, resolved_at")
     .eq("tenant_id", params.tenantId)
     .eq("kind", "unacknowledged_policy")
     .is("resolved_at", null);
@@ -130,20 +166,19 @@ export async function reconcileUnacknowledgedPolicySignals(params: {
     if (signal.subject_employee_id) openByEmployeeId.set(signal.subject_employee_id, signal);
   }
 
-  const desired = new Map<string, { severity: SignalSeverity; count: number }>();
+  const desired = new Map<string, { severity: SignalSeverity; count: number; fingerprint: string }>();
   for (const employee of employees) {
-    if (completedByEmployeeId.has(employee.id)) {
-      continue;
-    }
-
-    let count = 0;
+    const missingPolicyKeys: string[] = [];
     for (const policy of policies) {
       if (!acknowledgedKeys.has(`${employee.id}:${policy.id}:${policy.version}`)) {
-        count += 1;
+        missingPolicyKeys.push(`${policy.id}:${policy.version}`);
       }
     }
+    const count = missingPolicyKeys.length;
     if (count <= 0) continue;
-    desired.set(employee.id, { severity: count > 1 ? "red" : "yellow", count });
+    const fingerprint = policyFingerprint(missingPolicyKeys);
+    if (completedFingerprintsByEmployeeId.get(employee.id)?.has(fingerprint)) continue;
+    desired.set(employee.id, { severity: count > 1 ? "red" : "yellow", count, fingerprint });
   }
 
   let createdSignals = 0;
@@ -156,6 +191,7 @@ export async function reconcileUnacknowledgedPolicySignals(params: {
       trigger_reason: "unacknowledged_policy",
       subject_employee_id: employeeId,
       rule_version: "unacknowledged_policy_v1",
+      evidence_fingerprint: entry.fingerprint,
       missing_policy_count: entry.count,
       what_is_wrong: `${entry.count} published polic${entry.count === 1 ? "y has" : "ies have"} not been acknowledged.`,
       why_it_matters: "Policy acceptance gaps weaken compliance proof and leave expectations unclear.",

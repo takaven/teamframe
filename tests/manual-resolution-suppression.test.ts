@@ -118,6 +118,7 @@ describe("missing_jurisdiction_requirement manual resolution", () => {
         tenant_id: "TENANT_A",
         kind: "missing_jurisdiction_requirement",
         subject_employee_id: "emp-a",
+        evidence: { evidence_fingerprint: "missing_jurisdiction_requirement:uae:emirates_id" },
         resolved_at: null,
       },
     ];
@@ -153,6 +154,7 @@ describe("missing_jurisdiction_requirement manual resolution", () => {
         tenant_id: "TENANT_A",
         kind: "missing_jurisdiction_requirement",
         subject_employee_id: "emp-a",
+        evidence: { evidence_fingerprint: "missing_jurisdiction_requirement:uae:emirates_id" },
         resolved_at: null,
       },
     ];
@@ -178,6 +180,45 @@ describe("missing_jurisdiction_requirement manual resolution", () => {
     expect(result.resolvedSignals).toBe(1);
     const signal = db.risk_signals.find((s) => s.id === "signal-open");
     expect(signal?.resolved_at).not.toBeNull();
+  });
+
+  it("creates a fresh signal when the required jurisdiction evidence changes after manual resolution", async () => {
+    db.employees = [
+      { id: "emp-a", tenant_id: "TENANT_A", country: "UK", lifecycle_state: "active", deleted_at: null },
+    ];
+    db.risk_signals = [
+      {
+        id: "signal-old",
+        tenant_id: "TENANT_A",
+        kind: "missing_jurisdiction_requirement",
+        subject_employee_id: "emp-a",
+        evidence: { evidence_fingerprint: "missing_jurisdiction_requirement:uae:emirates_id" },
+        resolved_at: "2026-07-03T00:00:00Z",
+      },
+    ];
+    db.action_items = [
+      {
+        id: "action-done",
+        tenant_id: "TENANT_A",
+        risk_signal_id: "signal-old",
+        subject_employee_id: "emp-a",
+        category: "missing_jurisdiction_requirement",
+        status: "done",
+        resolved_at: "2026-07-03T00:00:00Z",
+      },
+    ];
+
+    const result = await reconcileMissingJurisdictionRequirementSignals({
+      tenantId: "TENANT_A",
+      actorUserId: "admin-user",
+      now: new Date("2026-07-04T00:00:00Z"),
+    });
+
+    expect(result.createdSignals).toBe(1);
+    const newSignal = db.risk_signals.find((s) => s.id !== "signal-old");
+    expect(newSignal?.evidence).toMatchObject({
+      evidence_fingerprint: "missing_jurisdiction_requirement:uk:right_to_work",
+    });
   });
 });
 
@@ -208,6 +249,7 @@ describe("leave_conflict manual resolution", () => {
         tenant_id: "TENANT_A",
         kind: "leave_conflict",
         subject_employee_id: "emp-a",
+        evidence: { evidence_fingerprint: "leave_conflict:leave-1+leave-2" },
         resolved_at: null,
       },
     ];
@@ -233,6 +275,60 @@ describe("leave_conflict manual resolution", () => {
     expect(result.resolvedSignals).toBe(1);
     const signal = db.risk_signals.find((s) => s.id === "signal-open");
     expect(signal?.resolved_at).not.toBeNull();
+  });
+
+  it("creates a fresh signal when a different leave overlap appears after manual resolution", async () => {
+    db.leaves = [
+      {
+        id: "leave-3",
+        tenant_id: "TENANT_A",
+        employee_id: "emp-a",
+        start_date: "2026-09-01",
+        end_date: "2026-09-10",
+        status: "approved",
+      },
+      {
+        id: "leave-4",
+        tenant_id: "TENANT_A",
+        employee_id: "emp-a",
+        start_date: "2026-09-05",
+        end_date: "2026-09-12",
+        status: "approved",
+      },
+    ];
+    db.risk_signals = [
+      {
+        id: "signal-old",
+        tenant_id: "TENANT_A",
+        kind: "leave_conflict",
+        subject_employee_id: "emp-a",
+        evidence: { evidence_fingerprint: "leave_conflict:leave-1+leave-2" },
+        resolved_at: "2026-07-03T00:00:00Z",
+      },
+    ];
+    db.action_items = [
+      {
+        id: "action-done",
+        tenant_id: "TENANT_A",
+        risk_signal_id: "signal-old",
+        subject_employee_id: "emp-a",
+        category: "leave_conflict",
+        status: "done",
+        resolved_at: "2026-07-03T00:00:00Z",
+      },
+    ];
+
+    const result = await reconcileLeaveConflictSignals({
+      tenantId: "TENANT_A",
+      actorUserId: "admin-user",
+      now: new Date("2026-07-04T00:00:00Z"),
+    });
+
+    expect(result.createdSignals).toBe(1);
+    const newSignal = db.risk_signals.find((s) => s.id !== "signal-old");
+    expect(newSignal?.evidence).toMatchObject({
+      evidence_fingerprint: "leave_conflict:leave-3+leave-4",
+    });
   });
 
   it("still resolves naturally when the overlap disappears", async () => {

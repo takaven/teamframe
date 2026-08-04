@@ -103,6 +103,21 @@ exception
   when duplicate_table then null;
 end $$;
 
+do $$ begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'employees_tenant_id_id_key'
+      and conrelid = 'employees'::regclass
+  ) then
+    alter table employees
+      add constraint employees_tenant_id_id_key unique (tenant_id, id);
+  end if;
+exception
+  when duplicate_object then null;
+  when duplicate_table then null;
+end $$;
+
 create index if not exists employees_manager_id_idx on employees(manager_id);
 create index if not exists employees_tenant_id_idx  on employees(tenant_id);
 create index if not exists employees_auth_user_id_idx on employees(auth_user_id);

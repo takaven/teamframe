@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
-import { requireTenantActor } from "@/middleware/rbac";
+import { requireTenantRole } from "@/middleware/rbac";
 import { runSignalEngineForTenant } from "@/services/signalEngine";
 
 const ExecuteActionSchema = z.object({
@@ -13,7 +13,7 @@ const ExecuteActionSchema = z.object({
 });
 
 export async function executeActionItemAction(formData: FormData): Promise<void> {
-  const actor = await requireTenantActor();
+  const actor = await requireTenantRole("admin");
   const parsed = ExecuteActionSchema.safeParse({
     actionItemId: String(formData.get("actionItemId") ?? ""),
     nextStatus: String(formData.get("nextStatus") ?? ""),
