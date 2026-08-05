@@ -2,7 +2,7 @@
   "name": "teamframe",
   "version": "0.1.0",
   "private": true,
-  "description": "Lightweight HR structure system for startups with 6-25 employees. Installs in 48-72 hours.",
+  "description": "Managed people-ops readiness system for founder-led teams.",
   "license": "MIT",
   "scripts": {
     "dev": "next dev -p 3030",
