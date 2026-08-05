@@ -26,12 +26,14 @@ Definition of done for this tracker:
 - Deferred items are limited to disposable Supabase/Vercel-style runtime proof
   and final pre-release secret rotation/packaging.
 
-Final local verification on 2026-08-05:
+Final clean-copy verification on 2026-08-05 after source-closure review:
 
 - PASS — `npm ci`
 - PASS — `npm run verify:release`
   - typecheck clean
   - lint clean
-  - 16 test files passed; 79/79 tests passed
+  - 16 test files passed; 81/81 tests passed
   - 4/4 guards passed
   - Next.js build passed on 15.5.21
+- Source-closure review added one correction commit for DOCX validation,
+  cleanup tenant filters, and transactional RPC execution grants.
