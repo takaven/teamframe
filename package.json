@@ -33,7 +33,8 @@
     "guard:telemetry": "node scripts/guard-telemetry.mjs",
     "guard:tenancy-filter": "node scripts/guard-tenancy-filter.mjs",
     "guards": "npm run guard:instrumentation && npm run guard:health-contract && npm run guard:telemetry && npm run guard:tenancy-filter",
-    "verify:release": "npm run typecheck && npm run lint && npm test && npm run guards && npm run build"
+    "verify:release": "npm run typecheck && npm run lint && npm test && npm run guards && npm run build",
+    "verify:integration": "node scripts/verify-integration.mjs"
   },
   "dependencies": {
     "@sentry/nextjs": "^9.47.1",
