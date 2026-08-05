@@ -10,7 +10,7 @@ hardening pass is complete.
 
 | Finding | Required correction | Files changed | Tests added | Verification result | Remaining infrastructure dependency |
 |---|---|---|---|---|---|
-| F03 Next.js patch level | Upgrade Next.js 15.5.18 to patched 15.5.x and add one local release gate | Pending | Pending | Pending | None |
+| F03 Next.js patch level | Upgrade Next.js 15.5.18 to patched 15.5.x and add one local release gate | `package.json`; `package-lock.json` | No new product tests; release gate command added | PASS — `npm ci`; `npm run verify:release` (typecheck, lint, 63/63 tests, 4/4 guards, build) | None |
 | F06 broken release workflow | Replace obsolete release workflow references with real local/integration gates | Pending | Pending | Pending | GitHub runner/account issue remains external |
 | F04 same-tenant integrity | Add dirty-data preflight plus composite same-tenant constraints for tenant-owned relations | Pending | Pending | Pending | Live dirty-data preflight must run on disposable DB |
 | F08 non-atomic DB audit writes | Move database-only sensitive mutations and audit writes into transactions/RPCs | Pending | Pending | Pending | Live DB apply/RPC execution on disposable DB |
