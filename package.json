@@ -28,6 +28,7 @@
     "storage:setup": "node scripts/setup-storage.mjs",
     "smoke:core-loop": "node scripts/smoke-core-loop.mjs",
     "sentry:test-event": "node scripts/sentry-test-event.mjs",
+    "exports:cleanup": "node scripts/cleanup-expired-exports.mjs",
     "guard:instrumentation": "node scripts/guard-instrumentation.mjs",
     "guard:health-contract": "node scripts/guard-health-contract.mjs",
     "guard:telemetry": "node scripts/guard-telemetry.mjs",

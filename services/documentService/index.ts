@@ -100,6 +100,60 @@ type ZipEntry = {
 const DOCUMENT_BUCKET = "documents";
 const EXPORT_ZIP_MIME = "application/zip";
 const EXPORT_ALLOWED_MIME_TYPES = [EXPORT_ZIP_MIME] as const;
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const MAX_FILE_NAME_CHARS = 180;
+const MAX_METADATA_CHARS = 500;
+export const EXPORT_DEFAULT_TTL_HOURS = 24;
+
+type FileOperationKind = "document_upload" | "document_delete" | "export_generation" | "export_delete";
+type FileOperationStatus = "pending" | "succeeded" | "failed" | "compensation_required" | "compensated";
+
+type UploadFileType = {
+  extension: string;
+  mimeTypes: readonly string[];
+  matchesSignature: (bytes: Buffer) => boolean;
+};
+
+const UPLOAD_FILE_TYPES: readonly UploadFileType[] = [
+  {
+    extension: "pdf",
+    mimeTypes: ["application/pdf"],
+    matchesSignature: (bytes) => bytes.subarray(0, 4).toString("ascii") === "%PDF",
+  },
+  {
+    extension: "doc",
+    mimeTypes: ["application/msword"],
+    matchesSignature: (bytes) => bytes.subarray(0, 8).equals(Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1])),
+  },
+  {
+    extension: "docx",
+    mimeTypes: ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
+    matchesSignature: (bytes) => bytes.subarray(0, 4).toString("ascii") === "PK\u0003\u0004",
+  },
+  {
+    extension: "jpg",
+    mimeTypes: ["image/jpeg"],
+    matchesSignature: (bytes) => bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff,
+  },
+  {
+    extension: "jpeg",
+    mimeTypes: ["image/jpeg"],
+    matchesSignature: (bytes) => bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff,
+  },
+  {
+    extension: "png",
+    mimeTypes: ["image/png"],
+    matchesSignature: (bytes) => bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])),
+  },
+  {
+    extension: "webp",
+    mimeTypes: ["image/webp"],
+    matchesSignature: (bytes) =>
+      bytes.length >= 12 &&
+      bytes.subarray(0, 4).toString("ascii") === "RIFF" &&
+      bytes.subarray(8, 12).toString("ascii") === "WEBP",
+  },
+];
 
 const ID_FILE_NAME_PATTERN = /(passport|\bid\b|identity|visa|emirates|national)/i;
 
@@ -299,12 +353,15 @@ function assertExportMimeSupported(contentType: string): void {
 async function writeAudit(actor: Actor, actionType: string, targetId?: string): Promise<void> {
   const tenantId = requireTenant(actor);
   const supabase = createServiceRoleClient();
-  await supabase.from("audit_logs").insert({
+  const { error } = await supabase.from("audit_logs").insert({
     tenant_id: tenantId,
     actor_user_id: actor.authUserId,
     action_type: actionType,
     target_id: targetId ?? null,
   } as never);
+  if (error) {
+    throw new Error(`AUDIT_LOG_FAILED: ${error.message}`);
+  }
 }
 
 function toPublicRecord(row: DocumentRow): DocumentRecord {
@@ -336,9 +393,225 @@ function toLegacyType(value: DocumentType): "CV" | "CONTRACT" | "JD" | "PHOTO" {
   return "CV";
 }
 
-function buildStoragePath(tenantId: string, employeeId: string, fileName: string): string {
-  const safeName = fileName.trim().replace(/[^a-zA-Z0-9._-]/g, "_") || "document.bin";
-  return `${tenantId}/${employeeId}/${randomUUID()}-${safeName}`;
+function extensionFromFileName(fileName: string): string {
+  const trimmed = fileName.trim();
+  const lastDot = trimmed.lastIndexOf(".");
+  if (lastDot === -1 || lastDot === trimmed.length - 1) return "";
+  return trimmed.slice(lastDot + 1).toLowerCase();
+}
+
+function findUploadType(fileName: string, mimeType: string): UploadFileType {
+  const extension = extensionFromFileName(fileName);
+  if (!extension) throw new Error("DOCUMENT_UPLOAD_EXTENSION_REQUIRED");
+  const match = UPLOAD_FILE_TYPES.find((type) => type.extension === extension);
+  if (!match) throw new Error("DOCUMENT_UPLOAD_UNSUPPORTED_EXTENSION");
+  if (!match.mimeTypes.includes(mimeType)) {
+    throw new Error("DOCUMENT_UPLOAD_MIME_EXTENSION_MISMATCH");
+  }
+  return match;
+}
+
+function assertMetadataLength(value: string | null | undefined, errorCode: string): void {
+  if (value && value.length > MAX_METADATA_CHARS) {
+    throw new Error(errorCode);
+  }
+}
+
+function validateUploadBeforeBuffer(file: File): UploadFileType {
+  const fileName = file.name ?? "";
+  const mimeType = file.type ?? "";
+  if (fileName.length === 0 || fileName.length > MAX_FILE_NAME_CHARS) {
+    throw new Error("DOCUMENT_UPLOAD_INVALID_FILENAME");
+  }
+  if (file.size === 0) {
+    throw new Error("DOCUMENT_UPLOAD_EMPTY_FILE");
+  }
+  if (file.size > MAX_UPLOAD_BYTES) {
+    throw new Error("DOCUMENT_UPLOAD_TOO_LARGE");
+  }
+  if (!mimeType) {
+    throw new Error("DOCUMENT_UPLOAD_MIME_REQUIRED");
+  }
+  return findUploadType(fileName, mimeType);
+}
+
+function validateUploadSignature(bytes: Buffer, fileType: UploadFileType): void {
+  if (!fileType.matchesSignature(bytes)) {
+    throw new Error("DOCUMENT_UPLOAD_SIGNATURE_MISMATCH");
+  }
+}
+
+function buildStoragePath(tenantId: string, employeeId: string, extension: string): string {
+  return `${tenantId}/${employeeId}/${randomUUID()}/document.${extension}`;
+}
+
+function exportExpiresAt(now: Date): Date {
+  return new Date(now.getTime() + EXPORT_DEFAULT_TTL_HOURS * 60 * 60 * 1000);
+}
+
+async function verifyDocumentStorageConfig(): Promise<void> {
+  const supabase = createServiceRoleClient();
+  const { data: buckets, error } = await supabase.storage.listBuckets();
+  if (error) {
+    throw new Error(`DOCUMENT_STORAGE_CONFIG_FAILED: ${error.message}`);
+  }
+  const bucket = buckets.find((item) => item.name === DOCUMENT_BUCKET);
+  if (!bucket) {
+    throw new Error("DOCUMENT_STORAGE_BUCKET_MISSING");
+  }
+  if (bucket.public) {
+    throw new Error("DOCUMENT_STORAGE_BUCKET_PUBLIC");
+  }
+}
+
+async function beginFileOperation(input: {
+  tenantId: string;
+  kind: FileOperationKind;
+  idempotencyKey: string;
+  storagePath: string;
+  targetId?: string | null;
+  auditActionType?: string | null;
+}): Promise<string> {
+  const supabase = createServiceRoleClient();
+  const { data, error } = await supabase
+    .from("file_operations")
+    .insert({
+      tenant_id: input.tenantId,
+      operation_kind: input.kind,
+      status: "pending",
+      idempotency_key: input.idempotencyKey,
+      storage_bucket: DOCUMENT_BUCKET,
+      storage_path: input.storagePath,
+      target_id: input.targetId ?? null,
+      audit_action_type: input.auditActionType ?? null,
+    } as never)
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    throw new Error(`FILE_OPERATION_BEGIN_FAILED: ${error?.message ?? "no row"}`);
+  }
+  return (data as { id: string }).id;
+}
+
+async function finalizeFileOperation(
+  operationId: string,
+  status: FileOperationStatus,
+  errorMessage?: string,
+): Promise<void> {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase
+    .from("file_operations")
+    .update({
+      status,
+      error_message: errorMessage?.slice(0, 1000) ?? null,
+      finalized_at: new Date().toISOString(),
+    } as never)
+    .eq("id", operationId);
+  if (error) {
+    throw new Error(`FILE_OPERATION_FINALIZE_FAILED: ${error.message}`);
+  }
+}
+
+async function recordExportFile(input: {
+  tenantId: string;
+  exportKind: "due_diligence_pack" | "finance_handoff";
+  employeeId?: string | null;
+  storagePath: string;
+  fileName: string;
+  byteSize: number;
+  expiresAt: Date;
+}): Promise<void> {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase.from("export_files").insert({
+    tenant_id: input.tenantId,
+    export_kind: input.exportKind,
+    employee_id: input.employeeId ?? null,
+    storage_bucket: DOCUMENT_BUCKET,
+    storage_path: input.storagePath,
+    file_name: input.fileName,
+    content_type: EXPORT_ZIP_MIME,
+    byte_size: input.byteSize,
+    expires_at: input.expiresAt.toISOString(),
+  } as never);
+  if (error) {
+    throw new Error(`EXPORT_METADATA_CREATE_FAILED: ${error.message}`);
+  }
+}
+
+async function createExportFileUrl(input: {
+  actor: Actor;
+  exportKind: "due_diligence_pack" | "finance_handoff";
+  employeeId?: string | null;
+  storagePath: string;
+  fileName: string;
+  payload: Buffer;
+  auditActionType: string;
+  auditTargetId?: string;
+}): Promise<string> {
+  const tenantId = requireTenant(input.actor);
+  const supabase = createServiceRoleClient();
+  const operationId = await beginFileOperation({
+    tenantId,
+    kind: "export_generation",
+    idempotencyKey: randomUUID(),
+    storagePath: input.storagePath,
+    targetId: input.auditTargetId ?? null,
+    auditActionType: input.auditActionType,
+  });
+
+  const { error: uploadError } = await supabase.storage
+    .from(DOCUMENT_BUCKET)
+    .upload(input.storagePath, input.payload, {
+      contentType: EXPORT_ZIP_MIME,
+      upsert: false,
+    });
+
+  if (uploadError) {
+    await finalizeFileOperation(operationId, "failed", uploadError.message);
+    throw new Error(`DOCUMENT_EXPORT_FAILED: ${uploadError.message}`);
+  }
+
+  try {
+    await recordExportFile({
+      tenantId,
+      exportKind: input.exportKind,
+      employeeId: input.employeeId,
+      storagePath: input.storagePath,
+      fileName: input.fileName,
+      byteSize: input.payload.length,
+      expiresAt: exportExpiresAt(new Date()),
+    });
+  } catch (metadataError) {
+    const { error: removeError } = await supabase.storage.from(DOCUMENT_BUCKET).remove([input.storagePath]);
+    if (removeError) {
+      await finalizeFileOperation(operationId, "compensation_required", removeError.message);
+    } else {
+      await finalizeFileOperation(
+        operationId,
+        "compensated",
+        metadataError instanceof Error ? metadataError.message : String(metadataError),
+      );
+    }
+    throw metadataError;
+  }
+
+  const { data: signed, error: signedError } = await supabase.storage
+    .from(DOCUMENT_BUCKET)
+    .createSignedUrl(input.storagePath, 60 * 15, { download: input.fileName });
+
+  if (signedError || !signed?.signedUrl) {
+    await finalizeFileOperation(
+      operationId,
+      "failed",
+      signedError?.message ?? "missing signed URL",
+    );
+    throw new Error(`DOCUMENT_EXPORT_FAILED: ${signedError?.message ?? "missing signed URL"}`);
+  }
+
+  await finalizeFileOperation(operationId, "succeeded");
+  await writeAudit(input.actor, input.auditActionType, input.auditTargetId);
+  return signed.signedUrl;
 }
 
 async function canReadEmployeeDocuments(actor: Actor, employeeId: string): Promise<boolean> {
@@ -388,16 +661,30 @@ export async function uploadDocument(
   try {
     requireAdmin(actor);
     const tenantId = requireTenant(actor);
+    const fileType = validateUploadBeforeBuffer(input.file);
+    assertMetadataLength(input.subjectPersonId, "DOCUMENT_UPLOAD_METADATA_TOO_LONG");
+    assertMetadataLength(input.signedAt, "DOCUMENT_UPLOAD_METADATA_TOO_LONG");
+    assertMetadataLength(input.expiresAt, "DOCUMENT_UPLOAD_METADATA_TOO_LONG");
 
     const supabase = createServiceRoleClient();
-    const path = buildStoragePath(tenantId, input.employeeId, input.file.name ?? "document.bin");
+    await verifyDocumentStorageConfig();
     const bytes = Buffer.from(await input.file.arrayBuffer());
+    validateUploadSignature(bytes, fileType);
+    const path = buildStoragePath(tenantId, input.employeeId, fileType.extension);
+    const operationId = await beginFileOperation({
+      tenantId,
+      kind: "document_upload",
+      idempotencyKey: requestId,
+      storagePath: path,
+      auditActionType: "document.uploaded",
+    });
 
     const { error: uploadError } = await supabase.storage
       .from(DOCUMENT_BUCKET)
-      .upload(path, bytes, { contentType: input.file.type || "application/octet-stream", upsert: false });
+      .upload(path, bytes, { contentType: fileType.mimeTypes[0], upsert: false });
 
     if (uploadError) {
+      await finalizeFileOperation(operationId, "failed", uploadError.message);
       throw new Error(`DOCUMENT_UPLOAD_FAILED: ${uploadError.message}`);
     }
 
@@ -423,6 +710,7 @@ export async function uploadDocument(
       // which must be visible to operators, not silent.
       const { error: removeError } = await supabase.storage.from(DOCUMENT_BUCKET).remove([path]);
       if (removeError) {
+        await finalizeFileOperation(operationId, "compensation_required", removeError.message);
         console.error("DOCUMENT_COMPENSATING_DELETE_FAILED", {
           tenant_id: tenantId,
           employee_id: input.employeeId,
@@ -434,13 +722,16 @@ export async function uploadDocument(
           actor_tenant_id: actor.tenantId ?? null,
           storage_path: path,
         });
+      } else {
+        await finalizeFileOperation(operationId, "compensated", error.message);
       }
       throw new Error(`DOCUMENT_RECORD_CREATE_FAILED: ${error.message}`);
     }
 
     const created = data as DocumentRow;
+    await finalizeFileOperation(operationId, "succeeded");
     await writeAudit(actor, "document.uploaded", created.id);
-  await runSignalEngineForTenant({ tenantId, actorUserId: actor.authUserId });
+    await runSignalEngineForTenant({ tenantId, actorUserId: actor.authUserId });
 
     logAction({
       action: "uploadDocument",
@@ -509,6 +800,31 @@ export async function softDeleteDocument(actor: Actor, documentId: string): Prom
   const tenantId = requireTenant(actor);
   const supabase = createServiceRoleClient();
 
+  const { data: existing, error: fetchError } = await supabase
+    .from("documents")
+    .select("id, tenant_id, employee_id, type, document_type, file_url, signed_at, expires_at, subject_person_id, created_at, deleted_at")
+    .eq("tenant_id", tenantId)
+    .eq("id", documentId)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (fetchError) {
+    throw new Error(`DOCUMENT_FETCH_FAILED: ${fetchError.message}`);
+  }
+  if (!existing) {
+    throw new Error("NOT_FOUND");
+  }
+
+  const document = existing as DocumentRow;
+  const operationId = await beginFileOperation({
+    tenantId,
+    kind: "document_delete",
+    idempotencyKey: randomUUID(),
+    storagePath: document.file_url,
+    targetId: documentId,
+    auditActionType: "document.deleted",
+  });
+
   const { data, error } = await supabase
     .from("documents")
     .update({ deleted_at: new Date().toISOString() } as never)
@@ -519,12 +835,21 @@ export async function softDeleteDocument(actor: Actor, documentId: string): Prom
     .maybeSingle();
 
   if (error) {
+    await finalizeFileOperation(operationId, "failed", error.message);
     throw new Error(`DOCUMENT_DELETE_FAILED: ${error.message}`);
   }
   if (!data) {
+    await finalizeFileOperation(operationId, "failed", "NOT_FOUND");
     throw new Error("NOT_FOUND");
   }
 
+  const { error: removeError } = await supabase.storage.from(DOCUMENT_BUCKET).remove([document.file_url]);
+  if (removeError) {
+    await finalizeFileOperation(operationId, "compensation_required", removeError.message);
+    throw new Error(`DOCUMENT_DELETE_STORAGE_FAILED: ${removeError.message}`);
+  }
+
+  await finalizeFileOperation(operationId, "succeeded");
   await writeAudit(actor, "document.deleted", documentId);
 }
 
@@ -714,58 +1039,16 @@ export async function exportEmployeeDueDiligencePackUrl(
   const fileName = `due-diligence-pack-${employeeId}-${formatDateForFileName(now)}.zip`;
   const storagePath = `${tenantId}/exports/due-diligence/${employeeId}/${randomUUID()}.zip`;
 
-  let signedUrl = "";
-  try {
-    const { error: uploadError } = await supabase.storage
-      .from(DOCUMENT_BUCKET)
-      .upload(storagePath, payload, {
-        contentType: "application/zip",
-        upsert: false,
-      });
-
-    if (uploadError) {
-      const errorLog = toStorageErrorLog(uploadError);
-      console.error("DOCUMENT_EXPORT_UPLOAD_FAILED", {
-        export_kind: "due_diligence_pack",
-        tenant_id: tenantId,
-        employee_id: employeeId,
-        storage_path: storagePath,
-        ...errorLog,
-      });
-      throw uploadError;
-    }
-
-    const { data: signed, error: signedError } = await supabase.storage
-      .from(DOCUMENT_BUCKET)
-      .createSignedUrl(storagePath, 60 * 15, { download: fileName });
-
-    if (signedError || !signed?.signedUrl) {
-      const errorLog = toStorageErrorLog(signedError ?? { message: "missing signed URL" });
-      console.error("DOCUMENT_EXPORT_SIGN_FAILED", {
-        export_kind: "due_diligence_pack",
-        tenant_id: tenantId,
-        employee_id: employeeId,
-        storage_path: storagePath,
-        ...errorLog,
-      });
-      throw signedError ?? new Error("missing signed URL");
-    }
-
-    signedUrl = signed.signedUrl;
-  } catch (e) {
-    const errorLog = toStorageErrorLog(e);
-    console.error("DOCUMENT_EXPORT_EXCEPTION", {
-      export_kind: "due_diligence_pack",
-      tenant_id: tenantId,
-      employee_id: employeeId,
-      storage_path: storagePath,
-      ...errorLog,
-    });
-    throw new Error(`DOCUMENT_EXPORT_FAILED: ${errorLog.message ?? "unknown export error"}`);
-  }
-
-  await writeAudit(actor, "document.exported_due_diligence_pack", employeeId);
-  return signedUrl;
+  return createExportFileUrl({
+    actor,
+    exportKind: "due_diligence_pack",
+    employeeId,
+    storagePath,
+    fileName,
+    payload,
+    auditActionType: "document.exported_due_diligence_pack",
+    auditTargetId: employeeId,
+  });
 }
 
 export async function exportFinanceHandoffUrl(actor: Actor): Promise<string> {
@@ -914,53 +1197,13 @@ export async function exportFinanceHandoffUrl(actor: Actor): Promise<string> {
   const fileName = `finance-handoff-${formatDateForFileName(now)}.zip`;
   const storagePath = `${tenantId}/exports/finance-handoff/${randomUUID()}.zip`;
 
-  let signedUrl = "";
-  try {
-    const { error: uploadError } = await supabase.storage
-      .from(DOCUMENT_BUCKET)
-      .upload(storagePath, payload, {
-        contentType: "application/zip",
-        upsert: false,
-      });
-
-    if (uploadError) {
-      const errorLog = toStorageErrorLog(uploadError);
-      console.error("DOCUMENT_EXPORT_UPLOAD_FAILED", {
-        export_kind: "finance_handoff",
-        tenant_id: tenantId,
-        storage_path: storagePath,
-        ...errorLog,
-      });
-      throw uploadError;
-    }
-
-    const { data: signed, error: signedError } = await supabase.storage
-      .from(DOCUMENT_BUCKET)
-      .createSignedUrl(storagePath, 60 * 15, { download: fileName });
-
-    if (signedError || !signed?.signedUrl) {
-      const errorLog = toStorageErrorLog(signedError ?? { message: "missing signed URL" });
-      console.error("DOCUMENT_EXPORT_SIGN_FAILED", {
-        export_kind: "finance_handoff",
-        tenant_id: tenantId,
-        storage_path: storagePath,
-        ...errorLog,
-      });
-      throw signedError ?? new Error("missing signed URL");
-    }
-
-    signedUrl = signed.signedUrl;
-  } catch (e) {
-    const errorLog = toStorageErrorLog(e);
-    console.error("DOCUMENT_EXPORT_EXCEPTION", {
-      export_kind: "finance_handoff",
-      tenant_id: tenantId,
-      storage_path: storagePath,
-      ...errorLog,
-    });
-    throw new Error(`DOCUMENT_EXPORT_FAILED: ${errorLog.message ?? "unknown export error"}`);
-  }
-
-  await writeAudit(actor, "document.exported_finance_handoff");
-  return signedUrl;
+  return createExportFileUrl({
+    actor,
+    exportKind: "finance_handoff",
+    employeeId: null,
+    storagePath,
+    fileName,
+    payload,
+    auditActionType: "document.exported_finance_handoff",
+  });
 }

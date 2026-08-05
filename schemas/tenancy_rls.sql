@@ -68,6 +68,8 @@ alter table policies enable row level security;
 alter table procedures enable row level security;
 alter table acknowledgements enable row level security;
 alter table onboarding_tasks enable row level security;
+alter table file_operations enable row level security;
+alter table export_files enable row level security;
 
 drop policy if exists analytics_events_select on analytics_events;
 create policy analytics_events_select on analytics_events
@@ -375,6 +377,30 @@ using (
 
 drop policy if exists action_items_write_admin on action_items;
 create policy action_items_write_admin on action_items
+for all
+using (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+)
+with check (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+);
+
+drop policy if exists file_operations_admin_only on file_operations;
+create policy file_operations_admin_only on file_operations
+for all
+using (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+)
+with check (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+);
+
+drop policy if exists export_files_admin_only on export_files;
+create policy export_files_admin_only on export_files
 for all
 using (
   is_current_actor_admin()
