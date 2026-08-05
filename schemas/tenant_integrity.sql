@@ -92,14 +92,28 @@ begin
 end $$;
 
 do $$ begin
-  alter table documents
-    add constraint documents_tenant_id_id_key unique (tenant_id, id);
-exception when duplicate_object then null; end $$;
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'documents_tenant_id_id_key'
+      and conrelid = 'documents'::regclass
+  ) then
+    alter table documents
+      add constraint documents_tenant_id_id_key unique (tenant_id, id);
+  end if;
+exception when duplicate_object then null; when duplicate_table then null; end $$;
 
 do $$ begin
-  alter table risk_signals
-    add constraint risk_signals_tenant_id_id_key unique (tenant_id, id);
-exception when duplicate_object then null; end $$;
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'risk_signals_tenant_id_id_key'
+      and conrelid = 'risk_signals'::regclass
+  ) then
+    alter table risk_signals
+      add constraint risk_signals_tenant_id_id_key unique (tenant_id, id);
+  end if;
+exception when duplicate_object then null; when duplicate_table then null; end $$;
 
 do $$ begin
   alter table documents

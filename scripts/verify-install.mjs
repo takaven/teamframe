@@ -58,8 +58,11 @@ const NON_TABLE_MIGRATIONS = new Set([
   "tenancy_rls.sql",
   "tenancy_rls_v2.sql",
 ]);
-const REQUIRED_TABLES = SCHEMA_ORDER.filter((f) => !NON_TABLE_MIGRATIONS.has(f)).map((f) =>
-  f.replace(/\.sql$/, ""),
+const TABLES_BY_MIGRATION = {
+  "file_lifecycle.sql": ["file_operations", "export_files"],
+};
+const REQUIRED_TABLES = SCHEMA_ORDER.flatMap((f) =>
+  NON_TABLE_MIGRATIONS.has(f) ? [] : TABLES_BY_MIGRATION[f] ?? [f.replace(/\.sql$/, "")],
 );
 
 const connectionString = process.env.SUPABASE_DB_URL?.replace(/^"|"$/g, "");

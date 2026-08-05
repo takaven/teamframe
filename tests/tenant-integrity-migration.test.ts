@@ -57,8 +57,15 @@ describe("tenant integrity migration", () => {
     }
   });
 
+  it("adds tenant identity unique constraints idempotently", () => {
+    expect(migration).toContain("conname = 'documents_tenant_id_id_key'");
+    expect(migration).toContain("conname = 'risk_signals_tenant_id_id_key'");
+    expect(migration).toContain("exception when duplicate_object then null; when duplicate_table then null");
+  });
+
   it("keeps non-table migrations out of install table checks", () => {
     expect(verifyInstall).toContain('"tenant_integrity.sql"');
     expect(verifyInstall).toContain("NON_TABLE_MIGRATIONS");
+    expect(verifyInstall).toContain('"file_lifecycle.sql": ["file_operations", "export_files"]');
   });
 });
