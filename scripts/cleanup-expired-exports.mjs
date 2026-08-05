@@ -14,10 +14,17 @@ const now = new Date().toISOString();
 const url = process.env.EXPORT_CLEANUP_SUPABASE_URL;
 const serviceKey = process.env.EXPORT_CLEANUP_SERVICE_ROLE_KEY;
 const tenantId = process.env.EXPORT_CLEANUP_TENANT_ID;
+const actorUserId = process.env.EXPORT_CLEANUP_ACTOR_USER_ID;
 
 if (!url || !serviceKey) {
   console.error(
     "✗ Missing EXPORT_CLEANUP_SUPABASE_URL or EXPORT_CLEANUP_SERVICE_ROLE_KEY. This script does not load .env.local.",
+  );
+  process.exit(1);
+}
+if (execute && !actorUserId) {
+  console.error(
+    "✗ Missing EXPORT_CLEANUP_ACTOR_USER_ID. Execute mode needs an operator auth user id for audit evidence.",
   );
   process.exit(1);
 }
@@ -119,7 +126,7 @@ for (const row of expired) {
 
   const { error: auditError } = await supabase.from("audit_logs").insert({
     tenant_id: row.tenant_id,
-    actor_user_id: null,
+    actor_user_id: actorUserId,
     action_type: "export.deleted_expired",
     target_id: row.id,
   });

@@ -36,6 +36,8 @@ describe("file lifecycle and export retention", () => {
   it("cleanup defaults to dry-run and refuses cross-tenant storage paths", () => {
     expect(cleanup).toContain("const execute = process.argv.includes(\"--execute\")");
     expect(cleanup).toContain("This script does not load .env.local");
+    expect(cleanup).toContain("EXPORT_CLEANUP_ACTOR_USER_ID");
+    expect(cleanup).toContain("actor_user_id: actorUserId");
     expect(cleanup).toContain("expectedPrefix = `${row.tenant_id}/exports/`");
     expect(cleanup).toContain("Refusing cleanup");
     expect(cleanup).toContain("export.deleted_expired");
