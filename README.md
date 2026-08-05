@@ -1,6 +1,6 @@
 # TeamFrame
 
-> **A lightweight HR structure system for startups with 6–25 employees.**
+> **Managed People-Ops Readiness for Founder-Led Teams.**
 >
 > Core promise: **we install a working HR structure system in 48–72 hours.**
 
@@ -16,7 +16,7 @@ As of the latest commit on `main`, the running app provides:
 - **Dashboard** (`/dashboard`) — real employee counts (total / active / on leave / inactive) with an honest empty state when no employees exist.
 - **Employees** (`/employees`) — admins manage the team roster.
 - **Onboarding** (`/onboarding`) — employees complete their onboarding checklist; admins assign and monitor tasks.
-- **Leaves** (`/leaves`) — employees submit leave requests; admins approve or reject from the queue.
+- **Leave requests** (`/leaves`) — employees submit leave requests; admins approve or reject from the queue.
 - **Self-service** (`/me`) — employee profile landing and hub for self-service actions.
 - **Tenant safety** — server-side role resolution via `requireTenantActor`, every service call takes an explicit `Actor`, RLS on every table.
 
@@ -30,12 +30,12 @@ The product targets exactly these things:
 
 - **Employee directory** — who's on the team _(shipped)_
 - **Onboarding task tracking** — employee checklist; admin assignment _(shipped)_
-- **Document expiry tracking** — passports, visas, work permits _(in flight — signal engine shipped; document upload UI in progress)_
-- **Leave tracking** — request, approve, reject _(shipped)_
+- **Document expiry tracking** — passports, visas, work permits _(shipped for uploaded records)_
+- **Leave request tracking** — request, approve, reject _(shipped)_
 
 Nothing more.
 
-Company announcements and org charts were **removed** in the FPORS pivot (see `docs/business/blueprint-locked.md`). TeamFrame is not an HR system; it is a check-engine light for founder people-ops risk. Pivot deletion log: `docs/business/pivot-deletion-list.md`.
+Company announcements and org charts were **removed** in the FPORS pivot (see `docs/business/blueprint-locked.md`). TeamFrame is not an HR system; it is a managed readiness tool for founder people-ops risk. Pivot deletion log: `docs/business/pivot-deletion-list.md`.
 
 ---
 
@@ -263,7 +263,7 @@ The CI workflow runs install, environment validation, lint, typecheck, and build
 
 ## Branch protection rules
 
-- `main` — production-ready only. No direct pushes. PR + at least one review.
+- `main` — release-candidate only. No direct pushes. PR + at least one review.
 - `develop` — integration branch.
 - `feature/*` — isolated feature work (`feature/auth`, `feature/rbac`, etc.).
 

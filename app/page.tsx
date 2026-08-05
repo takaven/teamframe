@@ -19,13 +19,13 @@ const FEATURES = [
   },
   {
     kicker: "Prove",
-    title: "One-click investor Due-Diligence Pack",
-    body: "Contracts, employment records, policy acknowledgements, and asset logs exported in one click when an investor or auditor asks.",
+    title: "Founder readiness export",
+    body: "Contracts, employment records, policy acknowledgements, and asset-related action evidence exported when a review asks.",
   },
   {
     kicker: "Start",
     title: "48–72h operator-led setup",
-    body: "An experienced people-ops operator loads your team, configures your country pack, and hands you a working system — not an empty database.",
+    body: "An experienced people-ops operator loads your team, configures the agreed jurisdiction scope, and hands you a working system.",
   },
 ] as const;
 
@@ -41,7 +41,7 @@ export default function Home() {
 
       <section className="mt-14 max-w-3xl space-y-6">
         <p className="text-[12px] uppercase tracking-[0.14em] text-ink-500">
-          Founder people-ops risk &amp; readiness
+          Managed People-Ops Readiness for Founder-Led Teams
         </p>
         <h1 className="font-display text-[34px] font-medium leading-[1.12] tracking-tight md:text-[48px]">
           TeamFrame does more than manage your people — it prevents your people
@@ -49,8 +49,8 @@ export default function Home() {
         </h1>
         <p className="max-w-2xl text-[17px] leading-relaxed text-ink-700">
           Built for founder-led teams of 5–20 with no HR function yet. TeamFrame
-          watches the records you already keep — contracts, documents, policies,
-          leave — and raises a signal the moment something is missing, expiring,
+          checks the records you already keep — contracts, documents, policies,
+          leave requests — and raises a signal when something is missing, expiring,
           or incomplete. Each signal explains what is wrong, why it matters, and
           what to do next; resolve it and the dashboard clears. Signal, action,
           resolution — that is the whole loop.

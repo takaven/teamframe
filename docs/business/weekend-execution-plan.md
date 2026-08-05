@@ -234,7 +234,7 @@ By Sunday 8pm you have:
 ## What we explicitly do NOT do this weekend
 
 - Slice 3 (Incomplete Offboarding) — defer to next weekend
-- Country packs (UAE/EU) — defer to next weekend
+- Jurisdiction setup notes (UAE/EU) — defer to next weekend
 - Self-signup + Stripe + DPA — defer to weekend after that
 - Full marketing website — defer
 - Onboarding Readiness redesign — defer

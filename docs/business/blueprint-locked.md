@@ -204,7 +204,7 @@ Access revocation checklist, asset recovery, contract termination steps, exit va
 Contracts, IDs, passports, visas, certificates. With expiry tracking, missing detection, reminders, audit history.
 
 ### F. Policies
-Versioning, acknowledgement tracking, compliance proof layer, exportable audit trail.
+Versioning, acknowledgement tracking, compliance evidence layer, exportable audit trail.
 
 ### G. Assets
 Issued, returned, missing, assignment history.
@@ -216,9 +216,9 @@ Request / approve / calendar / balance tracking. No analytics, no optimisation. 
 
 Three exports:
 
-1. **Due Diligence Pack** — contracts, IDs, policy acknowledgements, employment records, asset logs.
+1. **Readiness Pack** — contracts, IDs, policy acknowledgements, employment records, asset-related action evidence.
 2. **Audit Pack** — compliance evidence export, structured employee records.
-3. **Finance Handoff Export** — structured finance-ready salary dataset.
+3. **Finance Handoff Export** — structured salary handoff dataset.
 
 #### Finance Handoff Export (specific rules)
 
@@ -319,7 +319,7 @@ For each MVP signal, build a complete vertical slice end-to-end before starting 
 
 - Each slice has a **definition of done** that includes the front-end surface for that signal. The back-end cannot quietly expand because the slice ends when a founder can see and resolve the signal on the dashboard.
 - No backend feature exists without a UI surface that exercises it. No UI surface exists without a real backend behind it. They ship together or not at all.
-- Total v1 scope is bounded: 3 signals × ~1 week per slice + country packs + commercial layer ≈ 5–6 weeks.
+- Total v1 scope is bounded: 3 signals × ~1 week per slice + jurisdiction setup notes + commercial layer ≈ 5–6 weeks.
 
 ---
 
@@ -329,7 +329,7 @@ Self-serve SaaS is one path. The founder has 15 years of HR practitioner experie
 
 | Tier | Who it's for | What's included | Indicative price |
 |---|---|---|---|
-| **Self-serve (tool only)** | Founders who already have HR knowledge or are confident DIY | Software, country packs, default templates | £6–12/seat/month |
+| **Self-serve (tool only)** | Founders who already have HR knowledge or are confident DIY | Software, jurisdiction setup notes, default templates | £6–12/seat/month |
 | **Founder Setup (one-off)** | Founders who want it done right but no ongoing help | Tool + founder personally onboards them in 1–2 weeks: loads team, configures country pack, writes first 5 policies, sets up offboarding checklist | £1,500–3,000 one-off + tool subscription |
 | **Fractional HR (ongoing)** | Founders who realise they need an HR person but can't afford a full hire | Tool + 4–8 hours/month founder time on complex cases (terminations, disputes, hiring policy, performance issues) | £800–2,000/month including tool |
 

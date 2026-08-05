@@ -186,7 +186,7 @@ When the EU country pack ships:
 - **Rule 2:** adds `right_to_work_proof`, `national_insurance_equivalent` per jurisdiction.
 - **Rule 3:** adds notice-period validation against contract type and jurisdiction.
 
-Country packs are authored after Slice 3 ships, per blueprint §15.
+Jurisdiction setup notes are authored after Slice 3 ships, per blueprint §15.
 
 ---
 

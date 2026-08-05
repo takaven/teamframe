@@ -99,7 +99,7 @@ export default async function PoliciesPage({
           <p className="text-[12px] tracking-[0.14em] text-ink-500">Admin queue</p>
           <h1 className="text-[34px] leading-tight tracking-tight">Policies</h1>
           <p className="text-[14px] text-ink-500">
-            Publish the rules your team works by and collect acknowledgements as compliance proof.
+            Publish the rules your team works by and collect acknowledgement records.
           </p>
         </div>
       </div>
