@@ -52,8 +52,13 @@ const REQUIRED_FUNCTIONS = [
   "is_current_actor_admin",
 ];
 const REQUIRED_VIEWS = ["employees_public"];
-// Every non-tenancy schema file creates the table of the same name.
-const REQUIRED_TABLES = SCHEMA_ORDER.filter((f) => !f.startsWith("tenancy_rls")).map((f) =>
+const NON_TABLE_MIGRATIONS = new Set([
+  "tenant_integrity.sql",
+  "transactional_mutations.sql",
+  "tenancy_rls.sql",
+  "tenancy_rls_v2.sql",
+]);
+const REQUIRED_TABLES = SCHEMA_ORDER.filter((f) => !NON_TABLE_MIGRATIONS.has(f)).map((f) =>
   f.replace(/\.sql$/, ""),
 );
 

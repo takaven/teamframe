@@ -17,6 +17,8 @@ export const SCHEMA_ORDER = [
   "policies.sql",
   "procedures.sql",
   "acknowledgements.sql",
+  "tenant_integrity.sql",
+  "transactional_mutations.sql",
   "tenancy_rls.sql",
   "tenancy_rls_v2.sql",
 ];

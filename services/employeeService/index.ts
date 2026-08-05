@@ -849,26 +849,23 @@ export async function createEmployee(actor: Actor, input: unknown): Promise<Empl
 
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
-    .from("employees")
-    .insert({
-      tenant_id: tenantId,
-      full_name: parsed.full_name,
-      email: parsed.email,
-      role_title: parsed.role_title,
-      department: parsed.department,
-      timezone: parsed.timezone,
-      employment_type: parsed.employment_type,
-      country: parsed.country,
-      start_date: parsed.start_date,
-      end_date: parsed.end_date ?? null,
-      manager_id: parsed.manager_id ?? null,
-      grade: parsed.grade ?? null,
-      status: parsed.status ?? "active",
-      setup_status: parsed.setup_status ?? "incomplete",
+    .rpc("teamframe_create_employee", {
+      p_tenant_id: tenantId,
+      p_actor_user_id: actor.authUserId,
+      p_full_name: parsed.full_name,
+      p_email: parsed.email,
+      p_role_title: parsed.role_title,
+      p_department: parsed.department,
+      p_timezone: parsed.timezone,
+      p_employment_type: parsed.employment_type,
+      p_country: parsed.country,
+      p_start_date: parsed.start_date,
+      p_end_date: parsed.end_date ?? null,
+      p_manager_id: parsed.manager_id ?? null,
+      p_grade: parsed.grade ?? null,
+      p_status: parsed.status ?? "active",
+      p_setup_status: parsed.setup_status ?? "incomplete",
     } as never)
-    .select(
-      "id, tenant_id, full_name, email, role_title, department, timezone, manager_id, status, employment_type, country, start_date, end_date, lifecycle_state, grade, setup_status, created_at, updated_at",
-    )
     .single();
 
   if (error) {
@@ -918,7 +915,6 @@ export async function createEmployee(actor: Actor, input: unknown): Promise<Empl
     message: inviteResult.message,
   });
 
-  await writeAudit(actor, "employee.created", created.id, true);
   if (inviteResult.status === "linked" || inviteResult.status === "invited") {
     await writeAudit(actor, "employee.invite_sent", created.id, true);
   }
@@ -971,15 +967,13 @@ export async function updateEmployee(
 
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
-    .from("employees")
-    .update(parsed as never)
-    .eq("tenant_id", tenantId)
-    .eq("id", employeeId)
-    .eq("updated_at", expectedUpdatedAt)
-    .is("deleted_at", null)
-    .select(
-      "id, tenant_id, full_name, email, role_title, department, timezone, manager_id, status, employment_type, country, start_date, end_date, lifecycle_state, grade, setup_status, created_at, updated_at",
-    )
+    .rpc("teamframe_update_employee", {
+      p_tenant_id: tenantId,
+      p_actor_user_id: actor.authUserId,
+      p_employee_id: employeeId,
+      p_expected_updated_at: expectedUpdatedAt,
+      p_patch: parsed,
+    } as never)
     .maybeSingle();
 
   if (error) {
@@ -989,8 +983,6 @@ export async function updateEmployee(
     const exists = await rowExistsForTenant(actor, employeeId);
     throw new Error(exists ? "STALE_WRITE" : "NOT_FOUND");
   }
-
-  await writeAudit(actor, "employee.updated", employeeId, true);
 
   return toEmployeeFullRecord(data as EmployeeRow);
 }
@@ -1012,13 +1004,12 @@ export async function softDeleteEmployee(
 
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
-    .from("employees")
-    .update({ deleted_at: new Date().toISOString(), lifecycle_state: "exited" } as never)
-    .eq("tenant_id", tenantId)
-    .eq("id", employeeId)
-    .eq("updated_at", expectedUpdatedAt)
-    .is("deleted_at", null)
-    .select("id")
+    .rpc("teamframe_archive_employee", {
+      p_tenant_id: tenantId,
+      p_actor_user_id: actor.authUserId,
+      p_employee_id: employeeId,
+      p_expected_updated_at: expectedUpdatedAt,
+    } as never)
     .maybeSingle();
 
   if (error) {
@@ -1032,8 +1023,6 @@ export async function softDeleteEmployee(
     }
     throw new Error("NOT_FOUND");
   }
-
-  await writeAudit(actor, "employee.archived", employeeId, true);
 }
 
 export async function reinviteEmployee(actor: Actor, employeeId: string): Promise<void> {
@@ -1186,4 +1175,3 @@ export async function generateEmployeeActivationLink(
 
   return { activationLink };
 }
-

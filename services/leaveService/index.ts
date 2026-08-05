@@ -51,28 +51,6 @@ const SubmitLeaveSchema = z
   })
   .refine((d) => d.endDate >= d.startDate, { message: "INVALID_INPUT" });
 
-async function writeAudit(
-  actor: Actor,
-  actionType: string,
-  targetId?: string,
-  required = false,
-): Promise<void> {
-  const tenantId = requireTenant(actor);
-  const supabase = createServiceRoleClient();
-  const { error } = await supabase.from("audit_logs").insert({
-    tenant_id: tenantId,
-    actor_user_id: actor.authUserId,
-    action_type: actionType,
-    target_id: targetId ?? null,
-  } as never);
-  if (error) {
-    if (required) {
-      throw new Error(`AUDIT_LOG_FAILED: ${error.message}`);
-    }
-    console.error("AUDIT_LOG_WRITE_FAILED", error.message);
-  }
-}
-
 export async function listLeavesForEmployee(
   actor: Actor,
   employeeId: string,
@@ -144,15 +122,13 @@ export async function submitLeaveRequest(
 
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
-    .from("leaves")
-    .insert({
-      tenant_id: tenantId,
-      employee_id: employeeId,
-      start_date: parsed.data.startDate,
-      end_date: parsed.data.endDate,
-      status: "pending",
+    .rpc("teamframe_submit_leave", {
+      p_tenant_id: tenantId,
+      p_actor_user_id: actor.authUserId,
+      p_employee_id: employeeId,
+      p_start_date: parsed.data.startDate,
+      p_end_date: parsed.data.endDate,
     } as never)
-    .select("id, tenant_id, employee_id, start_date, end_date, status, created_at, updated_at")
     .single();
 
   if (error) {
@@ -160,7 +136,6 @@ export async function submitLeaveRequest(
   }
 
   const created = data as LeaveRow;
-  await writeAudit(actor, "leave.submitted", created.id, true);
 
   // Fire first_leave_requested once per tenant
   const countResult = await supabase
@@ -187,13 +162,13 @@ export async function decideLeaveRequest(
 
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
-    .from("leaves")
-    .update({ status: decision } as never)
-    .eq("tenant_id", tenantId)
-    .eq("id", leaveId)
-    .eq("status", "pending")
-    .eq("updated_at", expectedUpdatedAt)
-    .select("id, tenant_id, employee_id, start_date, end_date, status, created_at, updated_at")
+    .rpc("teamframe_decide_leave", {
+      p_tenant_id: tenantId,
+      p_actor_user_id: actor.authUserId,
+      p_leave_id: leaveId,
+      p_decision: decision,
+      p_expected_updated_at: expectedUpdatedAt,
+    } as never)
     .maybeSingle();
 
   if (error) {
@@ -202,13 +177,6 @@ export async function decideLeaveRequest(
   if (!data) {
     throw new Error("STALE_WRITE");
   }
-
-  await writeAudit(
-    actor,
-    decision === "approved" ? "leave.approved" : "leave.rejected",
-    leaveId,
-    true,
-  );
 
   // Fire first_leave_approved once per tenant
   if (decision === "approved") {
