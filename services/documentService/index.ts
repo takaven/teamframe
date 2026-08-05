@@ -495,6 +495,7 @@ async function beginFileOperation(input: {
 }
 
 async function finalizeFileOperation(
+  tenantId: string,
   operationId: string,
   status: FileOperationStatus,
   errorMessage?: string,
@@ -507,6 +508,7 @@ async function finalizeFileOperation(
       error_message: errorMessage?.slice(0, 1000) ?? null,
       finalized_at: new Date().toISOString(),
     } as never)
+    .eq("tenant_id", tenantId)
     .eq("id", operationId);
   if (error) {
     throw new Error(`FILE_OPERATION_FINALIZE_FAILED: ${error.message}`);
@@ -568,7 +570,7 @@ async function createExportFileUrl(input: {
     });
 
   if (uploadError) {
-    await finalizeFileOperation(operationId, "failed", uploadError.message);
+    await finalizeFileOperation(tenantId, operationId, "failed", uploadError.message);
     throw new Error(`DOCUMENT_EXPORT_FAILED: ${uploadError.message}`);
   }
 
@@ -585,9 +587,10 @@ async function createExportFileUrl(input: {
   } catch (metadataError) {
     const { error: removeError } = await supabase.storage.from(DOCUMENT_BUCKET).remove([input.storagePath]);
     if (removeError) {
-      await finalizeFileOperation(operationId, "compensation_required", removeError.message);
+      await finalizeFileOperation(tenantId, operationId, "compensation_required", removeError.message);
     } else {
       await finalizeFileOperation(
+        tenantId,
         operationId,
         "compensated",
         metadataError instanceof Error ? metadataError.message : String(metadataError),
@@ -602,6 +605,7 @@ async function createExportFileUrl(input: {
 
   if (signedError || !signed?.signedUrl) {
     await finalizeFileOperation(
+      tenantId,
       operationId,
       "failed",
       signedError?.message ?? "missing signed URL",
@@ -609,7 +613,7 @@ async function createExportFileUrl(input: {
     throw new Error(`DOCUMENT_EXPORT_FAILED: ${signedError?.message ?? "missing signed URL"}`);
   }
 
-  await finalizeFileOperation(operationId, "succeeded");
+  await finalizeFileOperation(tenantId, operationId, "succeeded");
   await writeAudit(input.actor, input.auditActionType, input.auditTargetId);
   return signed.signedUrl;
 }
@@ -684,7 +688,7 @@ export async function uploadDocument(
       .upload(path, bytes, { contentType: fileType.mimeTypes[0], upsert: false });
 
     if (uploadError) {
-      await finalizeFileOperation(operationId, "failed", uploadError.message);
+      await finalizeFileOperation(tenantId, operationId, "failed", uploadError.message);
       throw new Error(`DOCUMENT_UPLOAD_FAILED: ${uploadError.message}`);
     }
 
@@ -710,7 +714,7 @@ export async function uploadDocument(
       // which must be visible to operators, not silent.
       const { error: removeError } = await supabase.storage.from(DOCUMENT_BUCKET).remove([path]);
       if (removeError) {
-        await finalizeFileOperation(operationId, "compensation_required", removeError.message);
+        await finalizeFileOperation(tenantId, operationId, "compensation_required", removeError.message);
         console.error("DOCUMENT_COMPENSATING_DELETE_FAILED", {
           tenant_id: tenantId,
           employee_id: input.employeeId,
@@ -723,13 +727,13 @@ export async function uploadDocument(
           storage_path: path,
         });
       } else {
-        await finalizeFileOperation(operationId, "compensated", error.message);
+        await finalizeFileOperation(tenantId, operationId, "compensated", error.message);
       }
       throw new Error(`DOCUMENT_RECORD_CREATE_FAILED: ${error.message}`);
     }
 
     const created = data as DocumentRow;
-    await finalizeFileOperation(operationId, "succeeded");
+    await finalizeFileOperation(tenantId, operationId, "succeeded");
     await writeAudit(actor, "document.uploaded", created.id);
     await runSignalEngineForTenant({ tenantId, actorUserId: actor.authUserId });
 
@@ -835,21 +839,21 @@ export async function softDeleteDocument(actor: Actor, documentId: string): Prom
     .maybeSingle();
 
   if (error) {
-    await finalizeFileOperation(operationId, "failed", error.message);
+    await finalizeFileOperation(tenantId, operationId, "failed", error.message);
     throw new Error(`DOCUMENT_DELETE_FAILED: ${error.message}`);
   }
   if (!data) {
-    await finalizeFileOperation(operationId, "failed", "NOT_FOUND");
+    await finalizeFileOperation(tenantId, operationId, "failed", "NOT_FOUND");
     throw new Error("NOT_FOUND");
   }
 
   const { error: removeError } = await supabase.storage.from(DOCUMENT_BUCKET).remove([document.file_url]);
   if (removeError) {
-    await finalizeFileOperation(operationId, "compensation_required", removeError.message);
+    await finalizeFileOperation(tenantId, operationId, "compensation_required", removeError.message);
     throw new Error(`DOCUMENT_DELETE_STORAGE_FAILED: ${removeError.message}`);
   }
 
-  await finalizeFileOperation(operationId, "succeeded");
+  await finalizeFileOperation(tenantId, operationId, "succeeded");
   await writeAudit(actor, "document.deleted", documentId);
 }
 

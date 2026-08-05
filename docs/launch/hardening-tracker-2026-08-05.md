@@ -25,3 +25,13 @@ Definition of done for this tracker:
 - All new scripts and workflow references exist and fail honestly.
 - Deferred items are limited to disposable Supabase/Vercel-style runtime proof
   and final pre-release secret rotation/packaging.
+
+Final local verification on 2026-08-05:
+
+- PASS — `npm ci`
+- PASS — `npm run verify:release`
+  - typecheck clean
+  - lint clean
+  - 16 test files passed; 79/79 tests passed
+  - 4/4 guards passed
+  - Next.js build passed on 15.5.21

@@ -37,15 +37,19 @@ function makeDocumentBuilder() {
 }
 
 function makeFileOperationBuilder() {
+  const updateBuilder = {
+    eq: (...args: unknown[]) => {
+      fileOperationUpdateEq(...args);
+      return updateBuilder;
+    },
+  };
   return {
     insert: () => ({
       select: () => ({
         single: fileOperationSingle,
       }),
     }),
-    update: () => ({
-      eq: fileOperationUpdateEq,
-    }),
+    update: () => updateBuilder,
   };
 }
 
