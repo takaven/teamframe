@@ -224,3 +224,19 @@ begin
   return v_leave;
 end;
 $$;
+
+revoke all on function teamframe_create_employee(
+  uuid, uuid, text, text, text, text, text, employment_type, text, date, date, uuid, text, employee_status, employee_setup_status
+) from public, anon, authenticated;
+revoke all on function teamframe_update_employee(uuid, uuid, uuid, timestamptz, jsonb) from public, anon, authenticated;
+revoke all on function teamframe_archive_employee(uuid, uuid, uuid, timestamptz) from public, anon, authenticated;
+revoke all on function teamframe_submit_leave(uuid, uuid, uuid, date, date) from public, anon, authenticated;
+revoke all on function teamframe_decide_leave(uuid, uuid, uuid, leave_status, timestamptz) from public, anon, authenticated;
+
+grant execute on function teamframe_create_employee(
+  uuid, uuid, text, text, text, text, text, employment_type, text, date, date, uuid, text, employee_status, employee_setup_status
+) to service_role;
+grant execute on function teamframe_update_employee(uuid, uuid, uuid, timestamptz, jsonb) to service_role;
+grant execute on function teamframe_archive_employee(uuid, uuid, uuid, timestamptz) to service_role;
+grant execute on function teamframe_submit_leave(uuid, uuid, uuid, date, date) to service_role;
+grant execute on function teamframe_decide_leave(uuid, uuid, uuid, leave_status, timestamptz) to service_role;

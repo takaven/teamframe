@@ -206,4 +206,21 @@ describe("uploadDocument compensating storage delete (BUG-1)", () => {
     expect(fileOperationSingle).not.toHaveBeenCalled();
     expect(storageUpload).not.toHaveBeenCalled();
   });
+
+  it("rejects generic ZIP content passed off as DOCX", async () => {
+    const genericZip = new File([new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0x00, 0x00])], "contract.docx", {
+      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    });
+
+    await expect(
+      uploadDocument(adminActor, {
+        employeeId: "employee-1",
+        type: "contract",
+        file: genericZip,
+      }),
+    ).rejects.toThrow("DOCUMENT_UPLOAD_SIGNATURE_MISMATCH");
+
+    expect(fileOperationSingle).not.toHaveBeenCalled();
+    expect(storageUpload).not.toHaveBeenCalled();
+  });
 });

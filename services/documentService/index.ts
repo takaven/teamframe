@@ -128,7 +128,7 @@ const UPLOAD_FILE_TYPES: readonly UploadFileType[] = [
   {
     extension: "docx",
     mimeTypes: ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
-    matchesSignature: (bytes) => bytes.subarray(0, 4).toString("ascii") === "PK\u0003\u0004",
+    matchesSignature: (bytes) => isLikelyDocx(bytes),
   },
   {
     extension: "jpg",
@@ -154,6 +154,18 @@ const UPLOAD_FILE_TYPES: readonly UploadFileType[] = [
       bytes.subarray(8, 12).toString("ascii") === "WEBP",
   },
 ];
+
+function bufferIncludesAscii(bytes: Buffer, needle: string): boolean {
+  return bytes.indexOf(Buffer.from(needle, "ascii")) !== -1;
+}
+
+function isLikelyDocx(bytes: Buffer): boolean {
+  return (
+    bytes.subarray(0, 4).toString("ascii") === "PK\u0003\u0004" &&
+    bufferIncludesAscii(bytes, "[Content_Types].xml") &&
+    bufferIncludesAscii(bytes, "word/")
+  );
+}
 
 const ID_FILE_NAME_PATTERN = /(passport|\bid\b|identity|visa|emirates|national)/i;
 

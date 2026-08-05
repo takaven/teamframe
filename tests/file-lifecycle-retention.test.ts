@@ -39,5 +39,6 @@ describe("file lifecycle and export retention", () => {
     expect(cleanup).toContain("expectedPrefix = `${row.tenant_id}/exports/`");
     expect(cleanup).toContain("Refusing cleanup");
     expect(cleanup).toContain("export.deleted_expired");
+    expect(cleanup.match(/\.eq\("tenant_id", row\.tenant_id\)/g)?.length ?? 0).toBeGreaterThanOrEqual(4);
   });
 });

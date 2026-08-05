@@ -52,4 +52,13 @@ describe("transactional mutation RPCs", () => {
     expect(leaveService).not.toMatch(/from\("leaves"\)\s*\n\s*\.insert\(/);
     expect(leaveService).not.toMatch(/from\("leaves"\)\s*\n\s*\.update\(/);
   });
+
+  it("does not expose transactional RPCs to browser-facing database roles", () => {
+    for (const fn of expectedFunctions) {
+      expect(migration).toContain(`revoke all on function ${fn}`);
+      expect(migration).toContain("from public, anon, authenticated");
+      expect(migration).toContain(`grant execute on function ${fn}`);
+      expect(migration).toContain("to service_role");
+    }
+  });
 });

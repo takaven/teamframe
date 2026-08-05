@@ -89,6 +89,7 @@ for (const row of expired) {
         error_message: removeError.message,
         finalized_at: new Date().toISOString(),
       })
+      .eq("tenant_id", row.tenant_id)
       .eq("id", op.id);
     console.error(`✗ Failed to remove ${row.storage_path}: ${removeError.message}`);
     process.exit(1);
@@ -110,6 +111,7 @@ for (const row of expired) {
         error_message: updateError.message,
         finalized_at: new Date().toISOString(),
       })
+      .eq("tenant_id", row.tenant_id)
       .eq("id", op.id);
     console.error(`✗ Removed storage but failed to mark export ${row.id} deleted: ${updateError.message}`);
     process.exit(1);
@@ -129,6 +131,7 @@ for (const row of expired) {
         error_message: auditError.message,
         finalized_at: new Date().toISOString(),
       })
+      .eq("tenant_id", row.tenant_id)
       .eq("id", op.id);
     console.error(`✗ Export ${row.id} deleted but audit failed: ${auditError.message}`);
     process.exit(1);
@@ -137,6 +140,7 @@ for (const row of expired) {
   const { error: finalizeError } = await supabase
     .from("file_operations")
     .update({ status: "succeeded", finalized_at: new Date().toISOString() })
+    .eq("tenant_id", row.tenant_id)
     .eq("id", op.id);
   if (finalizeError) {
     console.error(`✗ Cleanup succeeded but operation finalization failed: ${finalizeError.message}`);
