@@ -36,7 +36,7 @@ const REQUIRED_TABLES = [
   "leaves",
   "onboarding_tasks",
   "policies",
-  "policy_acknowledgements",
+  "acknowledgements",
   "risk_signals",
 ];
 
