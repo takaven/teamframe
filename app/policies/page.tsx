@@ -217,6 +217,43 @@ export default async function PoliciesPage({
                         Created <span className="font-mono tabular-nums">{formatDate(policy.created_at)}</span> · Updated{" "}
                         <span className="font-mono tabular-nums">{formatDate(policy.updated_at)}</span>
                       </p>
+                      {policy.is_published && !policy.archived_at ? (
+                        <details className="mt-3 rounded-md border border-ink-300/50 bg-white">
+                          <summary className="cursor-pointer px-3 py-2 text-[12px] font-medium text-ink-800 hover:text-ink-900">
+                            Acknowledgement evidence ·{" "}
+                            <span className="font-mono tabular-nums">
+                              {policy.acknowledged_count}/{policy.active_employee_count}
+                            </span>
+                          </summary>
+                          {policy.acknowledgement_evidence.length === 0 ? (
+                            <p className="border-t border-ink-300/40 px-3 py-3 text-[12px] text-ink-500">
+                              No eligible employees for this policy version.
+                            </p>
+                          ) : (
+                            <ul className="divide-y divide-ink-300/40 border-t border-ink-300/40">
+                              {policy.acknowledgement_evidence.slice(0, 8).map((entry) => (
+                                <li key={entry.employee_id} className="grid gap-2 px-3 py-2 text-[12px] sm:grid-cols-[1fr_auto_auto] sm:items-center">
+                                  <div>
+                                    <p className="font-medium text-ink-900">{entry.full_name}</p>
+                                    <p className="text-ink-500">{entry.email}</p>
+                                  </div>
+                                  <StatusPill tone={entry.status === "acknowledged" ? "green" : "amber"}>
+                                    {entry.status === "acknowledged" ? "Acknowledged" : "Outstanding"}
+                                  </StatusPill>
+                                  <p className="font-mono tabular-nums text-ink-500">
+                                    {entry.acknowledged_at ? formatDate(entry.acknowledged_at) : "-"}
+                                  </p>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                          {policy.acknowledgement_evidence.length > 8 ? (
+                            <p className="border-t border-ink-300/40 px-3 py-2 text-[12px] text-ink-500">
+                              Showing first 8 records. Outstanding acknowledgements are listed first.
+                            </p>
+                          ) : null}
+                        </details>
+                      ) : null}
                       <details className="mt-1">
                         <summary className="cursor-pointer text-[12px] text-ink-500 hover:text-ink-900 transition">
                           Read policy text

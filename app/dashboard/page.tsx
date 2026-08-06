@@ -1,43 +1,15 @@
 import Link from "next/link";
 import { requireTenantRole } from "@/middleware/rbac";
-import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 import { SignalSection } from "@/app/dashboard/SignalSection";
 import type { DashboardSignal } from "@/app/dashboard/RiskCard";
-import { runSignalEngineForTenant } from "@/services/signalEngine";
 import { AppShell } from "@/components/AppShell";
+import {
+  loadDashboardData,
+  type ActionItemRow,
+  type RiskSignalRow,
+} from "@/app/dashboard/data";
 
 export const dynamic = "force-dynamic";
-
-type RiskSignalRow = {
-  id: string;
-  kind: string;
-  severity: "red" | "yellow";
-  subject_employee_id: string | null;
-  evidence: {
-    what_is_wrong?: string;
-    why_it_matters?: string;
-    what_to_do_next?: string;
-    missing_policy_count?: number;
-    pending_task_count?: number;
-    open_action_count?: number;
-    open_asset_return_count?: number;
-    overlap_count?: number;
-  } | null;
-  last_seen_at: string;
-  resolved_at: string | null;
-};
-
-type ActionItemRow = {
-  id: string;
-  risk_signal_id: string;
-  title: string;
-  status: "open" | "in_progress" | "done" | "dismissed";
-};
-
-type EmployeeRow = {
-  id: string;
-  full_name: string;
-};
 
 function signalTitle(kind: string): string {
   if (kind === "missing_contract") return "Missing signed contract";
@@ -189,47 +161,10 @@ function toDashboardSignal(params: {
 
 export default async function DashboardPage() {
   const actor = await requireTenantRole("admin");
-  const supabase = createServiceRoleClient();
-
-  await runSignalEngineForTenant({
+  const { refreshStatus, savedDataStatus, signals, actions, employees } = await loadDashboardData({
     tenantId: actor.tenantId,
     actorUserId: actor.authUserId,
   });
-
-  const [{ data: signalData, error: signalError }, { data: actionData, error: actionError }, { data: employeeData, error: employeeError }] = await Promise.all([
-    supabase
-      .from("risk_signals")
-      .select("id, kind, severity, subject_employee_id, evidence, last_seen_at, resolved_at")
-      .eq("tenant_id", actor.tenantId)
-      .order("resolved_at", { ascending: true, nullsFirst: true })
-      .order("last_seen_at", { ascending: false })
-      .limit(60),
-    supabase
-      .from("action_items")
-      .select("id, risk_signal_id, title, status")
-      .eq("tenant_id", actor.tenantId)
-      .order("created_at", { ascending: false })
-      .limit(120),
-    supabase
-      .from("employees")
-      .select("id, full_name")
-      .eq("tenant_id", actor.tenantId)
-      .is("deleted_at", null),
-  ]);
-
-  if (signalError) {
-    throw new Error(`DASHBOARD_SIGNALS_FAILED: ${signalError.message}`);
-  }
-  if (actionError) {
-    throw new Error(`DASHBOARD_ACTIONS_FAILED: ${actionError.message}`);
-  }
-  if (employeeError) {
-    throw new Error(`DASHBOARD_EMPLOYEES_FAILED: ${employeeError.message}`);
-  }
-
-  const signals = (signalData ?? []) as RiskSignalRow[];
-  const employees = (employeeData ?? []) as EmployeeRow[];
-  const actions = (actionData ?? []) as ActionItemRow[];
 
   const employeeNames = new Map(employees.map((row) => [row.id, row.full_name]));
   const firstActionBySignalId = new Map<string, ActionItemRow>();
@@ -251,9 +186,12 @@ export default async function DashboardPage() {
   const yellowSignals = dashboardSignals.filter((s) => s.lane === "yellow");
   const resolvedSignals = dashboardSignals.filter((s) => s.lane === "resolved");
   const openActions = actions.filter((a) => a.status === "open" || a.status === "in_progress").length;
+  const topPriority = redSignals[0] ?? yellowSignals[0] ?? null;
+  const latestResolution = resolvedSignals[0] ?? null;
+  const shouldShowRefreshWarning = refreshStatus.state !== "success" && dashboardSignals.length === 0;
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-12">
+    <main className="mx-auto max-w-7xl px-6 py-12">
       <AppShell actor={actor} activePath="/dashboard" />
 
       <header className="grid gap-4 border-b border-ink-300/60 pb-5 lg:grid-cols-[1fr_auto] lg:items-end">
@@ -295,6 +233,96 @@ export default async function DashboardPage() {
           </article>
         </div>
       </header>
+
+      {shouldShowRefreshWarning ? (
+        <section
+          role="status"
+          className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-signal-amber/35 bg-signal-amber/10 px-4 py-3 text-[13px] text-ink-700"
+        >
+          <div>
+            <p className="font-medium text-ink-900">
+              Showing the latest saved signals.
+            </p>
+            <p className="mt-0.5 text-ink-500">
+              {refreshStatus.state === "timeout"
+                ? "The live signal refresh is taking longer than expected."
+                : "The live signal refresh could not complete safely."}
+            </p>
+          </div>
+          <Link
+            href="/dashboard"
+            className="rounded-full border border-ink-300 bg-white px-3 py-1.5 text-[12px] text-ink-800 transition hover:border-ink-900"
+          >
+            Retry refresh
+          </Link>
+        </section>
+      ) : null}
+
+      {savedDataStatus.state !== "success" ? (
+        <section
+          role="alert"
+          className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-signal-red/30 bg-signal-red/10 px-4 py-3 text-[13px] text-ink-700"
+        >
+          <div>
+            <p className="font-medium text-ink-900">Dashboard data could not load yet.</p>
+            <p className="mt-0.5 text-ink-500">
+              {savedDataStatus.state === "timeout"
+                ? "The saved signal read took too long, so this page is showing an intentional empty state."
+                : "The saved signal read failed safely. Retry without exposing provider details."}
+            </p>
+          </div>
+          <Link
+            href="/dashboard"
+            className="rounded-full border border-ink-300 bg-white px-3 py-1.5 text-[12px] text-ink-800 transition hover:border-ink-900"
+          >
+            Retry dashboard
+          </Link>
+        </section>
+      ) : null}
+
+      <section className="mt-6 grid gap-4 lg:grid-cols-[1.4fr_0.8fr]">
+        <article className="rounded-xl border border-ink-300/70 bg-white/80 p-5">
+          <p className="text-[12px] uppercase tracking-[0.14em] text-ink-500">Priority signal</p>
+          {topPriority ? (
+            <div className="mt-3 grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
+              <div>
+                <h2 className="text-[22px] leading-tight tracking-tight">{topPriority.title}</h2>
+                <p className="mt-2 max-w-3xl text-[14px] text-ink-700">{topPriority.whatIsWrong}</p>
+                <p className="mt-2 text-[13px] text-ink-500">
+                  Owner: <span className="text-ink-800">{topPriority.subjectName}</span> · Action:{" "}
+                  <span className="text-ink-800">{topPriority.actionTitle ?? topPriority.whatToDoNext}</span>
+                </p>
+              </div>
+              <Link
+                href={topPriority.primaryCtaHref}
+                className="rounded-full bg-ink-900 px-4 py-2 text-center text-[13px] font-medium text-paper transition hover:bg-ink-700"
+              >
+                Open priority
+              </Link>
+            </div>
+          ) : (
+            <p className="mt-3 text-[14px] text-ink-700">
+              No open risk signals right now. New issues will appear here with the owner and required action.
+            </p>
+          )}
+        </article>
+
+        <article className="rounded-xl border border-ink-300/70 bg-white/80 p-5">
+          <p className="text-[12px] uppercase tracking-[0.14em] text-ink-500">Recent progress</p>
+          {latestResolution ? (
+            <>
+              <h2 className="mt-3 text-[20px] leading-tight tracking-tight">{latestResolution.title}</h2>
+              <p className="mt-2 text-[13px] text-ink-500">
+                Resolved for <span className="text-ink-800">{latestResolution.subjectName}</span>.
+              </p>
+            </>
+          ) : (
+            <p className="mt-3 text-[14px] text-ink-700">
+              Completed actions will appear here so the founder can see readiness improving.
+            </p>
+          )}
+        </article>
+      </section>
 
       <div className="mt-6 space-y-5">
         <SignalSection

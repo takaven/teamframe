@@ -104,10 +104,10 @@ function getResendCooldownSeconds(lastAttemptAt: string | null): number {
 export default async function EmployeesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; error?: string; employee?: string; activation_link?: string }>;
+  searchParams: Promise<{ status?: string; error?: string; employee?: string; activation_link?: string; q?: string; filter?: string }>;
 }) {
   const actor = await requireTenantActor();
-  const { status, error, employee: employeeParam, activation_link: activationLink } = await searchParams;
+  const { status, error, employee: employeeParam, activation_link: activationLink, q, filter } = await searchParams;
 
   const successMessage = status ? (STATUS_COPY[status] ?? null) : null;
   const errorMessage = error ? (ERROR_COPY[error] ?? ERROR_COPY.UNKNOWN) : null;
@@ -141,6 +141,8 @@ export default async function EmployeesPage({
   const inviteSent = employees.filter((e) => e.status !== "inactive" && e.setup_status === "ready").length;
   const inviteActivated = employees.filter((e) => e.setup_status === "active").length;
   const archived = employees.filter((e) => e.status === "inactive").length;
+  const query = (q ?? "").trim().toLowerCase();
+  const activeFilter = filter === "attention" || filter === "active" || filter === "archived" ? filter : "all";
 
   function inviteState(employeeRecord: (typeof employees)[number]): {
     label: "Pending delivery" | "Sent" | "Activated" | "Archived" | "Delivery failed" | "Rate limited";
@@ -200,6 +202,27 @@ export default async function EmployeesPage({
     };
   }
 
+  const filteredEmployees = employees.filter((employee) => {
+    const matchesQuery =
+      !query ||
+      employee.full_name.toLowerCase().includes(query) ||
+      employee.email.toLowerCase().includes(query) ||
+      employee.role_title.toLowerCase().includes(query) ||
+      employee.department.toLowerCase().includes(query);
+    const hasAttention =
+      employee.status !== "inactive" &&
+      (employee.setup_status !== "active" || Boolean(employee.invite_last_error));
+    const matchesFilter =
+      activeFilter === "all" ||
+      (activeFilter === "attention" && hasAttention) ||
+      (activeFilter === "active" && employee.status !== "inactive") ||
+      (activeFilter === "archived" && employee.status === "inactive");
+    return matchesQuery && matchesFilter;
+  });
+  const detailEmployees = employeeParam
+    ? employees.filter((employee) => employee.id === employeeParam)
+    : [];
+
   return (
     <main className="mx-auto max-w-6xl px-6 py-14">
       <AppShell actor={actor} activePath="/employees" />
@@ -247,15 +270,118 @@ export default async function EmployeesPage({
         </p>
       ) : null}
 
-      <section className="mt-8 space-y-4">
+      <section className="mt-8 rounded-xl border border-ink-300/70 bg-white/80">
+        <div className="border-b border-ink-300/60 px-5 py-4">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h2 className="text-[17px] font-medium tracking-tight">Directory</h2>
+              <p className="mt-1 text-[13px] text-ink-500">
+                Search the team and open one record for documents, exports, and account actions.
+              </p>
+            </div>
+            <form className="flex w-full flex-wrap gap-2 lg:w-auto">
+              <input
+                name="q"
+                defaultValue={q ?? ""}
+                placeholder="Search name, role, department"
+                className="min-w-0 flex-1 rounded-md border border-ink-300 px-3 py-2 text-[13px] text-ink-900 lg:w-64"
+              />
+              <select
+                name="filter"
+                defaultValue={activeFilter}
+                className="rounded-md border border-ink-300 bg-white px-3 py-2 text-[13px] text-ink-900"
+              >
+                <option value="all">All</option>
+                <option value="attention">Needs attention</option>
+                <option value="active">Active</option>
+                <option value="archived">Archived</option>
+              </select>
+              <button
+                type="submit"
+                className="rounded-md bg-ink-900 px-4 py-2 text-[13px] font-medium text-paper transition hover:bg-ink-700"
+              >
+                Apply
+              </button>
+            </form>
+          </div>
+        </div>
+
         {employees.length === 0 ? (
           <EmptyState
             message="No employees yet — your first teammate is one form away."
             cta={{ label: "↓ Use the Add employee form below", href: "#add-employee" }}
+            className="m-5"
+          />
+        ) : filteredEmployees.length === 0 ? (
+          <EmptyState
+            message="No employees match this view."
+            hint="Clear the search or switch the status filter."
+            className="m-5"
           />
         ) : (
-          employees.map((employee) => (
-            <article key={employee.id} className="rounded-xl border border-ink-300/70 bg-white/80 p-5">
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-[13px]">
+              <thead className="border-b border-ink-300/60 text-[11px] uppercase tracking-[0.1em] text-ink-500">
+                <tr>
+                  <th className="px-5 py-3 font-medium">Employee</th>
+                  <th className="px-5 py-3 font-medium">Function</th>
+                  <th className="px-5 py-3 font-medium">Employee state</th>
+                  <th className="px-5 py-3 font-medium">Account</th>
+                  <th className="px-5 py-3 font-medium">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-ink-300/40">
+                {filteredEmployees.map((employee) => {
+                  const state = inviteState(employee);
+                  const needsAttention =
+                    employee.status !== "inactive" &&
+                    (employee.setup_status !== "active" || Boolean(employee.invite_last_error));
+                  return (
+                    <tr key={employee.id} className="align-top">
+                      <td className="px-5 py-3">
+                        <p className="font-medium text-ink-900">{employee.full_name}</p>
+                        <p className="text-[12px] text-ink-500">{employee.email}</p>
+                      </td>
+                      <td className="px-5 py-3 text-ink-700">
+                        <p>{employee.role_title}</p>
+                        <p className="text-[12px] text-ink-500">{employee.department}</p>
+                      </td>
+                      <td className="px-5 py-3">
+                        <StatusPill tone={needsAttention ? "amber" : employee.status === "inactive" ? "neutral" : "green"}>
+                          {needsAttention ? "Needs attention" : employee.status.replace("_", " ")}
+                        </StatusPill>
+                      </td>
+                      <td className="px-5 py-3">
+                        <StatusPill tone={state.tone}>{state.label}</StatusPill>
+                      </td>
+                      <td className="px-5 py-3">
+                        <a
+                          href={`/employees?employee=${employee.id}#employee-${employee.id}`}
+                          className="text-[12px] font-medium text-ink-900 underline decoration-ink-300 underline-offset-4 hover:decoration-ink-900"
+                        >
+                          Open record
+                        </a>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="mt-8 space-y-4">
+        {employees.length === 0 ? (
+          null
+        ) : detailEmployees.length === 0 ? (
+          <EmptyState
+            message="Select an employee to view readiness evidence."
+            hint="Open a record from the directory table above to manage documents, invite state, and exports."
+          />
+        ) : (
+          detailEmployees.map((employee) => (
+            <article id={`employee-${employee.id}`} key={employee.id} className="rounded-xl border border-ink-300/70 bg-white/80 p-5">
               {(() => {
                 const resendCooldownSeconds = getResendCooldownSeconds(employee.invite_last_attempt_at);
                 const resendBlocked = resendCooldownSeconds > 0;
@@ -359,7 +485,7 @@ export default async function EmployeesPage({
                   <div>
                     <p className="text-[13px] font-medium text-ink-900">Due diligence pack</p>
                     <p className="text-[12px] text-ink-500">
-                      Employment record, documents, policy acknowledgements, and asset-related logs in one export.
+                      Employment record, documents, policy acknowledgements, and relevant action records in one export.
                     </p>
                   </div>
                   <form action={exportEmployeeDueDiligencePackAction}>

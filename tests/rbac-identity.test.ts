@@ -149,4 +149,57 @@ describe("resolveIdentity tenant binding", () => {
     expect(db.employees.find((row) => row.id === "emp-a")?.auth_user_id).toBeNull();
     expect(db.employees.find((row) => row.id === "emp-b")?.setup_status).toBe("ready");
   });
+
+  it("does not bind by email when the JWT tenant has no matching employee", async () => {
+    db.employees = [
+      {
+        id: "emp-b",
+        tenant_id: "TENANT_B",
+        auth_user_id: null,
+        email: "shared@example.test",
+        setup_status: "ready",
+        deleted_at: null,
+      },
+    ];
+
+    const identity = await resolveIdentity("auth-user-1");
+
+    expect(identity).toMatchObject({
+      authUserId: "auth-user-1",
+      employeeId: null,
+      tenantId: "TENANT_A",
+      role: "employee",
+    });
+    expect(updates).toHaveLength(0);
+    expect(db.employees[0]?.auth_user_id).toBeNull();
+  });
+
+  it("returns an unlinked employee identity when tenant metadata is missing", async () => {
+    authUser = {
+      id: "auth-user-1",
+      email: "shared@example.test",
+      app_metadata: { role: "employee" },
+    };
+    db.employees = [
+      {
+        id: "emp-a",
+        tenant_id: "TENANT_A",
+        auth_user_id: null,
+        email: "shared@example.test",
+        setup_status: "ready",
+        deleted_at: null,
+      },
+    ];
+
+    const identity = await resolveIdentity("auth-user-1");
+
+    expect(identity).toMatchObject({
+      authUserId: "auth-user-1",
+      employeeId: null,
+      tenantId: null,
+      role: "employee",
+    });
+    expect(updates).toHaveLength(0);
+    expect(db.employees[0]?.auth_user_id).toBeNull();
+  });
 });

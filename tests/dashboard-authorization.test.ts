@@ -49,9 +49,10 @@ describe("dashboard authorization", () => {
     const source = readFileSync(join(process.cwd(), "app", "dashboard", "page.tsx"), "utf8");
 
     expect(source).toContain('import { requireTenantRole } from "@/middleware/rbac";');
+    expect(source).toContain('loadDashboardData');
     expect(source).toContain('const actor = await requireTenantRole("admin");');
     expect(source.indexOf('const actor = await requireTenantRole("admin");')).toBeLessThan(
-      source.indexOf("createServiceRoleClient()"),
+      source.indexOf("loadDashboardData({"),
     );
   });
 

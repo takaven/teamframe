@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 import { requireTenantRole } from "@/middleware/rbac";
-import { runSignalEngineForTenant } from "@/services/signalEngine";
+import { refreshDashboardSignals } from "@/app/dashboard/data";
 
 const ExecuteActionSchema = z.object({
   actionItemId: z.string().uuid(),
@@ -73,9 +73,10 @@ export async function executeActionItemAction(formData: FormData): Promise<void>
     }
   }
 
-  await runSignalEngineForTenant({
+  await refreshDashboardSignals({
     tenantId: actor.tenantId,
     actorUserId: actor.authUserId,
+    timeoutMs: 4500,
   });
 
   revalidatePath("/dashboard");

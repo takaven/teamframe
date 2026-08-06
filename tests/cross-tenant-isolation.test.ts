@@ -51,25 +51,54 @@ const MIXED_LEAVES: LeaveRow[] = [
   },
 ];
 
+const MIXED_EMPLOYEES = [
+  {
+    id: "emp-a",
+    tenant_id: "TENANT_A",
+    full_name: "Amina Tenant A",
+    role_title: "Operations Lead",
+    deleted_at: null,
+  },
+  {
+    id: "emp-b",
+    tenant_id: "TENANT_B",
+    full_name: "Bilal Tenant B",
+    role_title: "Finance Lead",
+    deleted_at: null,
+  },
+];
+
 type FilterOp = { kind: "eq"; column: string; value: unknown };
+type InFilterOp = { kind: "in"; column: string; values: unknown[] };
 
 function makeFilteringBuilder(table: string, dataset: ReadonlyArray<Record<string, unknown>>) {
-  const filters: FilterOp[] = [];
+  const filters: Array<FilterOp | InFilterOp | ((row: Record<string, unknown>) => boolean)> = [];
   const builder: Record<string, unknown> = {};
 
   builder.select = (..._args: unknown[]) => builder;
   builder.order = (..._args: unknown[]) => builder;
   builder.limit = (..._args: unknown[]) => builder;
-  builder.in = (..._args: unknown[]) => builder;
 
   builder.eq = (column: string, value: unknown) => {
     filters.push({ kind: "eq", column, value });
     return builder;
   };
+  builder.in = (column: string, values: unknown[]) => {
+    filters.push({ kind: "in", column, values });
+    return builder;
+  };
+  builder.is = (column: string, value: unknown) => {
+    filters.push((row) => (value === null ? row[column] == null : row[column] === value));
+    return builder;
+  };
 
   const resolve = () => {
     const filtered = dataset.filter((row) =>
-      filters.every((f) => row[f.column] === f.value),
+      filters.every((f) => {
+        if (typeof f === "function") return f(row);
+        if (f.kind === "in") return f.values.includes(row[f.column]);
+        return row[f.column] === f.value;
+      }),
     );
     return { data: filtered, error: null };
   };
@@ -99,6 +128,7 @@ function makeFilteringBuilder(table: string, dataset: ReadonlyArray<Record<strin
 const fakeClient = {
   from: (table: string) => {
     if (table === "leaves") return makeFilteringBuilder(table, MIXED_LEAVES);
+    if (table === "employees") return makeFilteringBuilder(table, MIXED_EMPLOYEES);
     // Other tables: return empty filtering builder so unrelated queries don't crash.
     return makeFilteringBuilder(table, []);
   },
@@ -163,8 +193,10 @@ describe("leaveService cross-tenant isolation", () => {
 
     expect(result).toHaveLength(1);
     expect(result[0]?.id).toBe("leave-a1");
+    expect(result[0]?.employee_full_name).toBe("Amina Tenant A");
     // The TENANT_B pending row must not leak.
     expect(result.find((r) => r.id === "leave-b1")).toBeUndefined();
+    expect(result.find((r) => r.employee_full_name === "Bilal Tenant B")).toBeUndefined();
   });
 
   it("listPendingLeavesWithEmployee(actorB) returns only TENANT_B pending rows", async () => {
@@ -172,5 +204,6 @@ describe("leaveService cross-tenant isolation", () => {
 
     expect(result).toHaveLength(1);
     expect(result[0]?.id).toBe("leave-b1");
+    expect(result[0]?.employee_full_name).toBe("Bilal Tenant B");
   });
 });

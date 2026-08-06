@@ -87,7 +87,7 @@ export async function listPendingLeavesWithEmployee(actor: Actor): Promise<Pendi
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from("leaves")
-    .select("id, tenant_id, employee_id, start_date, end_date, status, created_at, updated_at, employees(full_name, role_title)")
+    .select("id, tenant_id, employee_id, start_date, end_date, status, created_at, updated_at")
     .eq("tenant_id", tenantId)
     .eq("status", "pending")
     .order("created_at", { ascending: true });
@@ -96,7 +96,33 @@ export async function listPendingLeavesWithEmployee(actor: Actor): Promise<Pendi
     throw new Error(`LEAVE_LIST_PENDING_FAILED: ${error.message}`);
   }
 
-  return ((data ?? []) as any[]).map((row) => ({
+  const leaves = (data ?? []) as LeaveRow[];
+  const employeeIds = Array.from(new Set(leaves.map((leave) => leave.employee_id)));
+  const employeesById = new Map<string, { full_name: string; role_title: string }>();
+
+  if (employeeIds.length > 0) {
+    const { data: employeeData, error: employeeError } = await supabase
+      .from("employees")
+      .select("id, full_name, role_title")
+      .eq("tenant_id", tenantId)
+      .in("id", employeeIds)
+      .is("deleted_at", null);
+
+    if (employeeError) {
+      throw new Error(`LEAVE_EMPLOYEE_LIST_FAILED: ${employeeError.message}`);
+    }
+
+    for (const employee of (employeeData ?? []) as Array<{ id: string; full_name: string; role_title: string }>) {
+      employeesById.set(employee.id, {
+        full_name: employee.full_name,
+        role_title: employee.role_title,
+      });
+    }
+  }
+
+  return leaves.map((row) => {
+    const employee = employeesById.get(row.employee_id);
+    return {
     id: row.id,
     employee_id: row.employee_id,
     start_date: row.start_date,
@@ -104,9 +130,10 @@ export async function listPendingLeavesWithEmployee(actor: Actor): Promise<Pendi
     status: row.status,
     created_at: row.created_at,
     updated_at: row.updated_at,
-    employee_full_name: row.employees?.full_name ?? "(unknown)",
-    employee_role_title: row.employees?.role_title ?? "(unknown)",
-  }));
+      employee_full_name: employee?.full_name ?? "(unknown)",
+      employee_role_title: employee?.role_title ?? "(unknown)",
+    };
+  });
 }
 
 export async function submitLeaveRequest(

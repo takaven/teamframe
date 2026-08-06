@@ -31,6 +31,15 @@ export type PolicyRecord = {
 export type PolicyAdminRecord = PolicyRecord & {
   acknowledged_count: number;
   active_employee_count: number;
+  acknowledgement_evidence: PolicyAcknowledgementEvidence[];
+};
+
+export type PolicyAcknowledgementEvidence = {
+  employee_id: string;
+  full_name: string;
+  email: string;
+  status: "acknowledged" | "outstanding";
+  acknowledged_at: string | null;
 };
 
 type PolicyRow = PolicyRecord & {
@@ -197,7 +206,7 @@ export async function listPolicies(actor: Actor): Promise<PolicyAdminRecord[]> {
   // non-deleted employees who are not exited.
   const { data: employeeData, error: employeeError } = await supabase
     .from("employees")
-    .select("id, tenant_id, lifecycle_state, deleted_at")
+    .select("id, tenant_id, full_name, email, lifecycle_state, deleted_at")
     .eq("tenant_id", tenantId)
     .is("deleted_at", null)
     .in("lifecycle_state", ["preboarding", "active", "on_leave", "offboarding"]);
@@ -206,25 +215,44 @@ export async function listPolicies(actor: Actor): Promise<PolicyAdminRecord[]> {
     throw new Error(`POLICY_EMPLOYEE_LIST_FAILED: ${employeeError.message}`);
   }
 
-  const eligibleEmployeeIds = new Set(
-    ((employeeData ?? []) as { id: string }[]).map((row) => row.id),
-  );
+  const eligibleEmployees = (employeeData ?? []) as Array<{
+    id: string;
+    full_name: string;
+    email: string;
+  }>;
+  const eligibleEmployeeIds = new Set(eligibleEmployees.map((row) => row.id));
 
   return policies.map((policy) => {
-    const acknowledgedEmployeeIds = new Set(
-      acknowledgements
-        .filter(
-          (ack) =>
-            ack.policy_id === policy.id &&
-            ack.policy_version === policy.version &&
-            eligibleEmployeeIds.has(ack.employee_id),
-        )
-        .map((ack) => ack.employee_id),
+    const acknowledgementsForVersion = acknowledgements.filter(
+      (ack) =>
+        ack.policy_id === policy.id &&
+        ack.policy_version === policy.version &&
+        eligibleEmployeeIds.has(ack.employee_id),
     );
+    const acknowledgementByEmployeeId = new Map(
+      acknowledgementsForVersion.map((ack) => [ack.employee_id, ack]),
+    );
+    const acknowledgementEvidence = eligibleEmployees
+      .map((employee) => {
+        const acknowledgement = acknowledgementByEmployeeId.get(employee.id);
+        return {
+          employee_id: employee.id,
+          full_name: employee.full_name,
+          email: employee.email,
+          status: acknowledgement ? "acknowledged" : "outstanding",
+          acknowledged_at: acknowledgement?.acknowledged_at ?? null,
+        } satisfies PolicyAcknowledgementEvidence;
+      })
+      .sort((a, b) => {
+        if (a.status !== b.status) return a.status === "outstanding" ? -1 : 1;
+        return a.full_name.localeCompare(b.full_name);
+      });
+
     return {
       ...stripTenant(policy),
-      acknowledged_count: acknowledgedEmployeeIds.size,
+      acknowledged_count: acknowledgementByEmployeeId.size,
       active_employee_count: eligibleEmployeeIds.size,
+      acknowledgement_evidence: acknowledgementEvidence,
     };
   });
 }
