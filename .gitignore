@@ -150,3 +150,6 @@ vite.config.ts.timestamp-*
 
 # Supabase CLI link state (per-machine, not source)
 supabase/.temp/
+
+# Vercel CLI link state (per-machine, not source)
+.vercel/
