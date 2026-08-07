@@ -2,7 +2,7 @@
 
 > **Managed People-Ops Readiness for Founder-Led Teams.**
 >
-> Core promise: **we install a working HR structure system in 48–72 hours.**
+> Core promise: **people operations, made ready through a managed, evidence-led readiness system.**
 
 This README is **the enforcement contract for TeamFrame V1**. If a feature, dependency, or decision conflicts with this document, the README wins until the README is changed.
 
@@ -13,7 +13,7 @@ This README is **the enforcement contract for TeamFrame V1**. If a feature, depe
 As of the latest commit on `main`, the running app provides:
 
 - **Auth** — two-tier Supabase sign-in: admins use email + password at `/admin/login`; employees use magic links at `/auth`, `/auth/callback`, `/auth/check-email`, and `/auth/logout`.
-- **Dashboard** (`/dashboard`) — real employee counts (total / active / on leave / inactive) with an honest empty state when no employees exist.
+- **Readiness overview** (`/dashboard`) — priority signals, open actions, recent resolutions, and honest empty/failure states when data is unavailable.
 - **Employees** (`/employees`) — admins manage the team roster.
 - **Onboarding** (`/onboarding`) — employees complete their onboarding checklist; admins assign and monitor tasks.
 - **Leave requests** (`/leaves`) — employees submit leave requests; admins approve or reject from the queue.
@@ -279,15 +279,15 @@ Detailed branch protection setup: [`.github/branch-protection.md`](.github/branc
 
 ## Coding principles
 
-- **Simplicity is a product feature.** Optimize for fast onboarding, not extensibility.
+- **Simplicity is a product feature.** Optimize for controlled founder readiness, not extensibility.
 - **Explicit over abstract.** Prefer hand-written guards to clever frameworks.
-- **One feature, one justification.** Every new feature must defend itself against the 72-hour setup promise.
+- **One feature, one justification.** Every new feature must defend itself against the managed-readiness scope.
 - **No premature scalability.** Build for 10 customers. The 11th customer is a happy problem.
 - **Reuse existing entities.** New tables are an escalation, not a default.
 
 Sanity check before any feature (also in [`docs/drift-guard.md`](docs/drift-guard.md)):
 
-1. Does this move setup closer to or further from 72-hour readiness?
+1. Does this move setup closer to or further from managed readiness?
 2. Does this reuse existing entities/tables?
 3. Does this introduce workflow automation, HR-ops logic, analytics, or AI scope creep?
 4. Can it ship without a new subsystem?

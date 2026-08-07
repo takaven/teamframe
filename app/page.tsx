@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import dashboardShot from "@/public/marketing/dashboard-risk-signals.png";
+import { BrandLogo } from "@/components/BrandLogo";
 
 // Pilot-request contact address. Set NEXT_PUBLIC_PILOT_CONTACT_EMAIL in the
 // environment (see .env.example). The founder owns this value; keep the
@@ -24,8 +25,8 @@ const FEATURES = [
   },
   {
     kicker: "Start",
-    title: "48–72h operator-led setup",
-    body: "An experienced people-ops operator loads your team, configures the agreed jurisdiction scope, and hands you a working system.",
+    title: "Operator-led setup",
+    body: "An experienced people-ops operator configures the agreed readiness scope and hands you a working system with clear next actions.",
   },
 ] as const;
 
@@ -33,7 +34,7 @@ export default function Home() {
   return (
     <main className="mx-auto min-h-screen max-w-5xl px-6 py-10 md:py-14">
       <header className="flex items-center justify-between border-b border-ink-300/60 pb-5">
-        <span className="font-display text-[18px] font-medium tracking-tight">TeamFrame</span>
+        <BrandLogo className="h-auto w-48" priority />
         <Link href="/auth" className="text-[14px] text-ink-700 transition hover:text-ink-900">
           Sign in
         </Link>
@@ -44,8 +45,7 @@ export default function Home() {
           Managed People-Ops Readiness for Founder-Led Teams
         </p>
         <h1 className="font-display text-[34px] font-medium leading-[1.12] tracking-tight md:text-[48px]">
-          TeamFrame does more than manage your people — it prevents your people
-          operations from breaking.
+          People operations, made ready.
         </h1>
         <p className="max-w-2xl text-[17px] leading-relaxed text-ink-700">
           Built for founder-led teams of 5–20 with no HR function yet. TeamFrame

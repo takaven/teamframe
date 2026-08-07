@@ -19,9 +19,18 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TeamFrame",
-  description:
-    "A lightweight HR structure system for startups with 6–25 employees. Installed in 48–72 hours.",
+  title: {
+    default: "TeamFrame",
+    template: "%s · TeamFrame",
+  },
+  description: "People operations, made ready.",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+  },
 };
 
 export default function RootLayout({

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Actor } from "@/middleware/rbac";
 import { SignOutButton } from "@/components/SignOutButton";
+import { BrandLogo } from "@/components/BrandLogo";
 import {
   countOpenSignals,
   type OpenSignalCounts,
@@ -17,17 +18,17 @@ import {
  */
 
 const ADMIN_LINKS = [
-  { href: "/dashboard", label: "Dashboard" },
+  { href: "/dashboard", label: "Overview" },
   { href: "/employees", label: "Employees" },
   { href: "/onboarding", label: "Onboarding" },
-  { href: "/leaves", label: "Leaves" },
+  { href: "/leaves", label: "Leave" },
   { href: "/policies", label: "Policies" },
 ] as const;
 
 const EMPLOYEE_LINKS = [
   { href: "/me", label: "Me" },
   { href: "/onboarding", label: "Onboarding" },
-  { href: "/leaves", label: "Leaves" },
+  { href: "/leaves", label: "Leave" },
 ] as const;
 
 type RiskPulseState = {
@@ -61,7 +62,7 @@ function RiskPulse({ pulse }: { pulse: RiskPulseState }) {
     <Link
       href="/dashboard"
       aria-label={`Risk pulse: ${pulse.count === null ? "" : `${pulse.count} `}${pulse.label}. Open dashboard.`}
-      className="inline-flex items-center gap-2 rounded-full border border-ink-300 bg-white/70 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900"
+      className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[12px] text-ink-100 transition hover:border-brand-signal hover:text-white"
     >
       <span className={`h-2 w-2 shrink-0 rounded-full ${PULSE_DOT[pulse.tone]}`} aria-hidden="true" />
       {pulse.count === null ? (
@@ -98,13 +99,14 @@ export async function AppShell({
   return (
     <nav
       aria-label="Primary"
-      className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-[14px] text-ink-500"
+      className="mb-7 flex flex-wrap items-center gap-3 rounded-2xl bg-brand-charcoal px-3 py-3 text-[14px] text-ink-100 shadow-sm sm:px-4"
     >
       <Link
         href={actor.role === "admin" ? "/dashboard" : "/me"}
-        className="font-display text-[17px] font-medium tracking-tight text-ink-900"
+        className="mr-1 flex items-center gap-2 text-white"
       >
-        TeamFrame
+        <BrandLogo variant="mark" reversed className="h-8 w-8" priority />
+        <span className="font-semibold tracking-tight">TeamFrame</span>
       </Link>
 
       {links.map((link) =>
@@ -113,12 +115,13 @@ export async function AppShell({
             key={link.href}
             href={link.href}
             aria-current="page"
-            className="font-medium text-ink-900"
+            className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 font-medium text-white"
           >
+            <span className="h-1.5 w-1.5 rounded-full bg-brand-signal" aria-hidden="true" />
             {link.label}
           </Link>
         ) : (
-          <Link key={link.href} href={link.href} className="transition hover:text-ink-900">
+          <Link key={link.href} href={link.href} className="rounded-full px-3 py-1.5 text-ink-100/80 transition hover:bg-white/5 hover:text-white">
             {link.label}
           </Link>
         ),

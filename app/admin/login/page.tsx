@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createServerClient } from "@/lib/db/supabaseServer";
+import { BrandLogo } from "@/components/BrandLogo";
 
 const CredentialsSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
@@ -58,14 +59,15 @@ export default async function AdminLoginPage({
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-16">
-      <section className="rounded-2xl border border-ink-300/70 bg-white/85 p-6 shadow-sm">
+      <section className="rounded-2xl border border-ink-300/70 bg-surface-elevated p-6 shadow-sm">
         <div className="space-y-2">
+          <BrandLogo className="mb-5 h-auto w-52" priority />
           <p className="text-[12px] uppercase tracking-[0.18em] text-ink-500">
             Admin access
           </p>
           <h1 className="text-[32px] leading-tight tracking-tight">Sign in to TeamFrame.</h1>
           <p className="text-[15px] text-ink-700">
-            Sign in with your admin email and password. Employees sign in with a magic link instead.
+            People operations, made ready. Sign in with your admin email and password.
           </p>
         </div>
 

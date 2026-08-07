@@ -34,7 +34,7 @@ function signalCategory(kind: string): string {
   if (kind === "incomplete_offboarding" || kind === "active_access_after_exit" || kind === "unreturned_asset") {
     return "Offboarding";
   }
-  if (kind === "leave_conflict") return "Leaves";
+  if (kind === "leave_conflict") return "Leave";
   return "Operations";
 }
 
@@ -198,17 +198,17 @@ export default async function DashboardPage() {
         <div className="space-y-2">
           <p className="text-[12px] tracking-[0.14em] text-ink-500">Founder view</p>
           <h1 className="font-display text-[34px] font-medium leading-tight tracking-tight">
-            People-ops risk dashboard
+            Readiness overview
           </h1>
           <p className="max-w-3xl text-[14px] text-ink-500">
-            In under two minutes: what needs attention now, why it matters, and what has already been resolved.
+            See what needs attention. Know what comes next.
           </p>
         </div>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <article className="rounded-xl border border-ink-300/70 bg-white/80 px-3 py-2">
             <p className="flex items-center gap-1.5 text-[11px] text-ink-500">
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-signal-red" aria-hidden="true" />
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand-signal ring-2 ring-brand-signal/20" aria-hidden="true" />
               Urgent
             </p>
             <p className="font-mono text-[22px] tracking-tight tabular-nums text-ink-900">{redSignals.length}</p>
@@ -281,8 +281,11 @@ export default async function DashboardPage() {
       ) : null}
 
       <section className="mt-6 grid gap-4 lg:grid-cols-[1.4fr_0.8fr]">
-        <article className="rounded-xl border border-ink-300/70 bg-white/80 p-5">
-          <p className="text-[12px] uppercase tracking-[0.14em] text-ink-500">Priority signal</p>
+        <article className="rounded-xl border border-brand-signal/70 bg-surface-elevated p-5 shadow-sm shadow-brand-signal/10">
+          <p className="flex items-center gap-2 text-[12px] uppercase tracking-[0.14em] text-ink-500">
+            <span className="h-2 w-2 rounded-full bg-brand-signal" aria-hidden="true" />
+            Priority signal
+          </p>
           {topPriority ? (
             <div className="mt-3 grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
               <div>
@@ -307,7 +310,7 @@ export default async function DashboardPage() {
           )}
         </article>
 
-        <article className="rounded-xl border border-ink-300/70 bg-white/80 p-5">
+        <article className="rounded-xl border border-ink-300/70 bg-surface-elevated p-5">
           <p className="text-[12px] uppercase tracking-[0.14em] text-ink-500">Recent progress</p>
           {latestResolution ? (
             <>
@@ -358,7 +361,7 @@ export default async function DashboardPage() {
         </Link>
         <Link href="/leaves" className="rounded-xl border border-ink-300/70 bg-white/75 p-4 transition hover:border-ink-900">
           <p className="text-[12px] tracking-[0.12em] text-ink-500">Operate</p>
-          <p className="mt-2 text-[18px] tracking-tight">Leaves</p>
+          <p className="mt-2 text-[18px] tracking-tight">Leave</p>
           <p className="mt-1 text-[13px] text-ink-500">Keep coverage and approvals on track.</p>
         </Link>
       </section>

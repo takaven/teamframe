@@ -1,26 +1,29 @@
 @import "tailwindcss";
 
 @theme {
-  --color-ink-900: #0a0a0a;
-  --color-ink-700: #2a2a2a;
-  --color-ink-500: #6b6b6b;
-  --color-ink-300: #c9c9c9;
-  --color-ink-100: #f4f4f4;
-  --color-paper: #fafaf7;
-  --color-accent: #1f5f4a;
+  --color-brand-signal: #c8f500;
+  --color-brand-titanium: #68707d;
+  --color-brand-charcoal: #20242b;
+
+  --color-ink-900: #0f1115;
+  --color-ink-800: #20242b;
+  --color-ink-700: #2a2f37;
+  --color-ink-500: #68707d;
+  --color-ink-300: #ccd1d8;
+  --color-ink-100: #e9edf1;
+  --color-ink-50: #f4f6f8;
+  --color-paper: #f4f6f8;
+  --color-surface-elevated: #ffffff;
+  --color-accent: #3f6212;
 
   /*
-   * Severity tokens — the single source of truth for signal colour.
-   * Mapped to the text tones RiskCard already used (Tailwind red-700 /
-   * amber-800 / emerald-700) so adoption changes consistency, not hue.
-   * Tints derive from these via opacity modifiers (e.g. bg-signal-red/10).
+   * Semantic tokens remain functional, not brand colours. Signal Lime is
+   * reserved for focus, active navigation, and small priority accents.
    */
-  --color-signal-red: #b91c1c;
-  /* amber-800: amber-700 (#b45309) fails WCAG AA (~4.37:1) as text on the
-   * bg-signal-amber/10 pill tint; #92400e clears 4.5:1 on every amber tint
-   * in use (axe color-contrast, dashboard signal pills). */
+  --color-signal-red: #b42318;
   --color-signal-amber: #92400e;
-  --color-signal-green: #047857;
+  --color-signal-green: #067647;
+  --color-signal-info: #1d4ed8;
 
   --font-sans: "IBM Plex Sans", "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 
@@ -33,15 +36,31 @@
 
 html,
 body {
-  background:
-    radial-gradient(circle at 5% 0%, #ffffff 0%, #fafaf7 45%, #f3f2ed 100%);
+  background: var(--color-paper);
   color: var(--color-ink-900);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
+:root {
+  --brand-signal: #c8f500;
+  --brand-titanium: #68707d;
+  --brand-charcoal: #20242b;
+  --surface-background: #f4f6f8;
+  --surface-elevated: #ffffff;
+  --text-primary: #0f1115;
+  --text-secondary: #68707d;
+  --border-default: #ccd1d8;
+  --border-subtle: #e9edf1;
+}
+
 ::selection {
-  background: var(--color-ink-900);
-  color: var(--color-paper);
+  background: var(--color-brand-charcoal);
+  color: var(--color-surface-elevated);
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand-signal);
+  outline-offset: 3px;
 }

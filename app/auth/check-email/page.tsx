@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ResendLinkForm } from "./ResendLinkForm";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export default async function CheckEmailPage({
   searchParams,
@@ -13,8 +14,9 @@ export default async function CheckEmailPage({
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-16">
-      <section className="rounded-2xl border border-ink-300/70 bg-white/85 p-6 shadow-sm">
+      <section className="rounded-2xl border border-ink-300/70 bg-surface-elevated p-6 shadow-sm">
       <div className="space-y-3">
+        <BrandLogo className="mb-2 h-auto w-52" priority />
         <p className="text-[12px] uppercase tracking-[0.18em] text-ink-500">
           Link sent
         </p>

@@ -66,7 +66,7 @@ describe("dashboard rendered states", () => {
     const html = renderToStaticMarkup(await DashboardPage());
 
     expect(html).not.toContain("Showing the latest saved signals.");
-    expect(html).toContain("People-ops risk dashboard");
+    expect(html).toContain("Readiness overview");
     expect(html).toContain("Priority signal");
   });
 

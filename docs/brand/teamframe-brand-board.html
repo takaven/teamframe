@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TeamFrame Core Brand System</title>
+    <style>
+      :root {
+        --brand-signal: #c8f500;
+        --brand-titanium: #68707d;
+        --brand-charcoal: #20242b;
+        --ink-900: #0f1115;
+        --ink-700: #2a2f37;
+        --ink-500: #68707d;
+        --ink-300: #ccd1d8;
+        --ink-100: #e9edf1;
+        --ink-50: #f4f6f8;
+        --white: #ffffff;
+        --success: #067647;
+        --warning: #92400e;
+        --error: #b42318;
+        --info: #1d4ed8;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: #101318;
+        color: var(--ink-900);
+        font-family: Inter, Arial, sans-serif;
+      }
+
+      .board {
+        width: 1600px;
+        min-height: 1000px;
+        margin: 0 auto;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafb 100%);
+        padding: 36px 48px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1.1fr 0.7fr 1.2fr;
+        gap: 34px;
+      }
+
+      .section {
+        border-top: 1px solid var(--ink-100);
+        padding-top: 18px;
+      }
+
+      h1, h2, h3, p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 58px;
+        line-height: 0.95;
+        letter-spacing: 0;
+      }
+
+      h2 {
+        font-size: 13px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      h3 {
+        font-size: 18px;
+        letter-spacing: 0;
+      }
+
+      p {
+        color: var(--ink-500);
+        font-size: 14px;
+        line-height: 1.45;
+      }
+
+      .title-kicker {
+        margin-top: 8px;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        font-size: 16px;
+      }
+
+      .lime-rule {
+        width: 132px;
+        height: 6px;
+        margin: 14px 0 18px;
+        background: var(--brand-signal);
+      }
+
+      .mark-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-left: 1px solid var(--ink-100);
+        border-right: 1px solid var(--ink-100);
+        min-height: 170px;
+      }
+
+      .mark-wrap img {
+        width: 150px;
+      }
+
+      .logo-large img {
+        width: 390px;
+      }
+
+      .swatches, .neutrals, .logos, .icons, .usage, .samples {
+        display: grid;
+        gap: 16px;
+      }
+
+      .swatches {
+        grid-template-columns: repeat(5, 1fr);
+      }
+
+      .swatch, .neutral, .logo-card, .sample-card, .status-pill, .button {
+        border: 1px solid var(--ink-100);
+        border-radius: 10px;
+        background: var(--white);
+      }
+
+      .swatch-chip {
+        height: 96px;
+        border-radius: 9px 9px 0 0;
+      }
+
+      .swatch-body {
+        padding: 14px;
+      }
+
+      .code {
+        margin-top: 4px;
+        font-family: "IBM Plex Mono", Consolas, monospace;
+        font-size: 12px;
+        color: var(--ink-500);
+      }
+
+      .neutrals {
+        grid-template-columns: repeat(7, 1fr);
+      }
+
+      .neutral {
+        padding: 10px;
+      }
+
+      .neutral-chip {
+        height: 46px;
+        border-radius: 7px;
+        margin-bottom: 10px;
+      }
+
+      .logos {
+        grid-template-columns: repeat(4, 1fr);
+      }
+
+      .logo-card {
+        min-height: 140px;
+        padding: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .logo-card.dark {
+        background: var(--ink-900);
+      }
+
+      .logo-card img {
+        max-width: 170px;
+      }
+
+      .icons {
+        grid-template-columns: repeat(5, 64px);
+        align-items: center;
+      }
+
+      .icon {
+        display: grid;
+        place-items: center;
+        width: 56px;
+        height: 56px;
+        border-radius: 14px;
+        border: 1px solid var(--ink-100);
+        background: var(--white);
+      }
+
+      .icon.dark {
+        background: var(--ink-900);
+      }
+
+      .icon img {
+        width: 38px;
+      }
+
+      .lower {
+        display: grid;
+        grid-template-columns: 0.9fr 1.1fr 1.1fr 0.9fr 1fr;
+        gap: 22px;
+        margin-top: 28px;
+        border-top: 1px solid var(--ink-100);
+        padding-top: 22px;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 40px;
+        padding: 0 18px;
+        font-weight: 700;
+        font-size: 14px;
+      }
+
+      .button.primary {
+        background: var(--ink-900);
+        color: var(--white);
+      }
+
+      .button.secondary {
+        color: var(--ink-700);
+      }
+
+      .button.link {
+        border: 0;
+        background: transparent;
+        justify-content: flex-start;
+        color: #3f6212;
+        padding: 0;
+      }
+
+      .nav-sample {
+        border-radius: 12px;
+        background: var(--brand-charcoal);
+        color: var(--white);
+        padding: 14px;
+      }
+
+      .nav-brand {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        font-weight: 800;
+        margin-bottom: 14px;
+      }
+
+      .nav-brand img {
+        width: 30px;
+      }
+
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        border-radius: 999px;
+        padding: 8px 10px;
+        color: #d9dde3;
+        font-size: 13px;
+      }
+
+      .nav-item.active {
+        color: var(--white);
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .active-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: var(--brand-signal);
+      }
+
+      .status-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .status-pill {
+        padding: 6px 10px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .green { color: var(--success); background: rgba(6, 118, 71, 0.09); border-color: rgba(6, 118, 71, 0.22); }
+      .amber { color: var(--warning); background: rgba(146, 64, 14, 0.09); border-color: rgba(146, 64, 14, 0.22); }
+      .red { color: var(--error); background: rgba(180, 35, 24, 0.09); border-color: rgba(180, 35, 24, 0.22); }
+      .neutral-tone { color: var(--ink-700); background: var(--ink-100); }
+      .info { color: var(--info); background: rgba(29, 78, 216, 0.08); border-color: rgba(29, 78, 216, 0.18); }
+
+      .metric-card, .member-card, .notice {
+        border: 1px solid var(--ink-100);
+        border-radius: 12px;
+        background: var(--white);
+        padding: 14px;
+      }
+
+      .metric-number {
+        color: var(--ink-900);
+        font-size: 52px;
+        line-height: 1;
+        font-weight: 800;
+      }
+
+      .metric-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 8px;
+        color: var(--ink-500);
+        font-size: 13px;
+      }
+
+      .lime-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--brand-signal);
+      }
+
+      .notice {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+      }
+
+      .notice strong {
+        display: block;
+        font-size: 13px;
+      }
+
+      .notice span {
+        font-size: 12px;
+        color: var(--ink-500);
+      }
+
+      .member-row {
+        display: grid;
+        grid-template-columns: 34px 1fr auto;
+        gap: 10px;
+        align-items: center;
+        padding: 10px 0;
+        border-top: 1px solid var(--ink-100);
+      }
+
+      .avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        color: var(--white);
+        background: var(--ink-900);
+        font-weight: 700;
+        font-size: 12px;
+      }
+
+      .footer {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 22px;
+        border-top: 1px solid var(--ink-100);
+        padding-top: 18px;
+        color: var(--ink-500);
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="board">
+      <section class="grid">
+        <div>
+          <h1>TeamFrame</h1>
+          <p class="title-kicker">Core Brand System</p>
+          <div class="lime-rule"></div>
+          <p>A refined brand system built for clarity, restraint and founder people-ops readiness.</p>
+        </div>
+        <div class="mark-wrap">
+          <img src="../../public/brand/teamframe-mark-primary.svg" alt="TeamFrame TF mark" />
+        </div>
+        <div class="logo-large">
+          <h2>Primary Logo</h2>
+          <img src="../../public/brand/teamframe-lockup-primary.svg" alt="TeamFrame primary logo lockup" />
+        </div>
+      </section>
+
+      <section class="section" style="margin-top: 28px;">
+        <h2>Core Brand Colours</h2>
+        <div class="swatches" style="margin-top: 12px;">
+          <div class="swatch"><div class="swatch-chip" style="background: var(--brand-signal);"></div><div class="swatch-body"><h3>Signal Lime</h3><div class="code">#C8F500</div><p>Signals, highlights, focus and priority.</p></div></div>
+          <div class="swatch"><div class="swatch-chip" style="background: var(--brand-titanium);"></div><div class="swatch-body"><h3>Titanium Grey</h3><div class="code">#68707D</div><p>Supporting text, borders and UI elements.</p></div></div>
+          <div class="swatch"><div class="swatch-chip" style="background: var(--brand-charcoal);"></div><div class="swatch-body"><h3>Charcoal</h3><div class="code">#20242B</div><p>Primary text, navigation and key actions.</p></div></div>
+          <div class="swatch"><div class="swatch-chip" style="background: var(--ink-50);"></div><div class="swatch-body"><h3>Soft Mist</h3><div class="code">#F4F6F8</div><p>Application background and subtle surfaces.</p></div></div>
+          <div class="swatch"><div class="swatch-chip" style="background: var(--white);"></div><div class="swatch-body"><h3>White</h3><div class="code">#FFFFFF</div><p>Cards, panels and elevated surfaces.</p></div></div>
+        </div>
+      </section>
+
+      <section style="display:grid; grid-template-columns: 1.25fr 1.4fr; gap: 28px; margin-top: 28px;">
+        <div class="section">
+          <h2>Neutral Scale</h2>
+          <div class="neutrals" style="margin-top: 12px;">
+            <div class="neutral"><div class="neutral-chip" style="background:#0f1115;"></div><strong>N-900</strong><div class="code">#0F1115</div></div>
+            <div class="neutral"><div class="neutral-chip" style="background:#2a2f37;"></div><strong>N-700</strong><div class="code">#2A2F37</div></div>
+            <div class="neutral"><div class="neutral-chip" style="background:#68707d;"></div><strong>N-500</strong><div class="code">#68707D</div></div>
+            <div class="neutral"><div class="neutral-chip" style="background:#ccd1d8;"></div><strong>N-300</strong><div class="code">#CCD1D8</div></div>
+            <div class="neutral"><div class="neutral-chip" style="background:#e9edf1;"></div><strong>N-100</strong><div class="code">#E9EDF1</div></div>
+            <div class="neutral"><div class="neutral-chip" style="background:#f4f6f8;"></div><strong>N-50</strong><div class="code">#F4F6F8</div></div>
+            <div class="neutral"><div class="neutral-chip" style="background:#fff;"></div><strong>N-0</strong><div class="code">#FFFFFF</div></div>
+          </div>
+        </div>
+        <div class="section">
+          <h2>Logo System</h2>
+          <div class="logos" style="margin-top: 12px;">
+            <div class="logo-card"><img src="../../public/brand/teamframe-lockup-primary.svg" alt="Primary" /></div>
+            <div class="logo-card dark"><img src="../../public/brand/teamframe-lockup-reversed.svg" alt="Reversed" /></div>
+            <div class="logo-card"><img src="../../public/brand/teamframe-lockup-monochrome-dark.svg" alt="Monochrome dark" /></div>
+            <div class="logo-card dark"><img src="../../public/brand/teamframe-lockup-monochrome-light.svg" alt="Monochrome light" /></div>
+          </div>
+          <div class="icons" style="margin-top: 14px;">
+            <div class="icon"><img src="../../public/brand/teamframe-mark-primary.svg" alt="Primary icon" /></div>
+            <div class="icon dark"><img src="../../public/brand/teamframe-mark-reversed.svg" alt="Reversed icon" /></div>
+            <div class="icon"><img src="../../public/brand/teamframe-mark-monochrome-dark.svg" alt="Dark icon" /></div>
+            <div class="icon dark"><img src="../../public/brand/teamframe-mark-monochrome-light.svg" alt="Light icon" /></div>
+            <p>Use the mark alone below 160 px or in constrained navigation.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="lower">
+        <div>
+          <h2>Buttons</h2>
+          <div class="samples" style="margin-top: 12px;">
+            <div class="button primary">Open priority</div>
+            <div class="button secondary">View details</div>
+            <div class="button link">Tertiary link -></div>
+          </div>
+        </div>
+        <div>
+          <h2>Navigation</h2>
+          <div class="nav-sample" style="margin-top: 12px;">
+            <div class="nav-brand"><img src="../../public/brand/teamframe-mark-reversed.svg" alt="" />TeamFrame</div>
+            <div class="nav-item active"><span class="active-dot"></span>Overview</div>
+            <div class="nav-item">Employees</div>
+            <div class="nav-item">Onboarding</div>
+            <div class="nav-item">Leave</div>
+            <div class="nav-item">Policies</div>
+          </div>
+        </div>
+        <div>
+          <h2>Status Examples</h2>
+          <div class="status-list" style="margin-top: 12px;">
+            <span class="status-pill red">Open</span>
+            <span class="status-pill amber">Under action</span>
+            <span class="status-pill green">Resolved</span>
+            <span class="status-pill info">Published</span>
+            <span class="status-pill neutral-tone">Draft</span>
+            <span class="status-pill amber">Expiring soon</span>
+          </div>
+        </div>
+        <div>
+          <h2>Readiness Overview</h2>
+          <div class="metric-card" style="margin-top: 12px;">
+            <p>Open actions</p>
+            <div class="metric-number">4</div>
+            <div class="metric-row"><span class="lime-dot"></span>2 employees need attention</div>
+          </div>
+        </div>
+        <div>
+          <h2>Team Members</h2>
+          <div class="member-card" style="margin-top: 12px;">
+            <div class="member-row" style="border-top:0;"><div class="avatar">AR</div><div><strong>Amina Rahman</strong><p>Operations Lead</p></div><span class="status-pill green">Ready</span></div>
+            <div class="member-row"><div class="avatar">JC</div><div><strong>Jon Chen</strong><p>Product Manager</p></div><span class="status-pill amber">Action</span></div>
+            <div class="member-row"><div class="avatar">TS</div><div><strong>Tara Singh</strong><p>Finance Associate</p></div><span class="status-pill red">Missing</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 24px;">
+        <div class="notice"><span class="lime-dot"></span><div><strong>3 onboarding actions completed this week</strong><span>Progress evidence, not generic celebration.</span></div></div>
+        <div class="notice"><span class="lime-dot"></span><div><strong>3 documents expire within 30 days</strong><span>Specific readiness signal.</span></div></div>
+        <div class="notice"><span class="lime-dot"></span><div><strong>4 open actions require attention</strong><span>Clear owner and next step in the app.</span></div></div>
+      </section>
+
+      <footer class="footer">
+        <span>TeamFrame Core Brand System</span>
+        <span>People operations, made ready. | Version 1.0 | August 2026</span>
+      </footer>
+    </main>
+  </body>
+</html>

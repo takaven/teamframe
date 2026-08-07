@@ -3,6 +3,7 @@ import { createServerClient } from "@/lib/db/supabaseServer";
 import { resolveIdentity } from "@/lib/rbac/roles";
 import { AuthForm } from "./AuthForm";
 import { continueCurrentSessionAction, switchAccountAction } from "./actions";
+import { BrandLogo } from "@/components/BrandLogo";
 
 const ERROR_COPY: Record<string, string> = {
   invalid_email: "That doesn't look like a valid email.",
@@ -76,14 +77,12 @@ export default async function AuthPage({
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-16">
-      <section className="rounded-2xl border border-ink-300/70 bg-white/85 p-6 shadow-sm">
+      <section className="rounded-2xl border border-ink-300/70 bg-surface-elevated p-6 shadow-sm">
       <div className="space-y-2">
-        <p className="font-display text-[13px] uppercase tracking-[0.18em] text-ink-500">
-          TeamFrame
-        </p>
+        <BrandLogo className="mb-5 h-auto w-52" priority />
         <h1 className="text-[32px] leading-tight tracking-tight">Sign in.</h1>
         <p className="text-[15px] text-ink-700">
-          Enter your work email. We&apos;ll send you a one-time link.
+          See what needs attention. Know what comes next. Enter your work email and we&apos;ll send a one-time link.
         </p>
       </div>
 
