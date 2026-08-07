@@ -10,6 +10,11 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 
 do $$ begin
+  alter type file_operation_kind add value if not exists 'position_jd_upload';
+  alter type file_operation_kind add value if not exists 'position_jd_delete';
+exception when duplicate_object then null; end $$;
+
+do $$ begin
   create type file_operation_status as enum (
     'pending',
     'succeeded',

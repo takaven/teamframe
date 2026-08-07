@@ -19,6 +19,7 @@ import {
 
 const ADMIN_LINKS = [
   { href: "/dashboard", label: "Overview" },
+  { href: "/org-chart", label: "Org Chart" },
   { href: "/employees", label: "Employees" },
   { href: "/onboarding", label: "Onboarding" },
   { href: "/leaves", label: "Leave" },

@@ -14,6 +14,7 @@ As of the latest commit on `main`, the running app provides:
 
 - **Auth** — two-tier Supabase sign-in: admins use email + password at `/admin/login`; employees use magic links at `/auth`, `/auth/callback`, `/auth/check-email`, and `/auth/logout`.
 - **Readiness overview** (`/dashboard`) — priority signals, open actions, recent resolutions, and honest empty/failure states when data is unavailable.
+- **Org Chart** (`/org-chart`) — admins define position-based reporting structure, see filled/vacant roles, assign employees to positions, and attach private JD files.
 - **Employees** (`/employees`) — admins manage the team roster.
 - **Onboarding** (`/onboarding`) — employees complete their onboarding checklist; admins assign and monitor tasks.
 - **Leave requests** (`/leaves`) — employees submit leave requests; admins approve or reject from the queue.
@@ -28,6 +29,7 @@ Everything in the next section ("What TeamFrame is") describes the V1 *target su
 
 The product targets exactly these things:
 
+- **Org Chart / position structure** — roles, reporting lines, filled/vacant positions and private JD attachments _(shipped as founder-approved bounded exception)_
 - **Employee directory** — who's on the team _(shipped)_
 - **Onboarding task tracking** — employee checklist; admin assignment _(shipped)_
 - **Document expiry tracking** — passports, visas, work permits _(shipped for uploaded records)_
@@ -35,7 +37,7 @@ The product targets exactly these things:
 
 Nothing more.
 
-Company announcements and org charts were **removed** in the FPORS pivot (see `docs/business/blueprint-locked.md`). TeamFrame is not an HR system; it is a managed readiness tool for founder people-ops risk. Pivot deletion log: `docs/business/pivot-deletion-list.md`.
+Company announcements remain removed in the FPORS pivot (see `docs/business/blueprint-locked.md`). Org Chart was restored only as a bounded position-structure module by explicit founder approval; it is not workforce planning, recruiting, budgeting, employee reviews, or productivity tracking. TeamFrame is not an HR system; it is a managed readiness tool for founder people-ops risk. Pivot deletion log: `docs/business/pivot-deletion-list.md`.
 
 ---
 
@@ -102,6 +104,7 @@ Full detail: [`docs/architecture.md`](docs/architecture.md).
 ```
 /app
   /dashboard          # risk dashboard (FPORS) — rebuild in flight (Wave 3)
+  /org-chart          # position-based reporting structure + JD attachment
   /employees          # team roster + admin CRUD + actions
   /onboarding         # onboarding readiness (preboarding signals)
   /leaves             # leave tracking (slimmed)
@@ -116,6 +119,7 @@ Full detail: [`docs/architecture.md`](docs/architecture.md).
 
 /services
   /employeeService    # shipped; explicit Actor on every call
+  /positionService    # bounded Org Chart positions, reporting, JD attachment
   /documentService    # scaffolded; signal engine wired; upload UI in progress
   /leaveService       # shipped; submit/approve/reject wired end-to-end
 
@@ -124,7 +128,7 @@ Full detail: [`docs/architecture.md`](docs/architecture.md).
   rbac.ts             # role guards (requireRole, requireTenantActor)
 
 /schemas
-  employees.sql, employee_profiles.sql, compensation.sql, documents.sql,
+  employees.sql, employee_profiles.sql, compensation.sql, positions.sql, documents.sql,
   leaves.sql, audit_logs.sql, risk_signals.sql, action_items.sql
 
 /docs

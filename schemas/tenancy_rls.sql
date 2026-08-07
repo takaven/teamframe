@@ -58,6 +58,7 @@ alter table companies enable row level security;
 alter table employees enable row level security;
 alter table employee_profiles enable row level security;
 alter table compensation enable row level security;
+alter table positions enable row level security;
 alter table documents enable row level security;
 alter table leaves enable row level security;
 alter table audit_logs enable row level security;
@@ -148,6 +149,43 @@ with check (
 
 drop policy if exists employees_delete_admin on employees;
 create policy employees_delete_admin on employees
+for delete
+using (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+);
+
+drop policy if exists positions_select_admin on positions;
+create policy positions_select_admin on positions
+for select
+using (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+  and deleted_at is null
+);
+
+drop policy if exists positions_insert_admin on positions;
+create policy positions_insert_admin on positions
+for insert
+with check (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+);
+
+drop policy if exists positions_update_admin on positions;
+create policy positions_update_admin on positions
+for update
+using (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+)
+with check (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+);
+
+drop policy if exists positions_delete_admin on positions;
+create policy positions_delete_admin on positions
 for delete
 using (
   is_current_actor_admin()

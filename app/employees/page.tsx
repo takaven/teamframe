@@ -6,6 +6,7 @@ import {
   listEmployeesForAdmin,
 } from "@/services/employeeService";
 import { listDocumentsForEmployee } from "@/services/documentService";
+import { listPositions } from "@/services/positionService";
 import { CopyInviteEmailButton } from "./CopyInviteEmailButton";
 import {
   createEmployeeAction,
@@ -128,6 +129,12 @@ export default async function EmployeesPage({
   }
 
   const employees = await listEmployeesForAdmin(actor);
+  const positions = await listPositions(actor);
+  const positionByEmployeeId = new Map(
+    positions
+      .filter((position) => position.assigned_employee_id)
+      .map((position) => [position.assigned_employee_id!, position]),
+  );
   const employeeDocuments = await Promise.all(
     employees.map(async (employee) => ({
       employeeId: employee.id,
@@ -325,6 +332,7 @@ export default async function EmployeesPage({
                 <tr>
                   <th className="px-5 py-3 font-medium">Employee</th>
                   <th className="px-5 py-3 font-medium">Function</th>
+                  <th className="px-5 py-3 font-medium">Position</th>
                   <th className="px-5 py-3 font-medium">Employee state</th>
                   <th className="px-5 py-3 font-medium">Account</th>
                   <th className="px-5 py-3 font-medium">Action</th>
@@ -333,6 +341,7 @@ export default async function EmployeesPage({
               <tbody className="divide-y divide-ink-300/40">
                 {filteredEmployees.map((employee) => {
                   const state = inviteState(employee);
+                  const position = positionByEmployeeId.get(employee.id);
                   const needsAttention =
                     employee.status !== "inactive" &&
                     (employee.setup_status !== "active" || Boolean(employee.invite_last_error));
@@ -345,6 +354,18 @@ export default async function EmployeesPage({
                       <td className="px-5 py-3 text-ink-700">
                         <p>{employee.role_title}</p>
                         <p className="text-[12px] text-ink-500">{employee.department}</p>
+                      </td>
+                      <td className="px-5 py-3 text-ink-700">
+                        {position ? (
+                          <a
+                            href="/org-chart"
+                            className="text-[12px] font-medium text-ink-900 underline decoration-ink-300 underline-offset-4 hover:decoration-ink-900"
+                          >
+                            {position.title}
+                          </a>
+                        ) : (
+                          <span className="text-[12px] text-ink-500">No assigned position</span>
+                        )}
                       </td>
                       <td className="px-5 py-3">
                         <StatusPill tone={needsAttention ? "amber" : employee.status === "inactive" ? "neutral" : "green"}>
@@ -386,6 +407,7 @@ export default async function EmployeesPage({
                 const resendCooldownSeconds = getResendCooldownSeconds(employee.invite_last_attempt_at);
                 const resendBlocked = resendCooldownSeconds > 0;
                 const documents = documentsByEmployee.get(employee.id) ?? [];
+                const position = positionByEmployeeId.get(employee.id);
                 const state = inviteState(employee);
                 const detailOpen = employeeParam === employee.id;
                 const resendGuidance = resendBlocked
@@ -454,6 +476,18 @@ export default async function EmployeesPage({
                   <div>
                     <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Role title</dt>
                     <dd className="mt-0.5 text-ink-900">{employee.role_title}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Position</dt>
+                    <dd className="mt-0.5 text-ink-900">
+                      {position ? (
+                        <a href="/org-chart" className="underline decoration-ink-300 underline-offset-4">
+                          {position.title}
+                        </a>
+                      ) : (
+                        "No assigned position"
+                      )}
+                    </dd>
                   </div>
                   <div>
                     <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Department</dt>

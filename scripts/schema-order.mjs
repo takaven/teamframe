@@ -7,6 +7,7 @@ export const SCHEMA_ORDER = [
   "employees.sql",
   "employee_profiles.sql",
   "compensation.sql",
+  "positions.sql",
   "documents.sql",
   "leaves.sql",
   "audit_logs.sql",

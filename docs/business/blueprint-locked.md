@@ -98,8 +98,23 @@ Only these objects exist. New objects require explicit blueprint amendment.
 - Event
 - RiskSignal
 - ActionItem
+- Position _(founder-approved bounded exception, 2026-08-07)_
 
 Every feature must map to either a Signal or an Action. No standalone modules.
+
+### Founder-approved V1 exception: Org Chart / Position
+
+On 2026-08-07 the founder approved one bounded exception to restore the original TeamFrame position-structure concept.
+
+The exception is limited to:
+
+- defining tenant-scoped positions;
+- defining position-to-position reporting relationships;
+- showing filled and vacant positions;
+- assigning at most one active employee to one active position;
+- attaching a private PDF/DOCX job description to a position.
+
+It does not reopen workforce planning, recruitment, performance management, compensation planning, budgeting, matrix reporting, scenario modelling, drag-and-drop restructuring, or any adjacent HRIS surface.
 
 ---
 

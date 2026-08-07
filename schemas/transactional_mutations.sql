@@ -225,6 +225,170 @@ begin
 end;
 $$;
 
+create or replace function teamframe_create_position(
+  p_tenant_id uuid,
+  p_actor_user_id uuid,
+  p_title text,
+  p_department text,
+  p_parent_position_id uuid,
+  p_assigned_employee_id uuid,
+  p_note text
+)
+returns positions
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_position positions;
+begin
+  insert into positions (
+    tenant_id,
+    title,
+    department,
+    parent_position_id,
+    assigned_employee_id,
+    note
+  )
+  values (
+    p_tenant_id,
+    p_title,
+    p_department,
+    p_parent_position_id,
+    p_assigned_employee_id,
+    nullif(p_note, '')
+  )
+  returning * into v_position;
+
+  insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)
+  values (p_tenant_id, p_actor_user_id, 'position.created', v_position.id);
+
+  if p_parent_position_id is not null then
+    insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)
+    values (p_tenant_id, p_actor_user_id, 'position.reporting_changed', v_position.id);
+  end if;
+
+  if p_assigned_employee_id is not null then
+    insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)
+    values (p_tenant_id, p_actor_user_id, 'position.employee_assigned', v_position.id);
+  end if;
+
+  return v_position;
+end;
+$$;
+
+create or replace function teamframe_update_position(
+  p_tenant_id uuid,
+  p_actor_user_id uuid,
+  p_position_id uuid,
+  p_expected_updated_at timestamptz,
+  p_title text,
+  p_department text,
+  p_parent_position_id uuid,
+  p_assigned_employee_id uuid,
+  p_note text
+)
+returns positions
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_before positions;
+  v_position positions;
+begin
+  select *
+  into v_before
+  from positions
+  where tenant_id = p_tenant_id
+    and id = p_position_id
+    and deleted_at is null
+  for update;
+
+  if not found then
+    return null;
+  end if;
+
+  if v_before.updated_at <> p_expected_updated_at then
+    return null;
+  end if;
+
+  update positions
+  set
+    title = p_title,
+    department = p_department,
+    parent_position_id = p_parent_position_id,
+    assigned_employee_id = p_assigned_employee_id,
+    note = nullif(p_note, '')
+  where tenant_id = p_tenant_id
+    and id = p_position_id
+    and deleted_at is null
+  returning * into v_position;
+
+  insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)
+  values (p_tenant_id, p_actor_user_id, 'position.updated', p_position_id);
+
+  if v_before.parent_position_id is distinct from p_parent_position_id then
+    insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)
+    values (p_tenant_id, p_actor_user_id, 'position.reporting_changed', p_position_id);
+  end if;
+
+  if v_before.assigned_employee_id is distinct from p_assigned_employee_id then
+    insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)
+    values (
+      p_tenant_id,
+      p_actor_user_id,
+      case when p_assigned_employee_id is null then 'position.vacated' else 'position.employee_assigned' end,
+      p_position_id
+    );
+  end if;
+
+  return v_position;
+end;
+$$;
+
+create or replace function teamframe_delete_position(
+  p_tenant_id uuid,
+  p_actor_user_id uuid,
+  p_position_id uuid,
+  p_expected_updated_at timestamptz
+)
+returns positions
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_position positions;
+begin
+  update positions
+  set deleted_at = clock_timestamp()
+  where tenant_id = p_tenant_id
+    and id = p_position_id
+    and assigned_employee_id is null
+    and jd_storage_path is null
+    and updated_at = p_expected_updated_at
+    and deleted_at is null
+    and not exists (
+      select 1
+      from positions child
+      where child.tenant_id = p_tenant_id
+        and child.parent_position_id = p_position_id
+        and child.deleted_at is null
+    )
+  returning * into v_position;
+
+  if not found then
+    return null;
+  end if;
+
+  insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)
+  values (p_tenant_id, p_actor_user_id, 'position.deleted', p_position_id);
+
+  return v_position;
+end;
+$$;
+
 revoke all on function teamframe_create_employee(
   uuid, uuid, text, text, text, text, text, employment_type, text, date, date, uuid, text, employee_status, employee_setup_status
 ) from public, anon, authenticated;
@@ -232,6 +396,9 @@ revoke all on function teamframe_update_employee(uuid, uuid, uuid, timestamptz, 
 revoke all on function teamframe_archive_employee(uuid, uuid, uuid, timestamptz) from public, anon, authenticated;
 revoke all on function teamframe_submit_leave(uuid, uuid, uuid, date, date) from public, anon, authenticated;
 revoke all on function teamframe_decide_leave(uuid, uuid, uuid, leave_status, timestamptz) from public, anon, authenticated;
+revoke all on function teamframe_create_position(uuid, uuid, text, text, uuid, uuid, text) from public, anon, authenticated;
+revoke all on function teamframe_update_position(uuid, uuid, uuid, timestamptz, text, text, uuid, uuid, text) from public, anon, authenticated;
+revoke all on function teamframe_delete_position(uuid, uuid, uuid, timestamptz) from public, anon, authenticated;
 
 grant execute on function teamframe_create_employee(
   uuid, uuid, text, text, text, text, text, employment_type, text, date, date, uuid, text, employee_status, employee_setup_status
@@ -240,3 +407,6 @@ grant execute on function teamframe_update_employee(uuid, uuid, uuid, timestampt
 grant execute on function teamframe_archive_employee(uuid, uuid, uuid, timestamptz) to service_role;
 grant execute on function teamframe_submit_leave(uuid, uuid, uuid, date, date) to service_role;
 grant execute on function teamframe_decide_leave(uuid, uuid, uuid, leave_status, timestamptz) to service_role;
+grant execute on function teamframe_create_position(uuid, uuid, text, text, uuid, uuid, text) to service_role;
+grant execute on function teamframe_update_position(uuid, uuid, uuid, timestamptz, text, text, uuid, uuid, text) to service_role;
+grant execute on function teamframe_delete_position(uuid, uuid, uuid, timestamptz) to service_role;
