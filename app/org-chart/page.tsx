@@ -236,24 +236,77 @@ function PositionNode({
 function PositionBranch({
   node,
   selectedId,
-  nested = false,
+  depth = 2,
 }: {
   node: PositionTreeNode;
   selectedId: string | null;
-  nested?: boolean;
+  depth?: number;
 }) {
+  const nested = depth >= 3;
+
   return (
     <li className="tf-org-branch">
       <PositionNode position={node} selected={node.id === selectedId} />
       {node.children.length > 0 ? (
         <ul className={nested ? "tf-org-nested space-y-3" : "tf-org-children"}>
           {node.children.map((child) => (
-            <PositionBranch key={child.id} node={child} selectedId={selectedId} nested />
+            <PositionBranch key={child.id} node={child} selectedId={selectedId} depth={depth + 1} />
           ))}
         </ul>
       ) : null}
     </li>
   );
+}
+
+function findPositionPath(
+  nodes: PositionTreeNode[],
+  selectedId: string,
+  path: PositionTreeNode[] = [],
+): PositionTreeNode[] | null {
+  for (const node of nodes) {
+    const nextPath = [...path, node];
+    if (node.id === selectedId) {
+      return nextPath;
+    }
+    const childPath = findPositionPath(node.children, selectedId, nextPath);
+    if (childPath) {
+      return childPath;
+    }
+  }
+  return null;
+}
+
+function cloneFocusPath(path: PositionTreeNode[]): PositionTreeNode {
+  const selected = path.at(-1);
+  if (!selected) {
+    throw new Error("Cannot focus an empty position path.");
+  }
+
+  const parent = path[path.length - 2];
+  let focused: PositionTreeNode =
+    parent && parent.id !== selected.id ? { ...parent, children: parent.children } : { ...selected };
+
+  for (let index = path.length - 3; index >= 0; index -= 1) {
+    const ancestor = path[index];
+    if (ancestor) {
+      focused = { ...ancestor, children: [focused] };
+    }
+  }
+
+  return focused;
+}
+
+function focusTreeForSelection(tree: PositionTreeNode[], selectedId: string | null): PositionTreeNode[] {
+  if (!selectedId) {
+    return tree;
+  }
+
+  const path = findPositionPath(tree, selectedId);
+  if (!path) {
+    return tree;
+  }
+
+  return [cloneFocusPath(path)];
 }
 
 function OrgTree({
@@ -291,7 +344,7 @@ function AddPositionPanel({
   employees: EmployeeOption[];
 }) {
   return (
-    <aside id="add-position" className="h-fit rounded-xl border border-ink-300/70 bg-white p-6 shadow-sm">
+    <aside id="add-position" className="tf-org-add-panel h-fit rounded-xl border border-ink-300/70 bg-white p-6 shadow-sm">
       <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-ink-500">Position</p>
       <h2 className="mt-2 text-[23px] font-extrabold tracking-[-0.5px] text-ink-800">Add position</h2>
       <p className="mt-2 text-[14px] text-ink-500">
@@ -337,7 +390,7 @@ function PositionDetailPanel({
   const parent = positions.find((item) => item.id === position.parent_position_id);
 
   return (
-    <aside className="h-fit rounded-xl border border-ink-300/70 bg-white p-6 shadow-sm">
+    <aside className="tf-org-detail-panel h-fit rounded-xl border border-ink-300/70 bg-white p-6 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-ink-500">Position</p>
@@ -443,6 +496,7 @@ export default async function OrgChartPage({
   const vacantCount = positions.filter((position) => position.status === "Vacant").length;
   const jdCount = positions.filter((position) => position.jd_attached).length;
   const selectedPosition = positions.find((position) => position.id === selectedPositionId) ?? null;
+  const displayTree = focusTreeForSelection(tree, selectedPosition?.id ?? null);
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-14">
@@ -486,7 +540,7 @@ export default async function OrgChartPage({
         </article>
       </section>
 
-      <section className={selectedPosition ? "mt-7 grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]" : "mt-7 grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]"}>
+      <section className="tf-org-layout mt-7" data-selected={selectedPosition ? "true" : undefined}>
         <div className="rounded-xl border border-ink-300/70 bg-white/70 p-4 sm:p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -505,7 +559,7 @@ export default async function OrgChartPage({
           ) : (
             <>
               <div className="mt-6">
-                <OrgTree tree={tree} selectedId={selectedPosition?.id ?? null} />
+                <OrgTree tree={displayTree} selectedId={selectedPosition?.id ?? null} />
               </div>
               {selectedPosition ? (
                 <p className="mt-4 text-[13px] text-ink-500">

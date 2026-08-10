@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
-import { Fraunces, IBM_Plex_Mono } from "next/font/google";
+import { Fraunces, IBM_Plex_Mono, Mulish } from "next/font/google";
 import "./globals.css";
+
+const mulish = Mulish({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-mulish",
+  display: "swap",
+});
 
 // Display face for the wordmark and dashboard H1 only (see globals.css @theme).
 const fraunces = Fraunces({
@@ -39,7 +46,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${plexMono.variable}`}>
+    <html lang="en" className={`${mulish.variable} ${fraunces.variable} ${plexMono.variable}`}>
       <body className="min-h-screen antialiased">{children}</body>
     </html>
   );

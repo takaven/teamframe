@@ -185,6 +185,7 @@ export default async function DashboardPage() {
   const redSignals = dashboardSignals.filter((s) => s.lane === "red");
   const yellowSignals = dashboardSignals.filter((s) => s.lane === "yellow");
   const resolvedSignals = dashboardSignals.filter((s) => s.lane === "resolved");
+  const openSignalCount = redSignals.length + yellowSignals.length;
   const openActions = actions.filter((a) => a.status === "open" || a.status === "in_progress").length;
   const topPriority = redSignals[0] ?? yellowSignals[0] ?? null;
   const latestResolution = resolvedSignals[0] ?? null;
@@ -198,9 +199,9 @@ export default async function DashboardPage() {
         <div className="space-y-2">
           <p className="text-[12px] tracking-[0.14em] text-ink-500">Founder view</p>
           <h1 className="font-display text-[36px] font-extrabold leading-tight tracking-[-0.8px] text-ink-800">
-            {redSignals.length + yellowSignals.length === 0
+            {openSignalCount === 0
               ? "Nothing needs your attention."
-              : `${redSignals.length + yellowSignals.length} thing${redSignals.length + yellowSignals.length === 1 ? "" : "s"} need your attention.`}
+              : `${openSignalCount} thing${openSignalCount === 1 ? "" : "s"} need your attention.`}
           </h1>
           <p className="max-w-3xl text-[14px] text-ink-500">
             See what needs attention. Know what comes next.
@@ -210,12 +211,12 @@ export default async function DashboardPage() {
 
       <section className="mt-7 grid gap-3 border-y border-ink-100 bg-white/70 py-4 md:grid-cols-3" aria-label="Signal Action Resolution progression">
         {[
-          { label: "Signal", count: redSignals.length + yellowSignals.length, help: "Open risks found in the team records." },
+          { label: "Signal", count: openSignalCount, help: "Open risks found in the team records." },
           { label: "Action", count: openActions, help: "Tasks with an owner and a next step." },
           { label: "Resolution", count: resolvedSignals.length, help: "Evidence closed and ready to show." },
         ].map((stage, index) => (
           <article key={stage.label} className="grid grid-cols-[2px_1fr_auto] gap-3 px-2 py-2">
-            <span className={`h-9 w-[2px] rounded-full ${index === 0 ? "bg-brand-signal" : "bg-ink-100"}`} aria-hidden="true" />
+            <span className={`h-9 w-[2px] rounded-full ${openSignalCount > 0 && index === 0 ? "bg-brand-signal" : "bg-ink-100"}`} aria-hidden="true" />
             <div>
               <h2 className="text-[15px] font-extrabold text-ink-800">{stage.label}</h2>
               <p className="mt-1 text-[13px] text-ink-500">{stage.help}</p>

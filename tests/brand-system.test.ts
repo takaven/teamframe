@@ -50,6 +50,10 @@ describe("TeamFrame brand system", () => {
     expect(globals).toContain("--color-brand-signal: #01ff22");
     expect(globals).toContain("--brand-signal: #01ff22");
     expect(globals).toContain("--brand-graphite: #42494d");
+    expect(globals).toContain("--text-primary: #2a2f37");
+    expect(globals).toContain("--color-deep-charcoal: #20242b");
+    expect(globals).toContain("--rail-inactive: #b9c0c9");
+    expect(globals).toContain("--rail-secondary: #b0b8c2");
     expect(globals).toContain("--color-signal-green");
     expect(statusPill).toContain("bg-signal-green/10");
     expect(statusPill).not.toContain("brand-signal");

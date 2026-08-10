@@ -5,9 +5,10 @@
   --color-brand-titanium: #68707d;
   --color-brand-charcoal: #42494d;
   --color-tf-graphite: #42494d;
+  --color-deep-charcoal: #20242b;
 
   --color-ink-900: #0f1115;
-  --color-ink-800: #20242b;
+  --color-ink-800: #2a2f37;
   --color-ink-700: #2a2f37;
   --color-ink-500: #68707d;
   --color-ink-400: #b9c0c9;
@@ -27,7 +28,7 @@
   --color-signal-green: #067647;
   --color-signal-info: #1d4ed8;
 
-  --font-sans: "IBM Plex Sans", "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-sans: var(--font-mulish), Mulish, "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 
   /* Metrics, counts, and dates. --font-plex-mono is set by next/font in app/layout.tsx. */
   --font-mono: var(--font-plex-mono), "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
@@ -39,7 +40,7 @@
 html,
 body {
   background: var(--color-paper);
-  color: var(--color-ink-900);
+  color: var(--color-ink-800);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -52,13 +53,15 @@ body {
   --brand-charcoal: #20242b;
   --surface-background: #f4f6f8;
   --surface-elevated: #ffffff;
-  --text-primary: #20242b;
+  --text-primary: #2a2f37;
   --text-secondary: #68707d;
   --border-default: #ccd1d8;
   --border-subtle: #e9edf1;
   --on-graphite-primary: #ffffff;
   --on-graphite-secondary: #b0b8c2;
   --on-graphite-nav: #b9c0c9;
+  --rail-secondary: #b0b8c2;
+  --rail-inactive: #b9c0c9;
 }
 
 ::selection {
@@ -106,7 +109,7 @@ main:has(> .tf-app-shell[data-active="/org-chart"]) > :not(.tf-app-shell):not(.t
 .tf-primary-action {
   border-radius: 8px;
   background: var(--brand-signal);
-  color: var(--brand-charcoal);
+  color: var(--text-primary);
   font-weight: 700;
   transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
 }
@@ -119,7 +122,7 @@ main:has(> .tf-app-shell[data-active="/org-chart"]) > :not(.tf-app-shell):not(.t
   border-radius: 8px;
   border: 1px solid var(--border-default);
   background: #ffffff;
-  color: var(--brand-charcoal);
+  color: var(--text-primary);
   transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
 }
 
@@ -127,7 +130,17 @@ main:has(> .tf-app-shell[data-active="/org-chart"]) > :not(.tf-app-shell):not(.t
   border-color: var(--brand-charcoal);
 }
 
+.tf-org-layout {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1fr) 420px;
+}
+
 .tf-org-tree {
+  --tf-org-node-width: 172px;
+  --tf-org-gap: 14px;
+  --tf-org-stub: 24px;
+
   overflow-x: auto;
   padding: 4px 0 8px;
 }
@@ -142,14 +155,14 @@ main:has(> .tf-app-shell[data-active="/org-chart"]) > :not(.tf-app-shell):not(.t
 .tf-org-children {
   display: flex;
   justify-content: flex-start;
-  gap: 14px;
+  gap: var(--tf-org-gap);
 }
 
 .tf-org-root,
 .tf-org-branch {
   position: relative;
-  width: 172px;
-  flex: 0 0 172px;
+  width: var(--tf-org-node-width);
+  flex: 0 0 var(--tf-org-node-width);
 }
 
 .tf-org-node {
@@ -170,8 +183,8 @@ main:has(> .tf-app-shell[data-active="/org-chart"]) > :not(.tf-app-shell):not(.t
 }
 
 .tf-org-node[data-selected="true"] {
-  border-color: var(--brand-charcoal);
-  box-shadow: 0 0 0 1.5px var(--brand-charcoal);
+  border-color: var(--text-primary);
+  box-shadow: 0 0 0 1.5px var(--text-primary);
 }
 
 .tf-org-node[data-vacant="true"] {
@@ -186,17 +199,17 @@ main:has(> .tf-app-shell[data-active="/org-chart"]) > :not(.tf-app-shell):not(.t
   content: "";
   position: absolute;
   top: 118px;
-  left: 86px;
-  width: calc(100% - 172px);
+  left: calc(var(--tf-org-node-width) / 2);
+  width: calc(100% - var(--tf-org-node-width));
   border-top: 1px solid #dde2e8;
 }
 
 .tf-org-branch::before {
   content: "";
   position: absolute;
-  top: -24px;
-  left: 86px;
-  height: 24px;
+  top: calc(var(--tf-org-stub) * -1);
+  left: calc(var(--tf-org-node-width) / 2);
+  height: var(--tf-org-stub);
   border-left: 1px solid #dde2e8;
 }
 
@@ -232,12 +245,50 @@ main:has(> .tf-app-shell[data-active="/org-chart"]) > :not(.tf-app-shell):not(.t
     padding-left: 264px !important;
     padding-right: 40px !important;
   }
+
+  .tf-org-tree {
+    --tf-org-node-width: 168px;
+    --tf-org-gap: 10px;
+  }
 }
 
 @media (max-width: 1365px) and (min-width: 900px) {
   main:has(> .tf-app-shell) {
     padding-left: 264px !important;
     padding-right: 40px !important;
+  }
+
+  .tf-org-layout {
+    display: block;
+  }
+
+  .tf-org-layout[data-selected="true"]::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 41;
+    background: rgba(15, 17, 21, 0.18);
+  }
+
+  .tf-org-detail-panel {
+    position: fixed;
+    top: 40px;
+    right: 40px;
+    bottom: 32px;
+    z-index: 42;
+    width: 420px;
+    max-width: calc(100vw - 80px);
+    overflow-y: auto;
+    box-shadow: -16px 0 40px -28px rgba(15, 17, 21, 0.32);
+  }
+
+  .tf-org-add-panel {
+    margin-top: 24px;
+  }
+
+  .tf-org-tree {
+    --tf-org-node-width: 148px;
+    --tf-org-gap: 10px;
   }
 }
 
@@ -248,6 +299,22 @@ main:has(> .tf-app-shell[data-active="/org-chart"]) > :not(.tf-app-shell):not(.t
 
   .tf-app-shell {
     width: 200px;
+  }
+
+  .tf-org-detail-panel {
+    width: 380px;
+    max-width: calc(100vw - 56px);
+    right: 28px;
+  }
+}
+
+@media (max-height: 768px) and (min-width: 900px) {
+  .tf-org-tree {
+    --tf-org-stub: 18px;
+  }
+
+  .tf-org-children {
+    margin-top: 42px;
   }
 }
 
@@ -269,6 +336,32 @@ main:has(> .tf-app-shell[data-active="/org-chart"]) > :not(.tf-app-shell):not(.t
     position: fixed;
     inset: 0 0 auto 0;
     z-index: 50;
+  }
+
+  .tf-org-layout {
+    display: block;
+  }
+
+  .tf-org-layout[data-selected="true"]::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 51;
+    background: rgba(15, 17, 21, 0.2);
+  }
+
+  .tf-org-add-panel {
+    margin-top: 18px;
+  }
+
+  .tf-org-detail-panel {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 52;
+    max-height: min(700px, calc(100vh - 72px));
+    overflow-y: auto;
+    border-radius: 14px 14px 0 0;
+    box-shadow: 0 -18px 44px -30px rgba(15, 17, 21, 0.45);
   }
 
   .tf-org-tree {
