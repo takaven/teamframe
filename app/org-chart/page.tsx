@@ -4,7 +4,6 @@ import { AppShell } from "@/components/AppShell";
 import { EmptyState } from "@/components/EmptyState";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
-import { StatusPill } from "@/components/StatusPill";
 import { listEmployeesForAdmin } from "@/services/employeeService";
 import { buildPositionTree, listPositions, type PositionRecord, type PositionTreeNode } from "@/services/positionService";
 import {
@@ -162,7 +161,7 @@ function JobDescriptionControls({ position }: { position: PositionRecord }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-[13px] font-medium text-ink-900">Job description</p>
-          <p className="mt-1 text-[13px] text-ink-600">
+          <p className="mt-1 text-[13px] text-ink-500">
             {position.jd_attached
               ? `Current file: ${position.jd_original_filename ?? "attached JD"}`
               : "Attach a private PDF or DOCX job description."}
@@ -174,7 +173,7 @@ function JobDescriptionControls({ position }: { position: PositionRecord }) {
             <PendingSubmitButton
               idleLabel="Download JD"
               pendingLabel="Preparing..."
-              className="rounded-lg border border-ink-300 bg-white px-3 py-2 text-[13px] text-ink-900"
+              className="tf-secondary-action h-10 px-4 text-[13px] font-bold"
             />
           </form>
         ) : null}
@@ -193,7 +192,7 @@ function JobDescriptionControls({ position }: { position: PositionRecord }) {
         <PendingSubmitButton
           idleLabel="Upload"
           pendingLabel="Uploading..."
-          className="rounded-lg bg-brand-charcoal px-4 py-2 text-[13px] font-medium text-white"
+          className="tf-primary-action h-10 px-4 text-[13px]"
         />
       </form>
       {position.jd_attached ? (
@@ -211,7 +210,120 @@ function JobDescriptionControls({ position }: { position: PositionRecord }) {
   );
 }
 
-function PositionCard({
+function PositionNode({
+  position,
+  selected,
+}: {
+  position: PositionRecord;
+  selected: boolean;
+}) {
+  return (
+    <Link
+      href={`/org-chart?position=${position.id}`}
+      className="tf-org-node"
+      data-selected={selected ? "true" : undefined}
+      data-vacant={position.status === "Vacant" ? "true" : undefined}
+    >
+      <span className="block text-[13px] font-bold tracking-[-0.1px] text-ink-800">{position.title}</span>
+      <span className={position.status === "Vacant" ? "mt-2 block text-[12px] font-semibold text-signal-amber" : "mt-2 block text-[12px] text-ink-500"}>
+        {position.status === "Filled" ? position.assigned_employee_name : "Vacant"}
+      </span>
+      <span className="mt-2 block text-[12px] text-ink-500">{position.jd_attached ? "JD attached" : "No JD"}</span>
+    </Link>
+  );
+}
+
+function PositionBranch({
+  node,
+  selectedId,
+  nested = false,
+}: {
+  node: PositionTreeNode;
+  selectedId: string | null;
+  nested?: boolean;
+}) {
+  return (
+    <li className="tf-org-branch">
+      <PositionNode position={node} selected={node.id === selectedId} />
+      {node.children.length > 0 ? (
+        <ul className={nested ? "tf-org-nested space-y-3" : "tf-org-children"}>
+          {node.children.map((child) => (
+            <PositionBranch key={child.id} node={child} selectedId={selectedId} nested />
+          ))}
+        </ul>
+      ) : null}
+    </li>
+  );
+}
+
+function OrgTree({
+  tree,
+  selectedId,
+}: {
+  tree: PositionTreeNode[];
+  selectedId: string | null;
+}) {
+  return (
+    <div className="tf-org-tree" aria-label="Position reporting hierarchy">
+      <ul className="tf-org-roots">
+        {tree.map((node) => (
+          <li key={node.id} className="tf-org-root">
+            <PositionNode position={node} selected={node.id === selectedId} />
+            {node.children.length > 0 ? (
+              <ul className="tf-org-children">
+                {node.children.map((child) => (
+                  <PositionBranch key={child.id} node={child} selectedId={selectedId} />
+                ))}
+              </ul>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function AddPositionPanel({
+  positions,
+  employees,
+}: {
+  positions: PositionRecord[];
+  employees: EmployeeOption[];
+}) {
+  return (
+    <aside id="add-position" className="h-fit rounded-xl border border-ink-300/70 bg-white p-6 shadow-sm">
+      <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-ink-500">Position</p>
+      <h2 className="mt-2 text-[23px] font-extrabold tracking-[-0.5px] text-ink-800">Add position</h2>
+      <p className="mt-2 text-[14px] text-ink-500">
+        A position can sit vacant. Assigning an employee is a separate step.
+      </p>
+      <form action={createPositionAction} className="mt-5 space-y-4">
+        <PositionFields positions={positions} employees={employees} />
+        <label className="block rounded-lg border border-dashed border-ink-300 bg-ink-50 px-4 py-3 text-[13px] text-ink-700">
+          Job description
+          <input
+            name="job_description"
+            type="file"
+            accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.pdf,.docx"
+            className="mt-2 block w-full text-[13px]"
+          />
+        </label>
+        <div className="flex flex-wrap gap-2">
+          <PendingSubmitButton
+            idleLabel="Add position"
+            pendingLabel="Adding..."
+            className="tf-primary-action h-11 px-5 text-[14px]"
+          />
+          <Link href="/org-chart" className="tf-secondary-action inline-flex h-11 items-center px-5 text-[14px] font-bold">
+            Cancel
+          </Link>
+        </div>
+      </form>
+    </aside>
+  );
+}
+
+function PositionDetailPanel({
   position,
   positions,
   employees,
@@ -220,99 +332,90 @@ function PositionCard({
   positions: PositionRecord[];
   employees: EmployeeOption[];
 }) {
-  const canDelete = position.status === "Vacant" && !position.jd_attached;
+  const hasChildren = positions.some((item) => item.parent_position_id === position.id);
+  const canDelete = position.status === "Vacant" && !position.jd_attached && !hasChildren;
+  const parent = positions.find((item) => item.id === position.parent_position_id);
 
   return (
-    <article className="rounded-xl border border-ink-300/75 bg-white p-4 shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <aside className="h-fit rounded-xl border border-ink-300/70 bg-white p-6 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-[17px] font-semibold tracking-tight text-ink-900">{position.title}</h3>
-          <p className="mt-1 text-[13px] text-ink-600">{position.department}</p>
-          <p className="mt-3 text-[14px] text-ink-800">
-            {position.status === "Filled" ? position.assigned_employee_name : "Vacant"}
+          <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-ink-500">Position</p>
+          <h2 className="mt-2 text-[23px] font-extrabold leading-tight tracking-[-0.5px] text-ink-800">{position.title}</h2>
+          <p className="mt-2 text-[14px] text-ink-500">
+            {position.department} · Reports to {parent?.title ?? "No parent position"}
           </p>
         </div>
-        <div className="flex flex-col items-end gap-2">
-          <StatusPill tone={position.status === "Filled" ? "green" : "amber"}>{position.status}</StatusPill>
-          <StatusPill tone={position.jd_attached ? "info" : "neutral"}>
-            {position.jd_attached ? "JD attached" : "No JD"}
-          </StatusPill>
-        </div>
+        <Link href="/org-chart" aria-label="Close position detail" className="flex h-8 w-8 items-center justify-center rounded-lg text-[20px] text-ink-500 hover:bg-ink-50 hover:text-ink-800">
+          ×
+        </Link>
       </div>
-      <div className="mt-4 flex flex-wrap gap-2 text-[13px]">
-        {position.assigned_employee_id ? (
-          <Link
-            href={`/employees?employee=${position.assigned_employee_id}#employee-${position.assigned_employee_id}`}
-            className="rounded-lg border border-ink-300 bg-white px-3 py-2 text-ink-900"
-          >
-            Open employee
-          </Link>
-        ) : null}
-        <details className="w-full rounded-lg border border-ink-300/70 bg-ink-50/60 p-3">
-          <summary className="cursor-pointer font-medium text-ink-900">View / edit position</summary>
+
+      <div className="mt-5 divide-y divide-ink-100 border-y border-ink-100">
+        <section className="py-4">
+          <h3 className="text-[13px] font-bold text-ink-800">Occupancy</h3>
+          <p className="mt-2 text-[14px] text-ink-700">
+            {position.status === "Filled" ? position.assigned_employee_name : "Vacant"}
+          </p>
+          {position.assigned_employee_id ? (
+            <Link
+              href={`/employees?employee=${position.assigned_employee_id}#employee-${position.assigned_employee_id}`}
+              className="mt-3 inline-flex text-[13px] font-bold text-ink-800 underline decoration-ink-300 underline-offset-4 hover:decoration-ink-800"
+            >
+              Open employee
+            </Link>
+          ) : null}
+        </section>
+
+        <section className="py-4">
+          <h3 className="text-[13px] font-bold text-ink-800">Edit position</h3>
+          <p className="mt-1 text-[13px] text-ink-500">Changes update the position, not the person holding it.</p>
           <form action={updatePositionAction} className="mt-4 space-y-4">
             <input type="hidden" name="position_id" value={position.id} />
             <input type="hidden" name="expected_updated_at" value={position.updated_at} />
             <PositionFields position={position} positions={positions} employees={employees} />
             <PendingSubmitButton
-              idleLabel="Save position"
+              idleLabel="Save changes"
               pendingLabel="Saving..."
-              className="rounded-lg bg-brand-charcoal px-4 py-2 text-[13px] font-medium text-white"
+              className="tf-primary-action h-10 px-4 text-[13px]"
             />
           </form>
+        </section>
+
+        <section className="py-4">
           <JobDescriptionControls position={position} />
-          <form action={deletePositionAction} className="mt-4 border-t border-ink-300/70 pt-3">
+        </section>
+
+        <section className="py-4">
+          <form action={deletePositionAction}>
             <input type="hidden" name="position_id" value={position.id} />
             <input type="hidden" name="expected_updated_at" value={position.updated_at} />
             {canDelete ? (
               <ConfirmSubmitButton
                 idleLabel="Remove vacant position"
                 pendingLabel="Removing..."
-                className="rounded-lg border border-red-200 bg-white px-3 py-2 text-[13px] text-red-700"
+                className="rounded-lg border border-red-200 bg-white px-4 py-2 text-[13px] text-red-700"
                 confirmMessage={`Remove the vacant position ${position.title}?`}
               />
             ) : (
-              <p className="mt-2 text-[12px] text-ink-500">
-                Positions can only be removed when vacant, childless and without a JD. Use Vacant assignment and remove the JD first.
+              <p className="text-[12px] text-ink-500">
+                Positions can only be removed when vacant, childless and without a JD. Vacating keeps the employee record.
               </p>
             )}
           </form>
-        </details>
+        </section>
       </div>
-    </article>
-  );
-}
-
-function PositionBranch({
-  node,
-  positions,
-  employees,
-}: {
-  node: PositionTreeNode;
-  positions: PositionRecord[];
-  employees: EmployeeOption[];
-}) {
-  return (
-    <li className="relative pl-5 before:absolute before:left-1 before:top-6 before:h-[calc(100%-1.5rem)] before:border-l before:border-ink-300/80">
-      <PositionCard position={node} positions={positions} employees={employees} />
-      {node.children.length > 0 ? (
-        <ul className="mt-4 space-y-4">
-          {node.children.map((child) => (
-            <PositionBranch key={child.id} node={child} positions={positions} employees={employees} />
-          ))}
-        </ul>
-      ) : null}
-    </li>
+    </aside>
   );
 }
 
 export default async function OrgChartPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; error?: string }>;
+  searchParams: Promise<{ status?: string; error?: string; position?: string }>;
 }) {
   const actor = await requireTenantActor();
-  const { status, error } = await searchParams;
+  const { status, error, position: selectedPositionId } = await searchParams;
   const successMessage = status ? (STATUS_COPY[status] ?? null) : null;
   const errorMessage = error ? (ERROR_COPY[error] ?? ERROR_COPY.UNKNOWN) : null;
 
@@ -322,7 +425,7 @@ export default async function OrgChartPage({
         <AppShell actor={actor} activePath="/org-chart" />
         <div className="space-y-2 border-b border-ink-300/60 pb-5">
           <p className="text-[12px] tracking-[0.14em] text-ink-500">Restricted</p>
-          <h1 className="text-[34px] leading-tight tracking-tight">Org Chart</h1>
+          <h1 className="text-[34px] leading-tight tracking-tight">Org chart</h1>
         </div>
         <p className="mt-7 max-w-prose text-[15px] text-ink-700">
           Organisation structure is admin-only in TeamFrame.
@@ -339,6 +442,7 @@ export default async function OrgChartPage({
   const filledCount = positions.filter((position) => position.status === "Filled").length;
   const vacantCount = positions.filter((position) => position.status === "Vacant").length;
   const jdCount = positions.filter((position) => position.jd_attached).length;
+  const selectedPosition = positions.find((position) => position.id === selectedPositionId) ?? null;
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-14">
@@ -346,11 +450,14 @@ export default async function OrgChartPage({
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink-300/60 pb-5">
         <div className="space-y-2">
           <p className="text-[12px] tracking-[0.14em] text-ink-500">Design the team</p>
-          <h1 className="text-[34px] leading-tight tracking-tight">Org Chart</h1>
+          <h1 className="text-[34px] leading-tight tracking-tight">Org chart</h1>
           <p className="max-w-2xl text-[15px] text-ink-700">
             Define positions, reporting relationships and vacancies before assigning employees into the structure.
           </p>
         </div>
+        <Link href="/org-chart#add-position" className="tf-primary-action inline-flex h-11 items-center px-5 text-[14px]">
+          Add position
+        </Link>
       </div>
 
       {successMessage ? (
@@ -379,12 +486,12 @@ export default async function OrgChartPage({
         </article>
       </section>
 
-      <section className="mt-7 grid gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
-        <div className="rounded-2xl border border-ink-300/70 bg-white/70 p-4 sm:p-5">
+      <section className={selectedPosition ? "mt-7 grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]" : "mt-7 grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]"}>
+        <div className="rounded-xl border border-ink-300/70 bg-white/70 p-4 sm:p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-[22px] font-medium tracking-tight">Reporting structure</h2>
-              <p className="mt-1 text-[14px] text-ink-600">
+              <h2 className="text-[22px] font-extrabold tracking-[-0.3px] text-ink-800">Reporting structure</h2>
+              <p className="mt-1 text-[14px] text-ink-500">
                 Positions report to positions. Employees appear only when a role is currently filled.
               </p>
             </div>
@@ -396,37 +503,24 @@ export default async function OrgChartPage({
               cta={{ label: "Add first position", href: "#add-position" }}
             />
           ) : (
-            <ul className="mt-6 space-y-4" aria-label="Position reporting hierarchy">
-              {tree.map((node) => (
-                <PositionBranch key={node.id} node={node} positions={positions} employees={employees} />
-              ))}
-            </ul>
+            <>
+              <div className="mt-6">
+                <OrgTree tree={tree} selectedId={selectedPosition?.id ?? null} />
+              </div>
+              {selectedPosition ? (
+                <p className="mt-4 text-[13px] text-ink-500">
+                  Showing this reporting line. Close the panel to return to the full chart.
+                </p>
+              ) : null}
+            </>
           )}
         </div>
 
-        <aside id="add-position" className="h-fit rounded-2xl border border-ink-300/70 bg-white p-5 shadow-sm">
-          <h2 className="text-[22px] font-medium tracking-tight">Add position</h2>
-          <p className="mt-2 text-[14px] text-ink-600">
-            Create a vacant role first, or assign an existing employee if the role is already filled.
-          </p>
-          <form action={createPositionAction} className="mt-5 space-y-4">
-            <PositionFields positions={positions} employees={employees} />
-            <label className="block text-[13px] text-ink-700">
-              Job description
-              <input
-                name="job_description"
-                type="file"
-                accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.pdf,.docx"
-                className="mt-1 block w-full rounded-lg border border-ink-300 bg-white px-3 py-2 text-[13px]"
-              />
-            </label>
-            <PendingSubmitButton
-              idleLabel="Add position"
-              pendingLabel="Adding..."
-              className="rounded-lg bg-brand-signal px-4 py-2 text-[14px] font-semibold text-brand-charcoal"
-            />
-          </form>
-        </aside>
+        {selectedPosition ? (
+          <PositionDetailPanel position={selectedPosition} positions={positions} employees={employees} />
+        ) : (
+          <AddPositionPanel positions={positions} employees={employees} />
+        )}
       </section>
     </main>
   );

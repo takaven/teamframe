@@ -194,45 +194,36 @@ export default async function DashboardPage() {
     <main className="mx-auto max-w-7xl px-6 py-12">
       <AppShell actor={actor} activePath="/dashboard" />
 
-      <header className="grid gap-4 border-b border-ink-300/60 pb-5 lg:grid-cols-[1fr_auto] lg:items-end">
+      <header className="border-b border-ink-300/60 pb-5">
         <div className="space-y-2">
           <p className="text-[12px] tracking-[0.14em] text-ink-500">Founder view</p>
-          <h1 className="font-display text-[34px] font-medium leading-tight tracking-tight">
-            Readiness overview
+          <h1 className="font-display text-[36px] font-extrabold leading-tight tracking-[-0.8px] text-ink-800">
+            {redSignals.length + yellowSignals.length === 0
+              ? "Nothing needs your attention."
+              : `${redSignals.length + yellowSignals.length} thing${redSignals.length + yellowSignals.length === 1 ? "" : "s"} need your attention.`}
           </h1>
           <p className="max-w-3xl text-[14px] text-ink-500">
             See what needs attention. Know what comes next.
           </p>
         </div>
-
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <article className="rounded-xl border border-ink-300/70 bg-white/80 px-3 py-2">
-            <p className="flex items-center gap-1.5 text-[11px] text-ink-500">
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand-signal ring-2 ring-brand-signal/20" aria-hidden="true" />
-              Urgent
-            </p>
-            <p className="font-mono text-[22px] tracking-tight tabular-nums text-ink-900">{redSignals.length}</p>
-          </article>
-          <article className="rounded-xl border border-ink-300/70 bg-white/80 px-3 py-2">
-            <p className="flex items-center gap-1.5 text-[11px] text-ink-500">
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-signal-amber" aria-hidden="true" />
-              Important
-            </p>
-            <p className="font-mono text-[22px] tracking-tight tabular-nums text-ink-900">{yellowSignals.length}</p>
-          </article>
-          <article className="rounded-xl border border-ink-300/70 bg-white/80 px-3 py-2">
-            <p className="flex items-center gap-1.5 text-[11px] text-ink-500">
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-signal-green" aria-hidden="true" />
-              Resolved
-            </p>
-            <p className="font-mono text-[22px] tracking-tight tabular-nums text-ink-900">{resolvedSignals.length}</p>
-          </article>
-          <article className="rounded-xl border border-ink-300/70 bg-white/80 px-3 py-2">
-            <p className="text-[11px] text-ink-500">Open actions</p>
-            <p className="font-mono text-[22px] tracking-tight tabular-nums text-ink-900">{openActions}</p>
-          </article>
-        </div>
       </header>
+
+      <section className="mt-7 grid gap-3 border-y border-ink-100 bg-white/70 py-4 md:grid-cols-3" aria-label="Signal Action Resolution progression">
+        {[
+          { label: "Signal", count: redSignals.length + yellowSignals.length, help: "Open risks found in the team records." },
+          { label: "Action", count: openActions, help: "Tasks with an owner and a next step." },
+          { label: "Resolution", count: resolvedSignals.length, help: "Evidence closed and ready to show." },
+        ].map((stage, index) => (
+          <article key={stage.label} className="grid grid-cols-[2px_1fr_auto] gap-3 px-2 py-2">
+            <span className={`h-9 w-[2px] rounded-full ${index === 0 ? "bg-brand-signal" : "bg-ink-100"}`} aria-hidden="true" />
+            <div>
+              <h2 className="text-[15px] font-extrabold text-ink-800">{stage.label}</h2>
+              <p className="mt-1 text-[13px] text-ink-500">{stage.help}</p>
+            </div>
+            <p className="font-mono text-[22px] tabular-nums text-ink-800">{stage.count}</p>
+          </article>
+        ))}
+      </section>
 
       {shouldShowRefreshWarning ? (
         <section
@@ -280,8 +271,8 @@ export default async function DashboardPage() {
         </section>
       ) : null}
 
-      <section className="mt-6 grid gap-4 lg:grid-cols-[1.4fr_0.8fr]">
-        <article className="rounded-xl border border-brand-signal/70 bg-surface-elevated p-5 shadow-sm shadow-brand-signal/10">
+      <section className="mt-6 space-y-4">
+        <article className="border-l-2 border-brand-signal bg-surface-elevated py-5 pl-5">
           <p className="flex items-center gap-2 text-[12px] uppercase tracking-[0.14em] text-ink-500">
             <span className="h-2 w-2 rounded-full bg-brand-signal" aria-hidden="true" />
             Priority signal
@@ -298,7 +289,7 @@ export default async function DashboardPage() {
               </div>
               <Link
                 href={topPriority.primaryCtaHref}
-                className="rounded-full bg-ink-900 px-4 py-2 text-center text-[13px] font-medium text-paper transition hover:bg-ink-700"
+                className="tf-primary-action inline-flex h-10 items-center justify-center px-4 text-center text-[13px]"
               >
                 Open priority
               </Link>
@@ -332,19 +323,19 @@ export default async function DashboardPage() {
           title="Urgent now"
           subtitle="Red issues that need immediate action."
           lane="red"
-          signals={redSignals}
+          signals={redSignals.slice(0, 2)}
         />
         <SignalSection
           title="Important next"
           subtitle="Yellow issues to resolve before they become urgent."
           lane="yellow"
-          signals={yellowSignals}
+          signals={yellowSignals.slice(0, 2)}
         />
         <SignalSection
           title="Resolved"
           subtitle="Completed items that build confidence and trust."
           lane="resolved"
-          signals={resolvedSignals}
+          signals={resolvedSignals.slice(0, 2)}
         />
       </div>
 

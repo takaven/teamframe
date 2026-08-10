@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title desc">
   <title id="title">TeamFrame TF mark monochrome light</title>
-  <desc id="desc">Interlocking T and F mark in Soft Mist on Charcoal.</desc>
-  <rect width="96" height="96" rx="20" fill="#20242B"/>
+  <desc id="desc">Interlocking T and F mark in Soft Mist on Soft Graphite.</desc>
+  <rect width="96" height="96" rx="20" fill="#42494D"/>
   <path d="M18 18h42v15H45v45H30V33H18V18z" fill="#F4F6F8"/>
   <path d="M50 18h28v15H50V18zM50 38h25v14H64v26H50V38z" fill="#F4F6F8"/>
 </svg>

@@ -167,7 +167,7 @@ export default async function LeavesPage({
                       <PendingSubmitButton
                         idleLabel="Approve request"
                         pendingLabel="Approving…"
-                        className="w-full rounded-full bg-ink-900 px-4 py-1.5 text-[13px] font-medium text-paper transition hover:bg-ink-700 disabled:cursor-not-allowed disabled:bg-ink-300 sm:w-auto"
+                        className="w-full rounded-lg bg-brand-signal px-4 py-1.5 text-[13px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:cursor-not-allowed disabled:bg-ink-300 sm:w-auto"
                       />
                     </form>
                     <form action={decideLeaveAction} className="w-full sm:w-auto">
@@ -257,7 +257,7 @@ export default async function LeavesPage({
             <PendingSubmitButton
               idleLabel="Submit request"
               pendingLabel="Submitting…"
-              className="rounded-full bg-ink-900 px-5 py-2 text-[14px] font-medium text-paper transition hover:bg-ink-700 disabled:cursor-not-allowed disabled:bg-ink-300"
+              className="rounded-lg bg-brand-signal px-5 py-2 text-[14px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:cursor-not-allowed disabled:bg-ink-300"
             />
           </form>
         </section>

@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 128" role="img" aria-labelledby="title desc">
   <title id="title">TeamFrame monochrome light lockup</title>
-  <desc id="desc">TeamFrame logo lockup in Soft Mist on Charcoal with tagline.</desc>
-  <rect width="520" height="128" rx="18" fill="#20242B"/>
+  <desc id="desc">TeamFrame logo lockup in Soft Mist on Soft Graphite with tagline.</desc>
+  <rect width="520" height="128" rx="18" fill="#42494D"/>
   <g transform="translate(24 22) scale(.72)">
     <path d="M18 18h42v15H45v45H30V33H18V18z" fill="#F4F6F8"/>
     <path d="M50 18h28v15H50V18zM50 38h25v14H64v26H50V38z" fill="#F4F6F8"/>

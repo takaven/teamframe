@@ -1,14 +1,16 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand-signal: #c8f500;
+  --color-brand-signal: #01ff22;
   --color-brand-titanium: #68707d;
-  --color-brand-charcoal: #20242b;
+  --color-brand-charcoal: #42494d;
+  --color-tf-graphite: #42494d;
 
   --color-ink-900: #0f1115;
   --color-ink-800: #20242b;
   --color-ink-700: #2a2f37;
   --color-ink-500: #68707d;
+  --color-ink-400: #b9c0c9;
   --color-ink-300: #ccd1d8;
   --color-ink-100: #e9edf1;
   --color-ink-50: #f4f6f8;
@@ -17,7 +19,7 @@
   --color-accent: #3f6212;
 
   /*
-   * Semantic tokens remain functional, not brand colours. Signal Lime is
+   * Semantic tokens remain functional, not brand colours. Electric Signal Green is
    * reserved for focus, active navigation, and small priority accents.
    */
   --color-signal-red: #b42318;
@@ -44,15 +46,19 @@ body {
 }
 
 :root {
-  --brand-signal: #c8f500;
+  --brand-signal: #01ff22;
   --brand-titanium: #68707d;
+  --brand-graphite: #42494d;
   --brand-charcoal: #20242b;
   --surface-background: #f4f6f8;
   --surface-elevated: #ffffff;
-  --text-primary: #0f1115;
+  --text-primary: #20242b;
   --text-secondary: #68707d;
   --border-default: #ccd1d8;
   --border-subtle: #e9edf1;
+  --on-graphite-primary: #ffffff;
+  --on-graphite-secondary: #b0b8c2;
+  --on-graphite-nav: #b9c0c9;
 }
 
 ::selection {
@@ -63,4 +69,238 @@ body {
 :focus-visible {
   outline: 2px solid var(--brand-signal);
   outline-offset: 3px;
+}
+
+main:has(> .tf-app-shell) {
+  max-width: none !important;
+  min-height: 100vh;
+  margin: 0 !important;
+  padding: 40px 56px 32px 280px !important;
+}
+
+main:has(> .tf-app-shell) > :not(.tf-app-shell):not(.tf-mobile-bar) {
+  max-width: 872px;
+}
+
+main:has(> .tf-app-shell[data-active="/me"]) > :not(.tf-app-shell):not(.tf-mobile-bar) {
+  max-width: 760px;
+}
+
+main:has(> .tf-app-shell[data-active="/org-chart"]) > :not(.tf-app-shell):not(.tf-mobile-bar) {
+  max-width: none;
+}
+
+.tf-app-shell {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 40;
+  width: 224px;
+  background: var(--brand-graphite);
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.08);
+}
+
+.tf-mobile-bar {
+  display: none;
+}
+
+.tf-primary-action {
+  border-radius: 8px;
+  background: var(--brand-signal);
+  color: var(--brand-charcoal);
+  font-weight: 700;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.tf-primary-action:hover {
+  background: #00e51f;
+}
+
+.tf-secondary-action {
+  border-radius: 8px;
+  border: 1px solid var(--border-default);
+  background: #ffffff;
+  color: var(--brand-charcoal);
+  transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+}
+
+.tf-secondary-action:hover {
+  border-color: var(--brand-charcoal);
+}
+
+.tf-org-tree {
+  overflow-x: auto;
+  padding: 4px 0 8px;
+}
+
+.tf-org-tree ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tf-org-roots,
+.tf-org-children {
+  display: flex;
+  justify-content: flex-start;
+  gap: 14px;
+}
+
+.tf-org-root,
+.tf-org-branch {
+  position: relative;
+  width: 172px;
+  flex: 0 0 172px;
+}
+
+.tf-org-node {
+  display: block;
+  width: 100%;
+  min-height: 92px;
+  border: 1px solid #e4e8ec;
+  border-radius: 9px;
+  background: #ffffff;
+  padding: 11px 13px;
+  text-decoration: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.tf-org-node:hover {
+  border-color: #b9c0c9;
+  box-shadow: 0 3px 9px -5px rgba(15, 17, 21, 0.4);
+}
+
+.tf-org-node[data-selected="true"] {
+  border-color: var(--brand-charcoal);
+  box-shadow: 0 0 0 1.5px var(--brand-charcoal);
+}
+
+.tf-org-node[data-vacant="true"] {
+  border-style: dashed;
+}
+
+.tf-org-children {
+  margin-top: 50px;
+}
+
+.tf-org-root > .tf-org-children::before {
+  content: "";
+  position: absolute;
+  top: 118px;
+  left: 86px;
+  width: calc(100% - 172px);
+  border-top: 1px solid #dde2e8;
+}
+
+.tf-org-branch::before {
+  content: "";
+  position: absolute;
+  top: -24px;
+  left: 86px;
+  height: 24px;
+  border-left: 1px solid #dde2e8;
+}
+
+.tf-org-nested {
+  margin-top: 12px;
+  margin-left: 8px;
+  border-left: 1px solid #dde2e8;
+  padding-left: 10px;
+}
+
+.tf-org-nested .tf-org-branch {
+  width: 100%;
+  flex-basis: auto;
+}
+
+.tf-org-nested .tf-org-node {
+  min-height: 76px;
+  border-radius: 8px;
+  padding: 9px 11px;
+}
+
+.tf-org-nested .tf-org-branch::before {
+  top: 38px;
+  left: -10px;
+  width: 10px;
+  height: 0;
+  border-left: 0;
+  border-top: 1px solid #dde2e8;
+}
+
+@media (max-width: 1439px) and (min-width: 1366px) {
+  main:has(> .tf-app-shell) {
+    padding-left: 264px !important;
+    padding-right: 40px !important;
+  }
+}
+
+@media (max-width: 1365px) and (min-width: 900px) {
+  main:has(> .tf-app-shell) {
+    padding-left: 264px !important;
+    padding-right: 40px !important;
+  }
+}
+
+@media (max-width: 1151px) and (min-width: 900px) {
+  main:has(> .tf-app-shell) {
+    padding-left: 240px !important;
+  }
+
+  .tf-app-shell {
+    width: 200px;
+  }
+}
+
+@media (max-width: 899px) {
+  main:has(> .tf-app-shell) {
+    padding: 78px 18px 18px !important;
+  }
+
+  main:has(> .tf-app-shell) > :not(.tf-app-shell):not(.tf-mobile-bar) {
+    max-width: none;
+  }
+
+  .tf-app-shell {
+    display: none;
+  }
+
+  .tf-mobile-bar {
+    display: block;
+    position: fixed;
+    inset: 0 0 auto 0;
+    z-index: 50;
+  }
+
+  .tf-org-tree {
+    overflow-x: visible;
+  }
+
+  .tf-org-roots,
+  .tf-org-children {
+    display: block;
+  }
+
+  .tf-org-root,
+  .tf-org-branch {
+    width: 100%;
+    flex-basis: auto;
+  }
+
+  .tf-org-root + .tf-org-root,
+  .tf-org-branch + .tf-org-branch {
+    margin-top: 12px;
+  }
+
+  .tf-org-children,
+  .tf-org-nested {
+    margin-top: 12px;
+    margin-left: 9px;
+    border-left: 1px solid #dde2e8;
+    padding-left: 11px;
+  }
+
+  .tf-org-root > .tf-org-children::before,
+  .tf-org-branch::before {
+    display: none;
+  }
 }

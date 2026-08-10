@@ -60,7 +60,7 @@ export default function Home() {
           {PILOT_MAILTO ? (
             <a
               href={PILOT_MAILTO}
-              className="inline-flex items-center justify-center rounded-full bg-ink-900 px-6 py-3 text-[15px] font-medium text-paper transition hover:bg-ink-700"
+              className="inline-flex items-center justify-center rounded-lg bg-brand-signal px-6 py-3 text-[15px] font-medium text-ink-800 transition hover:bg-[#00E51F]"
             >
               Request a pilot
             </a>
@@ -70,7 +70,7 @@ export default function Home() {
             className={
               PILOT_MAILTO
                 ? "inline-flex items-center justify-center rounded-full border border-ink-300 px-6 py-3 text-[15px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900"
-                : "inline-flex items-center justify-center rounded-full bg-ink-900 px-6 py-3 text-[15px] font-medium text-paper transition hover:bg-ink-700"
+                : "inline-flex items-center justify-center rounded-lg bg-brand-signal px-6 py-3 text-[15px] font-medium text-ink-800 transition hover:bg-[#00E51F]"
             }
           >
             Sign in

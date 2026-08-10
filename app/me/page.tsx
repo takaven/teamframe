@@ -120,8 +120,15 @@ export default async function MePage({
         ) : null}
       </dl>
 
+      <section id="documents" className="mt-8 rounded-xl border border-ink-300/70 bg-white/80 p-5">
+        <h2 className="text-[17px] font-bold tracking-tight text-ink-800">Documents</h2>
+        <p className="mt-2 text-[14px] text-ink-500">
+          Your admin manages private employment documents in the employee record. Ask them to update anything that looks missing or out of date.
+        </p>
+      </section>
+
       {unacknowledgedPolicies.length > 0 ? (
-        <section className="mt-8 rounded-xl border border-ink-300/70 bg-white/80">
+        <section id="policies" className="mt-8 rounded-xl border border-ink-300/70 bg-white/80">
           <div className="border-b border-ink-300/60 px-5 py-4">
             <h2 className="text-[17px] font-medium tracking-tight">
               Policies to acknowledge — <span className="font-mono tabular-nums">{unacknowledgedPolicies.length}</span>
@@ -156,7 +163,7 @@ export default async function MePage({
                       idleLabel="I acknowledge"
                       pendingLabel="Recording…"
                       confirmMessage={`Acknowledge "${policy.title}" v${policy.version}? This confirms you have read and understood it.`}
-                      className="w-full rounded-full bg-ink-900 px-4 py-1.5 text-[13px] font-medium text-paper transition hover:bg-ink-700 disabled:cursor-not-allowed disabled:bg-ink-300 sm:w-auto"
+                      className="w-full rounded-lg bg-brand-signal px-4 py-1.5 text-[13px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:cursor-not-allowed disabled:bg-ink-300 sm:w-auto"
                     />
                   </form>
                 </div>

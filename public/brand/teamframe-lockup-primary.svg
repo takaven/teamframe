@@ -3,7 +3,7 @@
   <desc id="desc">TeamFrame logo lockup with tagline: People operations, made ready.</desc>
   <rect width="520" height="128" rx="18" fill="#FFFFFF"/>
   <g transform="translate(24 22) scale(.72)">
-    <path d="M18 18h42v15H45v45H30V33H18V18z" fill="#C8F500"/>
+    <path d="M18 18h42v15H45v45H30V33H18V18z" fill="#01FF22"/>
     <path d="M50 18h28v15H50V18zM50 38h25v14H64v26H50V38z" fill="#68707D"/>
   </g>
   <text x="104" y="62" fill="#0F1115" font-family="Avenir Next, Segoe UI, Helvetica, Arial, sans-serif" font-size="44" font-weight="700" letter-spacing="-.7">TeamFrame</text>

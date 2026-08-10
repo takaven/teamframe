@@ -58,22 +58,33 @@ export default async function AdminLoginPage({
   const prefillEmail = error && typeof email === "string" ? email.slice(0, 254) : "";
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-16">
-      <section className="rounded-2xl border border-ink-300/70 bg-surface-elevated p-6 shadow-sm">
-        <div className="space-y-2">
-          <BrandLogo className="mb-5 h-auto w-52" priority />
+    <main className="min-h-screen bg-white md:grid md:grid-cols-[1fr_minmax(520px,620px)]">
+      <section className="flex h-[388px] flex-col bg-brand-charcoal px-[22px] pb-[34px] pt-7 text-white md:h-auto md:px-14 md:py-14">
+        <BrandLogo variant="mark" reversed className="h-6 w-6" priority />
+        <div className="mt-auto max-w-[420px]">
+          <h1 className="text-[30px] font-extrabold leading-[1.18] tracking-[-0.8px] md:text-[40px] md:tracking-[-1.1px]">
+            People operations, made ready.
+          </h1>
+          <p className="mt-4 max-w-[400px] text-[15.5px] leading-normal text-[#B0B8C2] md:text-[17px]">
+            See what needs attention. Know what comes next.
+          </p>
+        </div>
+      </section>
+
+      <section className="-mt-[14px] rounded-t-[14px] bg-white px-[22px] pb-6 pt-7 md:mt-0 md:flex md:flex-col md:justify-center md:rounded-none md:px-16">
+        <div>
           <p className="text-[12px] uppercase tracking-[0.18em] text-ink-500">
             Admin access
           </p>
-          <h1 className="text-[32px] leading-tight tracking-tight">Sign in to TeamFrame.</h1>
-          <p className="text-[15px] text-ink-700">
-            People operations, made ready. Sign in with your admin email and password.
+          <h2 className="mt-3 text-[28px] font-extrabold leading-tight tracking-[-0.7px] text-ink-800">Sign in</h2>
+          <p className="mt-2 text-[15.5px] text-ink-500">
+            Use your admin email and password.
           </p>
         </div>
 
-        <form action={signInAdminAction} className="mt-8 space-y-4">
-          <label htmlFor="email" className="sr-only">
-            Email
+        <form action={signInAdminAction} className="mt-[34px] space-y-[18px]">
+          <label htmlFor="email" className="block text-[13px] font-bold text-ink-800">
+            Work email
           </label>
           <input
             id="email"
@@ -84,10 +95,10 @@ export default async function AdminLoginPage({
             inputMode="email"
             defaultValue={prefillEmail}
             placeholder="admin@company.com"
-            className="w-full rounded-full border border-ink-300 bg-white px-5 py-3 text-[15px] outline-none transition focus:border-ink-900"
+            className="h-12 w-full rounded-lg border border-ink-300 bg-white px-[14px] text-[15px] text-ink-800 outline-none transition focus:border-ink-800"
           />
 
-          <label htmlFor="password" className="sr-only">
+          <label htmlFor="password" className="block text-[13px] font-bold text-ink-800">
             Password
           </label>
           <input
@@ -97,12 +108,12 @@ export default async function AdminLoginPage({
             autoComplete="current-password"
             required
             placeholder="Password"
-            className="w-full rounded-full border border-ink-300 bg-white px-5 py-3 text-[15px] outline-none transition focus:border-ink-900"
+            className="h-12 w-full rounded-lg border border-ink-300 bg-white px-[14px] text-[15px] text-ink-800 outline-none transition focus:border-ink-800"
           />
 
           <button
             type="submit"
-            className="w-full rounded-full bg-ink-900 px-5 py-3 text-[15px] font-medium text-paper transition hover:bg-ink-700"
+            className="tf-primary-action h-12 w-full px-5 text-[15px]"
           >
             Sign in
           </button>

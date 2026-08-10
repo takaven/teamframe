@@ -208,7 +208,7 @@ export default async function OnboardingPage({
               <PendingSubmitButton
                 idleLabel="Assign"
                 pendingLabel="Assigning…"
-                className="rounded-full bg-ink-900 px-5 py-2 text-[14px] font-medium text-paper transition hover:bg-ink-700 disabled:cursor-not-allowed disabled:bg-ink-300"
+                className="rounded-lg bg-brand-signal px-5 py-2 text-[14px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:cursor-not-allowed disabled:bg-ink-300"
               />
             </form>
           )}
@@ -339,7 +339,7 @@ export default async function OnboardingPage({
             </div>
             <div className="mt-4 h-2 overflow-hidden rounded-full bg-ink-100">
               <div
-                className="h-full rounded-full bg-ink-900 transition-all"
+                className="h-full rounded-full bg-brand-signal transition-all"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -384,7 +384,7 @@ export default async function OnboardingPage({
                       <PendingSubmitButton
                         idleLabel="Mark done"
                         pendingLabel="Saving..."
-                        className="rounded-full bg-ink-900 px-4 py-1.5 text-[13px] font-medium text-paper transition hover:bg-ink-700 disabled:cursor-not-allowed disabled:bg-ink-300"
+                        className="rounded-lg bg-brand-signal px-4 py-1.5 text-[13px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:cursor-not-allowed disabled:bg-ink-300"
                       />
                     </form>
                   </li>

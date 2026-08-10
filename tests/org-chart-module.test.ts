@@ -154,7 +154,7 @@ describe("Org Chart schema and UI contracts", () => {
     const appShell = read("components/AppShell.tsx");
     const page = read("app/org-chart/page.tsx");
 
-    expect(appShell).toContain('{ href: "/org-chart", label: "Org Chart" }');
+    expect(appShell).toContain('{ href: "/org-chart", label: "Org chart" }');
     expect(page).toContain("Design your team structure.");
     expect(page).toContain("JD attached");
     expect(page).toContain("Open employee");

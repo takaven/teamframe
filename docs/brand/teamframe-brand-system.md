@@ -44,9 +44,10 @@ Next.js App Router icon assets live in `app/icon.svg`, `app/favicon.svg`, and `a
 
 | Token | Value | Use |
 | --- | --- | --- |
-| Signal Lime | `#C8F500` | Priority accent, active marker, focus ring |
+| Electric Signal Green | `#01FF22` | Primary CTA fill, active marker, focus ring, current work progression |
 | Titanium Grey | `#68707D` | Secondary text, supporting UI |
-| Charcoal | `#20242B` | Primary actions, dark navigation |
+| Soft Graphite | `#42494D` | Large dark surfaces: navigation rail, mobile top bar, authentication brand panel |
+| Body ink | `#20242B` | Primary text on light surfaces and neutral Org chart selection |
 | Soft Mist | `#F4F6F8` | App background |
 | White | `#FFFFFF` | Elevated surfaces |
 
@@ -64,7 +65,7 @@ Next.js App Router icon assets live in `app/icon.svg`, `app/favicon.svg`, and `a
 
 ## 10. Semantic-Colour Separation
 
-Signal Lime is not a generic success colour. Functional states use semantic tokens:
+Electric Signal Green is not a generic success colour. Functional states use semantic tokens:
 
 - Success: resolved or completed
 - Warning: needs attention or nearing deadline
@@ -72,9 +73,9 @@ Signal Lime is not a generic success colour. Functional states use semantic toke
 - Information: neutral guidance
 - Disabled: unavailable action
 
-## 11. Lime Usage
+## 11. Signal Green Usage
 
-Use Signal Lime for active navigation markers, selected states, priority indicators, focus rings, small progress cues, and directional emphasis.
+Use Electric Signal Green for primary calls to action, active navigation markers, priority indicators, focus rings, small progress cues, and directional emphasis.
 
 Do not use lime for body copy, long text, large backgrounds, generic success states, error states, decorative gradients, or multiple competing focal points on one screen.
 
@@ -84,7 +85,7 @@ Preserve the application type system. Use clear page titles, readable body copy,
 
 ## 13. Button Hierarchy
 
-- Primary: charcoal background, white foreground.
+- Primary: Electric Signal Green background, body-ink foreground.
 - Secondary: white or transparent background, charcoal text, neutral border.
 - Tertiary: text link with restrained accent treatment.
 

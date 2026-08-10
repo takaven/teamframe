@@ -107,7 +107,7 @@ export function RiskCard({ signal }: RiskCardProps) {
               <input type="hidden" name="nextStatus" value="in_progress" />
               <button
                 type="submit"
-                className="rounded-full border border-signal-amber/40 bg-white px-3 py-1.5 text-[12px] text-signal-amber transition hover:border-signal-amber"
+                className="rounded-lg border border-signal-amber/40 bg-white px-3 py-1.5 text-[12px] text-signal-amber transition hover:border-signal-amber"
               >
                 Start action
               </button>
@@ -120,7 +120,7 @@ export function RiskCard({ signal }: RiskCardProps) {
               <input type="hidden" name="nextStatus" value="done" />
               <button
                 type="submit"
-                className="rounded-full border border-signal-green/40 bg-white px-3 py-1.5 text-[12px] text-signal-green transition hover:border-signal-green"
+                className="rounded-lg border border-signal-green/40 bg-white px-3 py-1.5 text-[12px] text-signal-green transition hover:border-signal-green"
               >
                 Mark done
               </button>
@@ -129,14 +129,14 @@ export function RiskCard({ signal }: RiskCardProps) {
 
           <Link
             href={signal.primaryCtaHref}
-            className="rounded-full border border-ink-300 px-3 py-1.5 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900"
+            className="rounded-lg border border-ink-300 px-3 py-1.5 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900"
           >
             {signal.primaryCtaLabel}
           </Link>
           {signal.lane !== "resolved" ? (
             <Link
               href={signal.secondaryCtaHref}
-              className="rounded-full bg-ink-900 px-3 py-1.5 text-[12px] text-paper transition hover:bg-ink-700"
+              className="tf-primary-action inline-flex items-center px-3 py-1.5 text-[12px]"
             >
               {signal.actionTitle ?? signal.secondaryCtaLabel}
             </Link>

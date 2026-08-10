@@ -47,8 +47,9 @@ describe("TeamFrame brand system", () => {
     const globals = read("app/globals.css");
     const statusPill = read("components/StatusPill.tsx");
 
-    expect(globals).toContain("--color-brand-signal: #c8f500");
-    expect(globals).toContain("--brand-signal: #c8f500");
+    expect(globals).toContain("--color-brand-signal: #01ff22");
+    expect(globals).toContain("--brand-signal: #01ff22");
+    expect(globals).toContain("--brand-graphite: #42494d");
     expect(globals).toContain("--color-signal-green");
     expect(statusPill).toContain("bg-signal-green/10");
     expect(statusPill).not.toContain("brand-signal");
@@ -78,6 +79,7 @@ describe("TeamFrame brand system", () => {
     const appShell = read("components/AppShell.tsx");
 
     expect(appShell).toContain('{ href: "/dashboard", label: "Overview" }');
+    expect(appShell).toContain('{ href: "/org-chart", label: "Org chart" }');
     expect(appShell).toContain('{ href: "/employees", label: "Employees" }');
     expect(appShell).toContain('{ href: "/onboarding", label: "Onboarding" }');
     expect(appShell).toContain('{ href: "/leaves", label: "Leave" }');

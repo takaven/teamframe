@@ -5,7 +5,7 @@ import "./globals.css";
 // Display face for the wordmark and dashboard H1 only (see globals.css @theme).
 const fraunces = Fraunces({
   subsets: ["latin"],
-  weight: ["500", "600"],
+  weight: ["500", "600", "700", "800"],
   variable: "--font-fraunces",
   display: "swap",
 });

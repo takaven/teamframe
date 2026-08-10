@@ -305,7 +305,7 @@ export default async function EmployeesPage({
               </select>
               <button
                 type="submit"
-                className="rounded-md bg-ink-900 px-4 py-2 text-[13px] font-medium text-paper transition hover:bg-ink-700"
+                className="rounded-md bg-brand-signal px-4 py-2 text-[13px] font-medium text-ink-800 transition hover:bg-[#00E51F]"
               >
                 Apply
               </button>
@@ -528,7 +528,7 @@ export default async function EmployeesPage({
                     <PendingSubmitButton
                       idleLabel="Export due diligence pack"
                       pendingLabel="Preparing pack…"
-                      className="rounded-md bg-ink-900 px-4 py-2 text-[13px] font-medium text-paper transition hover:bg-ink-700 disabled:cursor-not-allowed disabled:bg-ink-300"
+                      className="rounded-md bg-brand-signal px-4 py-2 text-[13px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:cursor-not-allowed disabled:bg-ink-300"
                     />
                   </form>
                 </div>
@@ -607,7 +607,7 @@ export default async function EmployeesPage({
                   <PendingSubmitButton
                     idleLabel="Save"
                     pendingLabel="Saving…"
-                    className="rounded-md bg-ink-900 px-3 py-2 text-[14px] font-medium text-paper transition hover:bg-ink-700 disabled:cursor-not-allowed disabled:bg-ink-300"
+                    className="rounded-md bg-brand-signal px-3 py-2 text-[14px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:cursor-not-allowed disabled:bg-ink-300"
                   />
                 </div>
               </form>
@@ -884,7 +884,7 @@ export default async function EmployeesPage({
             <PendingSubmitButton
               idleLabel="Create employee"
               pendingLabel="Creating…"
-              className="rounded-md bg-ink-900 px-4 py-2 text-[14px] font-medium text-paper disabled:cursor-not-allowed disabled:bg-ink-300"
+              className="rounded-md bg-brand-signal px-4 py-2 text-[14px] font-medium text-ink-800 disabled:cursor-not-allowed disabled:bg-ink-300"
             />
           </div>
         </form>
