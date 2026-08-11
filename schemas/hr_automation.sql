@@ -228,8 +228,8 @@ begin
   )
   on conflict (tenant_id, event_key) do nothing;
 
-  insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)
-  select p_tenant_id, '00000000-0000-0000-0000-000000000000', 'automation.item_created', v_item_id
+  insert into audit_logs (tenant_id, actor_user_id, actor_type, action_type, target_id)
+  select p_tenant_id, '00000000-0000-0000-0000-000000000000', 'system', 'automation.item_created', v_item_id
   where not exists (
     select 1
     from audit_logs
@@ -357,8 +357,8 @@ begin
       )
       on conflict (tenant_id, event_key) do nothing;
 
-      insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)
-      values (p_tenant_id, '00000000-0000-0000-0000-000000000000', 'automation.item_escalated', p_item_id);
+      insert into audit_logs (tenant_id, actor_user_id, actor_type, action_type, target_id)
+      values (p_tenant_id, '00000000-0000-0000-0000-000000000000', 'system', 'automation.item_escalated', p_item_id);
 
       return jsonb_build_object('outcome', 'failed_escalated', 'item_id', p_item_id, 'attempt', v_attempt);
     end if;
@@ -399,8 +399,8 @@ begin
     )
     on conflict (tenant_id, event_key) do nothing;
 
-    insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)
-    values (p_tenant_id, '00000000-0000-0000-0000-000000000000', 'automation.routine_reminder', p_item_id);
+    insert into audit_logs (tenant_id, actor_user_id, actor_type, action_type, target_id)
+    values (p_tenant_id, '00000000-0000-0000-0000-000000000000', 'system', 'automation.routine_reminder', p_item_id);
   else
     update hr_automation_items
     set status = 'due',
@@ -441,8 +441,8 @@ begin
     )
     on conflict (tenant_id, event_key) do nothing;
 
-    insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)
-    select p_tenant_id, '00000000-0000-0000-0000-000000000000', 'automation.item_completed', p_item_id
+    insert into audit_logs (tenant_id, actor_user_id, actor_type, action_type, target_id)
+    select p_tenant_id, '00000000-0000-0000-0000-000000000000', 'system', 'automation.item_completed', p_item_id
     where not exists (
       select 1
       from audit_logs

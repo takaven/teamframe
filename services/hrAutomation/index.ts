@@ -47,6 +47,33 @@ export type RunAutomationItemResult = {
   attempt?: number;
 };
 
+export type AutomationDueItem = {
+  id: string;
+  tenant_id: string;
+  rule_key: string;
+  due_at: string;
+  status: "scheduled" | "due" | "failed" | "escalated" | "completed" | "suppressed";
+  next_attempt_at: string | null;
+};
+
+export type RunDueAutomationForTenantResult = {
+  tenantId: string;
+  checked: number;
+  processed: number;
+  skipped: number;
+  failed: number;
+  outcomes: RunAutomationItemResult[];
+};
+
+export type RunDueAutomationResult = {
+  tenants: number;
+  checked: number;
+  processed: number;
+  skipped: number;
+  failed: number;
+  tenantResults: RunDueAutomationForTenantResult[];
+};
+
 function iso(date: Date): string {
   return date.toISOString();
 }
@@ -93,4 +120,109 @@ export async function runAutomationItem(input: RunAutomationItemInput): Promise<
   }
 
   return data as RunAutomationItemResult;
+}
+
+export async function listDueAutomationItemsForTenant(input: {
+  tenantId: string;
+  now?: Date;
+  limit?: number;
+}): Promise<AutomationDueItem[]> {
+  const supabase: any = createServiceRoleClient();
+  const now = iso(input.now ?? new Date());
+  const limit = input.limit ?? 50;
+
+  const { data, error } = await supabase
+    .from("hr_automation_items")
+    .select("id, tenant_id, rule_key, due_at, status, next_attempt_at")
+    .eq("tenant_id", input.tenantId)
+    .in("status", ["scheduled", "due", "failed"])
+    .or(`due_at.lte.${now},next_attempt_at.lte.${now}`)
+    .order("due_at", { ascending: true })
+    .limit(limit);
+
+  if (error) {
+    throw new Error(`AUTOMATION_DUE_LOOKUP_FAILED: ${error.message}`);
+  }
+
+  return (data ?? []) as AutomationDueItem[];
+}
+
+export async function runDueAutomationForTenant(input: {
+  tenantId: string;
+  now?: Date;
+  limit?: number;
+}): Promise<RunDueAutomationForTenantResult> {
+  const now = input.now ?? new Date();
+  const dueItems = await listDueAutomationItemsForTenant({
+    tenantId: input.tenantId,
+    now,
+    limit: input.limit,
+  });
+
+  const outcomes: RunAutomationItemResult[] = [];
+  let failed = 0;
+  for (const item of dueItems) {
+    try {
+      outcomes.push(
+        await runAutomationItem({
+          tenantId: input.tenantId,
+          itemId: item.id,
+          now,
+          eventContext: {
+            runner: "api.automation.run",
+            rule_key: item.rule_key,
+          },
+        }),
+      );
+    } catch {
+      failed += 1;
+    }
+  }
+
+  const processed = outcomes.filter((outcome) =>
+    ["reminder_recorded", "completed", "failed_retry_scheduled", "failed_escalated"].includes(outcome.outcome),
+  ).length;
+  const skipped = outcomes.length - processed;
+
+  return {
+    tenantId: input.tenantId,
+    checked: dueItems.length,
+    processed,
+    skipped,
+    failed,
+    outcomes,
+  };
+}
+
+export async function runDueAutomation(input: { now?: Date; limitPerTenant?: number } = {}): Promise<RunDueAutomationResult> {
+  const supabase: any = createServiceRoleClient();
+  const { data, error } = await supabase.from("companies").select("id").is("archived_at", null);
+
+  if (error) {
+    throw new Error(`AUTOMATION_TENANT_LOOKUP_FAILED: ${error.message}`);
+  }
+
+  const tenantRows = (data ?? []) as Array<{ id: string }>;
+  const tenantResults: RunDueAutomationForTenantResult[] = [];
+  for (const tenant of tenantRows) {
+    tenantResults.push(
+      await runDueAutomationForTenant({
+        tenantId: tenant.id,
+        now: input.now,
+        limit: input.limitPerTenant,
+      }),
+    );
+  }
+
+  return tenantResults.reduce<RunDueAutomationResult>(
+    (summary, tenantResult) => ({
+      tenants: summary.tenants + 1,
+      checked: summary.checked + tenantResult.checked,
+      processed: summary.processed + tenantResult.processed,
+      skipped: summary.skipped + tenantResult.skipped,
+      failed: summary.failed + tenantResult.failed,
+      tenantResults: [...summary.tenantResults, tenantResult],
+    }),
+    { tenants: 0, checked: 0, processed: 0, skipped: 0, failed: 0, tenantResults: [] },
+  );
 }

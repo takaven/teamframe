@@ -6,12 +6,15 @@ create table if not exists audit_logs (
   id             uuid primary key default gen_random_uuid(),
   tenant_id      uuid        not null references companies(id) on delete restrict,
   actor_user_id  uuid        not null,
+  actor_type      text        not null default 'human',
   action_type    text        not null,
   target_id      uuid,
-  "timestamp"    timestamptz not null default now()
+  "timestamp"    timestamptz not null default now(),
+  check (actor_type in ('human', 'system'))
 );
 
 alter table audit_logs add column if not exists tenant_id uuid;
+alter table audit_logs add column if not exists actor_type text not null default 'human';
 
 update audit_logs
 set tenant_id = '00000000-0000-0000-0000-000000000001'
@@ -27,6 +30,7 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 
 create index if not exists audit_logs_actor_idx     on audit_logs(actor_user_id);
+create index if not exists audit_logs_actor_type_idx on audit_logs(actor_type);
 create index if not exists audit_logs_target_idx    on audit_logs(target_id);
 create index if not exists audit_logs_timestamp_idx on audit_logs("timestamp" desc);
 create index if not exists audit_logs_tenant_id_idx on audit_logs(tenant_id);

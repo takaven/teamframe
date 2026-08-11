@@ -64,7 +64,11 @@ describe("MR-2 HR automation operating layer", () => {
 
   it("audits automation events without exposing RPCs to browser roles", () => {
     const schema = read("schemas/hr_automation.sql");
+    const auditSchema = read("schemas/audit_logs.sql");
 
+    expect(auditSchema).toContain("actor_type");
+    expect(auditSchema).toContain("check (actor_type in ('human', 'system'))");
+    expect(auditSchema).toContain("audit_logs_actor_type_idx");
     for (const action of [
       "automation.item_created",
       "automation.routine_reminder",
@@ -73,6 +77,8 @@ describe("MR-2 HR automation operating layer", () => {
     ]) {
       expect(schema).toContain(action);
     }
+    expect(schema).toContain("'system'");
+    expect(schema).toContain("actor_type");
     expect(schema).toContain("revoke all on function teamframe_ensure_hr_automation_item");
     expect(schema).toContain("revoke all on function teamframe_run_hr_automation_item");
     expect(schema).toContain("from public, anon, authenticated");
@@ -127,5 +133,28 @@ describe("MR-2 HR automation operating layer", () => {
 
     expect(rpc).toHaveBeenNthCalledWith(1, "teamframe_ensure_hr_automation_item", expect.any(Object));
     expect(rpc).toHaveBeenNthCalledWith(2, "teamframe_run_hr_automation_item", expect.any(Object));
+  });
+
+  it("provides a protected background runner entrypoint without creating a workflow builder", () => {
+    const route = read("app/api/automation/run/route.ts");
+    const service = read("services/hrAutomation/index.ts");
+    const envExample = read(".env.example");
+    const tenancyGuard = read("scripts/guard-tenancy-filter.mjs");
+
+    expect(route).toContain("export async function POST");
+    expect(route).toContain("TEAMFRAME_AUTOMATION_SECRET");
+    expect(route).toContain("runDueAutomation");
+    expect(route).toContain("timingSafeEqual");
+    expect(route).not.toContain("export async function GET");
+    expect(service).toContain("runDueAutomationForTenant");
+    expect(service).toContain("listDueAutomationItemsForTenant");
+    expect(service).toContain(".from(\"hr_automation_items\")");
+    expect(service).toContain(".eq(\"tenant_id\", input.tenantId)");
+    expect(service).toContain(".in(\"status\", [\"scheduled\", \"due\", \"failed\"])");
+    expect(service).toContain("teamframe_run_hr_automation_item");
+    expect(envExample).toContain("TEAMFRAME_AUTOMATION_SECRET=");
+    expect(tenancyGuard).toContain("services/hrAutomation/index.ts");
+    expect(service).not.toContain("workflow builder");
+    expect(service).not.toContain("preferences");
   });
 });
