@@ -61,6 +61,11 @@ const ALLOWLIST = [
     table: "companies",
     enclosingFn: "runSignalsForAllTenants",
   },
+  {
+    file: "services/companySetupService.ts",
+    table: "companies",
+    enclosingFn: "getCompanySetupState",
+  },
 ];
 
 // ── Non-DB `.from(...)` patterns that should be ignored entirely ───────────

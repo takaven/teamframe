@@ -46,6 +46,49 @@ as $$
     or abs(extract(epoch from (p_actual - p_expected))) < 0.001;
 $$;
 
+create or replace function teamframe_complete_company_setup(
+  p_tenant_id uuid,
+  p_actor_user_id uuid,
+  p_name text,
+  p_country text,
+  p_location text,
+  p_annual_leave_default_days integer,
+  p_sick_leave_default_days integer
+)
+returns companies
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_company companies;
+begin
+  update companies
+  set
+    name = p_name,
+    country = p_country,
+    location = nullif(p_location, ''),
+    annual_leave_default_days = p_annual_leave_default_days,
+    sick_leave_default_days = p_sick_leave_default_days,
+    unpaid_leave_enabled = true,
+    other_leave_enabled = true,
+    setup_completed_at = coalesce(setup_completed_at, clock_timestamp()),
+    setup_completed_by = coalesce(setup_completed_by, p_actor_user_id)
+  where id = p_tenant_id
+    and archived_at is null
+  returning * into v_company;
+
+  if not found then
+    raise exception 'COMPANY_NOT_FOUND';
+  end if;
+
+  insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)
+  values (p_tenant_id, p_actor_user_id, 'company.setup_completed', p_tenant_id);
+
+  return v_company;
+end;
+$$;
+
 create or replace function teamframe_create_employee(
   p_tenant_id uuid,
   p_actor_user_id uuid,
@@ -492,6 +535,7 @@ revoke all on function teamframe_derive_employee_lifecycle(
   employee_status, employee_setup_status, date, date, employee_lifecycle_state
 ) from public, anon, authenticated;
 revoke all on function teamframe_timestamp_matches(timestamptz, timestamptz) from public, anon, authenticated;
+revoke all on function teamframe_complete_company_setup(uuid, uuid, text, text, text, integer, integer) from public, anon, authenticated;
 revoke all on function teamframe_update_employee(uuid, uuid, uuid, timestamptz, jsonb) from public, anon, authenticated;
 revoke all on function teamframe_archive_employee(uuid, uuid, uuid, timestamptz) from public, anon, authenticated;
 revoke all on function teamframe_submit_leave(uuid, uuid, uuid, date, date) from public, anon, authenticated;
@@ -507,6 +551,7 @@ grant execute on function teamframe_derive_employee_lifecycle(
   employee_status, employee_setup_status, date, date, employee_lifecycle_state
 ) to service_role;
 grant execute on function teamframe_timestamp_matches(timestamptz, timestamptz) to service_role;
+grant execute on function teamframe_complete_company_setup(uuid, uuid, text, text, text, integer, integer) to service_role;
 grant execute on function teamframe_update_employee(uuid, uuid, uuid, timestamptz, jsonb) to service_role;
 grant execute on function teamframe_archive_employee(uuid, uuid, uuid, timestamptz) to service_role;
 grant execute on function teamframe_submit_leave(uuid, uuid, uuid, date, date) to service_role;

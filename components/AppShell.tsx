@@ -5,6 +5,7 @@ import { BrandLogo } from "@/components/BrandLogo";
 
 const ADMIN_LINKS = [
   { href: "/dashboard", label: "Overview" },
+  { href: "/setup", label: "Setup" },
   { href: "/org-chart", label: "Org chart" },
   { href: "/employees", label: "Employees" },
   { href: "/onboarding", label: "Onboarding" },
