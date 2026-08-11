@@ -411,7 +411,6 @@ begin
     from employment_changes
     where tenant_id = p_tenant_id
       and employee_id = p_employee_id
-      and effective_date = p_effective_date
       and status = 'pending'
       and change_keys && v_keys
       and idempotency_key <> v_idempotency_key

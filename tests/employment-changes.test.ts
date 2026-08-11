@@ -58,7 +58,7 @@ describe("MR-3A employment changes and people truth", () => {
     expect(schema).not.toContain("workflow_builder");
   });
 
-  it("records old/new values, conflicts, cancellation and service-role-only RPCs", () => {
+  it("records old/new values, pending-fact conflicts, cancellation and service-role-only RPCs", () => {
     const schema = read("schemas/employment_changes.sql");
     const rls = read("schemas/tenancy_rls.sql");
 
@@ -66,6 +66,8 @@ describe("MR-3A employment changes and people truth", () => {
     expect(schema).toContain("old_values");
     expect(schema).toContain("new_values");
     expect(schema).toContain("EMPLOYMENT_CHANGE_CONFLICT");
+    expect(schema).toContain("and change_keys && v_keys");
+    expect(schema).not.toContain("and effective_date = p_effective_date");
     expect(schema).toContain("teamframe_cancel_employment_change");
     expect(schema).toContain("status = 'cancelled'");
     expect(schema).toContain("status = 'suppressed'");
