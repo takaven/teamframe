@@ -174,6 +174,29 @@ describe("resolveIdentity tenant binding", () => {
     expect(db.employees[0]?.auth_user_id).toBeNull();
   });
 
+  it("does not reactivate an exited employee into self-service", async () => {
+    db.employees = [
+      {
+        id: "emp-a",
+        tenant_id: "TENANT_A",
+        auth_user_id: "auth-user-1",
+        email: "shared@example.test",
+        status: "active",
+        setup_status: "ready",
+        lifecycle_state: "exited",
+        start_date: "2026-01-01",
+        end_date: "2026-08-01",
+        deleted_at: null,
+      },
+    ];
+
+    await expect(resolveIdentity("auth-user-1")).rejects.toThrow(
+      "RBAC: employee lifecycle is not eligible for self-service",
+    );
+    expect(updates).toHaveLength(0);
+    expect(db.employees[0]?.setup_status).toBe("ready");
+  });
+
   it("returns an unlinked employee identity when tenant metadata is missing", async () => {
     authUser = {
       id: "auth-user-1",

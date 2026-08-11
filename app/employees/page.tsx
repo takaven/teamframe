@@ -144,10 +144,11 @@ export default async function EmployeesPage({
   const documentsByEmployee = new Map(
     employeeDocuments.map((item) => [item.employeeId, item.documents]),
   );
-  const invitePending = employees.filter((e) => e.status !== "inactive" && e.setup_status === "incomplete").length;
-  const inviteSent = employees.filter((e) => e.status !== "inactive" && e.setup_status === "ready").length;
-  const inviteActivated = employees.filter((e) => e.setup_status === "active").length;
-  const archived = employees.filter((e) => e.status === "inactive").length;
+  const currentEmployees = employees.filter((e) => e.canonical_lifecycle !== "FORMER");
+  const invitePending = currentEmployees.filter((e) => e.setup_status === "incomplete").length;
+  const inviteSent = currentEmployees.filter((e) => e.setup_status === "ready").length;
+  const inviteActivated = currentEmployees.filter((e) => e.setup_status === "active").length;
+  const archived = employees.filter((e) => e.canonical_lifecycle === "FORMER").length;
   const query = (q ?? "").trim().toLowerCase();
   const activeFilter = filter === "attention" || filter === "active" || filter === "archived" ? filter : "all";
 
@@ -217,13 +218,13 @@ export default async function EmployeesPage({
       employee.role_title.toLowerCase().includes(query) ||
       employee.department.toLowerCase().includes(query);
     const hasAttention =
-      employee.status !== "inactive" &&
+      employee.canonical_lifecycle !== "FORMER" &&
       (employee.setup_status !== "active" || Boolean(employee.invite_last_error));
     const matchesFilter =
       activeFilter === "all" ||
       (activeFilter === "attention" && hasAttention) ||
-      (activeFilter === "active" && employee.status !== "inactive") ||
-      (activeFilter === "archived" && employee.status === "inactive");
+      (activeFilter === "active" && employee.canonical_lifecycle !== "FORMER") ||
+      (activeFilter === "archived" && employee.canonical_lifecycle === "FORMER");
     return matchesQuery && matchesFilter;
   });
   const detailEmployees = employeeParam
@@ -503,7 +504,7 @@ export default async function EmployeesPage({
                   </div>
                   <div>
                     <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Lifecycle state</dt>
-                    <dd className="mt-0.5 capitalize text-ink-900">{employee.lifecycle_state.replace("_", " ")}</dd>
+                    <dd className="mt-0.5 text-ink-900">{employee.canonical_lifecycle_label}</dd>
                   </div>
                   <div>
                     <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Invite state</dt>

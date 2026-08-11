@@ -8,6 +8,7 @@ const leaveService = readFileSync(join(process.cwd(), "services", "leaveService"
 const schemaOrder = readFileSync(join(process.cwd(), "scripts", "schema-order.mjs"), "utf8");
 
 const expectedFunctions = [
+  "teamframe_derive_employee_lifecycle",
   "teamframe_create_employee",
   "teamframe_update_employee",
   "teamframe_archive_employee",
@@ -26,7 +27,7 @@ describe("transactional mutation RPCs", () => {
   });
 
   it("write audit rows inside the same database function as the mutation", () => {
-    for (const fn of expectedFunctions) {
+    for (const fn of expectedFunctions.filter((name) => name !== "teamframe_derive_employee_lifecycle")) {
       const start = migration.indexOf(`function ${fn}`);
       expect(start, `${fn} exists`).toBeGreaterThanOrEqual(0);
       const nextFunction = migration.indexOf("create or replace function", start + 1);
@@ -34,6 +35,37 @@ describe("transactional mutation RPCs", () => {
       expect(body).toContain("insert into audit_logs");
       expect(body).toMatch(/return(?:ing)? \* into v_/i);
     }
+  });
+
+  it("derives employee lifecycle at the transactional write boundary", () => {
+    expect(migration).toContain("function teamframe_derive_employee_lifecycle");
+    expect(migration).toContain("p_status = 'inactive'");
+    expect(migration).toContain("p_end_date is not null and p_end_date < current_date");
+    expect(migration).toContain("p_start_date is not null and p_start_date > current_date");
+    expect(migration).toContain("teamframe_derive_employee_lifecycle(p_status, p_setup_status, p_start_date, p_end_date, null)");
+    expect(migration).toContain("lifecycle_state = teamframe_derive_employee_lifecycle");
+  });
+
+  it("archives employees into former state and vacates occupied positions", () => {
+    const start = migration.indexOf("function teamframe_archive_employee");
+    const nextFunction = migration.indexOf("create or replace function", start + 1);
+    const body = migration.slice(start, nextFunction === -1 ? undefined : nextFunction);
+
+    expect(body).toContain("status = 'inactive'");
+    expect(body).toContain("lifecycle_state = 'exited'");
+    expect(body).toContain("update positions");
+    expect(body).toContain("set assigned_employee_id = null");
+    expect(body).toContain("position.vacated_by_employee_archive");
+  });
+
+  it("prevents non-eligible employees from submitting leave in the RPC", () => {
+    const start = migration.indexOf("function teamframe_submit_leave");
+    const nextFunction = migration.indexOf("create or replace function", start + 1);
+    const body = migration.slice(start, nextFunction === -1 ? undefined : nextFunction);
+
+    expect(body).toContain("teamframe_derive_employee_lifecycle");
+    expect(body).toContain("not in ('active', 'offboarding')");
+    expect(body).toContain("LEAVE_EMPLOYEE_NOT_ELIGIBLE");
   });
 
   it("routes employee and leave database mutations through RPCs", () => {

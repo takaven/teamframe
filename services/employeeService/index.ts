@@ -19,6 +19,11 @@ import { env } from "@/lib/db/env";
 import { track } from "@/lib/telemetry/track";
 import { logSchemaCapability } from "@/lib/telemetry/logger";
 import { maybeFireActivationCompleted } from "@/services/onboardingService";
+import {
+  canonicalLifecycleLabel,
+  projectEmployeeLifecycle,
+  type CanonicalEmployeeLifecycle,
+} from "@/services/employeeLifecycle";
 
 export const ORG_CHART_FIELDS = [
   "id",
@@ -49,6 +54,8 @@ export type EmployeeFullRecord = OrgChartEmployee & {
   start_date: string | null;
   end_date: string | null;
   lifecycle_state: EmployeeLifecycleState;
+  canonical_lifecycle: CanonicalEmployeeLifecycle;
+  canonical_lifecycle_label: string;
   grade: string | null;
   setup_status: "incomplete" | "ready" | "active";
   invite_attempt_count: number;
@@ -372,6 +379,13 @@ function toEmployeeFullRecord(row: EmployeeRow): EmployeeFullRecord {
   };
   const fallbackLifecycleState: EmployeeLifecycleState =
     row.status === "inactive" ? "exited" : row.status === "on_leave" ? "on_leave" : "active";
+  const canonicalLifecycle = projectEmployeeLifecycle({
+    status: row.status,
+    setup_status: row.setup_status,
+    lifecycle_state: maybeProfile.lifecycle_state ?? fallbackLifecycleState,
+    start_date: maybeProfile.start_date ?? null,
+    end_date: maybeProfile.end_date ?? null,
+  });
 
   return {
     id: row.id,
@@ -387,6 +401,8 @@ function toEmployeeFullRecord(row: EmployeeRow): EmployeeFullRecord {
     start_date: maybeProfile.start_date ?? null,
     end_date: maybeProfile.end_date ?? null,
     lifecycle_state: maybeProfile.lifecycle_state ?? fallbackLifecycleState,
+    canonical_lifecycle: canonicalLifecycle,
+    canonical_lifecycle_label: canonicalLifecycleLabel(canonicalLifecycle),
     grade: row.grade,
     setup_status: row.setup_status,
     invite_attempt_count: maybeTelemetry.invite_attempt_count ?? 0,

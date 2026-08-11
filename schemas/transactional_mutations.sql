@@ -1,5 +1,38 @@
 -- TeamFrame hardening — transactional database mutations with audit evidence.
 
+create or replace function teamframe_derive_employee_lifecycle(
+  p_status employee_status,
+  p_setup_status employee_setup_status,
+  p_start_date date,
+  p_end_date date,
+  p_requested_lifecycle employee_lifecycle_state default null
+)
+returns employee_lifecycle_state
+language plpgsql
+stable
+set search_path = public
+as $$
+begin
+  if p_status = 'inactive' or (p_end_date is not null and p_end_date < current_date) then
+    return 'exited';
+  end if;
+
+  if p_requested_lifecycle in ('offboarding', 'exited') then
+    return p_requested_lifecycle;
+  end if;
+
+  if p_requested_lifecycle = 'on_leave' or p_status = 'on_leave' then
+    return 'on_leave';
+  end if;
+
+  if p_requested_lifecycle = 'preboarding' or (p_start_date is not null and p_start_date > current_date) then
+    return 'preboarding';
+  end if;
+
+  return 'active';
+end;
+$$;
+
 create or replace function teamframe_create_employee(
   p_tenant_id uuid,
   p_actor_user_id uuid,
@@ -39,6 +72,7 @@ begin
     manager_id,
     grade,
     status,
+    lifecycle_state,
     setup_status
   )
   values (
@@ -55,6 +89,7 @@ begin
     p_manager_id,
     p_grade,
     p_status,
+    teamframe_derive_employee_lifecycle(p_status, p_setup_status, p_start_date, p_end_date, null),
     p_setup_status
   )
   returning * into v_employee;
@@ -106,7 +141,17 @@ begin
       else grade
     end,
     status = case when p_patch ? 'status' then (p_patch ->> 'status')::employee_status else status end,
-    lifecycle_state = case when p_patch ? 'lifecycle_state' then (p_patch ->> 'lifecycle_state')::employee_lifecycle_state else lifecycle_state end,
+    lifecycle_state = teamframe_derive_employee_lifecycle(
+      case when p_patch ? 'status' then (p_patch ->> 'status')::employee_status else status end,
+      case when p_patch ? 'setup_status' then (p_patch ->> 'setup_status')::employee_setup_status else setup_status end,
+      case when p_patch ? 'start_date' then (p_patch ->> 'start_date')::date else start_date end,
+      case
+        when p_patch ? 'end_date' and jsonb_typeof(p_patch -> 'end_date') = 'null' then null
+        when p_patch ? 'end_date' then (p_patch ->> 'end_date')::date
+        else end_date
+      end,
+      case when p_patch ? 'lifecycle_state' then (p_patch ->> 'lifecycle_state')::employee_lifecycle_state else lifecycle_state end
+    ),
     setup_status = case when p_patch ? 'setup_status' then (p_patch ->> 'setup_status')::employee_setup_status else setup_status end
   where tenant_id = p_tenant_id
     and id = p_employee_id
@@ -138,10 +183,12 @@ set search_path = public
 as $$
 declare
   v_employee employees;
+  v_vacated_position_ids uuid[] := '{}';
 begin
   update employees
   set
     deleted_at = clock_timestamp(),
+    status = 'inactive',
     lifecycle_state = 'exited'
   where tenant_id = p_tenant_id
     and id = p_employee_id
@@ -155,6 +202,21 @@ begin
 
   insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)
   values (p_tenant_id, p_actor_user_id, 'employee.archived', p_employee_id);
+
+  with vacated_positions as (
+    update positions
+    set assigned_employee_id = null
+    where tenant_id = p_tenant_id
+      and assigned_employee_id = p_employee_id
+      and deleted_at is null
+    returning id
+  )
+  select coalesce(array_agg(id), '{}') into v_vacated_position_ids
+  from vacated_positions;
+
+  insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)
+  select p_tenant_id, p_actor_user_id, 'position.vacated_by_employee_archive', position_id
+  from unnest(v_vacated_position_ids) as position_id;
 
   return v_employee;
 end;
@@ -174,7 +236,28 @@ set search_path = public
 as $$
 declare
   v_leave leaves;
+  v_employee employees;
 begin
+  select * into v_employee
+  from employees
+  where tenant_id = p_tenant_id
+    and id = p_employee_id
+    and deleted_at is null;
+
+  if not found then
+    raise exception 'LEAVE_EMPLOYEE_NOT_ELIGIBLE';
+  end if;
+
+  if teamframe_derive_employee_lifecycle(
+    v_employee.status,
+    v_employee.setup_status,
+    v_employee.start_date,
+    v_employee.end_date,
+    v_employee.lifecycle_state
+  ) not in ('active', 'offboarding') then
+    raise exception 'LEAVE_EMPLOYEE_NOT_ELIGIBLE';
+  end if;
+
   insert into leaves (tenant_id, employee_id, start_date, end_date, status)
   values (p_tenant_id, p_employee_id, p_start_date, p_end_date, 'pending')
   returning * into v_leave;
@@ -392,6 +475,9 @@ $$;
 revoke all on function teamframe_create_employee(
   uuid, uuid, text, text, text, text, text, employment_type, text, date, date, uuid, text, employee_status, employee_setup_status
 ) from public, anon, authenticated;
+revoke all on function teamframe_derive_employee_lifecycle(
+  employee_status, employee_setup_status, date, date, employee_lifecycle_state
+) from public, anon, authenticated;
 revoke all on function teamframe_update_employee(uuid, uuid, uuid, timestamptz, jsonb) from public, anon, authenticated;
 revoke all on function teamframe_archive_employee(uuid, uuid, uuid, timestamptz) from public, anon, authenticated;
 revoke all on function teamframe_submit_leave(uuid, uuid, uuid, date, date) from public, anon, authenticated;
@@ -402,6 +488,9 @@ revoke all on function teamframe_delete_position(uuid, uuid, uuid, timestamptz) 
 
 grant execute on function teamframe_create_employee(
   uuid, uuid, text, text, text, text, text, employment_type, text, date, date, uuid, text, employee_status, employee_setup_status
+) to service_role;
+grant execute on function teamframe_derive_employee_lifecycle(
+  employee_status, employee_setup_status, date, date, employee_lifecycle_state
 ) to service_role;
 grant execute on function teamframe_update_employee(uuid, uuid, uuid, timestamptz, jsonb) to service_role;
 grant execute on function teamframe_archive_employee(uuid, uuid, uuid, timestamptz) to service_role;

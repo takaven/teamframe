@@ -25,6 +25,7 @@ const ERROR_COPY: Record<string, string> = {
   STALE_WRITE: "This request changed. Refresh and try again.",
   MISSING_EXPECTED_UPDATED_AT: "This action is out of date. Refresh and retry.",
   INVALID_INPUT: "Check the dates and try again.",
+  LEAVE_EMPLOYEE_NOT_ELIGIBLE: "Leave requests are only available to active employees.",
   LEAVE_SUBMIT_FAILED: "Could not submit leave request.",
   LEAVE_DECISION_FAILED: "Could not record decision.",
   AUDIT_LOG_FAILED: "Could not record required audit trail. No change was applied.",

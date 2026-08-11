@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
+import { CURRENT_EMPLOYEE_DB_LIFECYCLE_STATES } from "@/services/employeeLifecycle";
 
 import type { SignalSeverity } from "@/services/signalEngine/contracts";
 
@@ -76,7 +77,7 @@ export async function reconcileMissingJurisdictionRequirementSignals(params: {
     .eq("tenant_id", params.tenantId)
     .is("deleted_at", null)
     .not("country", "is", null)
-    .in("lifecycle_state", ["preboarding", "active", "on_leave", "offboarding"]);
+    .in("lifecycle_state", CURRENT_EMPLOYEE_DB_LIFECYCLE_STATES as unknown as string[]);
 
   if (employeeError) {
     throw new Error(`MISSING_JURISDICTION_REQUIREMENT_EMPLOYEE_QUERY_FAILED: ${employeeError.message}`);

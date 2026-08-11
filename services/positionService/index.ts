@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { Actor } from "@/middleware/rbac";
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
+import { isCurrentEmployee, type LegacyEmployeeLifecycleState } from "@/services/employeeLifecycle";
 
 const DOCUMENT_BUCKET = "documents";
 const MAX_JD_BYTES = 10 * 1024 * 1024;
@@ -51,6 +52,10 @@ type EmployeeAssignmentRow = {
   id: string;
   full_name: string;
   status: "active" | "on_leave" | "inactive";
+  setup_status: "incomplete" | "ready" | "active";
+  lifecycle_state: LegacyEmployeeLifecycleState;
+  start_date: string | null;
+  end_date: string | null;
   deleted_at: string | null;
 };
 
@@ -94,7 +99,7 @@ function requireAdmin(actor: Actor): void {
 }
 
 function derivePositionStatus(row: PositionRow, employee?: EmployeeAssignmentRow | null): "Vacant" | "Filled" {
-  if (!row.assigned_employee_id || !employee || employee.deleted_at || employee.status === "inactive") {
+  if (!row.assigned_employee_id || !employee || !isCurrentEmployee(employee)) {
     return "Vacant";
   }
   return "Filled";
@@ -102,15 +107,16 @@ function derivePositionStatus(row: PositionRow, employee?: EmployeeAssignmentRow
 
 function toPositionRecord(row: PositionRow, employeesById: Map<string, EmployeeAssignmentRow>): PositionRecord {
   const employee = row.assigned_employee_id ? employeesById.get(row.assigned_employee_id) ?? null : null;
+  const status = derivePositionStatus(row, employee);
   return {
     id: row.id,
     title: row.title,
     department: row.department,
     parent_position_id: row.parent_position_id,
     assigned_employee_id: row.assigned_employee_id,
-    assigned_employee_name: employee?.full_name ?? null,
+    assigned_employee_name: status === "Filled" ? employee?.full_name ?? null : null,
     note: row.note,
-    status: derivePositionStatus(row, employee),
+    status,
     jd_attached: Boolean(row.jd_storage_path),
     jd_original_filename: row.jd_original_filename,
     jd_mime_type: row.jd_mime_type,
@@ -196,7 +202,7 @@ export async function listPositions(actor: Actor): Promise<PositionRecord[]> {
   if (employeeIds.length > 0) {
     const { data: employeeData, error: employeeError } = await supabase
       .from("employees")
-      .select("id, full_name, status, deleted_at")
+      .select("id, full_name, status, setup_status, lifecycle_state, start_date, end_date, deleted_at")
       .eq("tenant_id", tenantId)
       .in("id", employeeIds);
     if (employeeError) throw new Error(`POSITION_EMPLOYEE_LIST_FAILED: ${employeeError.message}`);

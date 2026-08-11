@@ -15,6 +15,7 @@
 
 import "server-only";
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
+import { isSelfServiceEligibleEmployee, type LegacyEmployeeLifecycleState } from "@/services/employeeLifecycle";
 
 export type Role = "admin" | "employee";
 
@@ -47,7 +48,7 @@ export async function resolveIdentity(authUserId: string): Promise<ResolvedIdent
 
   const { data: linkedEmployeeData, error: linkedEmpErr } = await supabase
     .from("employees")
-    .select("id, tenant_id, auth_user_id, setup_status")
+    .select("id, tenant_id, auth_user_id, status, setup_status, lifecycle_state, start_date, end_date, deleted_at")
     .eq("auth_user_id", data.user.id)
     .is("deleted_at", null)
     .maybeSingle();
@@ -61,7 +62,12 @@ export async function resolveIdentity(authUserId: string): Promise<ResolvedIdent
         id: string;
         tenant_id: string;
         auth_user_id: string | null;
+        status: "active" | "on_leave" | "inactive";
         setup_status: "incomplete" | "ready" | "active";
+        lifecycle_state: LegacyEmployeeLifecycleState;
+        start_date: string | null;
+        end_date: string | null;
+        deleted_at: string | null;
       }
     | null;
 
@@ -77,7 +83,7 @@ export async function resolveIdentity(authUserId: string): Promise<ResolvedIdent
   if (!employee && jwtTenantId) {
     const { data: employeeByEmail, error: empErr } = await supabase
       .from("employees")
-      .select("id, tenant_id, auth_user_id, setup_status")
+      .select("id, tenant_id, auth_user_id, status, setup_status, lifecycle_state, start_date, end_date, deleted_at")
       .eq("email", email)
       .eq("tenant_id", jwtTenantId)
       .is("deleted_at", null)
@@ -94,9 +100,18 @@ export async function resolveIdentity(authUserId: string): Promise<ResolvedIdent
           id: string;
           tenant_id: string;
           auth_user_id: string | null;
+          status: "active" | "on_leave" | "inactive";
           setup_status: "incomplete" | "ready" | "active";
+          lifecycle_state: LegacyEmployeeLifecycleState;
+          start_date: string | null;
+          end_date: string | null;
+          deleted_at: string | null;
         }
       | undefined) ?? null;
+  }
+
+  if (employee && !isSelfServiceEligibleEmployee(employee)) {
+    throw new Error("RBAC: employee lifecycle is not eligible for self-service");
   }
 
   // Keep auth.users -> employees linkage stable after first successful login.

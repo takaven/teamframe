@@ -1,15 +1,14 @@
 import "server-only";
 
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
+import type { LegacyEmployeeLifecycleState } from "@/services/employeeLifecycle";
 
 export type SignalSeverity = "red" | "yellow";
-
-type EmployeeLifecycleState = "preboarding" | "active" | "exited";
 
 type EmployeeRow = {
   id: string;
   tenant_id: string;
-  lifecycle_state: EmployeeLifecycleState;
+  lifecycle_state: LegacyEmployeeLifecycleState;
   start_date: string | null;
   deleted_at: string | null;
 };
@@ -95,6 +94,10 @@ export function evaluateMissingContractSeverity(
   if (employee.lifecycle_state === "exited") return null;
 
   if (employee.lifecycle_state === "active") {
+    return "red";
+  }
+
+  if (employee.lifecycle_state === "on_leave") {
     return "red";
   }
 

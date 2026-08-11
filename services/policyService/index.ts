@@ -16,6 +16,7 @@ import "server-only";
 import { z } from "zod";
 import type { Actor } from "@/middleware/rbac";
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
+import { CURRENT_EMPLOYEE_DB_LIFECYCLE_STATES } from "@/services/employeeLifecycle";
 
 export type PolicyRecord = {
   id: string;
@@ -202,14 +203,13 @@ export async function listPolicies(actor: Actor): Promise<PolicyAdminRecord[]> {
 
   const acknowledgements = (acknowledgementData ?? []) as AcknowledgementRow[];
 
-  // Mirror the signal engine's eligibility filter (unacknowledgedPolicy.ts):
-  // non-deleted employees who are not exited.
+  // Non-deleted employees who remain in the current employee lifecycle.
   const { data: employeeData, error: employeeError } = await supabase
     .from("employees")
     .select("id, tenant_id, full_name, email, lifecycle_state, deleted_at")
     .eq("tenant_id", tenantId)
     .is("deleted_at", null)
-    .in("lifecycle_state", ["preboarding", "active", "on_leave", "offboarding"]);
+    .in("lifecycle_state", CURRENT_EMPLOYEE_DB_LIFECYCLE_STATES as unknown as string[]);
 
   if (employeeError) {
     throw new Error(`POLICY_EMPLOYEE_LIST_FAILED: ${employeeError.message}`);

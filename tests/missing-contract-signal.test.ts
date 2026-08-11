@@ -142,10 +142,18 @@ describe("missing contract severity transitions", () => {
     ).toBe("red");
   });
 
-  it("returns red for active without signed contract and null for exited", () => {
+  it("returns red for active or on-leave without signed contract and null for exited", () => {
     expect(
       evaluateMissingContractSeverity(
         { lifecycle_state: "active", start_date: "2026-05-01" },
+        false,
+        now,
+      ),
+    ).toBe("red");
+
+    expect(
+      evaluateMissingContractSeverity(
+        { lifecycle_state: "on_leave", start_date: "2026-05-01" },
         false,
         now,
       ),

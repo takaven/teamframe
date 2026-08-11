@@ -3,13 +3,12 @@ import "server-only";
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 
 import type { SignalSeverity } from "@/services/signalEngine/contracts";
-
-type EmployeeLifecycleState = "preboarding" | "active" | "exited";
+import type { LegacyEmployeeLifecycleState } from "@/services/employeeLifecycle";
 
 type EmployeeRow = {
   id: string;
   tenant_id: string;
-  lifecycle_state: EmployeeLifecycleState;
+  lifecycle_state: LegacyEmployeeLifecycleState;
   deleted_at: string | null;
 };
 

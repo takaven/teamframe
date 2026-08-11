@@ -13,6 +13,7 @@ import type { Actor } from "@/middleware/rbac";
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 import { track } from "@/lib/telemetry/track";
 import { maybeFireActivationCompleted } from "@/services/onboardingService";
+import { isLeaveRequestEligibleEmployee, type LegacyEmployeeLifecycleState } from "@/services/employeeLifecycle";
 
 export type LeaveStatus = "pending" | "approved" | "rejected";
 
@@ -148,6 +149,34 @@ export async function submitLeaveRequest(
   }
 
   const supabase = createServiceRoleClient();
+  const { data: employeeData, error: employeeError } = await supabase
+    .from("employees")
+    .select("id, status, setup_status, lifecycle_state, start_date, end_date, deleted_at")
+    .eq("tenant_id", tenantId)
+    .eq("id", employeeId)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (employeeError) {
+    throw new Error(`LEAVE_EMPLOYEE_FETCH_FAILED: ${employeeError.message}`);
+  }
+  if (!employeeData) {
+    throw new Error("NO_EMPLOYEE_RECORD");
+  }
+
+  const employee = employeeData as {
+    id: string;
+    status: "active" | "on_leave" | "inactive";
+    setup_status: "incomplete" | "ready" | "active";
+    lifecycle_state: LegacyEmployeeLifecycleState;
+    start_date: string | null;
+    end_date: string | null;
+    deleted_at: string | null;
+  };
+  if (!isLeaveRequestEligibleEmployee(employee)) {
+    throw new Error("LEAVE_EMPLOYEE_NOT_ELIGIBLE");
+  }
+
   const { data, error } = await supabase
     .rpc("teamframe_submit_leave", {
       p_tenant_id: tenantId,
