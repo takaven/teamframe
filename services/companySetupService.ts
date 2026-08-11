@@ -2,8 +2,6 @@ import "server-only";
 import { z } from "zod";
 import type { Actor } from "@/middleware/rbac";
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
-import { createEmployee } from "@/services/employeeService";
-import { createPosition } from "@/services/positionService";
 
 export type CompanySetupState = {
   id: string;
@@ -159,45 +157,10 @@ export async function completeGuidedCompanySetup(actor: Actor, input: unknown): 
   const positions = parseSetupPositions(parsed.positionsText);
   const employees = parseSetupEmployees(parsed.employeesText);
   const supabase = createServiceRoleClient();
-
-  const createdEmployees = new Map<string, string>();
-  for (const employee of employees) {
-    const created = await createEmployee(actor, {
-      full_name: employee.fullName,
-      email: employee.email,
-      role_title: employee.roleTitle,
-      department: employee.department,
-      timezone: "UTC",
-      employment_type: "full_time",
-      country: parsed.country,
-      start_date: employee.startDate,
-      status: "active",
-      setup_status: "incomplete",
-    });
-    const key = normaliseTitle(employee.roleTitle);
-    if (!createdEmployees.has(key)) {
-      createdEmployees.set(key, created.id);
-    } else {
-      createdEmployees.set(key, "");
-    }
-  }
-
-  const positionIds = new Map<string, string>();
-  for (const position of orderPositionsForCreation(positions)) {
-    const parentId = position.reportsToTitle ? positionIds.get(normaliseTitle(position.reportsToTitle)) ?? null : null;
-    const matchingEmployeeId = createdEmployees.get(normaliseTitle(position.title));
-    const created = await createPosition(actor, {
-      title: position.title,
-      department: position.department,
-      parentPositionId: parentId,
-      assignedEmployeeId: matchingEmployeeId || null,
-      note: null,
-    });
-    positionIds.set(normaliseTitle(position.title), created.id);
-  }
+  const orderedPositions = orderPositionsForCreation(positions);
 
   const { data, error } = await supabase
-    .rpc("teamframe_complete_company_setup", {
+    .rpc("teamframe_complete_guided_company_setup", {
       p_tenant_id: tenantId,
       p_actor_user_id: actor.authUserId,
       p_name: parsed.companyName,
@@ -205,6 +168,8 @@ export async function completeGuidedCompanySetup(actor: Actor, input: unknown): 
       p_location: parsed.location ?? "",
       p_annual_leave_default_days: parsed.annualLeaveDefaultDays,
       p_sick_leave_default_days: parsed.sickLeaveDefaultDays,
+      p_positions: orderedPositions,
+      p_employees: employees,
     } as never)
     .single();
 

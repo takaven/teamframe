@@ -100,13 +100,15 @@ describe("guided company setup source contracts", () => {
     expect(setupPage).toContain("already-provisioned admin");
   });
 
-  it("uses existing employee lifecycle and position creation services for first setup records", () => {
+  it("uses one atomic setup RPC for first employees and positions", () => {
     const service = read("services/companySetupService.ts");
     const appShell = read("components/AppShell.tsx");
 
-    expect(service).toContain("createEmployee(actor");
-    expect(service).toContain('setup_status: "incomplete"');
-    expect(service).toContain("createPosition(actor");
+    expect(service).toContain('rpc("teamframe_complete_guided_company_setup"');
+    expect(service).toContain("p_positions: orderedPositions");
+    expect(service).toContain("p_employees: employees");
+    expect(service).not.toContain("createEmployee(actor");
+    expect(service).not.toContain("createPosition(actor");
     expect(service).toContain("SETUP_ALREADY_COMPLETED");
     expect(appShell).toContain('{ href: "/setup", label: "Setup" }');
   });
@@ -115,9 +117,19 @@ describe("guided company setup source contracts", () => {
     const migration = read("schemas/transactional_mutations.sql");
 
     expect(migration).toContain("function teamframe_complete_company_setup");
+    expect(migration).toContain("function teamframe_complete_guided_company_setup");
+    expect(migration).toContain("teamframe_derive_employee_lifecycle");
+    expect(migration).toContain("'incomplete'");
+    expect(migration).toContain("jsonb_array_elements(p_employees)");
+    expect(migration).toContain("jsonb_array_elements(p_positions)");
     expect(migration).toContain("update companies");
     expect(migration).toContain("company.setup_completed");
+    expect(migration).toContain("employee.created");
+    expect(migration).toContain("position.employee_assigned");
+    expect(migration).toContain("SETUP_ALREADY_COMPLETED");
     expect(migration).toContain("revoke all on function teamframe_complete_company_setup");
+    expect(migration).toContain("revoke all on function teamframe_complete_guided_company_setup");
     expect(migration).toContain("grant execute on function teamframe_complete_company_setup");
+    expect(migration).toContain("grant execute on function teamframe_complete_guided_company_setup");
   });
 });

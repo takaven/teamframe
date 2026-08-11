@@ -10,6 +10,7 @@ const schemaOrder = readFileSync(join(process.cwd(), "scripts", "schema-order.mj
 const expectedFunctions = [
   "teamframe_derive_employee_lifecycle",
   "teamframe_complete_company_setup",
+  "teamframe_complete_guided_company_setup",
   "teamframe_create_employee",
   "teamframe_update_employee",
   "teamframe_archive_employee",

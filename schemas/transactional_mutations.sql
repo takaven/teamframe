@@ -89,6 +89,195 @@ begin
 end;
 $$;
 
+create or replace function teamframe_complete_guided_company_setup(
+  p_tenant_id uuid,
+  p_actor_user_id uuid,
+  p_name text,
+  p_country text,
+  p_location text,
+  p_annual_leave_default_days integer,
+  p_sick_leave_default_days integer,
+  p_positions jsonb,
+  p_employees jsonb
+)
+returns companies
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_company companies;
+  v_employee_item jsonb;
+  v_position_item jsonb;
+  v_employee employees;
+  v_position positions;
+  v_parent_position_id uuid;
+  v_assigned_employee_id uuid;
+  v_role_key text;
+  v_parent_key text;
+  v_role_count integer;
+begin
+  if jsonb_typeof(p_positions) <> 'array' or jsonb_array_length(p_positions) = 0 then
+    raise exception 'SETUP_POSITION_LINE_INVALID';
+  end if;
+
+  if jsonb_typeof(p_employees) <> 'array' or jsonb_array_length(p_employees) = 0 then
+    raise exception 'SETUP_EMPLOYEE_LINE_INVALID';
+  end if;
+
+  select *
+  into v_company
+  from companies
+  where id = p_tenant_id
+    and archived_at is null
+  for update;
+
+  if not found then
+    raise exception 'COMPANY_NOT_FOUND';
+  end if;
+
+  if v_company.setup_completed_at is not null then
+    raise exception 'SETUP_ALREADY_COMPLETED';
+  end if;
+
+  create temp table if not exists setup_employee_roles (
+    role_key text not null,
+    employee_id uuid not null
+  ) on commit drop;
+  truncate setup_employee_roles;
+
+  create temp table if not exists setup_position_ids (
+    title_key text primary key,
+    position_id uuid not null
+  ) on commit drop;
+  truncate setup_position_ids;
+
+  for v_employee_item in select value from jsonb_array_elements(p_employees) loop
+    insert into employees (
+      tenant_id,
+      full_name,
+      email,
+      role_title,
+      department,
+      timezone,
+      employment_type,
+      country,
+      start_date,
+      status,
+      lifecycle_state,
+      setup_status
+    )
+    values (
+      p_tenant_id,
+      v_employee_item ->> 'fullName',
+      lower(v_employee_item ->> 'email'),
+      v_employee_item ->> 'roleTitle',
+      v_employee_item ->> 'department',
+      'UTC',
+      'full_time',
+      p_country,
+      (v_employee_item ->> 'startDate')::date,
+      'active',
+      teamframe_derive_employee_lifecycle(
+        'active',
+        'incomplete',
+        (v_employee_item ->> 'startDate')::date,
+        null,
+        null
+      ),
+      'incomplete'
+    )
+    returning * into v_employee;
+
+    insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)
+    values (p_tenant_id, p_actor_user_id, 'employee.created', v_employee.id);
+
+    insert into setup_employee_roles (role_key, employee_id)
+    values (lower(trim(v_employee.role_title)), v_employee.id);
+  end loop;
+
+  for v_position_item in select value from jsonb_array_elements(p_positions) loop
+    v_parent_position_id := null;
+    v_assigned_employee_id := null;
+    v_role_key := lower(trim(v_position_item ->> 'title'));
+    v_parent_key := nullif(lower(trim(coalesce(v_position_item ->> 'reportsToTitle', ''))), '');
+
+    if v_parent_key is not null then
+      select position_id
+      into v_parent_position_id
+      from setup_position_ids
+      where title_key = v_parent_key;
+
+      if v_parent_position_id is null then
+        raise exception 'SETUP_POSITION_PARENT_UNKNOWN';
+      end if;
+    end if;
+
+    select count(*)::int, (array_agg(employee_id))[1]
+    into v_role_count, v_assigned_employee_id
+    from setup_employee_roles
+    where role_key = v_role_key;
+
+    if v_role_count <> 1 then
+      v_assigned_employee_id := null;
+    end if;
+
+    insert into positions (
+      tenant_id,
+      title,
+      department,
+      parent_position_id,
+      assigned_employee_id,
+      note
+    )
+    values (
+      p_tenant_id,
+      v_position_item ->> 'title',
+      v_position_item ->> 'department',
+      v_parent_position_id,
+      v_assigned_employee_id,
+      null
+    )
+    returning * into v_position;
+
+    insert into setup_position_ids (title_key, position_id)
+    values (v_role_key, v_position.id);
+
+    insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)
+    values (p_tenant_id, p_actor_user_id, 'position.created', v_position.id);
+
+    if v_parent_position_id is not null then
+      insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)
+      values (p_tenant_id, p_actor_user_id, 'position.reporting_changed', v_position.id);
+    end if;
+
+    if v_assigned_employee_id is not null then
+      insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)
+      values (p_tenant_id, p_actor_user_id, 'position.employee_assigned', v_position.id);
+    end if;
+  end loop;
+
+  update companies
+  set
+    name = p_name,
+    country = p_country,
+    location = nullif(p_location, ''),
+    annual_leave_default_days = p_annual_leave_default_days,
+    sick_leave_default_days = p_sick_leave_default_days,
+    unpaid_leave_enabled = true,
+    other_leave_enabled = true,
+    setup_completed_at = clock_timestamp(),
+    setup_completed_by = p_actor_user_id
+  where id = p_tenant_id
+  returning * into v_company;
+
+  insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)
+  values (p_tenant_id, p_actor_user_id, 'company.setup_completed', p_tenant_id);
+
+  return v_company;
+end;
+$$;
+
 create or replace function teamframe_create_employee(
   p_tenant_id uuid,
   p_actor_user_id uuid,
@@ -536,6 +725,9 @@ revoke all on function teamframe_derive_employee_lifecycle(
 ) from public, anon, authenticated;
 revoke all on function teamframe_timestamp_matches(timestamptz, timestamptz) from public, anon, authenticated;
 revoke all on function teamframe_complete_company_setup(uuid, uuid, text, text, text, integer, integer) from public, anon, authenticated;
+revoke all on function teamframe_complete_guided_company_setup(
+  uuid, uuid, text, text, text, integer, integer, jsonb, jsonb
+) from public, anon, authenticated;
 revoke all on function teamframe_update_employee(uuid, uuid, uuid, timestamptz, jsonb) from public, anon, authenticated;
 revoke all on function teamframe_archive_employee(uuid, uuid, uuid, timestamptz) from public, anon, authenticated;
 revoke all on function teamframe_submit_leave(uuid, uuid, uuid, date, date) from public, anon, authenticated;
@@ -552,6 +744,9 @@ grant execute on function teamframe_derive_employee_lifecycle(
 ) to service_role;
 grant execute on function teamframe_timestamp_matches(timestamptz, timestamptz) to service_role;
 grant execute on function teamframe_complete_company_setup(uuid, uuid, text, text, text, integer, integer) to service_role;
+grant execute on function teamframe_complete_guided_company_setup(
+  uuid, uuid, text, text, text, integer, integer, jsonb, jsonb
+) to service_role;
 grant execute on function teamframe_update_employee(uuid, uuid, uuid, timestamptz, jsonb) to service_role;
 grant execute on function teamframe_archive_employee(uuid, uuid, uuid, timestamptz) to service_role;
 grant execute on function teamframe_submit_leave(uuid, uuid, uuid, date, date) to service_role;
