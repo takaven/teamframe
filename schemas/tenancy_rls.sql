@@ -69,6 +69,8 @@ alter table policies enable row level security;
 alter table procedures enable row level security;
 alter table acknowledgements enable row level security;
 alter table onboarding_tasks enable row level security;
+alter table hr_automation_items enable row level security;
+alter table hr_automation_events enable row level security;
 alter table file_operations enable row level security;
 alter table export_files enable row level security;
 
@@ -424,6 +426,54 @@ with check (
   is_current_actor_admin()
   and tenant_id = current_actor_tenant_id()
 );
+
+drop policy if exists hr_automation_items_select_admin on hr_automation_items;
+create policy hr_automation_items_select_admin on hr_automation_items
+for select
+using (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+);
+
+drop policy if exists hr_automation_items_insert_blocked on hr_automation_items;
+create policy hr_automation_items_insert_blocked on hr_automation_items
+for insert
+with check (false);
+
+drop policy if exists hr_automation_items_update_blocked on hr_automation_items;
+create policy hr_automation_items_update_blocked on hr_automation_items
+for update
+using (false)
+with check (false);
+
+drop policy if exists hr_automation_items_delete_blocked on hr_automation_items;
+create policy hr_automation_items_delete_blocked on hr_automation_items
+for delete
+using (false);
+
+drop policy if exists hr_automation_events_select_admin on hr_automation_events;
+create policy hr_automation_events_select_admin on hr_automation_events
+for select
+using (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+);
+
+drop policy if exists hr_automation_events_insert_blocked on hr_automation_events;
+create policy hr_automation_events_insert_blocked on hr_automation_events
+for insert
+with check (false);
+
+drop policy if exists hr_automation_events_update_blocked on hr_automation_events;
+create policy hr_automation_events_update_blocked on hr_automation_events
+for update
+using (false)
+with check (false);
+
+drop policy if exists hr_automation_events_delete_blocked on hr_automation_events;
+create policy hr_automation_events_delete_blocked on hr_automation_events
+for delete
+using (false);
 
 drop policy if exists file_operations_admin_only on file_operations;
 create policy file_operations_admin_only on file_operations
