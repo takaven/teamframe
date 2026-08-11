@@ -40,8 +40,11 @@ describe("transactional mutation RPCs", () => {
   it("derives employee lifecycle at the transactional write boundary", () => {
     expect(migration).toContain("function teamframe_derive_employee_lifecycle");
     expect(migration).toContain("p_status = 'inactive'");
-    expect(migration).toContain("p_end_date is not null and p_end_date < current_date");
+    expect(migration).toContain("p_requested_lifecycle = 'exited'");
+    expect(migration).toContain("p_setup_status <> 'active'");
     expect(migration).toContain("p_start_date is not null and p_start_date > current_date");
+    expect(migration).not.toContain("p_status = 'on_leave'");
+    expect(migration).not.toContain("return 'on_leave'");
     expect(migration).toContain("teamframe_derive_employee_lifecycle(p_status, p_setup_status, p_start_date, p_end_date, null)");
     expect(migration).toContain("lifecycle_state = teamframe_derive_employee_lifecycle");
   });
@@ -53,6 +56,7 @@ describe("transactional mutation RPCs", () => {
 
     expect(body).toContain("status = 'inactive'");
     expect(body).toContain("lifecycle_state = 'exited'");
+    expect(body).toContain("teamframe_timestamp_matches(updated_at, p_expected_updated_at)");
     expect(body).toContain("update positions");
     expect(body).toContain("set assigned_employee_id = null");
     expect(body).toContain("position.vacated_by_employee_archive");
@@ -86,6 +90,9 @@ describe("transactional mutation RPCs", () => {
   });
 
   it("does not expose transactional RPCs to browser-facing database roles", () => {
+    expect(migration).toContain("revoke all on function teamframe_timestamp_matches");
+    expect(migration).toContain("grant execute on function teamframe_timestamp_matches");
+
     for (const fn of expectedFunctions) {
       expect(migration).toContain(`revoke all on function ${fn}`);
       expect(migration).toContain("from public, anon, authenticated");

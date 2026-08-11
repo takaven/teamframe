@@ -32,6 +32,7 @@ describe("canonical employee lifecycle projection", () => {
 
   it("projects started employees without activated accounts as ONBOARDING", () => {
     expect(projectEmployeeLifecycle(employee({ setup_status: "incomplete" }), NOW)).toBe("ONBOARDING");
+    expect(projectEmployeeLifecycle(employee({ setup_status: "ready" }), NOW)).toBe("ONBOARDING");
     expect(projectEmployeeLifecycle(employee({ lifecycle_state: "preboarding", setup_status: "ready" }), NOW)).toBe(
       "ONBOARDING",
     );
@@ -45,7 +46,7 @@ describe("canonical employee lifecycle projection", () => {
   it("preserves explicit offboarding until the employee becomes former", () => {
     expect(projectEmployeeLifecycle(employee({ lifecycle_state: "offboarding" }), NOW)).toBe("OFFBOARDING");
     expect(projectEmployeeLifecycle(employee({ lifecycle_state: "offboarding", end_date: "2026-08-01" }), NOW)).toBe(
-      "FORMER",
+      "OFFBOARDING",
     );
   });
 

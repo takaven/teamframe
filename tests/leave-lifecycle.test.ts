@@ -107,6 +107,18 @@ describe("leave lifecycle eligibility", () => {
     expect(rpcCalls).toEqual(["teamframe_submit_leave"]);
   });
 
+  it("treats on-leave compatibility status as current active lifecycle", async () => {
+    employeeRow = { ...employeeRow!, status: "on_leave", lifecycle_state: "on_leave" };
+
+    const leave = await submitLeaveRequest(employeeActor, {
+      startDate: "2026-08-20",
+      endDate: "2026-08-21",
+    });
+
+    expect(leave.id).toBe("leave-1");
+    expect(rpcCalls).toEqual(["teamframe_submit_leave"]);
+  });
+
   it("blocks pre-start, onboarding and former employees before the leave RPC", async () => {
     const blockedEmployees: Array<Partial<EmployeeRow>> = [
       { start_date: "2026-09-01" },

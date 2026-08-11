@@ -13,24 +13,37 @@ stable
 set search_path = public
 as $$
 begin
-  if p_status = 'inactive' or (p_end_date is not null and p_end_date < current_date) then
+  if p_status = 'inactive' or p_requested_lifecycle = 'exited' then
     return 'exited';
   end if;
 
-  if p_requested_lifecycle in ('offboarding', 'exited') then
-    return p_requested_lifecycle;
-  end if;
-
-  if p_requested_lifecycle = 'on_leave' or p_status = 'on_leave' then
-    return 'on_leave';
+  if p_requested_lifecycle = 'offboarding' then
+    return 'offboarding';
   end if;
 
   if p_requested_lifecycle = 'preboarding' or (p_start_date is not null and p_start_date > current_date) then
     return 'preboarding';
   end if;
 
+  if p_setup_status <> 'active' then
+    return 'preboarding';
+  end if;
+
   return 'active';
 end;
+$$;
+
+create or replace function teamframe_timestamp_matches(
+  p_actual timestamptz,
+  p_expected timestamptz
+)
+returns boolean
+language sql
+stable
+set search_path = public
+as $$
+  select p_actual = p_expected
+    or abs(extract(epoch from (p_actual - p_expected))) < 0.001;
 $$;
 
 create or replace function teamframe_create_employee(
@@ -155,7 +168,7 @@ begin
     setup_status = case when p_patch ? 'setup_status' then (p_patch ->> 'setup_status')::employee_setup_status else setup_status end
   where tenant_id = p_tenant_id
     and id = p_employee_id
-    and updated_at = p_expected_updated_at
+    and teamframe_timestamp_matches(updated_at, p_expected_updated_at)
     and deleted_at is null
   returning * into v_employee;
 
@@ -192,7 +205,7 @@ begin
     lifecycle_state = 'exited'
   where tenant_id = p_tenant_id
     and id = p_employee_id
-    and updated_at = p_expected_updated_at
+    and teamframe_timestamp_matches(updated_at, p_expected_updated_at)
     and deleted_at is null
   returning * into v_employee;
 
@@ -478,6 +491,7 @@ revoke all on function teamframe_create_employee(
 revoke all on function teamframe_derive_employee_lifecycle(
   employee_status, employee_setup_status, date, date, employee_lifecycle_state
 ) from public, anon, authenticated;
+revoke all on function teamframe_timestamp_matches(timestamptz, timestamptz) from public, anon, authenticated;
 revoke all on function teamframe_update_employee(uuid, uuid, uuid, timestamptz, jsonb) from public, anon, authenticated;
 revoke all on function teamframe_archive_employee(uuid, uuid, uuid, timestamptz) from public, anon, authenticated;
 revoke all on function teamframe_submit_leave(uuid, uuid, uuid, date, date) from public, anon, authenticated;
@@ -492,6 +506,7 @@ grant execute on function teamframe_create_employee(
 grant execute on function teamframe_derive_employee_lifecycle(
   employee_status, employee_setup_status, date, date, employee_lifecycle_state
 ) to service_role;
+grant execute on function teamframe_timestamp_matches(timestamptz, timestamptz) to service_role;
 grant execute on function teamframe_update_employee(uuid, uuid, uuid, timestamptz, jsonb) to service_role;
 grant execute on function teamframe_archive_employee(uuid, uuid, uuid, timestamptz) to service_role;
 grant execute on function teamframe_submit_leave(uuid, uuid, uuid, date, date) to service_role;

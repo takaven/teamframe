@@ -56,13 +56,6 @@ function isAfterToday(value: string | null | undefined, now: Date): boolean {
   return parsed.getTime() > utcToday(now).getTime();
 }
 
-function isBeforeToday(value: string | null | undefined, now: Date): boolean {
-  if (!value) return false;
-  const parsed = parseDateOnly(value);
-  if (!parsed) return false;
-  return parsed.getTime() < utcToday(now).getTime();
-}
-
 export function projectEmployeeLifecycle(
   input: EmployeeLifecycleInput,
   now: Date = new Date(),
@@ -70,7 +63,6 @@ export function projectEmployeeLifecycle(
   if (input.deleted_at) return "FORMER";
   if (input.status === "inactive") return "FORMER";
   if (input.lifecycle_state === "exited") return "FORMER";
-  if (input.end_date && isBeforeToday(input.end_date, now)) return "FORMER";
   if (input.lifecycle_state === "offboarding") return "OFFBOARDING";
   if (isAfterToday(input.start_date, now)) return "PRE_START";
 
