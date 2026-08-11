@@ -65,6 +65,7 @@ if (host && protectedTokens.some((t) => host.includes(t))) {
 const TEAMFRAME_ENUMS = [
   "employee_status", "employee_setup_status", "document_type",
   "leave_status", "onboarding_task_status",
+  "onboarding_check_in_status", "probation_review_status", "probation_review_outcome",
 ];
 
 const STAGING_SCHEMA_ORDER = [...SCHEMA_ORDER, "tenancy_rls_v2.sql"];

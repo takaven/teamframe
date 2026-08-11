@@ -3,6 +3,7 @@ import Link from "next/link";
 import { requireTenantActor } from "@/middleware/rbac";
 import { getEmployee } from "@/services/employeeService";
 import { listUnacknowledgedForEmployee, type PolicyRecord } from "@/services/policyService";
+import { listMyOnboardingCheckIns } from "@/services/earlyEmploymentService";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { AppShell } from "@/components/AppShell";
 import { EmptyState } from "@/components/EmptyState";
@@ -14,6 +15,7 @@ const STATUS_COPY: Record<string, string> = {
   task_completed: "Onboarding task marked complete.",
   leave_submitted: "Leave request submitted.",
   policy_acknowledged: "Policy acknowledged. Thank you.",
+  check_in_submitted: "30-day check-in submitted.",
 };
 
 const ERROR_COPY: Record<string, string> = {
@@ -25,6 +27,7 @@ const ERROR_COPY: Record<string, string> = {
   POLICY_NOT_FOUND: "That policy could not be found.",
   POLICY_NOT_PUBLISHED: "That policy is no longer active, so no acknowledgement is needed.",
   POLICY_ACKNOWLEDGE_FAILED: "Could not record your acknowledgement.",
+  CHECK_IN_SUBMIT_FAILED: "Could not submit check-in.",
   AUDIT_LOG_FAILED: "Could not record required audit trail. No change was applied.",
   UNKNOWN: "Something went wrong. Refresh and try again.",
 };
@@ -65,13 +68,16 @@ export default async function MePage({
     );
   }
 
-  const [employee, unacknowledgedPolicies]: [
+  const [employee, unacknowledgedPolicies, checkIns]: [
     Awaited<ReturnType<typeof getEmployee>>,
     PolicyRecord[],
+    Awaited<ReturnType<typeof listMyOnboardingCheckIns>>,
   ] = await Promise.all([
     getEmployee(actor, actor.employeeId),
     listUnacknowledgedForEmployee(actor),
+    listMyOnboardingCheckIns(actor),
   ]);
+  const openCheckIn = checkIns.find((checkIn) => checkIn.status === "scheduled");
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-14">
@@ -126,6 +132,21 @@ export default async function MePage({
           Your admin manages private employment documents in the employee record. Ask them to update anything that looks missing or out of date.
         </p>
       </section>
+
+      {openCheckIn ? (
+        <section className="mt-8 rounded-xl border border-ink-300/70 bg-white/80 p-5">
+          <h2 className="text-[17px] font-bold tracking-tight text-ink-800">30-day check-in</h2>
+          <p className="mt-2 text-[14px] text-ink-500">
+            Your check-in is ready on the onboarding page.
+          </p>
+          <Link
+            href="/onboarding"
+            className="mt-4 inline-flex rounded-lg bg-brand-signal px-4 py-2 text-[13px] font-medium text-ink-800 transition hover:bg-[#00E51F]"
+          >
+            Complete check-in
+          </Link>
+        </section>
+      ) : null}
 
       {unacknowledgedPolicies.length > 0 ? (
         <section id="policies" className="mt-8 rounded-xl border border-ink-300/70 bg-white/80">

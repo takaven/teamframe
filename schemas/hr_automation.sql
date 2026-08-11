@@ -279,7 +279,8 @@ begin
     return jsonb_build_object('outcome', 'skipped_completed', 'item_id', p_item_id);
   end if;
 
-  if v_item.due_at > p_now
+  if not p_complete
+    and v_item.due_at > p_now
     and (v_item.next_attempt_at is null or v_item.next_attempt_at > p_now)
   then
     return jsonb_build_object('outcome', 'not_due', 'item_id', p_item_id);
@@ -366,7 +367,7 @@ begin
     return jsonb_build_object('outcome', 'failed_retry_scheduled', 'item_id', p_item_id, 'attempt', v_attempt);
   end if;
 
-  if v_item.reminder_stage = 0 then
+  if not p_complete and v_item.reminder_stage = 0 then
     update hr_automation_items
     set status = 'due',
       notification_level = 'routine_reminder',
@@ -401,7 +402,7 @@ begin
 
     insert into audit_logs (tenant_id, actor_user_id, actor_type, action_type, target_id)
     values (p_tenant_id, '00000000-0000-0000-0000-000000000000', 'system', 'automation.routine_reminder', p_item_id);
-  else
+  elsif not p_complete then
     update hr_automation_items
     set status = 'due',
       last_attempt_at = p_now,

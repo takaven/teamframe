@@ -54,6 +54,8 @@ describe("MR-2 HR automation operating layer", () => {
     expect(schema).toContain("function teamframe_ensure_hr_automation_item");
     expect(schema).toContain("function teamframe_run_hr_automation_item");
     expect(schema).toContain("if v_item.status in ('completed', 'suppressed')");
+    expect(schema).toContain("if not p_complete");
+    expect(schema).toContain("and v_item.due_at > p_now");
     expect(schema).toContain("v_item.attempt_count + 1");
     expect(schema).toContain("v_attempt >= v_item.max_attempts");
     expect(schema).toContain("'automation.item_escalated'");

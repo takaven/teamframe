@@ -26,6 +26,9 @@ const TEAMFRAME_ENUMS = [
   "employee_setup_status",
   "document_type",
   "leave_status",
+  "onboarding_check_in_status",
+  "probation_review_status",
+  "probation_review_outcome",
 ];
 
 const connectionString = process.env.SUPABASE_DB_URL?.replace(/^"|"$/g, "");

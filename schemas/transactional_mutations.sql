@@ -192,6 +192,8 @@ begin
     insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)
     values (p_tenant_id, p_actor_user_id, 'employee.created', v_employee.id);
 
+    perform teamframe_initialize_join_work(p_tenant_id, p_actor_user_id, v_employee.id);
+
     insert into setup_employee_roles (role_key, employee_id)
     values (lower(trim(v_employee.role_title)), v_employee.id);
   end loop;
@@ -341,6 +343,8 @@ begin
 
   insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)
   values (p_tenant_id, p_actor_user_id, 'employee.created', v_employee.id);
+
+  perform teamframe_initialize_join_work(p_tenant_id, p_actor_user_id, v_employee.id);
 
   return v_employee;
 end;

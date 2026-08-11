@@ -72,6 +72,9 @@ alter table onboarding_tasks enable row level security;
 alter table hr_automation_items enable row level security;
 alter table hr_automation_events enable row level security;
 alter table employment_changes enable row level security;
+alter table employee_join_initializations enable row level security;
+alter table onboarding_check_ins enable row level security;
+alter table probation_reviews enable row level security;
 alter table file_operations enable row level security;
 alter table export_files enable row level security;
 
@@ -497,6 +500,77 @@ with check (false);
 
 drop policy if exists employment_changes_delete_blocked on employment_changes;
 create policy employment_changes_delete_blocked on employment_changes
+for delete
+using (false);
+
+drop policy if exists employee_join_initializations_select_admin on employee_join_initializations;
+create policy employee_join_initializations_select_admin on employee_join_initializations
+for select
+using (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+);
+
+drop policy if exists employee_join_initializations_write_blocked on employee_join_initializations;
+create policy employee_join_initializations_write_blocked on employee_join_initializations
+for all
+using (false)
+with check (false);
+
+drop policy if exists onboarding_check_ins_select on onboarding_check_ins;
+create policy onboarding_check_ins_select on onboarding_check_ins
+for select
+using (
+  tenant_id = current_actor_tenant_id()
+  and (
+    is_current_actor_admin()
+    or employee_id in (
+      select id
+      from employees
+      where lower(email) = current_actor_email()
+        and tenant_id = current_actor_tenant_id()
+        and deleted_at is null
+    )
+  )
+);
+
+drop policy if exists onboarding_check_ins_insert_blocked on onboarding_check_ins;
+create policy onboarding_check_ins_insert_blocked on onboarding_check_ins
+for insert
+with check (false);
+
+drop policy if exists onboarding_check_ins_update_blocked on onboarding_check_ins;
+create policy onboarding_check_ins_update_blocked on onboarding_check_ins
+for update
+using (false)
+with check (false);
+
+drop policy if exists onboarding_check_ins_delete_blocked on onboarding_check_ins;
+create policy onboarding_check_ins_delete_blocked on onboarding_check_ins
+for delete
+using (false);
+
+drop policy if exists probation_reviews_select_admin on probation_reviews;
+create policy probation_reviews_select_admin on probation_reviews
+for select
+using (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+);
+
+drop policy if exists probation_reviews_insert_blocked on probation_reviews;
+create policy probation_reviews_insert_blocked on probation_reviews
+for insert
+with check (false);
+
+drop policy if exists probation_reviews_update_blocked on probation_reviews;
+create policy probation_reviews_update_blocked on probation_reviews
+for update
+using (false)
+with check (false);
+
+drop policy if exists probation_reviews_delete_blocked on probation_reviews;
+create policy probation_reviews_delete_blocked on probation_reviews
 for delete
 using (false);
 

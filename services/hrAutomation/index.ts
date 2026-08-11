@@ -171,6 +171,23 @@ async function applyEmploymentChangeFromAutomation(input: {
   }
 }
 
+async function markProbationReviewDueFromAutomation(input: {
+  tenantId: string;
+  reviewId: string;
+}): Promise<void> {
+  const supabase: any = createServiceRoleClient();
+  const { error } = await supabase
+    .from("probation_reviews")
+    .update({ status: "due" } as never)
+    .eq("tenant_id", input.tenantId)
+    .eq("id", input.reviewId)
+    .eq("status", "scheduled");
+
+  if (error) {
+    throw new Error(`PROBATION_REVIEW_DUE_UPDATE_FAILED: ${error.message}`);
+  }
+}
+
 export async function runDueAutomationForTenant(input: {
   tenantId: string;
   now?: Date;
@@ -212,6 +229,17 @@ export async function runDueAutomationForTenant(input: {
           }),
         );
         continue;
+      }
+
+      if (item.rule_key === "probation.review_due") {
+        if (!item.subject_id) {
+          throw new Error("PROBATION_REVIEW_SUBJECT_MISSING");
+        }
+
+        await markProbationReviewDueFromAutomation({
+          tenantId: input.tenantId,
+          reviewId: item.subject_id,
+        });
       }
 
       outcomes.push(

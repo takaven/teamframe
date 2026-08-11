@@ -21,6 +21,7 @@ export const SCHEMA_ORDER = [
   "tenant_integrity.sql",
   "hr_automation.sql",
   "employment_changes.sql",
+  "early_employment.sql",
   "transactional_mutations.sql",
   "file_lifecycle.sql",
   "tenancy_rls.sql",
