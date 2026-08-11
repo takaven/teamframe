@@ -1,3 +1,15 @@
+> **HISTORICAL / SUPERSEDED - NOT GOVERNING CURRENT MARKET-READY SCOPE**
+>
+> Date marked superseded: 2026-08-11.
+>
+> This audit is retained as historical evidence. Current scope and implementation authority live in:
+>
+> - `TEAMFRAME_MARKET_READY_SCOPE.md`
+> - `TEAMFRAME_MARKET_READY_EXECUTION_REGISTER.md`
+> - `TEAMFRAME_DEFERRED_SCOPE.md`
+> - `TEAMFRAME_RELEASE_READINESS.md`
+
+---
 # Accepted Risks and Deferred Work
 
 This document tracks architectural debt and consciously deferred items that are NOT considered launch blockers. Items listed here have been evaluated and intentionally scheduled for post-launch. This prevents deferred decisions from becoming forgotten decisions. When a revisit trigger is hit, move the item to the hardening backlog and open a tracking issue.

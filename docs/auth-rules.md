@@ -1,13 +1,13 @@
 # Auth Rules
 
-## Auth model (V1 — locked)
+## Auth Model
 
 - **Authentication method**: two-tier Supabase Auth
   - Admins: email + password at `/admin/login`
   - Employees: Magic Link at `/auth`
 - **No password reset flows** exist
 - **No OAuth providers** allowed (Google / GitHub / Microsoft / etc.)
-- **No MFA** in V1
+- **No MFA** in the current implemented auth model
 
 User identity is always:
 - a Supabase Auth user, keyed by email
@@ -40,6 +40,8 @@ User identity is always:
 
 Roles are **server-controlled** and never derived from client input.
 
+Guided company setup does not itself authorize public/open self-registration. A paid-customer administrator may be provisioned through a controlled onboarding path, after which ordinary company setup must not require developer or direct database intervention.
+
 - The `admin` role is set **only** via:
   - The Supabase Dashboard, or
   - The bootstrap script (`npm run seed:admin -- email@company.com`)
@@ -53,7 +55,7 @@ Roles are **server-controlled** and never derived from client input.
 - role passed in a request body, cookie, header, or query string
 - role inferred from email domain or any heuristic
 
-## Forbidden in V1
+## Currently Forbidden Without Separate Product/Security Approval
 
 - Sign-up form / open registration
 - Password reset or email-change flows
@@ -111,7 +113,7 @@ For production, replace the host with the production `SITE_URL`:
 ```
 
 Do not use password reset, invite-acceptance, OAuth, or MFA templates as product
-entry points in V1.
+entry points unless the auth model is separately approved and updated.
 
 ## Auth regression checklist
 
@@ -128,7 +130,7 @@ Manual round-trip — all must pass:
 - [ ] Cross-browser click works (link issued in browser A, opened in browser B)
 - [ ] No infinite redirect loop after successful login
 - [ ] Logout → login again works in the same browser session
-- [ ] Admin lands on `/dashboard` (employee accounts share the same dashboard in V1 — single workspace for the founder)
+- [ ] Admin lands on `/dashboard`; employee lands on the current employee self-service default route
 
 Diagnostic signature in dev logs after the `token_hash` switch — a successful
 login must look like:

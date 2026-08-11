@@ -1,69 +1,97 @@
 # RBAC Rules
 
 ## Core Rule
-**All authorization is enforced server-side.** Client-side checks are UX hints only and never grant access.
 
-Authentication is two-tier (see [`auth-rules.md`](auth-rules.md)): admins use email + password at `/admin/login`; employees use magic links at `/auth`. No password reset, email change, OAuth, or MFA in V1.
+All authorization is enforced server-side. Client-side checks are UX hints only and never grant access.
 
-## Roles
-TeamFrame V1 has exactly two roles:
+Authentication is currently two-tier:
+
+- admins use email + password at `/admin/login`;
+- employees use magic links at `/auth`.
+
+See [`auth-rules.md`](auth-rules.md).
+
+## Current Implemented Roles
+
+At baseline `489c9606441618e898f21eafb0443a9ca33474ad`, TeamFrame has two implemented roles:
 
 1. `admin`
 2. `employee`
 
-No other roles exist in V1. Do not introduce manager, hr, finance, viewer, owner, or custom roles — that is V2.
+The market-ready programme approves **bounded manager delegation**, but it has not yet been implemented. Do not add ad hoc roles or client-side role shortcuts. Manager delegation must be designed and tested under `TEAMFRAME_MARKET_READY_EXECUTION_REGISTER.md`, especially `TF-MR-008`.
 
-## Capability Matrix
+## Market-Ready Manager Delegation Boundary
+
+When TF-MR-008 is implemented, managers may, for authorised direct reports only:
+
+- approve/decline leave;
+- contribute to onboarding;
+- provide probation input;
+- complete manager-owned tasks;
+- receive routine escalations.
+
+Managers do not automatically gain:
+
+- private HR document access;
+- company-wide employee access;
+- policy administration;
+- tenant administration;
+- confidential employee-relations information;
+- unrestricted employment-change authority.
+
+Prefer deriving manager/reporting relationships from existing employee/org structure where technically safe. No enterprise RBAC.
+
+## Current Capability Matrix
 
 | Capability | admin | employee |
-|---|:-:|:-:|
-| List all employees | ✅ | ✅ (org chart fields only) |
-| View own profile | ✅ | ✅ |
-| View any profile (full) | ✅ | ❌ |
-| Create / update / delete employee | ✅ | ❌ |
-| View / edit compensation | ✅ | ❌ |
-| Upload document for any employee | ✅ | ❌ |
-| Upload own document | ✅ | ✅ (where allowed by flow) |
-| Submit own leave request | ✅ | ✅ |
-| Approve / reject leave | ✅ | ❌ |
-| Post company update | ✅ | ❌ |
-| View company updates | ✅ | ✅ |
-| Generate bio from CV (AI) | ✅ | ❌ |
-| Generate contract template (AI) | ✅ | ❌ |
+| --- | :-: | :-: |
+| List all employees | yes | limited org/public fields only where exposed |
+| View own profile | yes | yes |
+| View any profile in full | yes | no |
+| Create/update/archive employee | yes | no |
+| View/edit compensation | yes, where implemented | no |
+| Upload document for any employee | yes | no current general self-upload workflow |
+| Submit own leave request | yes, if linked employee | yes |
+| Approve/reject leave | yes | no |
+| Manage policies | yes | no |
+| Acknowledge assigned policies | no normal admin need | yes |
+| Manage Org Chart positions/JDs | yes | no |
+| Generate exports | yes | no |
 
-## Org Chart — Non-Sensitive Field Whitelist
-When an employee views the org chart, only these fields may be returned:
+## Org Chart And Employee-Scope Field Whitelist
+
+When non-admin employee/org views are exposed, return only non-sensitive organisation fields unless an explicit employee self-service flow authorises more:
+
 - `id`
 - `full_name`
 - `role_title`
 - `department`
 - `manager_id`
-- `photo_url` (from `employee_profiles`)
-- `status` (limited to `active` / `on_leave` / `inactive`)
+- `status` / lifecycle-safe public equivalent
 
-Compensation, personal details, email (optional), and document references must **never** be selected in employee-scope queries.
+Compensation, private contact details, HR documents, policy administration data and confidential records must not be selected in employee-scope or future manager-scope queries unless specifically authorised and tested.
 
 ## Enforcement Pattern
 
-```
+```text
 Request
-  → resolve Supabase session (middleware/auth.ts)
-  → resolve actor (middleware/rbac.ts):
-        auth.users.id  →  employees.email  →  employees.id
-        app_metadata.role  →  'admin' | 'employee'
-  → call requireRole('admin') or requireSelfOrAdmin(targetEmployeeId)
-  → service layer executes scoped query
+  -> resolve Supabase session
+  -> resolve actor server-side
+  -> derive tenant and role from trusted metadata/database state
+  -> call role/tenant guard
+  -> service layer executes scoped query or mutation
 ```
 
-Service-layer functions accept an explicit `Actor` argument
-(`{ authUserId, email, employeeId, role }`) and re-validate authorization.
-They never read the session themselves.
+Service-layer functions accept an explicit `Actor` argument and re-validate authorization. They never trust role, tenant or employee identifiers supplied by a browser as authority.
 
 ## Audit
-Sensitive admin actions (employee delete, compensation change, document delete, leave approval/rejection, bulk export) must write a row to `audit_logs` from the service layer.
+
+Sensitive admin, future manager-delegated and storage-affecting actions must write audit evidence from the service layer or transactional database mutation path.
 
 ## Forbidden
-- frontend-only "if role === admin" as a security boundary
-- exposing the Supabase service role key to the browser
-- accepting a role from a request body, cookie, or query string
-- adding new roles to satisfy a one-off feature
+
+- Frontend-only `role === admin` or `role === manager` as a security boundary.
+- Supabase service-role key in browser-reachable code.
+- Role, tenant or manager scope accepted from request body, cookie, header or query string as authority.
+- Broad custom roles to satisfy one-off features.
+- Manager delegation implemented without tenant, direct-report and negative authorization tests.

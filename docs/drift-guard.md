@@ -1,75 +1,40 @@
-# Drift Guard — Detailed Bans
+# Drift Guard - Market-Ready Programme
 
-Restates the scope bans already locked in [`README.md`](../README.md) and
-[`docs/business/blueprint-locked.md`](business/blueprint-locked.md). This file adds
-no new rules. If it ever disagrees with those sources, they win.
+**STATUS: CURRENT / MARKET-READY SCOPE GUARD**
 
----
+The previous V1 rules in this document are superseded. The rules below govern the current market-ready programme.
 
-## Banned features (README "What TeamFrame is NOT")
+Canonical replacements:
 
-Do not add any of the following (README, "What TeamFrame is NOT"):
+- [`../TEAMFRAME_MARKET_READY_SCOPE.md`](../TEAMFRAME_MARKET_READY_SCOPE.md)
+- [`../TEAMFRAME_MARKET_READY_EXECUTION_REGISTER.md`](../TEAMFRAME_MARKET_READY_EXECUTION_REGISTER.md)
+- [`../TEAMFRAME_DEFERRED_SCOPE.md`](../TEAMFRAME_DEFERRED_SCOPE.md)
+- [`../TEAMFRAME_RELEASE_READINESS.md`](../TEAMFRAME_RELEASE_READINESS.md)
 
-- payroll
-- benefits
-- accounting / tax / compliance engines
-- analytics dashboards / HR metrics / engagement scoring
-- AI HR advisor / chatbot / copilot
-- employee scoring, ranking, personality inference
-- hiring pipelines / ATS
-- onboarding **workflows** (tasks, reminders, checklists, automation states)
-- reminders / notifications engine
-- approvals engine, e-signatures, document versioning, retention engines
-- performance reviews, compensation benchmarking
-- integrations marketplace, Zapier/webhooks ecosystem
-- workflow orchestration, automation platform
-- plugin / extension systems
-- enterprise admin systems, custom RBAC beyond `admin` / `employee`
+## Current Rule
 
-If a feature resembles **enterprise HRIS**, **workflow automation**, or **AI assistant
-platform** behavior — it is **V2** and must be rejected.
+Use `TEAMFRAME_DEFERRED_SCOPE.md` for scope boundaries and `TEAMFRAME_MARKET_READY_EXECUTION_REGISTER.md` for implementation authority.
 
-## Deletion-on-sight categories (blueprint §12 "Hard Boundaries")
+Older statements that permanently banned reminders, escalations, leave balances, manager delegation, policy file upload, employee document upload, onboarding workflows or offboarding workflow are superseded for the market-ready programme.
 
-TeamFrame must NEVER become (blueprint-locked.md §12; also Hard Rule 4 in §"Hard rules"):
+These capabilities are allowed only in the bounded form defined by the canonical market-ready documents. They are not permission to build an enterprise HRIS, workflow builder, payroll engine, ATS, performance system, broad Settings maze or AI legal/compliance product.
 
-- payroll engine
-- ATS / recruitment tool
-- performance management system
-- compensation system
-- EOR platform
-- legal automation system
+## Still Hard-Banned
 
-Any feature proposal that drifts into these is rejected at intake.
+The following remain out of scope for the market-ready release unless a later product-owner decision explicitly changes the canonical scope:
 
-## Anti-drift rules (README "Anti-drift rules")
+- payroll calculation, tax filing, payslips and global payroll;
+- ATS/recruiting pipeline and offer management;
+- benefits administration;
+- performance ratings, goals, 360 reviews and engagement surveys;
+- LMS;
+- succession planning and workforce forecasting;
+- timeclock, shift scheduling and complex hourly workforce operations;
+- complex leave accrual/carry-over;
+- standalone asset management;
+- global compliance/legal engine and AI legal conclusions;
+- enterprise workflow builder, complex approval hierarchy and broad Settings maze.
 
-1. No new module unless it's already in the README allow list.
-2. No AI surface in V1 (see README "AI limitations" and `docs/ai-boundaries.md`).
-3. No new role beyond `admin` and `employee` (see `docs/rbac-rules.md`).
-4. No new background subsystem (queue, scheduler, worker, event bus) in V1.
-5. No premature scalability work (multi-region, sharding, microservices).
-6. No client-side authorization as a security boundary.
-7. No service-role key in any code path reachable from the browser.
+## Historical Note
 
-## Object model is closed (blueprint §5)
-
-Only the blueprint §5 objects exist (Person, Employment, Document, Asset, Policy,
-PolicyAcknowledgement, LeaveRequest, Event, RiskSignal, ActionItem). New objects
-require explicit blueprint amendment. Every feature must map to a Signal or an
-Action — no standalone modules (blueprint §5, Hard Rule 3).
-
-## Sanity check before any feature (README "Coding principles")
-
-1. Does this move setup closer to or further from 72-hour readiness?
-2. Does this reuse existing entities/tables?
-3. Does this introduce workflow automation, HR-ops logic, analytics, or AI scope creep?
-4. Can it ship without a new subsystem?
-
-If any answer trends toward complexity, the feature is **V2**.
-
-## Changing these rules
-
-This file is derivative. Change the source, not this file: README changes per the
-README's own contract ("the README wins until the README is changed"); blueprint
-changes require explicit founder approval per blueprint-locked.md §18.
+The original V1 drift guard was useful when TeamFrame was intentionally constrained to a smaller readiness product. The product owner has since approved a market-ready scope that restores bounded HR administration capabilities. Do not use old V1 wording to block canonical market-ready requirements.

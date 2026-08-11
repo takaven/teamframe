@@ -1,384 +1,157 @@
 # TeamFrame
 
-> **Managed People-Ops Readiness for Founder-Led Teams.**
->
-> Core promise: **people operations, made ready through a managed, evidence-led readiness system.**
+> **TeamFrame is the essential HR system for startups without a dedicated HR team.**
 
-This README is **the enforcement contract for TeamFrame V1**. If a feature, dependency, or decision conflicts with this document, the README wins until the README is changed.
+TeamFrame's current market-ready programme is governed by the canonical documents listed below. Older V1/readiness/finalisation documents remain useful as historical provenance, but they do not control current market-ready scope where they conflict with the files in this section.
 
----
+## Current Market-Ready Programme
 
-## Currently shipped (truth)
+Read these first:
 
-As of the latest commit on `main`, the running app provides:
+- [`TEAMFRAME_MARKET_READY_SCOPE.md`](TEAMFRAME_MARKET_READY_SCOPE.md) — controlling product definition and scope.
+- [`TEAMFRAME_MARKET_READY_EXECUTION_REGISTER.md`](TEAMFRAME_MARKET_READY_EXECUTION_REGISTER.md) — implementation control register using canonical `TF-MR-*` IDs.
+- [`TEAMFRAME_AUTOMATION_REGISTER.md`](TEAMFRAME_AUTOMATION_REGISTER.md) — product-level automation behaviours required for market readiness.
+- [`TEAMFRAME_DEFERRED_SCOPE.md`](TEAMFRAME_DEFERRED_SCOPE.md) — deferred and out-of-scope work.
+- [`TEAMFRAME_RELEASE_READINESS.md`](TEAMFRAME_RELEASE_READINESS.md) — release gate and current readiness verdict.
 
-- **Auth** — two-tier Supabase sign-in: admins use email + password at `/admin/login`; employees use magic links at `/auth`, `/auth/callback`, `/auth/check-email`, and `/auth/logout`.
-- **Readiness overview** (`/dashboard`) — priority signals, open actions, recent resolutions, and honest empty/failure states when data is unavailable.
-- **Org Chart** (`/org-chart`) — admins define position-based reporting structure, see filled/vacant roles, assign employees to positions, and attach private JD files.
-- **Employees** (`/employees`) — admins manage the team roster.
-- **Onboarding** (`/onboarding`) — employees complete their onboarding checklist; admins assign and monitor tasks.
-- **Leave requests** (`/leaves`) — employees submit leave requests; admins approve or reject from the queue.
-- **Self-service** (`/me`) — employee profile landing and hub for self-service actions.
-- **Tenant safety** — server-side role resolution via `requireTenantActor`, every service call takes an explicit `Actor`, RLS on every table.
+Current hierarchy:
 
-Everything in the next section ("What TeamFrame is") describes the V1 *target surface*. Items not in the list above are **not yet in the UI**.
+1. Basic HR administration = the product.
+2. Signal -> Action -> Resolution = operating mechanism.
+3. Readiness, evidence and auditability = supporting outcomes.
 
----
+Current status: **MARKET-READY IMPLEMENTATION NOT YET COMPLETE**.
 
-## What TeamFrame is (V1 target)
+## Current Foundation
 
-The product targets exactly these things:
+At baseline `489c9606441618e898f21eafb0443a9ca33474ad`, technical verification confirmed these reusable foundations:
 
-- **Org Chart / position structure** — roles, reporting lines, filled/vacant positions and private JD attachments _(shipped as founder-approved bounded exception)_
-- **Employee directory** — who's on the team _(shipped)_
-- **Onboarding task tracking** — employee checklist; admin assignment _(shipped)_
-- **Document expiry tracking** — passports, visas, work permits _(shipped for uploaded records)_
-- **Leave request tracking** — request, approve, reject _(shipped)_
+- employee records;
+- position-based Org Chart with filled/vacant roles and JD attachments;
+- admin and employee authentication paths;
+- onboarding task templates and manual assignment/completion;
+- policy creation, publication, archive and version-specific acknowledgement;
+- basic leave request, approval and rejection;
+- private document storage and file validation;
+- due-diligence and finance export machinery;
+- risk signals, action items and dashboard signal reconciliation;
+- audit logging;
+- transactional RPC pattern;
+- private file lifecycle records;
+- RLS and same-tenant integrity patterns;
+- local verification gates.
 
-Nothing more.
+The same verification confirmed that market-ready TeamFrame still requires controlled implementation of lifecycle, automation, reminders/escalations, document requests, policy file upload, evidence-based completion, leave balances/types/history, manager delegation, employment-change history, offboarding and reliability closure.
 
-Company announcements remain removed in the FPORS pivot (see `docs/business/blueprint-locked.md`). Org Chart was restored only as a bounded position-structure module by explicit founder approval; it is not workforce planning, recruiting, budgeting, employee reviews, or productivity tracking. TeamFrame is not an HR system; it is a managed readiness tool for founder people-ops risk. Pivot deletion log: `docs/business/pivot-deletion-list.md`.
+## Product Definition
 
----
+TeamFrame gives founders and small teams the essential tools to manage everyday HR responsibilities simply, correctly and consistently without the complexity of traditional HR software.
 
-## What TeamFrame is NOT (explicit non-goals)
+Target customer:
 
-TeamFrame is **not** any of the following. Do not add them.
+- founder-led startups and small businesses;
+- approximately 5-25 employees;
+- no dedicated HR team;
+- primarily salaried / knowledge-worker businesses.
 
-- payroll
-- benefits
-- accounting / tax / compliance engines
-- analytics dashboards / HR metrics / engagement scoring
-- AI HR advisor / chatbot / copilot
-- employee scoring, ranking, personality inference
-- hiring pipelines / ATS
-- onboarding **workflows** (tasks, reminders, checklists, automation states)
-- reminders / notifications engine
-- approvals engine, e-signatures, document versioning, retention engines
-- performance reviews, compensation benchmarking
-- integrations marketplace, Zapier/webhooks ecosystem
-- workflow orchestration, automation platform
-- plugin / extension systems
-- enterprise admin systems, custom RBAC beyond `admin` / `employee`
+TeamFrame should not initially optimise for shift-heavy hospitality, manufacturing, complex hourly workforces, multi-location time-and-attendance operations or enterprise HR departments.
 
-If a feature resembles **enterprise HRIS**, **workflow automation**, or **AI assistant platform** behavior — it is **V2** and must be rejected.
+## Product Operating Principle
 
----
+> Capture once -> trigger automatically -> propagate automatically -> remind automatically -> close automatically where evidence permits -> escalate only when human judgement is required.
 
-## Anti-drift rules
+The founder should primarily spend time on decisions, approvals, exceptions and sensitive employee matters, not routine chasing or duplicate administration.
 
-1. **No new module unless it's already in the allow list above.**
-2. **No AI surface in V1.** The previous `/lib/ai` scaffold was removed; reintroducing AI requires an explicit V2 decision.
-3. **No new role** beyond `admin` and `employee`.
-4. **No new background subsystem** (queue, scheduler, worker, event bus) in V1.
-5. **No premature scalability work** (multi-region, sharding, microservices).
-6. **No client-side authorization** as a security boundary.
-7. **No service-role key** in any code path reachable from the browser.
+## Current Application Surface
 
-Detailed bans live in [`docs/drift-guard.md`](docs/drift-guard.md).
+As of the current baseline, the running app includes:
 
----
+- `/admin/login` — admin sign-in;
+- `/auth`, `/auth/callback`, `/auth/check-email` — employee authentication;
+- `/dashboard` — HR control, decisions, exceptions and signal overview;
+- `/org-chart` — position structure, filled/vacant roles and JD attachments;
+- `/employees` — employee roster and employee-level admin actions;
+- `/onboarding` — onboarding task assignment and completion;
+- `/leaves` — basic leave queue and decisions;
+- `/policies` — policy publication and acknowledgement evidence;
+- `/me` — employee self-service hub;
+- `/api/health`, `/api/health/deep` — health checks.
 
-## Architecture flow
+There are no standalone company setup, document request, exports, manager-delegation, probation, 30-day check-in, employment-change history or offboarding case-management routes yet.
 
-```
-Frontend
-  → API Routes / Server Actions
-    → RBAC Middleware
-      → Service Layer
-        → Database
-```
-
-- The frontend never talks to Supabase with elevated privileges.
-- API Routes / Server Actions parse + validate input, then call the service layer.
-- RBAC middleware resolves the session and role, server-side, every time.
-- The service layer accepts an explicit `Actor` and re-validates authorization.
-- The database is reached only by the service layer.
-
-Full detail: [`docs/architecture.md`](docs/architecture.md).
-
----
-
-## Repository structure
-
-```
-/app
-  /dashboard          # risk dashboard (FPORS) — rebuild in flight (Wave 3)
-  /org-chart          # position-based reporting structure + JD attachment
-  /employees          # team roster + admin CRUD + actions
-  /onboarding         # onboarding readiness (preboarding signals)
-  /leaves             # leave tracking (slimmed)
-  /auth               # magic-link sign-in + callback + logout
-
-/lib
-  /db                 # Supabase server + browser clients, env access
-  /rbac               # role types + resolver
-
-/components
-  # shared UI primitives
-
-/services
-  /employeeService    # shipped; explicit Actor on every call
-  /positionService    # bounded Org Chart positions, reporting, JD attachment
-  /documentService    # scaffolded; signal engine wired; upload UI in progress
-  /leaveService       # shipped; submit/approve/reject wired end-to-end
-
-/middleware
-  auth.ts             # session resolution
-  rbac.ts             # role guards (requireRole, requireTenantActor)
-
-/schemas
-  employees.sql, employee_profiles.sql, compensation.sql, positions.sql, documents.sql,
-  leaves.sql, audit_logs.sql, risk_signals.sql, action_items.sql
-
-/docs
-  architecture.md, drift-guard.md, rbac-rules.md, auth-rules.md,
-  ai-boundaries.md, bootstrap-prompt.md,
-  business/blueprint-locked.md, business/signal-rules.md,
-  business/pivot-deletion-list.md, business/weekend-execution-plan.md
-```
-
----
-
-## Tech stack (locked for V1)
-
-- **Frontend**: Next.js App Router + TypeScript + TailwindCSS
-- **Backend**: Supabase Postgres + Supabase Storage + Supabase Auth
-- **Deployment**: Vercel
-
-No AI provider in V1. No alternate auth provider. No alternate DB. Switching any of these is V2.
-
----
-
-## Setup instructions
+## Setup Instructions
 
 ### 1. Prerequisites
-- Node.js 20.19+ (required by Vitest/Vite toolchain)
-- A Supabase project (Postgres + Storage + Auth)
 
-### 2. Clone and install
+- Node.js 20.19+.
+- A Supabase project with Postgres, Storage and Auth.
+
+### 2. Install
+
 ```bash
-git clone <repo-url>
-cd TeamFrame
-npm install
+npm ci
 ```
 
 ### 3. Configure environment
-Copy `.env.example` to `.env.local` and fill in:
 
-```bash
-cp .env.example .env.local
-```
+Copy `.env.example` to `.env.local` for local development and fill in required values. Do not commit real credentials.
 
-Required:
+Required values include:
+
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SITE_URL` *(local dev default: `http://localhost:3030`)*
-- `SUPABASE_SERVICE_ROLE_KEY` *(server-only — never expose)*
-- `SUPABASE_DB_URL` *(server-only — used by database setup scripts)*
+- `SITE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_DB_URL`
 
 ### 4. Apply database and storage setup
+
 ```bash
 npm run db:apply
 npm run storage:setup
 ```
 
-`db:apply` applies the SQL files in `/schemas` in the correct order. It is
-idempotent and safe to re-run. `storage:setup` creates the private `documents`
-bucket with the V1 file-type and size limits.
+`db:apply` applies SQL files in the repository schema order. `storage:setup` creates the private `documents` bucket.
 
-### 5. Configure Supabase auth
+### 5. Configure Supabase Auth
 
-Admins sign in with email + password at `/admin/login`; employees sign in with magic links at `/auth`.
+Admins sign in with email and password at `/admin/login`. Employees use magic-link authentication through `/auth`.
 
-Required project settings (the auth contract, see `docs/auth-rules.md`):
-- Email provider enabled (password + magic-link sign-ins).
-- New user signups **disabled** so random emails cannot self-register.
-- Site URL = your `SITE_URL` (local: `http://localhost:3030`), with `http://localhost:3030/**` in the redirect allowlist.
-- Do not add password reset, email change, OAuth, MFA, or other auth flows in V1.
-
-**Automated route (recommended):** the contract is committed as `supabase/config.toml`. Push it with:
-
-```bash
-npx supabase link --project-ref <your-project-ref>
-npx supabase config push
-```
-
-**Dashboard route:** Authentication → *Sign In / Providers* (User Signups: disable signups; Auth Providers: Email on) and Authentication → *URL Configuration* (Site URL + redirect URLs).
-
-**Magic-link email template (manual, honest limitation):** employee magic-link emails need the template
-`{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=magiclink` — but on the free tier with
-Supabase's built-in mailer, template modification is rejected and delivery only reaches project
-team-member addresses. Configure custom SMTP (Authentication → *Emails* → SMTP settings) or a paid plan
-first, then either set the template in Authentication → *Emails* → Templates or uncomment the
-`[auth.email.template.magic_link]` block in `supabase/config.toml` and re-run `npx supabase config push`.
-Admin password login works without any email configuration. Full step-by-step: `START_HERE.md` step 6.
+The auth contract is documented in [`docs/auth-rules.md`](docs/auth-rules.md). The committed Supabase config can be applied with the Supabase CLI when working against an authorised environment.
 
 ### 6. Seed the bootstrap admin
+
 ```bash
 SEED_ADMIN_PASSWORD='<choose-a-password>' npm run seed:admin -- you@yourcompany.com "Your Name" "Founder" "Leadership" "UTC"
 ```
-One command, no dashboard steps: creates the tenant, creates the auth user with a password (no
-invite email is sent, so any domain works), stamps `app_metadata.role = "admin"` **and**
-`app_metadata.tenant_id`, creates the matching `employees` row, then verifies the login by signing
-in with the anon key and signing out. The password is read from `SEED_ADMIN_PASSWORD` and never
-printed. Re-running is safe (it re-stamps claims and resets the password).
 
-### 7. Verify the installation
-```bash
-npm run verify:install
-```
-Asserts (PASS/FAIL each, non-zero exit on failure): schemas apply in order, the live tenant-resolution
-function is the JWT-only V2 (no email fallback), required tables/views/functions exist with RLS enabled,
-`seed:admin` produces a password-login-capable admin, and `seed:demo` is idempotent (two runs, identical
-row counts).
+The password is read from `SEED_ADMIN_PASSWORD` and should not be printed or committed.
 
-### 8. Run
-```bash
-npm run dev
-```
-Open `http://localhost:3030/admin/login`, sign in with your admin email and the `SEED_ADMIN_PASSWORD`
-value, and you'll land on `/dashboard`.
-
-## Deployment confidence
-
-Run this sequence before shipping:
+### 7. Verify locally
 
 ```bash
-npm ci
-npm run env:check
-npm run lint
-npm run typecheck
-npm run build
+npm run verify:release
 ```
 
-If your deployment or CI environment also has the CI service-role secret configured, run the smoke loop after the build:
+The canonical release gate runs typecheck, lint, tests, guards and build.
 
-```bash
-npm run env:check:smoke
-npm run smoke:core-loop
-```
+## Development Discipline
 
-Migration order is locked in [scripts/schema-order.mjs](scripts/schema-order.mjs). Apply schema changes with `npm run db:apply` before the first deploy and after every schema change. The script is idempotent and safe to re-run.
+- Follow the market-ready execution register.
+- Do not implement deferred or out-of-scope features merely because they are useful or common in another HRIS.
+- Preserve the current security model: server-side RBAC, service-layer authorization, RLS, tenant-scoped relationships and private storage.
+- New market-ready work should be implemented by bounded workstream, then tested, reviewed and locked.
+- Do not treat older V1 bans as controlling where the market-ready canonical documents explicitly supersede them.
 
-The CI workflow runs install, environment validation, lint, typecheck, and build on every `main` and `develop` push or pull request. The optional smoke job runs only on `main` or manual dispatch when the required CI secrets are present.
+## Historical Documents
 
----
+The repository contains older V1, finalisation and readiness documents. They are retained as provenance. Where they conflict with the current market-ready programme, the following files control:
 
-## Branch protection rules
+1. [`TEAMFRAME_MARKET_READY_SCOPE.md`](TEAMFRAME_MARKET_READY_SCOPE.md)
+2. [`TEAMFRAME_MARKET_READY_EXECUTION_REGISTER.md`](TEAMFRAME_MARKET_READY_EXECUTION_REGISTER.md)
+3. [`TEAMFRAME_DEFERRED_SCOPE.md`](TEAMFRAME_DEFERRED_SCOPE.md)
+4. [`TEAMFRAME_RELEASE_READINESS.md`](TEAMFRAME_RELEASE_READINESS.md)
 
-- `main` — release-candidate only. No direct pushes. PR + at least one review.
-- `develop` — integration branch.
-- `feature/*` — isolated feature work (`feature/auth`, `feature/rbac`, etc.).
+## Final Rule
 
-Required GitHub protections for `main`:
-- pull request review required
-- direct pushes blocked
-- required status checks: `Gate Chain (Strict)`
-- linear history preferred
-
-Detailed branch protection setup: [`.github/branch-protection.md`](.github/branch-protection.md).
-
----
-
-## Coding principles
-
-- **Simplicity is a product feature.** Optimize for controlled founder readiness, not extensibility.
-- **Explicit over abstract.** Prefer hand-written guards to clever frameworks.
-- **One feature, one justification.** Every new feature must defend itself against the managed-readiness scope.
-- **No premature scalability.** Build for 10 customers. The 11th customer is a happy problem.
-- **Reuse existing entities.** New tables are an escalation, not a default.
-
-Sanity check before any feature (also in [`docs/drift-guard.md`](docs/drift-guard.md)):
-
-1. Does this move setup closer to or further from managed readiness?
-2. Does this reuse existing entities/tables?
-3. Does this introduce workflow automation, HR-ops logic, analytics, or AI scope creep?
-4. Can it ship without a new subsystem?
-
-If any answer trends toward complexity, the feature is **V2**.
-
----
-
-## Security principles
-
-- **Two-tier authentication.** Admins use email + password at `/admin/login`; employees use magic links at `/auth`. No password reset, email change, OAuth providers, or MFA in V1. See [`docs/auth-rules.md`](docs/auth-rules.md).
-- **Server-side RBAC is mandatory.** Client checks are UX hints only.
-- **Two roles only**: `admin`, `employee`. See [`docs/rbac-rules.md`](docs/rbac-rules.md).
-- **Service-role key is server-only.** Importing `/lib/db/supabaseServer` from a client component is a review block.
-- **Compensation is admin-only.** It must never appear in org-chart or employee-scope queries.
-- **Audit on every sensitive admin action**: employee delete, compensation change, document delete, leave decision, bulk export.
-- **HTTPS only.** Storage encrypted at rest via Supabase defaults.
-- **Manual employee delete** is supported (soft-delete via `deleted_at`).
-
-Deferred to V2 (intentionally): compliance dashboards, consent management UI, audit-log dashboards, automated data-export UI.
-
----
-
-## AI limitations
-
-AI is **not part of V1**. The previous `/lib/ai` scaffold (`generateBio`, `generateContract`) was removed during Phase 1 surface cleanup because it was never wired to any UI. Re-introducing AI requires:
-
-- an explicit V2 product decision,
-- a server-only module in `/lib/ai`,
-- and updates to [`docs/ai-boundaries.md`](docs/ai-boundaries.md).
-
-Any AI helper, if reintroduced, must still:
-
-- live server-side only,
-- never query the database directly,
-- never receive an unscoped employee record,
-- never access compensation,
-- never act as an HR advisor / chatbot,
-- never score, rank, or compare employees,
-- never be invoked from client-side code.
-
-Full historical boundary spec: [`docs/ai-boundaries.md`](docs/ai-boundaries.md).
-
----
-
-## Implementation priorities
-
-Build in this order. Do not parallelize past these steps.
-
-1. **Supabase setup** — apply schemas, create storage bucket, seed admin role _(shipped)_
-2. **Auth + RBAC** — Supabase Auth sign-in, server-side role resolution, middleware guards _(shipped)_
-3. **Employee CRUD** — create/read/update/soft-delete _(shipped)_
-4. **Org chart** — whitelist-only employee-scope view _(shipped)_
-5. **Document upload system** — upload, download, grouped export (ZIP/PDF) _(not yet)_
-6. **Leave requests** — submit, approve, reject _(not yet)_
-7. **Instrumentation** — internal `analytics_events` table + server-only `track()` helper for the 8 activation events _(in progress — see `docs/14-day-sprint-tracker.md`)_
-8. **Hardening + permissions** — audit-log coverage, RBAC end-to-end review, soft-delete sweeps _(in progress — see `docs/14-day-sprint-tracker.md`)_
-
-Do **not** add V2 features before step 8 is complete. Company announcements and AI helpers are parked until post-V1.
-
----
-
-## Compliance baseline (V1)
-
-Required at launch:
-- Privacy Policy
-- Terms of Service
-- Data Processing Agreement (DPA)
-- HTTPS only
-- Encrypted storage via Supabase defaults
-- Server-side RBAC enforcement
-- Manual employee delete
-
-Deferred to V2: compliance dashboards, consent management UI, audit-log dashboards, automated data export UI, compliance automation.
-
----
-
-## Final rule
-
-TeamFrame V1 is intentionally constrained. The goal is:
-
-- fast launch
-- real customer usage
-- operational simplicity
-- founder-managed support
-- low-maintenance infrastructure
-
-This repository is an **enforcement contract against scope creep**.
-
-**Protect simplicity at all costs.**
+TeamFrame should stay simple, but not incomplete. The market-ready product is a focused essential HR system for founder-led teams, not an enterprise HRIS, payroll platform, ATS, performance system or workflow builder.
