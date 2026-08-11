@@ -10,6 +10,10 @@ import {
   softDeleteEmployee,
   updateEmployee,
 } from "@/services/employeeService";
+import {
+  cancelEmploymentChange,
+  recordEmploymentChange,
+} from "@/services/employmentChangeService";
 import { signalEngine } from "@/services/signalEngine";
 import {
   exportFinanceHandoffUrl,
@@ -93,6 +97,24 @@ const ExportDueDiligencePackInputSchema = z.object({
 });
 
 const ExportFinanceHandoffInputSchema = z.object({
+  return_to: z.string().trim().optional(),
+});
+
+const RecordEmploymentChangeInputSchema = z.object({
+  employee_id: z.string().uuid(),
+  effective_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  role_title: z.string().trim().optional(),
+  department: z.string().trim().optional(),
+  employment_type: z.enum(["", "full_time", "part_time", "contractor", "intern"]).optional(),
+  country: z.string().trim().optional(),
+  manager_id: z.string().uuid().or(z.literal("")).optional(),
+  position_id: z.string().uuid().or(z.literal("")).optional(),
+  return_to: z.string().trim().optional(),
+});
+
+const CancelEmploymentChangeInputSchema = z.object({
+  employee_id: z.string().uuid(),
+  change_id: z.string().uuid(),
   return_to: z.string().trim().optional(),
 });
 
@@ -743,4 +765,149 @@ export async function exportFinanceHandoffAction(formData: FormData): Promise<vo
   }
 
   redirect(signedUrl);
+}
+
+export async function recordEmploymentChangeAction(formData: FormData): Promise<void> {
+  let failed = false;
+  let errorCode = "UNKNOWN";
+  let employeeId = "";
+  let returnTo = "/employees";
+
+  const start = Date.now();
+  const requestId = crypto.randomUUID();
+  let actor: Awaited<ReturnType<typeof requireTenantActor>> | null = null;
+  let caughtError: unknown = null;
+
+  try {
+    actor = await requireTenantActor();
+    const parsed = RecordEmploymentChangeInputSchema.parse({
+      employee_id: formData.get("employee_id"),
+      effective_date: formData.get("effective_date"),
+      role_title: optionalString(formData.get("role_title")) ?? "",
+      department: optionalString(formData.get("department")) ?? "",
+      employment_type: optionalString(formData.get("employment_type")) ?? "",
+      country: optionalString(formData.get("country")) ?? "",
+      manager_id: optionalString(formData.get("manager_id")) ?? "",
+      position_id: optionalString(formData.get("position_id")) ?? "",
+      return_to: optionalString(formData.get("return_to")),
+    });
+    employeeId = parsed.employee_id;
+    returnTo = safeReturnPath(parsed.return_to, "/employees");
+
+    const patch = Object.fromEntries(
+      Object.entries({
+        role_title: parsed.role_title || undefined,
+        department: parsed.department || undefined,
+        employment_type: parsed.employment_type || undefined,
+        country: parsed.country || undefined,
+        manager_id: parsed.manager_id || undefined,
+        position_id: parsed.position_id || undefined,
+      }).filter(([, value]) => value !== undefined),
+    );
+
+    await recordEmploymentChange(actor, {
+      employeeId: parsed.employee_id,
+      effectiveDate: parsed.effective_date,
+      patch,
+    });
+  } catch (error) {
+    failed = true;
+    errorCode = getErrorCode(error);
+    caughtError = error;
+  }
+
+  const durationMs = Date.now() - start;
+  if (caughtError !== null) {
+    captureActionError("recordEmploymentChange", caughtError, {
+      actor_user_id: actor?.authUserId ?? null,
+      actor_tenant_id: actor?.tenantId ?? null,
+      employee_id: employeeId || null,
+    });
+    logAction({
+      action: "recordEmploymentChange",
+      actorUserId: actor?.authUserId ?? null,
+      actorTenantId: actor?.tenantId ?? null,
+      durationMs,
+      outcome: "fail",
+      error: caughtError,
+      requestId,
+    });
+  } else {
+    logAction({
+      action: "recordEmploymentChange",
+      actorUserId: actor!.authUserId,
+      actorTenantId: actor!.tenantId,
+      durationMs,
+      outcome: "ok",
+      requestId,
+    });
+  }
+
+  if (failed) {
+    redirect(`${returnTo}?error=${encodeURIComponent(errorCode)}&employee=${encodeURIComponent(employeeId)}`);
+  }
+
+  redirect(`${returnTo}?status=employment_change_recorded&employee=${encodeURIComponent(employeeId)}`);
+}
+
+export async function cancelEmploymentChangeAction(formData: FormData): Promise<void> {
+  let failed = false;
+  let errorCode = "UNKNOWN";
+  let employeeId = "";
+  let returnTo = "/employees";
+
+  const start = Date.now();
+  const requestId = crypto.randomUUID();
+  let actor: Awaited<ReturnType<typeof requireTenantActor>> | null = null;
+  let caughtError: unknown = null;
+
+  try {
+    actor = await requireTenantActor();
+    const parsed = CancelEmploymentChangeInputSchema.parse({
+      employee_id: formData.get("employee_id"),
+      change_id: formData.get("change_id"),
+      return_to: optionalString(formData.get("return_to")),
+    });
+    employeeId = parsed.employee_id;
+    returnTo = safeReturnPath(parsed.return_to, "/employees");
+
+    await cancelEmploymentChange(actor, parsed.change_id);
+  } catch (error) {
+    failed = true;
+    errorCode = getErrorCode(error);
+    caughtError = error;
+  }
+
+  const durationMs = Date.now() - start;
+  if (caughtError !== null) {
+    captureActionError("cancelEmploymentChange", caughtError, {
+      actor_user_id: actor?.authUserId ?? null,
+      actor_tenant_id: actor?.tenantId ?? null,
+      employee_id: employeeId || null,
+    });
+    logAction({
+      action: "cancelEmploymentChange",
+      actorUserId: actor?.authUserId ?? null,
+      actorTenantId: actor?.tenantId ?? null,
+      durationMs,
+      outcome: "fail",
+      error: caughtError,
+      requestId,
+    });
+  } else {
+    logAction({
+      action: "cancelEmploymentChange",
+      actorUserId: actor!.authUserId,
+      actorTenantId: actor!.tenantId,
+      durationMs,
+      outcome: "ok",
+      requestId,
+    });
+  }
+
+  if (failed) {
+    redirect(`${returnTo}?error=${encodeURIComponent(errorCode)}&employee=${encodeURIComponent(employeeId)}`);
+  }
+
+  redirect(`${returnTo}?status=employment_change_cancelled&employee=${encodeURIComponent(employeeId)}`);
 }

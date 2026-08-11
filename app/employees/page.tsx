@@ -6,6 +6,7 @@ import {
   listEmployeesForAdmin,
 } from "@/services/employeeService";
 import { listDocumentsForEmployee } from "@/services/documentService";
+import { listEmploymentChangesForEmployee } from "@/services/employmentChangeService";
 import { listPositions } from "@/services/positionService";
 import { CopyInviteEmailButton } from "./CopyInviteEmailButton";
 import {
@@ -15,6 +16,8 @@ import {
   exportFinanceHandoffAction,
   exportEmployeeDueDiligencePackAction,
   generateActivationLinkAction,
+  cancelEmploymentChangeAction,
+  recordEmploymentChangeAction,
   startOffboardingAction,
   updateEmployeeAction,
   archiveEmployeeAction,
@@ -37,6 +40,8 @@ const STATUS_COPY: Record<string, string> = {
   document_uploaded: "Document uploaded.",
   document_deleted: "Document deleted.",
   due_diligence_pack_exported: "Due diligence pack prepared.",
+  employment_change_recorded: "Employment change recorded.",
+  employment_change_cancelled: "Employment change cancelled.",
 };
 
 const ERROR_COPY: Record<string, string> = {
@@ -65,6 +70,10 @@ const ERROR_COPY: Record<string, string> = {
   DOCUMENT_FETCH_FAILED: "Document could not be found.",
   DOCUMENT_SIGNED_URL_FAILED: "Could not generate document download link.",
   DOCUMENT_DELETE_FAILED: "Could not delete document.",
+  EMPLOYMENT_CHANGE_RECORD_FAILED: "Could not record the employment change.",
+  EMPLOYMENT_CHANGE_CANCEL_FAILED: "Could not cancel the employment change.",
+  EMPLOYMENT_CHANGE_CONFLICT: "A pending change already exists for that employee, date, and field.",
+  EMPLOYMENT_CHANGE_EMPTY: "Choose at least one employment field to change.",
   INVALID_INPUT: "Could not save — check the email address and the other fields, then try again.",
   UNKNOWN: "Something went wrong. Refresh and try again.",
 };
@@ -94,6 +103,40 @@ function formatDateTime(iso: string | null): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function formatDate(value: string | null): string {
+  if (!value) return "-";
+  return new Date(`${value}T00:00:00.000Z`).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function formatChangeKey(key: string): string {
+  const labels: Record<string, string> = {
+    role_title: "Role title",
+    department: "Department",
+    manager_id: "Manager",
+    position_id: "Position",
+    employment_type: "Employment type",
+    country: "Country",
+    grade: "Grade",
+    start_date: "Start date",
+    end_date: "End date",
+    compensation: "Compensation",
+  };
+  return labels[key] ?? key.replaceAll("_", " ");
+}
+
+function formatChangeValue(key: string, value: unknown, lookup: Map<string, string>): string {
+  if (value === null || value === undefined) return "None";
+  if (typeof value !== "string") return JSON.stringify(value);
+  if (key === "manager_id" || key === "position_id") return lookup.get(value) ?? value;
+  if (key === "employment_type") return value.replace("_", " ");
+  if (key === "start_date" || key === "end_date") return formatDate(value);
+  return value;
 }
 
 function getResendCooldownSeconds(lastAttemptAt: string | null): number {
@@ -144,6 +187,19 @@ export default async function EmployeesPage({
   const documentsByEmployee = new Map(
     employeeDocuments.map((item) => [item.employeeId, item.documents]),
   );
+  const detailEmployees = employeeParam
+    ? employees.filter((employee) => employee.id === employeeParam)
+    : [];
+  const employmentChanges = await Promise.all(
+    detailEmployees.map(async (employee) => ({
+      employeeId: employee.id,
+      changes: await listEmploymentChangesForEmployee(actor, employee.id),
+    })),
+  );
+  const changesByEmployee = new Map(employmentChanges.map((item) => [item.employeeId, item.changes]));
+  const employeeNameById = new Map(employees.map((employee) => [employee.id, employee.full_name]));
+  const positionTitleById = new Map(positions.map((position) => [position.id, position.title]));
+  const changeLookup = new Map([...employeeNameById, ...positionTitleById]);
   const currentEmployees = employees.filter((e) => e.canonical_lifecycle !== "FORMER");
   const invitePending = currentEmployees.filter((e) => e.setup_status === "incomplete").length;
   const inviteSent = currentEmployees.filter((e) => e.setup_status === "ready").length;
@@ -227,9 +283,6 @@ export default async function EmployeesPage({
       (activeFilter === "archived" && employee.canonical_lifecycle === "FORMER");
     return matchesQuery && matchesFilter;
   });
-  const detailEmployees = employeeParam
-    ? employees.filter((employee) => employee.id === employeeParam)
-    : [];
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-14">
@@ -408,6 +461,7 @@ export default async function EmployeesPage({
                 const resendCooldownSeconds = getResendCooldownSeconds(employee.invite_last_attempt_at);
                 const resendBlocked = resendCooldownSeconds > 0;
                 const documents = documentsByEmployee.get(employee.id) ?? [];
+                const changes = changesByEmployee.get(employee.id) ?? [];
                 const position = positionByEmployeeId.get(employee.id);
                 const state = inviteState(employee);
                 const detailOpen = employeeParam === employee.id;
@@ -612,6 +666,187 @@ export default async function EmployeesPage({
                   />
                 </div>
               </form>
+
+              <section className="mt-4 rounded-md border border-ink-300/50 bg-white px-3 py-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h4 className="text-[13px] font-medium text-ink-900">Employment changes</h4>
+                    <p className="mt-1 text-[12px] text-ink-500">
+                      Record effective-dated changes without overwriting the previous employment facts.
+                    </p>
+                  </div>
+                  <StatusPill tone={changes.some((change) => change.status === "pending") ? "amber" : "neutral"}>
+                    {changes.filter((change) => change.status === "pending").length} pending
+                  </StatusPill>
+                </div>
+
+                <form action={recordEmploymentChangeAction} className="mt-3 grid gap-2 md:grid-cols-3">
+                  <input type="hidden" name="employee_id" value={employee.id} />
+                  <input type="hidden" name="return_to" value="/employees" />
+                  <label className="flex flex-col gap-1 text-[11px] text-ink-500">
+                    Effective date
+                    <input
+                      name="effective_date"
+                      type="date"
+                      required
+                      defaultValue={new Date().toISOString().slice(0, 10)}
+                      className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-[11px] text-ink-500">
+                    New role title
+                    <input
+                      name="role_title"
+                      placeholder={employee.role_title}
+                      className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-[11px] text-ink-500">
+                    New department
+                    <input
+                      name="department"
+                      placeholder={employee.department}
+                      className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-[11px] text-ink-500">
+                    Employment type
+                    <select
+                      name="employment_type"
+                      defaultValue=""
+                      className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900 bg-white"
+                    >
+                      <option value="">No change</option>
+                      <option value="full_time">Full time</option>
+                      <option value="part_time">Part time</option>
+                      <option value="contractor">Contractor</option>
+                      <option value="intern">Intern</option>
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-1 text-[11px] text-ink-500">
+                    Country/location
+                    <input
+                      name="country"
+                      placeholder={employee.country ?? "No change"}
+                      className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-[11px] text-ink-500">
+                    Manager
+                    <select
+                      name="manager_id"
+                      defaultValue=""
+                      className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900 bg-white"
+                    >
+                      <option value="">No change</option>
+                      {employees
+                        .filter((candidate) => candidate.id !== employee.id && candidate.canonical_lifecycle !== "FORMER")
+                        .map((candidate) => (
+                          <option key={candidate.id} value={candidate.id}>
+                            {candidate.full_name}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-1 text-[11px] text-ink-500">
+                    Position
+                    <select
+                      name="position_id"
+                      defaultValue=""
+                      className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900 bg-white"
+                    >
+                      <option value="">No change</option>
+                      {positions
+                        .filter((candidate) => !candidate.assigned_employee_id || candidate.assigned_employee_id === employee.id)
+                        .map((candidate) => (
+                          <option key={candidate.id} value={candidate.id}>
+                            {candidate.title}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                  <div className="flex flex-col justify-end md:col-span-2">
+                    <PendingSubmitButton
+                      idleLabel="Record employment change"
+                      pendingLabel="Recording…"
+                      className="rounded-md bg-brand-signal px-3 py-2 text-[13px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:cursor-not-allowed disabled:bg-ink-300"
+                    />
+                  </div>
+                </form>
+
+                {changes.length === 0 ? (
+                  <p className="mt-3 rounded-md border border-ink-300/50 bg-ink-100/40 px-3 py-2 text-[12px] text-ink-500">
+                    No employment changes have been recorded for this employee yet.
+                  </p>
+                ) : (
+                  <div className="mt-3 overflow-x-auto">
+                    <table className="min-w-full text-left text-[12px]">
+                      <thead className="border-b border-ink-300/60 text-[10px] uppercase tracking-[0.1em] text-ink-500">
+                        <tr>
+                          <th className="py-2 pr-4 font-medium">Effective</th>
+                          <th className="px-2 py-2 font-medium">Status</th>
+                          <th className="px-2 py-2 font-medium">Change</th>
+                          <th className="px-2 py-2 font-medium">Applied by</th>
+                          <th className="py-2 pl-2 font-medium">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-ink-300/40">
+                        {changes.slice(0, 6).map((change) => (
+                          <tr key={change.id} className="align-top">
+                            <td className="py-2 pr-4 font-mono text-ink-700">{formatDate(change.effective_date)}</td>
+                            <td className="px-2 py-2">
+                              <StatusPill
+                                tone={
+                                  change.status === "applied"
+                                    ? "green"
+                                    : change.status === "pending"
+                                      ? "amber"
+                                      : change.status === "failed"
+                                        ? "red"
+                                        : "neutral"
+                                }
+                              >
+                                {change.status}
+                              </StatusPill>
+                            </td>
+                            <td className="px-2 py-2 text-ink-700">
+                              <div className="space-y-1">
+                                {change.change_keys.map((key) => (
+                                  <p key={key}>
+                                    <span className="font-medium text-ink-900">{formatChangeKey(key)}:</span>{" "}
+                                    {formatChangeValue(key, change.old_values[key], changeLookup)} →{" "}
+                                    {formatChangeValue(key, change.new_values[key], changeLookup)}
+                                  </p>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="px-2 py-2 text-ink-500">
+                              {change.applied_by_actor_type ? change.applied_by_actor_type : "-"}
+                            </td>
+                            <td className="py-2 pl-2">
+                              {change.status === "pending" ? (
+                                <form action={cancelEmploymentChangeAction}>
+                                  <input type="hidden" name="employee_id" value={employee.id} />
+                                  <input type="hidden" name="change_id" value={change.id} />
+                                  <input type="hidden" name="return_to" value="/employees" />
+                                  <ConfirmSubmitButton
+                                    idleLabel="Cancel"
+                                    pendingLabel="Cancelling…"
+                                    confirmMessage="Cancel this pending employment change?"
+                                    className="rounded-md border border-ink-300 px-3 py-1.5 text-[12px] font-medium text-ink-700 hover:border-ink-700 disabled:cursor-not-allowed disabled:text-ink-500"
+                                  />
+                                </form>
+                              ) : (
+                                <span className="text-ink-500">-</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
 
               <dl className="mt-3 grid gap-x-6 gap-y-2 rounded-md border border-ink-300/50 bg-ink-100/40 px-4 py-3 text-[12px] sm:grid-cols-2 lg:grid-cols-4">
                 <div>

@@ -33,6 +33,7 @@ const REQUIRED_TABLES = [
   "documents",
   "employee_profiles",
   "employees",
+  "employment_changes",
   "hr_automation_events",
   "hr_automation_items",
   "leaves",

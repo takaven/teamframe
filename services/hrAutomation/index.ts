@@ -51,6 +51,7 @@ export type AutomationDueItem = {
   id: string;
   tenant_id: string;
   rule_key: string;
+  subject_id: string | null;
   due_at: string;
   status: "scheduled" | "due" | "failed" | "escalated" | "completed" | "suppressed";
   next_attempt_at: string | null;
@@ -76,6 +77,10 @@ export type RunDueAutomationResult = {
 
 function iso(date: Date): string {
   return date.toISOString();
+}
+
+function isoDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
 }
 
 export async function ensureAutomationItem(input: EnsureAutomationItemInput): Promise<string> {
@@ -133,7 +138,7 @@ export async function listDueAutomationItemsForTenant(input: {
 
   const { data, error } = await supabase
     .from("hr_automation_items")
-    .select("id, tenant_id, rule_key, due_at, status, next_attempt_at")
+    .select("id, tenant_id, rule_key, subject_id, due_at, status, next_attempt_at")
     .eq("tenant_id", input.tenantId)
     .in("status", ["scheduled", "due", "failed"])
     .or(`due_at.lte.${now},next_attempt_at.lte.${now}`)
@@ -145,6 +150,25 @@ export async function listDueAutomationItemsForTenant(input: {
   }
 
   return (data ?? []) as AutomationDueItem[];
+}
+
+async function applyEmploymentChangeFromAutomation(input: {
+  tenantId: string;
+  changeId: string;
+  now: Date;
+}): Promise<void> {
+  const supabase: any = createServiceRoleClient();
+  const { error } = await supabase.rpc("teamframe_apply_employment_change", {
+    p_tenant_id: input.tenantId,
+    p_change_id: input.changeId,
+    p_actor_user_id: "00000000-0000-0000-0000-000000000000",
+    p_actor_type: "system",
+    p_effective_as_of: isoDate(input.now),
+  });
+
+  if (error) {
+    throw new Error(`EMPLOYMENT_CHANGE_APPLY_FAILED: ${error.message}`);
+  }
 }
 
 export async function runDueAutomationForTenant(input: {
@@ -163,6 +187,33 @@ export async function runDueAutomationForTenant(input: {
   let failed = 0;
   for (const item of dueItems) {
     try {
+      if (item.rule_key === "employment_change.apply") {
+        if (!item.subject_id) {
+          throw new Error("EMPLOYMENT_CHANGE_SUBJECT_MISSING");
+        }
+
+        await applyEmploymentChangeFromAutomation({
+          tenantId: input.tenantId,
+          changeId: item.subject_id,
+          now,
+        });
+
+        outcomes.push(
+          await runAutomationItem({
+            tenantId: input.tenantId,
+            itemId: item.id,
+            now,
+            complete: true,
+            eventContext: {
+              runner: "api.automation.run",
+              rule_key: item.rule_key,
+              subject_id: item.subject_id,
+            },
+          }),
+        );
+        continue;
+      }
+
       outcomes.push(
         await runAutomationItem({
           tenantId: input.tenantId,
@@ -174,7 +225,26 @@ export async function runDueAutomationForTenant(input: {
           },
         }),
       );
-    } catch {
+    } catch (error) {
+      try {
+        outcomes.push(
+          await runAutomationItem({
+            tenantId: input.tenantId,
+            itemId: item.id,
+            now,
+            fail: true,
+            errorMessage: error instanceof Error ? error.message : "AUTOMATION_RUNNER_FAILED",
+            eventContext: {
+              runner: "api.automation.run",
+              rule_key: item.rule_key,
+              subject_id: item.subject_id,
+            },
+          }),
+        );
+      } catch {
+        // Preserve the runner boundary: a failed failure-recording attempt should
+        // not stop remaining tenant work from being processed.
+      }
       failed += 1;
     }
   }

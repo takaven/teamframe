@@ -61,6 +61,7 @@ const NON_TABLE_MIGRATIONS = new Set([
 const TABLES_BY_MIGRATION = {
   "file_lifecycle.sql": ["file_operations", "export_files"],
   "hr_automation.sql": ["hr_automation_items", "hr_automation_events"],
+  "employment_changes.sql": ["employment_changes"],
 };
 const REQUIRED_TABLES = SCHEMA_ORDER.flatMap((f) =>
   NON_TABLE_MIGRATIONS.has(f) ? [] : TABLES_BY_MIGRATION[f] ?? [f.replace(/\.sql$/, "")],

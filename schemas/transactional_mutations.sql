@@ -360,7 +360,74 @@ set search_path = public
 as $$
 declare
   v_employee employees;
+  v_material_patch jsonb := '{}'::jsonb;
 begin
+  if p_patch ? 'role_title' then
+    v_material_patch := v_material_patch || jsonb_build_object('role_title', p_patch -> 'role_title');
+    p_patch := p_patch - 'role_title';
+  end if;
+  if p_patch ? 'department' then
+    v_material_patch := v_material_patch || jsonb_build_object('department', p_patch -> 'department');
+    p_patch := p_patch - 'department';
+  end if;
+  if p_patch ? 'manager_id' then
+    v_material_patch := v_material_patch || jsonb_build_object('manager_id', p_patch -> 'manager_id');
+    p_patch := p_patch - 'manager_id';
+  end if;
+  if p_patch ? 'employment_type' then
+    v_material_patch := v_material_patch || jsonb_build_object('employment_type', p_patch -> 'employment_type');
+    p_patch := p_patch - 'employment_type';
+  end if;
+  if p_patch ? 'country' then
+    v_material_patch := v_material_patch || jsonb_build_object('country', p_patch -> 'country');
+    p_patch := p_patch - 'country';
+  end if;
+  if p_patch ? 'grade' then
+    v_material_patch := v_material_patch || jsonb_build_object('grade', p_patch -> 'grade');
+    p_patch := p_patch - 'grade';
+  end if;
+  if p_patch ? 'start_date' then
+    v_material_patch := v_material_patch || jsonb_build_object('start_date', p_patch -> 'start_date');
+    p_patch := p_patch - 'start_date';
+  end if;
+  if p_patch ? 'end_date' then
+    v_material_patch := v_material_patch || jsonb_build_object('end_date', p_patch -> 'end_date');
+    p_patch := p_patch - 'end_date';
+  end if;
+
+  if v_material_patch <> '{}'::jsonb then
+    perform 1
+    from employees
+    where tenant_id = p_tenant_id
+      and id = p_employee_id
+      and teamframe_timestamp_matches(updated_at, p_expected_updated_at)
+      and deleted_at is null;
+
+    if not found then
+      return null;
+    end if;
+
+    perform teamframe_record_employment_change(
+      p_tenant_id,
+      p_actor_user_id,
+      p_employee_id,
+      current_date,
+      v_material_patch,
+      'employee_update:' || p_employee_id::text || ':' || clock_timestamp()::text
+    );
+
+    if p_patch = '{}'::jsonb then
+      select *
+      into v_employee
+      from employees
+      where tenant_id = p_tenant_id
+        and id = p_employee_id
+        and deleted_at is null;
+
+      return v_employee;
+    end if;
+  end if;
+
   update employees
   set
     full_name = case when p_patch ? 'full_name' then p_patch ->> 'full_name' else full_name end,
@@ -400,7 +467,7 @@ begin
     setup_status = case when p_patch ? 'setup_status' then (p_patch ->> 'setup_status')::employee_setup_status else setup_status end
   where tenant_id = p_tenant_id
     and id = p_employee_id
-    and teamframe_timestamp_matches(updated_at, p_expected_updated_at)
+    and (v_material_patch <> '{}'::jsonb or teamframe_timestamp_matches(updated_at, p_expected_updated_at))
     and deleted_at is null
   returning * into v_employee;
 

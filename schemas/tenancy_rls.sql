@@ -71,6 +71,7 @@ alter table acknowledgements enable row level security;
 alter table onboarding_tasks enable row level security;
 alter table hr_automation_items enable row level security;
 alter table hr_automation_events enable row level security;
+alter table employment_changes enable row level security;
 alter table file_operations enable row level security;
 alter table export_files enable row level security;
 
@@ -472,6 +473,30 @@ with check (false);
 
 drop policy if exists hr_automation_events_delete_blocked on hr_automation_events;
 create policy hr_automation_events_delete_blocked on hr_automation_events
+for delete
+using (false);
+
+drop policy if exists employment_changes_select_admin on employment_changes;
+create policy employment_changes_select_admin on employment_changes
+for select
+using (
+  is_current_actor_admin()
+  and tenant_id = current_actor_tenant_id()
+);
+
+drop policy if exists employment_changes_insert_blocked on employment_changes;
+create policy employment_changes_insert_blocked on employment_changes
+for insert
+with check (false);
+
+drop policy if exists employment_changes_update_blocked on employment_changes;
+create policy employment_changes_update_blocked on employment_changes
+for update
+using (false)
+with check (false);
+
+drop policy if exists employment_changes_delete_blocked on employment_changes;
+create policy employment_changes_delete_blocked on employment_changes
 for delete
 using (false);
 
