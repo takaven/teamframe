@@ -541,6 +541,19 @@ $$;
 drop function if exists teamframe_submit_leave(uuid, uuid, uuid, date, date);
 drop function if exists teamframe_decide_leave(uuid, uuid, uuid, leave_status, timestamptz);
 
+create or replace function teamframe_calculate_leave_days(
+  p_start_date date,
+  p_end_date date
+)
+returns numeric
+language sql
+immutable
+as $$
+  select count(*)::numeric
+  from generate_series(p_start_date, p_end_date, interval '1 day') as leave_day(day)
+  where extract(isodow from leave_day.day) between 1 and 5
+$$;
+
 create or replace function teamframe_submit_leave(
   p_tenant_id uuid,
   p_actor_user_id uuid,
@@ -563,6 +576,10 @@ declare
 begin
   if p_end_date < p_start_date then
     raise exception 'INVALID_INPUT';
+  end if;
+
+  if p_leave_type = 'annual' and extract(year from p_start_date) <> extract(year from p_end_date) then
+    raise exception 'LEAVE_PERIOD_CROSSING';
   end if;
 
   if p_reason is not null and char_length(p_reason) > 500 then
@@ -602,7 +619,10 @@ begin
     raise exception 'LEAVE_OVERLAP';
   end if;
 
-  v_days := (p_end_date - p_start_date + 1)::numeric;
+  v_days := teamframe_calculate_leave_days(p_start_date, p_end_date);
+  if v_days <= 0 then
+    raise exception 'INVALID_INPUT';
+  end if;
 
   insert into leaves (
     tenant_id,
@@ -1068,6 +1088,7 @@ revoke all on function teamframe_complete_guided_company_setup(
 ) from public, anon, authenticated;
 revoke all on function teamframe_update_employee(uuid, uuid, uuid, timestamptz, jsonb) from public, anon, authenticated;
 revoke all on function teamframe_archive_employee(uuid, uuid, uuid, timestamptz) from public, anon, authenticated;
+revoke all on function teamframe_calculate_leave_days(date, date) from public, anon, authenticated;
 revoke all on function teamframe_submit_leave(uuid, uuid, uuid, date, date, leave_type, text) from public, anon, authenticated;
 revoke all on function teamframe_decide_leave(uuid, uuid, uuid, leave_status, timestamptz, boolean, text, text) from public, anon, authenticated;
 revoke all on function teamframe_withdraw_leave(uuid, uuid, uuid, uuid, timestamptz, text) from public, anon, authenticated;
@@ -1089,6 +1110,7 @@ grant execute on function teamframe_complete_guided_company_setup(
 ) to service_role;
 grant execute on function teamframe_update_employee(uuid, uuid, uuid, timestamptz, jsonb) to service_role;
 grant execute on function teamframe_archive_employee(uuid, uuid, uuid, timestamptz) to service_role;
+grant execute on function teamframe_calculate_leave_days(date, date) to service_role;
 grant execute on function teamframe_submit_leave(uuid, uuid, uuid, date, date, leave_type, text) to service_role;
 grant execute on function teamframe_decide_leave(uuid, uuid, uuid, leave_status, timestamptz, boolean, text, text) to service_role;
 grant execute on function teamframe_withdraw_leave(uuid, uuid, uuid, uuid, timestamptz, text) to service_role;

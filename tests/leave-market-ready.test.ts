@@ -9,11 +9,17 @@ const service = readFileSync(join(root, "services", "leaveService", "index.ts"),
 const page = readFileSync(join(root, "app", "leaves", "page.tsx"), "utf8");
 const documentService = readFileSync(join(root, "services", "documentService", "index.ts"), "utf8");
 
-function inclusiveDays(startDate: string, endDate: string): number {
+function workingDays(startDate: string, endDate: string): number {
   const start = Date.parse(`${startDate}T00:00:00.000Z`);
   const end = Date.parse(`${endDate}T00:00:00.000Z`);
   if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) throw new Error("INVALID_INPUT");
-  return Math.floor((end - start) / 86_400_000) + 1;
+  let days = 0;
+  for (let cursor = new Date(start); cursor.getTime() <= end; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
+    const day = cursor.getUTCDay();
+    if (day !== 0 && day !== 6) days += 1;
+  }
+  if (days <= 0) throw new Error("INVALID_INPUT");
+  return days;
 }
 
 describe("MR-6 leave market-ready scope", () => {
@@ -33,10 +39,12 @@ describe("MR-6 leave market-ready scope", () => {
     }
   });
 
-  it("uses date-based inclusive day semantics without hourly leave", () => {
-    expect(inclusiveDays("2026-09-10", "2026-09-10")).toBe(1);
-    expect(inclusiveDays("2026-09-10", "2026-09-12")).toBe(3);
-    expect(() => inclusiveDays("2026-09-12", "2026-09-10")).toThrow("INVALID_INPUT");
+  it("uses Monday-Friday working-day semantics without hourly leave", () => {
+    expect(workingDays("2026-09-07", "2026-09-13")).toBe(5);
+    expect(service).toContain("cursor.getUTCDate() + 1");
+    expect(mutations).toContain("teamframe_calculate_leave_days");
+    expect(mutations).toContain("extract(isodow");
+    expect(() => workingDays("2026-09-12", "2026-09-13")).toThrow("INVALID_INPUT");
     expect(service).not.toContain("hourly");
     expect(service).not.toContain("accrual_rate");
     expect(service).not.toContain("carry_forward");
@@ -44,6 +52,8 @@ describe("MR-6 leave market-ready scope", () => {
 
   it("keeps balance truth derived from company defaults and leave facts", () => {
     expect(service).toContain("annual_leave_default_days");
+    expect(service).toContain("LEAVE_PERIOD_CROSSING");
+    expect(mutations).toContain("raise exception 'LEAVE_PERIOD_CROSSING'");
     expect(service).toContain("status\", [\"pending\", \"approved\"]");
     expect(service).toContain("available: (company.annual_leave_default_days ?? 0) - annual.pending - annual.approved");
     expect(service).toContain("periodForYear");

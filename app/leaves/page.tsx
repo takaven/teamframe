@@ -32,6 +32,7 @@ const ERROR_COPY: Record<string, string> = {
   LEAVE_EMPLOYEE_NOT_ELIGIBLE: "Leave requests are only available to active employees.",
   LEAVE_OVERLAP: "This request overlaps an existing pending or approved leave record.",
   LEAVE_INSUFFICIENT_BALANCE: "Annual leave balance is insufficient. Use an explicit admin override if this is intentional.",
+  LEAVE_PERIOD_CROSSING: "Annual Leave must be requested within one calendar-year leave period. Submit separate requests for each year.",
   LEAVE_OVERRIDE_REASON_REQUIRED: "Override requires a reason.",
   LEAVE_SUBMIT_FAILED: "Could not submit leave request.",
   LEAVE_DECISION_FAILED: "Could not record decision.",

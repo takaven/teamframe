@@ -83,7 +83,7 @@ vi.mock("@/services/onboardingService", () => ({
   maybeFireActivationCompleted: vi.fn(async () => {}),
 }));
 
-import { submitLeaveRequest } from "@/services/leaveService";
+import { calculateLeaveDays, submitLeaveRequest } from "@/services/leaveService";
 import type { Actor } from "@/middleware/rbac";
 
 const employeeActor: Actor = {
@@ -109,6 +109,12 @@ beforeEach(() => {
 });
 
 describe("leave lifecycle eligibility", () => {
+  it("calculates requested days as Monday-Friday working days", () => {
+    expect(calculateLeaveDays("2026-09-07", "2026-09-13")).toBe(5);
+    expect(calculateLeaveDays("2026-09-07", "2026-09-11")).toBe(5);
+    expect(() => calculateLeaveDays("2026-09-12", "2026-09-13")).toThrow("INVALID_INPUT");
+  });
+
   it("allows an active employee to submit leave", async () => {
     const leave = await submitLeaveRequest(employeeActor, {
       startDate: "2026-08-20",
@@ -118,6 +124,17 @@ describe("leave lifecycle eligibility", () => {
 
     expect(leave.id).toBe("leave-1");
     expect(rpcCalls).toEqual(["teamframe_submit_leave"]);
+  });
+
+  it("rejects cross-period Annual Leave before the leave RPC", async () => {
+    await expect(
+      submitLeaveRequest(employeeActor, {
+        startDate: "2026-12-31",
+        endDate: "2027-01-02",
+        leaveType: "annual",
+      }),
+    ).rejects.toThrow("LEAVE_PERIOD_CROSSING");
+    expect(rpcCalls).toHaveLength(0);
   });
 
   it("treats on-leave compatibility status as current active lifecycle", async () => {

@@ -70,6 +70,8 @@ export async function submitLeaveAction(formData: FormData): Promise<void> {
     const parsed = SubmitSchema.parse({
       start_date: formData.get("start_date"),
       end_date: formData.get("end_date"),
+      leave_type: formData.get("leave_type"),
+      reason: optionalString(formData.get("reason")),
     });
     await submitLeaveRequest(actor, {
       startDate: parsed.start_date,

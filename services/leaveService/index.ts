@@ -137,7 +137,13 @@ export function calculateLeaveDays(startDate: string, endDate: string): number {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate) || endDate < startDate) {
     throw new Error("INVALID_INPUT");
   }
-  return Math.floor((toDate(endDate).getTime() - toDate(startDate).getTime()) / 86_400_000) + 1;
+  let days = 0;
+  for (let cursor = toDate(startDate); cursor <= toDate(endDate); cursor.setUTCDate(cursor.getUTCDate() + 1)) {
+    const day = cursor.getUTCDay();
+    if (day !== 0 && day !== 6) days += 1;
+  }
+  if (days <= 0) throw new Error("INVALID_INPUT");
+  return days;
 }
 
 function periodForYear(year: number): { start: string; end: string } {
@@ -378,6 +384,9 @@ export async function submitLeaveRequest(
   const employeeId = requireLinkedEmployee(actor);
   const parsed = SubmitLeaveSchema.safeParse(input);
   if (!parsed.success) throw new Error("INVALID_INPUT");
+  if (parsed.data.leaveType === "annual" && parsed.data.startDate.slice(0, 4) !== parsed.data.endDate.slice(0, 4)) {
+    throw new Error("LEAVE_PERIOD_CROSSING");
+  }
 
   await assertLeaveEligible(actor, employeeId);
 
