@@ -19,8 +19,11 @@ import {
   exportFinanceHandoffUrl,
   exportEmployeeDueDiligencePackUrl,
   getSignedDownloadUrl,
+  createDocumentRequirement,
+  reviewDocumentRequirement,
   softDeleteDocument,
   uploadDocument,
+  uploadDocumentForRequirement,
 } from "@/services/documentService";
 import { logAction } from "@/lib/telemetry/logger";
 import { captureActionError } from "@/lib/telemetry/sentry";
@@ -77,6 +80,28 @@ const UploadDocumentInputSchema = z.object({
   type: z.enum(["cv", "contract", "jd", "photo"]),
   signed_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   expires_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  return_to: z.string().trim().optional(),
+});
+
+const CreateDocumentRequirementInputSchema = z.object({
+  employee_id: z.string().uuid(),
+  document_type: z.string().trim().min(1).max(80),
+  due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  expiry_required: z.enum(["on"]).optional(),
+  review_required: z.enum(["on"]).optional(),
+  employee_upload_allowed: z.enum(["on"]).optional(),
+  return_to: z.string().trim().optional(),
+});
+
+const UploadRequirementDocumentInputSchema = z.object({
+  requirement_id: z.string().uuid(),
+  expires_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  return_to: z.string().trim().optional(),
+});
+
+const ReviewDocumentRequirementInputSchema = z.object({
+  requirement_id: z.string().uuid(),
+  decision: z.enum(["accepted", "rejected"]),
   return_to: z.string().trim().optional(),
 });
 
@@ -622,6 +647,101 @@ export async function uploadEmployeeDocumentAction(formData: FormData): Promise<
   }
 
   redirect(`${returnTo}?status=document_uploaded&employee=${encodeURIComponent(employeeId)}`);
+}
+
+export async function createDocumentRequirementAction(formData: FormData): Promise<void> {
+  let failed = false;
+  let errorCode = "UNKNOWN";
+  let employeeId = "";
+  let returnTo = "/employees";
+
+  try {
+    const actor = await requireTenantActor();
+    const parsed = CreateDocumentRequirementInputSchema.parse({
+      employee_id: formData.get("employee_id"),
+      document_type: formData.get("document_type"),
+      due_date: optionalString(formData.get("due_date")),
+      expiry_required: formData.get("expiry_required"),
+      review_required: formData.get("review_required"),
+      employee_upload_allowed: formData.get("employee_upload_allowed"),
+      return_to: optionalString(formData.get("return_to")),
+    });
+    employeeId = parsed.employee_id;
+    returnTo = safeReturnPath(parsed.return_to, "/employees");
+
+    await createDocumentRequirement(actor, {
+      employeeId: parsed.employee_id,
+      documentType: parsed.document_type,
+      dueDate: parsed.due_date ?? null,
+      expiryRequired: parsed.expiry_required === "on",
+      reviewRequired: parsed.review_required === "on",
+      employeeUploadAllowed: parsed.employee_upload_allowed !== undefined,
+    });
+  } catch (error) {
+    failed = true;
+    errorCode = getErrorCode(error);
+  }
+
+  if (failed) {
+    redirect(`${returnTo}?error=${encodeURIComponent(errorCode)}&employee=${encodeURIComponent(employeeId)}`);
+  }
+  redirect(`${returnTo}?status=document_requested&employee=${encodeURIComponent(employeeId)}`);
+}
+
+export async function uploadRequirementDocumentAction(formData: FormData): Promise<void> {
+  let failed = false;
+  let errorCode = "UNKNOWN";
+  let returnTo = "/me";
+
+  try {
+    const actor = await requireTenantActor();
+    const file = formData.get("file");
+    if (!(file instanceof File) || file.size === 0) throw new Error("INVALID_INPUT");
+    const parsed = UploadRequirementDocumentInputSchema.parse({
+      requirement_id: formData.get("requirement_id"),
+      expires_at: optionalString(formData.get("expires_at")),
+      return_to: optionalString(formData.get("return_to")),
+    });
+    returnTo = safeReturnPath(parsed.return_to, "/me");
+
+    await uploadDocumentForRequirement(actor, {
+      requirementId: parsed.requirement_id,
+      file,
+      expiresAt: parsed.expires_at ?? null,
+    });
+  } catch (error) {
+    failed = true;
+    errorCode = getErrorCode(error);
+  }
+
+  if (failed) redirect(`${returnTo}?error=${encodeURIComponent(errorCode)}`);
+  redirect(`${returnTo}?status=document_uploaded`);
+}
+
+export async function reviewDocumentRequirementAction(formData: FormData): Promise<void> {
+  let failed = false;
+  let errorCode = "UNKNOWN";
+  let returnTo = "/employees";
+
+  try {
+    const actor = await requireTenantActor();
+    const parsed = ReviewDocumentRequirementInputSchema.parse({
+      requirement_id: formData.get("requirement_id"),
+      decision: formData.get("decision"),
+      return_to: optionalString(formData.get("return_to")),
+    });
+    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    await reviewDocumentRequirement(actor, {
+      requirementId: parsed.requirement_id,
+      decision: parsed.decision,
+    });
+  } catch (error) {
+    failed = true;
+    errorCode = getErrorCode(error);
+  }
+
+  if (failed) redirect(`${returnTo}?error=${encodeURIComponent(errorCode)}`);
+  redirect(`${returnTo}?status=document_reviewed`);
 }
 
 export async function downloadEmployeeDocumentAction(formData: FormData): Promise<void> {

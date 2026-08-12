@@ -6,12 +6,13 @@ import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { AppShell } from "@/components/AppShell";
 import { EmptyState } from "@/components/EmptyState";
 import { StatusPill, type StatusPillTone } from "@/components/StatusPill";
-import { archivePolicyAction, createPolicyAction, publishPolicyAction } from "./actions";
+import { archivePolicyAction, attachPolicyFileAction, createPolicyAction, publishPolicyAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
 const STATUS_COPY: Record<string, string> = {
   created: "Policy created as a draft. Publish it when it is ready.",
+  file_attached: "Policy file attached.",
   published: "Policy published. Employees will now be asked to acknowledge it.",
   archived: "Policy archived. It no longer generates acknowledgement risks.",
 };
@@ -23,6 +24,8 @@ const ERROR_COPY: Record<string, string> = {
   MISSING_EXPECTED_UPDATED_AT: "This action is out of date. Refresh and retry.",
   INVALID_INPUT: "Check the title, body, and version, then try again.",
   POLICY_CREATE_FAILED: "Could not create the policy.",
+  POLICY_FILE_ATTACH_FAILED: "Could not attach the policy file.",
+  POLICY_FILE_UNSUPPORTED_TYPE: "Policy files must be PDF, DOC, or DOCX.",
   POLICY_PUBLISH_FAILED: "Could not publish the policy.",
   POLICY_ARCHIVE_FAILED: "Could not archive the policy.",
   POLICY_LIST_FAILED: "Could not load policies.",
@@ -217,6 +220,34 @@ export default async function PoliciesPage({
                         Created <span className="font-mono tabular-nums">{formatDate(policy.created_at)}</span> · Updated{" "}
                         <span className="font-mono tabular-nums">{formatDate(policy.updated_at)}</span>
                       </p>
+                      <div className="mt-2 rounded-md border border-ink-300/50 bg-ink-100/30 px-3 py-2">
+                        <p className="text-[12px] font-medium text-ink-900">
+                          Policy file: {policy.file_original_name ?? "No file attached"}
+                        </p>
+                        {policy.file_uploaded_at ? (
+                          <p className="mt-1 text-[12px] text-ink-500">
+                            Uploaded <span className="font-mono tabular-nums">{formatDate(policy.file_uploaded_at)}</span>
+                          </p>
+                        ) : (
+                          <p className="mt-1 text-[12px] text-ink-500">
+                            PDF or DOCX upload is the normal policy content path; plain text remains available for simple policies.
+                          </p>
+                        )}
+                        {!policy.archived_at ? (
+                          <form action={attachPolicyFileAction} className="mt-2 flex flex-wrap items-end gap-2" encType="multipart/form-data">
+                            <input type="hidden" name="policy_id" value={policy.id} />
+                            <label className="flex min-w-0 flex-1 flex-col gap-1 text-[11px] text-ink-500">
+                              Attach PDF/DOCX
+                              <input name="file" type="file" required className="rounded-md border border-ink-300 bg-white px-2 py-1.5 text-[12px] text-ink-900" />
+                            </label>
+                            <PendingSubmitButton
+                              idleLabel={policy.file_original_name ? "Replace file" : "Attach file"}
+                              pendingLabel="Uploading…"
+                              className="rounded-md border border-ink-300 px-3 py-1.5 text-[12px] font-medium text-ink-700 hover:border-ink-900 disabled:text-ink-300"
+                            />
+                          </form>
+                        ) : null}
+                      </div>
                       {policy.is_published && !policy.archived_at ? (
                         <details className="mt-3 rounded-md border border-ink-300/50 bg-white">
                           <summary className="cursor-pointer px-3 py-2 text-[12px] font-medium text-ink-800 hover:text-ink-900">

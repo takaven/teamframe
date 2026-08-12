@@ -2,12 +2,16 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { requireTenantActor } from "@/middleware/rbac";
 import { getEmployee } from "@/services/employeeService";
+import { listDocumentRequirementsForEmployee } from "@/services/documentService";
 import { listUnacknowledgedForEmployee, type PolicyRecord } from "@/services/policyService";
 import { listMyOnboardingCheckIns } from "@/services/earlyEmploymentService";
+import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { AppShell } from "@/components/AppShell";
 import { EmptyState } from "@/components/EmptyState";
+import { StatusPill } from "@/components/StatusPill";
 import { acknowledgePolicyAction } from "@/app/policies/actions";
+import { uploadRequirementDocumentAction } from "@/app/employees/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +20,7 @@ const STATUS_COPY: Record<string, string> = {
   leave_submitted: "Leave request submitted.",
   policy_acknowledged: "Policy acknowledged. Thank you.",
   check_in_submitted: "30-day check-in submitted.",
+  document_uploaded: "Document uploaded.",
 };
 
 const ERROR_COPY: Record<string, string> = {
@@ -28,6 +33,9 @@ const ERROR_COPY: Record<string, string> = {
   POLICY_NOT_PUBLISHED: "That policy is no longer active, so no acknowledgement is needed.",
   POLICY_ACKNOWLEDGE_FAILED: "Could not record your acknowledgement.",
   CHECK_IN_SUBMIT_FAILED: "Could not submit check-in.",
+  DOCUMENT_UPLOAD_FAILED: "Document upload failed.",
+  DOCUMENT_REQUIREMENT_LOOKUP_FAILED: "That document request could not be found.",
+  DOCUMENT_REQUIREMENT_NOT_UPLOADABLE: "That document request is not ready for upload.",
   AUDIT_LOG_FAILED: "Could not record required audit trail. No change was applied.",
   UNKNOWN: "Something went wrong. Refresh and try again.",
 };
@@ -68,14 +76,16 @@ export default async function MePage({
     );
   }
 
-  const [employee, unacknowledgedPolicies, checkIns]: [
+  const [employee, unacknowledgedPolicies, checkIns, documentRequirements]: [
     Awaited<ReturnType<typeof getEmployee>>,
     PolicyRecord[],
     Awaited<ReturnType<typeof listMyOnboardingCheckIns>>,
+    Awaited<ReturnType<typeof listDocumentRequirementsForEmployee>>,
   ] = await Promise.all([
     getEmployee(actor, actor.employeeId),
     listUnacknowledgedForEmployee(actor),
     listMyOnboardingCheckIns(actor),
+    listDocumentRequirementsForEmployee(actor, actor.employeeId),
   ]);
   const openCheckIn = checkIns.find((checkIn) => checkIn.status === "scheduled");
 
@@ -127,10 +137,62 @@ export default async function MePage({
       </dl>
 
       <section id="documents" className="mt-8 rounded-xl border border-ink-300/70 bg-white/80 p-5">
-        <h2 className="text-[17px] font-bold tracking-tight text-ink-800">Documents</h2>
-        <p className="mt-2 text-[14px] text-ink-500">
-          Your admin manages private employment documents in the employee record. Ask them to update anything that looks missing or out of date.
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-[17px] font-bold tracking-tight text-ink-800">Documents</h2>
+            <p className="mt-2 text-[14px] text-ink-500">
+              Upload requested evidence here. TeamFrame records receipt and closes matching obligations where evidence is configured.
+            </p>
+          </div>
+          <StatusPill tone={documentRequirements.some((item) => item.state !== "accepted") ? "amber" : "neutral"}>
+            {documentRequirements.filter((item) => item.state !== "accepted").length} outstanding
+          </StatusPill>
+        </div>
+        {documentRequirements.length === 0 ? (
+          <p className="mt-4 rounded-md border border-ink-300/50 bg-ink-100/40 px-3 py-2 text-[13px] text-ink-500">
+            No document requests are currently assigned to you.
+          </p>
+        ) : (
+          <ul className="mt-4 divide-y divide-ink-300/40 rounded-md border border-ink-300/50">
+            {documentRequirements.map((requirement) => (
+              <li key={requirement.id} className="px-3 py-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[14px] font-medium text-ink-900">{requirement.document_type.replace(/_/g, " ")}</p>
+                    <p className="text-[12px] text-ink-500">
+                      {requirement.state} · Due {requirement.due_date ? formatDate(requirement.due_date) : "-"}
+                      {requirement.review_required ? " · Admin review required" : ""}
+                    </p>
+                  </div>
+                  <StatusPill tone={requirement.state === "accepted" ? "green" : requirement.state === "expired" ? "red" : "amber"}>
+                    {requirement.state}
+                  </StatusPill>
+                </div>
+                {requirement.employee_upload_allowed && ["requested", "rejected", "expired", "accepted"].includes(requirement.state) ? (
+                  <form action={uploadRequirementDocumentAction} className="mt-3 grid gap-2 sm:grid-cols-[1fr_150px_auto]" encType="multipart/form-data">
+                    <input type="hidden" name="requirement_id" value={requirement.id} />
+                    <input type="hidden" name="return_to" value="/me" />
+                    <label className="flex flex-col gap-1 text-[11px] text-ink-500">
+                      File
+                      <input name="file" type="file" required className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900" />
+                    </label>
+                    <label className="flex flex-col gap-1 text-[11px] text-ink-500">
+                      Expires
+                      <input name="expires_at" type="date" className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900" />
+                    </label>
+                    <div className="flex items-end">
+                      <PendingSubmitButton
+                        idleLabel="Upload"
+                        pendingLabel="Uploading…"
+                        className="rounded-md bg-brand-signal px-4 py-2 text-[13px] font-medium text-ink-800 disabled:bg-ink-300"
+                      />
+                    </div>
+                  </form>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       {openCheckIn ? (

@@ -8,6 +8,15 @@ do $$ begin
   create type onboarding_task_status as enum ('pending', 'completed');
 exception when duplicate_object then null; end $$;
 
+do $$ begin
+  create type onboarding_completion_mode as enum (
+    'manual_confirmation',
+    'document_required',
+    'policy_acknowledgement',
+    'form_or_data_required'
+  );
+exception when duplicate_object then null; end $$;
+
 create table if not exists onboarding_tasks (
   id           uuid primary key default gen_random_uuid(),
   tenant_id    uuid        not null references companies(id) on delete restrict,
@@ -16,6 +25,11 @@ create table if not exists onboarding_tasks (
   status       onboarding_task_status not null default 'pending',
   assigned_by  uuid        not null,
   due_date     date,
+  completion_mode onboarding_completion_mode not null default 'manual_confirmation',
+  required_document_type text,
+  required_policy_id uuid,
+  required_policy_version integer,
+  form_requirement_key text,
   completed_at timestamptz,
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now(),
@@ -27,10 +41,20 @@ create table if not exists onboarding_tasks (
 
 -- Wave 2 additive migration: existing deployments predate the due_date column.
 alter table onboarding_tasks add column if not exists due_date date;
+alter table onboarding_tasks add column if not exists completion_mode onboarding_completion_mode not null default 'manual_confirmation';
+alter table onboarding_tasks add column if not exists required_document_type text;
+alter table onboarding_tasks add column if not exists required_policy_id uuid;
+alter table onboarding_tasks add column if not exists required_policy_version integer;
+alter table onboarding_tasks add column if not exists form_requirement_key text;
 
 create index if not exists onboarding_tasks_employee_id_idx on onboarding_tasks(employee_id);
 create index if not exists onboarding_tasks_tenant_id_idx   on onboarding_tasks(tenant_id);
 create index if not exists onboarding_tasks_status_idx      on onboarding_tasks(status);
+create index if not exists onboarding_tasks_completion_mode_idx on onboarding_tasks(tenant_id, completion_mode, status);
+create index if not exists onboarding_tasks_required_document_idx on onboarding_tasks(tenant_id, employee_id, required_document_type)
+  where completion_mode = 'document_required' and status = 'pending';
+create index if not exists onboarding_tasks_required_policy_idx on onboarding_tasks(tenant_id, employee_id, required_policy_id, required_policy_version)
+  where completion_mode = 'policy_acknowledgement' and status = 'pending';
 
 create or replace function onboarding_tasks_touch_updated_at()
 returns trigger

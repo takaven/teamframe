@@ -18,12 +18,22 @@ import { captureActionError } from "@/lib/telemetry/sentry";
 import { expandTemplatePack } from "./templates";
 
 export type OnboardingTaskStatus = "pending" | "completed";
+export type OnboardingCompletionMode =
+  | "manual_confirmation"
+  | "document_required"
+  | "policy_acknowledgement"
+  | "form_or_data_required";
 
 export type OnboardingTask = {
   id: string;
   employee_id: string;
   title: string;
   status: OnboardingTaskStatus;
+  completion_mode: OnboardingCompletionMode;
+  required_document_type: string | null;
+  required_policy_id: string | null;
+  required_policy_version: number | null;
+  form_requirement_key: string | null;
   assigned_by: string;
   due_date: string | null;
   completed_at: string | null;
@@ -32,7 +42,7 @@ export type OnboardingTask = {
 };
 
 const TASK_SELECT =
-  "id, tenant_id, employee_id, title, status, assigned_by, due_date, completed_at, created_at, updated_at";
+  "id, tenant_id, employee_id, title, status, completion_mode, required_document_type, required_policy_id, required_policy_version, form_requirement_key, assigned_by, due_date, completed_at, created_at, updated_at";
 
 type OnboardingTaskRow = OnboardingTask & { tenant_id: string };
 
@@ -268,13 +278,15 @@ export async function assignOnboardingPack(
     .from("onboarding_tasks")
     .insert(
       tasks.map((task) => ({
-        tenant_id: tenantId,
-        employee_id: input.employeeId,
-        title: task.title,
-        status: "pending",
-        assigned_by: actor.authUserId,
-        due_date: task.due_date,
-      })) as never,
+      tenant_id: tenantId,
+      employee_id: input.employeeId,
+      title: task.title,
+      status: "pending",
+      assigned_by: actor.authUserId,
+      due_date: task.due_date,
+      completion_mode: task.completion_mode,
+      required_document_type: task.required_document_type,
+    })) as never,
     )
     .select(TASK_SELECT);
 
@@ -312,20 +324,35 @@ export async function completeOnboardingTask(
 
   const supabase = createServiceRoleClient();
 
-  // Employees can only complete their own tasks; admins can complete any
-  let query = supabase
+  let taskQuery = supabase
     .from("onboarding_tasks")
-    .update({ status: "completed", completed_at: new Date().toISOString() } as never)
+    .select(TASK_SELECT)
     .eq("tenant_id", tenantId)
     .eq("id", taskId)
     .eq("updated_at", expectedUpdatedAt)
     .eq("status", "pending");
 
-  if (actor.role !== "admin" && actor.employeeId) {
-    query = query.eq("employee_id", actor.employeeId);
+  if (actor.role !== "admin") {
+    if (!actor.employeeId) throw new Error("NO_EMPLOYEE_RECORD");
+    taskQuery = taskQuery.eq("employee_id", actor.employeeId);
   }
 
-  const { data, error } = await query
+  const { data: existingTask, error: existingError } = await taskQuery.maybeSingle();
+  if (existingError) throw new Error(`ONBOARDING_COMPLETE_LOOKUP_FAILED: ${existingError.message}`);
+  if (!existingTask) throw new Error("STALE_WRITE");
+
+  const existing = existingTask as OnboardingTaskRow;
+  if (existing.completion_mode !== "manual_confirmation") {
+    throw new Error("EVIDENCE_REQUIRED");
+  }
+
+  const { data, error } = await supabase
+    .from("onboarding_tasks")
+    .update({ status: "completed", completed_at: new Date().toISOString() } as never)
+    .eq("tenant_id", tenantId)
+    .eq("id", taskId)
+    .eq("updated_at", expectedUpdatedAt)
+    .eq("status", "pending")
     .select(TASK_SELECT)
     .maybeSingle();
 

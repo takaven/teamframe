@@ -5,12 +5,13 @@ import {
   INVITE_RESEND_COOLDOWN_SECONDS,
   listEmployeesForAdmin,
 } from "@/services/employeeService";
-import { listDocumentsForEmployee } from "@/services/documentService";
+import { listDocumentRequirementsForEmployee, listDocumentsForEmployee } from "@/services/documentService";
 import { listEmploymentChangesForEmployee } from "@/services/employmentChangeService";
 import { listPositions } from "@/services/positionService";
 import { CopyInviteEmailButton } from "./CopyInviteEmailButton";
 import {
   createEmployeeAction,
+  createDocumentRequirementAction,
   deleteEmployeeDocumentAction,
   downloadEmployeeDocumentAction,
   exportFinanceHandoffAction,
@@ -22,6 +23,7 @@ import {
   updateEmployeeAction,
   archiveEmployeeAction,
   reinviteEmployeeAction,
+  reviewDocumentRequirementAction,
   uploadEmployeeDocumentAction,
 } from "./actions";
 import { AppShell } from "@/components/AppShell";
@@ -39,6 +41,8 @@ const STATUS_COPY: Record<string, string> = {
   activation_link_ready: "Activation link generated.",
   document_uploaded: "Document uploaded.",
   document_deleted: "Document deleted.",
+  document_requested: "Document request created.",
+  document_reviewed: "Document evidence reviewed.",
   due_diligence_pack_exported: "Due diligence pack prepared.",
   employment_change_recorded: "Employment change recorded.",
   employment_change_cancelled: "Employment change cancelled.",
@@ -67,6 +71,10 @@ const ERROR_COPY: Record<string, string> = {
   DOCUMENT_UPLOAD_FAILED: "Document upload failed.",
   DOCUMENT_RECORD_CREATE_FAILED: "Document could not be saved.",
   DOCUMENT_LIST_FAILED: "Could not load documents for this employee.",
+  DOCUMENT_REQUIREMENT_CREATE_FAILED: "Could not create document request.",
+  DOCUMENT_REQUIREMENT_LIST_FAILED: "Could not load document requests.",
+  DOCUMENT_REQUIREMENT_REVIEW_FAILED: "Could not review document evidence.",
+  DOCUMENT_REQUIREMENT_NOT_REVIEWABLE: "That document request is not ready for review.",
   DOCUMENT_FETCH_FAILED: "Document could not be found.",
   DOCUMENT_SIGNED_URL_FAILED: "Could not generate document download link.",
   DOCUMENT_DELETE_FAILED: "Could not delete document.",
@@ -186,6 +194,15 @@ export default async function EmployeesPage({
   );
   const documentsByEmployee = new Map(
     employeeDocuments.map((item) => [item.employeeId, item.documents]),
+  );
+  const employeeDocumentRequirements = await Promise.all(
+    employees.map(async (employee) => ({
+      employeeId: employee.id,
+      requirements: await listDocumentRequirementsForEmployee(actor, employee.id),
+    })),
+  );
+  const documentRequirementsByEmployee = new Map(
+    employeeDocumentRequirements.map((item) => [item.employeeId, item.requirements]),
   );
   const detailEmployees = employeeParam
     ? employees.filter((employee) => employee.id === employeeParam)
@@ -461,6 +478,7 @@ export default async function EmployeesPage({
                 const resendCooldownSeconds = getResendCooldownSeconds(employee.invite_last_attempt_at);
                 const resendBlocked = resendCooldownSeconds > 0;
                 const documents = documentsByEmployee.get(employee.id) ?? [];
+                const documentRequirements = documentRequirementsByEmployee.get(employee.id) ?? [];
                 const changes = changesByEmployee.get(employee.id) ?? [];
                 const position = positionByEmployeeId.get(employee.id);
                 const state = inviteState(employee);
@@ -870,6 +888,52 @@ export default async function EmployeesPage({
               <section className="mt-4 rounded-md border border-ink-300/50 bg-white px-3 py-3">
                 <h4 className="text-[13px] font-medium text-ink-900">Documents</h4>
 
+                <form action={createDocumentRequirementAction} className="mt-3 grid gap-2 md:grid-cols-5">
+                  <input type="hidden" name="employee_id" value={employee.id} />
+                  <input type="hidden" name="return_to" value="/employees" />
+                  <label className="flex flex-col gap-1 text-[11px] text-ink-500">
+                    Request type
+                    <select
+                      name="document_type"
+                      defaultValue="contract"
+                      className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900 bg-white"
+                    >
+                      <option value="contract">Contract</option>
+                      <option value="right_to_work">Right to work</option>
+                      <option value="passport">Passport</option>
+                      <option value="emirates_id">Emirates ID</option>
+                      <option value="jd">Job description</option>
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-1 text-[11px] text-ink-500">
+                    Due date
+                    <input
+                      name="due_date"
+                      type="date"
+                      className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900"
+                    />
+                  </label>
+                  <label className="flex items-end gap-2 pb-2 text-[11px] text-ink-500">
+                    <input name="expiry_required" type="checkbox" className="h-4 w-4 rounded border-ink-300" />
+                    Expiry monitored
+                  </label>
+                  <label className="flex items-end gap-2 pb-2 text-[11px] text-ink-500">
+                    <input name="review_required" type="checkbox" className="h-4 w-4 rounded border-ink-300" />
+                    Admin review
+                  </label>
+                  <label className="flex items-end gap-2 pb-2 text-[11px] text-ink-500">
+                    <input name="employee_upload_allowed" type="checkbox" defaultChecked className="h-4 w-4 rounded border-ink-300" />
+                    Employee upload
+                  </label>
+                  <div className="md:col-span-5">
+                    <PendingSubmitButton
+                      idleLabel="Request evidence"
+                      pendingLabel="Requesting…"
+                      className="rounded-md border border-ink-300 px-3 py-1.5 text-[12px] font-medium text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:text-ink-300"
+                    />
+                  </div>
+                </form>
+
                 <form action={uploadEmployeeDocumentAction} className="mt-3 grid gap-2 md:grid-cols-4" encType="multipart/form-data">
                   <input type="hidden" name="employee_id" value={employee.id} />
                   <input type="hidden" name="return_to" value="/employees" />
@@ -917,6 +981,55 @@ export default async function EmployeesPage({
                     className="rounded-md border border-ink-300 px-3 py-1.5 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300"
                   />
                 </form>
+
+                {documentRequirements.length > 0 ? (
+                  <div className="mt-3 rounded-md border border-ink-300/50 bg-ink-100/30">
+                    <div className="border-b border-ink-300/40 px-3 py-2 text-[12px] font-medium text-ink-900">
+                      Evidence requests
+                    </div>
+                    <ul className="divide-y divide-ink-300/40">
+                      {documentRequirements.slice(0, 6).map((requirement) => (
+                        <li key={requirement.id} className="grid gap-2 px-3 py-2 text-[12px] md:grid-cols-[1fr_auto] md:items-center">
+                          <div>
+                            <p className="font-medium text-ink-900">{requirement.document_type.replace(/_/g, " ")}</p>
+                            <p className="text-ink-500">
+                              State: {requirement.state} · Due: {requirement.due_date ? formatDate(requirement.due_date) : "-"}
+                              {requirement.review_required ? " · Admin review required" : ""}
+                            </p>
+                          </div>
+                          {requirement.state === "received" ? (
+                            <div className="flex gap-2">
+                              <form action={reviewDocumentRequirementAction}>
+                                <input type="hidden" name="requirement_id" value={requirement.id} />
+                                <input type="hidden" name="decision" value="accepted" />
+                                <input type="hidden" name="return_to" value="/employees" />
+                                <PendingSubmitButton
+                                  idleLabel="Accept"
+                                  pendingLabel="Accepting…"
+                                  className="rounded-md bg-brand-signal px-3 py-1.5 text-[12px] font-medium text-ink-800 disabled:bg-ink-300"
+                                />
+                              </form>
+                              <form action={reviewDocumentRequirementAction}>
+                                <input type="hidden" name="requirement_id" value={requirement.id} />
+                                <input type="hidden" name="decision" value="rejected" />
+                                <input type="hidden" name="return_to" value="/employees" />
+                                <PendingSubmitButton
+                                  idleLabel="Reject"
+                                  pendingLabel="Rejecting…"
+                                  className="rounded-md border border-signal-red/40 px-3 py-1.5 text-[12px] font-medium text-signal-red disabled:text-ink-300"
+                                />
+                              </form>
+                            </div>
+                          ) : (
+                            <StatusPill tone={requirement.state === "accepted" ? "green" : requirement.state === "expired" ? "red" : "amber"}>
+                              {requirement.state}
+                            </StatusPill>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
 
                 {documents.length === 0 ? (
                   <EmptyState

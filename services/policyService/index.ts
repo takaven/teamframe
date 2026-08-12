@@ -14,9 +14,18 @@
 
 import "server-only";
 import { z } from "zod";
+import { randomUUID } from "node:crypto";
+import { Buffer } from "node:buffer";
 import type { Actor } from "@/middleware/rbac";
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 import { CURRENT_EMPLOYEE_DB_LIFECYCLE_STATES } from "@/services/employeeLifecycle";
+import {
+  assertPrivateDocumentStorageReady,
+  sanitizePrivateFileName,
+  uploadPrivateDocumentObject,
+  validateDocumentFileBeforeBuffer,
+  validateDocumentFileSignature,
+} from "@/services/documentService";
 
 export type PolicyRecord = {
   id: string;
@@ -24,6 +33,10 @@ export type PolicyRecord = {
   body: string;
   version: number;
   is_published: boolean;
+  file_storage_path: string | null;
+  file_original_name: string | null;
+  file_mime_type: string | null;
+  file_uploaded_at: string | null;
   created_at: string;
   updated_at: string;
   archived_at: string | null;
@@ -56,7 +69,7 @@ type AcknowledgementRow = {
 };
 
 const POLICY_COLUMNS =
-  "id, tenant_id, title, body, version, is_published, created_at, updated_at, archived_at";
+  "id, tenant_id, title, body, version, is_published, file_storage_path, file_original_name, file_mime_type, file_uploaded_at, created_at, updated_at, archived_at";
 
 function requireTenant(actor: Actor): string {
   if (!actor.tenantId) throw new Error("NO_TENANT_CONTEXT");
@@ -114,6 +127,62 @@ export async function createPolicy(
     throw new Error(`POLICY_CREATE_FAILED: ${error?.message ?? "no row"}`);
   }
 
+  return stripTenant(data as PolicyRow);
+}
+
+export async function attachPolicyFile(
+  actor: Actor,
+  input: { policyId: string; file: File },
+): Promise<PolicyRecord> {
+  requireAdmin(actor);
+  const tenantId = requireTenant(actor);
+  const fileType = validateDocumentFileBeforeBuffer(input.file);
+  if (!["pdf", "doc", "docx"].includes(fileType.extension)) {
+    throw new Error("POLICY_FILE_UNSUPPORTED_TYPE");
+  }
+
+  const supabase: any = createServiceRoleClient();
+  const { data: policyData, error: policyError } = await supabase
+    .from("policies")
+    .select(POLICY_COLUMNS)
+    .eq("tenant_id", tenantId)
+    .eq("id", input.policyId)
+    .is("archived_at", null)
+    .maybeSingle();
+
+  if (policyError) throw new Error(`POLICY_FILE_LOOKUP_FAILED: ${policyError.message}`);
+  if (!policyData) throw new Error("POLICY_NOT_FOUND");
+
+  await assertPrivateDocumentStorageReady();
+  const bytes = Buffer.from(await input.file.arrayBuffer());
+  validateDocumentFileSignature(bytes, fileType);
+  const safeName = sanitizePrivateFileName(input.file.name);
+  const storagePath = `${tenantId}/policies/${input.policyId}/${randomUUID()}/${safeName}`;
+
+  await uploadPrivateDocumentObject({
+    actor,
+    storagePath,
+    bytes,
+    contentType: fileType.mimeTypes[0] ?? "application/octet-stream",
+    auditActionType: "policy.file_uploaded",
+    auditTargetId: input.policyId,
+  });
+
+  const { data, error } = await supabase
+    .from("policies")
+    .update({
+      file_storage_path: storagePath,
+      file_original_name: safeName,
+      file_mime_type: fileType.mimeTypes[0],
+      file_uploaded_at: new Date().toISOString(),
+      file_uploaded_by: actor.authUserId,
+    })
+    .eq("tenant_id", tenantId)
+    .eq("id", input.policyId)
+    .select(POLICY_COLUMNS)
+    .single();
+
+  if (error) throw new Error(`POLICY_FILE_ATTACH_FAILED: ${error.message}`);
   return stripTenant(data as PolicyRow);
 }
 

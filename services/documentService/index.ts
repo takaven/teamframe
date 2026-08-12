@@ -16,8 +16,17 @@ import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 import { logAction } from "@/lib/telemetry/logger";
 import { captureActionError } from "@/lib/telemetry/sentry";
 import { runSignalEngineForTenant } from "@/services/signalEngine";
+import { ensureAutomationItem, runAutomationItem } from "@/services/hrAutomation";
 
-export type DocumentType = "cv" | "contract" | "jd" | "photo";
+export type DocumentType = string;
+export type DocumentRequirementState =
+  | "requested"
+  | "received"
+  | "accepted"
+  | "rejected"
+  | "expired"
+  | "replaced"
+  | "cancelled";
 
 export type DocumentRecord = {
   id: string;
@@ -27,7 +36,27 @@ export type DocumentRecord = {
   file_url: string;
   signed_at: string | null;
   expires_at: string | null;
+  replaced_at: string | null;
+  replaced_by_document_id: string | null;
   created_at: string;
+};
+
+export type DocumentRequirementRecord = {
+  id: string;
+  employee_id: string;
+  document_type: string;
+  due_date: string | null;
+  expiry_required: boolean;
+  review_required: boolean;
+  employee_upload_allowed: boolean;
+  state: DocumentRequirementState;
+  current_document_id: string | null;
+  requested_at: string;
+  received_at: string | null;
+  reviewed_at: string | null;
+  satisfied_at: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 type EmployeeExportRow = {
@@ -77,6 +106,16 @@ type DocumentRow = DocumentRecord & {
   deleted_at: string | null;
 };
 
+type DocumentRequirementRow = DocumentRequirementRecord & {
+  tenant_id: string;
+  requested_by_user_id: string;
+  reviewed_by_user_id: string | null;
+  replaced_by_requirement_id: string | null;
+  automation_item_id: string | null;
+  expiry_automation_item_id: string | null;
+  review_automation_item_id: string | null;
+};
+
 type FinanceEmployeeRow = {
   id: string;
   full_name: string;
@@ -108,7 +147,7 @@ export const EXPORT_DEFAULT_TTL_HOURS = 24;
 type FileOperationKind = "document_upload" | "document_delete" | "export_generation" | "export_delete";
 type FileOperationStatus = "pending" | "succeeded" | "failed" | "compensation_required" | "compensated";
 
-type UploadFileType = {
+export type UploadFileType = {
   extension: string;
   mimeTypes: readonly string[];
   matchesSignature: (bytes: Buffer) => boolean;
@@ -154,6 +193,58 @@ const UPLOAD_FILE_TYPES: readonly UploadFileType[] = [
       bytes.subarray(8, 12).toString("ascii") === "WEBP",
   },
 ];
+
+export function validateDocumentFileBeforeBuffer(file: File): UploadFileType {
+  return validateUploadBeforeBuffer(file);
+}
+
+export function validateDocumentFileSignature(bytes: Buffer, fileType: UploadFileType): void {
+  validateUploadSignature(bytes, fileType);
+}
+
+export function sanitizePrivateFileName(fileName: string): string {
+  const normalized = fileName
+    .trim()
+    .replace(/[/\\:*?"<>|]+/g, "-")
+    .replace(/\s+/g, " ")
+    .slice(0, MAX_FILE_NAME_CHARS);
+  return normalized.length > 0 ? normalized : "document";
+}
+
+export async function assertPrivateDocumentStorageReady(): Promise<void> {
+  await verifyDocumentStorageConfig();
+}
+
+export async function uploadPrivateDocumentObject(input: {
+  actor: Actor;
+  storagePath: string;
+  bytes: Buffer;
+  contentType: string;
+  auditActionType: string;
+  auditTargetId?: string | null;
+}): Promise<void> {
+  const tenantId = requireTenant(input.actor);
+  const supabase = createServiceRoleClient();
+  const operationId = await beginFileOperation({
+    tenantId,
+    kind: "document_upload",
+    idempotencyKey: randomUUID(),
+    storagePath: input.storagePath,
+    targetId: input.auditTargetId ?? null,
+    auditActionType: input.auditActionType,
+  });
+
+  const { error } = await supabase.storage
+    .from(DOCUMENT_BUCKET)
+    .upload(input.storagePath, input.bytes, { contentType: input.contentType, upsert: false });
+
+  if (error) {
+    await finalizeFileOperation(tenantId, operationId, "failed", error.message);
+    throw new Error(`DOCUMENT_UPLOAD_FAILED: ${error.message}`);
+  }
+
+  await finalizeFileOperation(tenantId, operationId, "succeeded");
+}
 
 function bufferIncludesAscii(bytes: Buffer, needle: string): boolean {
   return bytes.indexOf(Buffer.from(needle, "ascii")) !== -1;
@@ -386,19 +477,45 @@ function toPublicRecord(row: DocumentRow): DocumentRecord {
     file_url: row.file_url,
     signed_at: row.signed_at,
     expires_at: row.expires_at,
+    replaced_at: row.replaced_at,
+    replaced_by_document_id: row.replaced_by_document_id,
     created_at: row.created_at,
   };
 }
 
-function normalizeDocumentType(input: string): DocumentType {
-  const normalized = input.trim().toLowerCase();
-  if (normalized === "contract") return "contract";
-  if (normalized === "jd") return "jd";
-  if (normalized === "photo") return "photo";
-  return "cv";
+function toRequirementRecord(row: DocumentRequirementRow): DocumentRequirementRecord {
+  const {
+    tenant_id: _tenantId,
+    requested_by_user_id: _requestedBy,
+    reviewed_by_user_id: _reviewedBy,
+    replaced_by_requirement_id: _replacedBy,
+    automation_item_id: _automation,
+    expiry_automation_item_id: _expiryAutomation,
+    review_automation_item_id: _reviewAutomation,
+    ...record
+  } = row;
+  return record;
 }
 
-function toLegacyType(value: DocumentType): "CV" | "CONTRACT" | "JD" | "PHOTO" {
+function normalizeDocumentType(input: string): DocumentType {
+  const normalized = input.trim().toLowerCase();
+  if (!/^[a-z0-9_-]{1,80}$/.test(normalized)) {
+    throw new Error("DOCUMENT_TYPE_INVALID");
+  }
+  return normalized;
+}
+
+function dateAtUtcHour(input: string, hour = 9): Date {
+  const parsed = new Date(input);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error("DOCUMENT_EXPIRY_INVALID");
+  }
+  const due = new Date(parsed);
+  due.setUTCHours(hour, 0, 0, 0);
+  return due;
+}
+
+function toLegacyType(value: string): "CV" | "CONTRACT" | "JD" | "PHOTO" {
   if (value === "contract") return "CONTRACT";
   if (value === "jd") return "JD";
   if (value === "photo") return "PHOTO";
@@ -647,7 +764,7 @@ export async function listDocumentsForEmployee(
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from("documents")
-    .select("id, tenant_id, employee_id, type, document_type, file_url, signed_at, expires_at, subject_person_id, created_at, deleted_at")
+    .select("id, tenant_id, employee_id, type, document_type, file_url, signed_at, expires_at, replaced_at, replaced_by_document_id, subject_person_id, created_at, deleted_at")
     .eq("tenant_id", tenantId)
     .eq("employee_id", employeeId)
     .is("deleted_at", null)
@@ -670,13 +787,21 @@ export async function uploadDocument(
     signedAt?: string | null;
     expiresAt?: string | null;
   },
+  options: { allowEmployeeSelfUpload?: boolean; auditActionType?: string } = {},
 ): Promise<DocumentRecord> {
   const start = Date.now();
   const requestId = randomUUID();
 
   try {
-    requireAdmin(actor);
     const tenantId = requireTenant(actor);
+    if (options.allowEmployeeSelfUpload) {
+      if (actor.role !== "admin" && actor.employeeId !== input.employeeId) {
+        throw new Error("FORBIDDEN");
+      }
+    } else {
+      requireAdmin(actor);
+    }
+    const normalizedInputType = normalizeDocumentType(input.type);
     const fileType = validateUploadBeforeBuffer(input.file);
     assertMetadataLength(input.subjectPersonId, "DOCUMENT_UPLOAD_METADATA_TOO_LONG");
     assertMetadataLength(input.signedAt, "DOCUMENT_UPLOAD_METADATA_TOO_LONG");
@@ -688,11 +813,11 @@ export async function uploadDocument(
     validateUploadSignature(bytes, fileType);
     const path = buildStoragePath(tenantId, input.employeeId, fileType.extension);
     const operationId = await beginFileOperation({
-      tenantId,
-      kind: "document_upload",
-      idempotencyKey: requestId,
-      storagePath: path,
-      auditActionType: "document.uploaded",
+        tenantId,
+        kind: "document_upload",
+        idempotencyKey: requestId,
+        storagePath: path,
+        auditActionType: options.auditActionType ?? "document.uploaded",
     });
 
     const { error: uploadError } = await supabase.storage
@@ -709,14 +834,14 @@ export async function uploadDocument(
       .insert({
         tenant_id: tenantId,
         employee_id: input.employeeId,
-        type: toLegacyType(input.type),
-        document_type: input.type,
+        type: toLegacyType(normalizedInputType),
+        document_type: normalizedInputType,
         subject_person_id: input.subjectPersonId ?? input.employeeId,
         signed_at: input.signedAt ?? null,
         expires_at: input.expiresAt ?? null,
         file_url: path,
       } as never)
-      .select("id, tenant_id, employee_id, type, document_type, file_url, signed_at, expires_at, subject_person_id, created_at, deleted_at")
+      .select("id, tenant_id, employee_id, type, document_type, file_url, signed_at, expires_at, replaced_at, replaced_by_document_id, subject_person_id, created_at, deleted_at")
       .single();
 
     if (error) {
@@ -746,7 +871,7 @@ export async function uploadDocument(
 
     const created = data as DocumentRow;
     await finalizeFileOperation(tenantId, operationId, "succeeded");
-    await writeAudit(actor, "document.uploaded", created.id);
+    await writeAudit(actor, options.auditActionType ?? "document.uploaded", created.id);
     await runSignalEngineForTenant({ tenantId, actorUserId: actor.authUserId });
 
     logAction({
@@ -777,6 +902,267 @@ export async function uploadDocument(
   }
 }
 
+export async function createDocumentRequirement(
+  actor: Actor,
+  input: {
+    employeeId: string;
+    documentType: string;
+    dueDate?: string | null;
+    expiryRequired?: boolean;
+    reviewRequired?: boolean;
+    employeeUploadAllowed?: boolean;
+  },
+): Promise<DocumentRequirementRecord> {
+  requireAdmin(actor);
+  const tenantId = requireTenant(actor);
+  const documentType = normalizeDocumentType(input.documentType);
+  const supabase: any = createServiceRoleClient();
+
+  const { data, error } = await supabase
+    .from("document_requirements")
+    .insert({
+      tenant_id: tenantId,
+      employee_id: input.employeeId,
+      document_type: documentType,
+      due_date: input.dueDate ?? null,
+      expiry_required: input.expiryRequired ?? false,
+      review_required: input.reviewRequired ?? false,
+      employee_upload_allowed: input.employeeUploadAllowed ?? true,
+      requested_by_user_id: actor.authUserId,
+    })
+    .select("*")
+    .single();
+
+  if (error) throw new Error(`DOCUMENT_REQUIREMENT_CREATE_FAILED: ${error.message}`);
+  const created = data as DocumentRequirementRow;
+
+  let automationItemId: string | null = null;
+  if (input.dueDate) {
+    automationItemId = await ensureAutomationItem({
+      tenantId,
+      ruleKey: "document.request_due",
+      idempotencyKey: `document_request:${created.id}:due`,
+      subjectType: "document_requirement",
+      subjectId: created.id,
+      ownerEmployeeId: input.employeeId,
+      dueAt: new Date(`${input.dueDate}T09:00:00.000Z`),
+      notificationLevel: "routine_reminder",
+      metadata: { document_type: documentType },
+    });
+
+    const { error: updateError } = await supabase
+      .from("document_requirements")
+      .update({ automation_item_id: automationItemId })
+      .eq("tenant_id", tenantId)
+      .eq("id", created.id);
+    if (updateError) throw new Error(`DOCUMENT_REQUIREMENT_AUTOMATION_FAILED: ${updateError.message}`);
+  }
+
+  await writeAudit(actor, "document_requirement.created", created.id);
+  return toRequirementRecord({ ...created, automation_item_id: automationItemId });
+}
+
+export async function listDocumentRequirementsForEmployee(
+  actor: Actor,
+  employeeId: string,
+): Promise<DocumentRequirementRecord[]> {
+  const tenantId = requireTenant(actor);
+  if (!(await canReadEmployeeDocuments(actor, employeeId))) throw new Error("FORBIDDEN");
+
+  const supabase: any = createServiceRoleClient();
+  const { data, error } = await supabase
+    .from("document_requirements")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .eq("employee_id", employeeId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(`DOCUMENT_REQUIREMENT_LIST_FAILED: ${error.message}`);
+  return ((data ?? []) as DocumentRequirementRow[]).map(toRequirementRecord);
+}
+
+export async function uploadDocumentForRequirement(
+  actor: Actor,
+  input: {
+    requirementId: string;
+    file: File;
+    expiresAt?: string | null;
+  },
+): Promise<DocumentRequirementRecord> {
+  const tenantId = requireTenant(actor);
+  const supabase: any = createServiceRoleClient();
+  const { data: requirementData, error: requirementError } = await supabase
+    .from("document_requirements")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .eq("id", input.requirementId)
+    .maybeSingle();
+
+  if (requirementError) throw new Error(`DOCUMENT_REQUIREMENT_LOOKUP_FAILED: ${requirementError.message}`);
+  if (!requirementData) throw new Error("DOCUMENT_REQUIREMENT_NOT_FOUND");
+
+  const requirement = requirementData as DocumentRequirementRow;
+  if (!["requested", "rejected", "expired", "accepted"].includes(requirement.state)) {
+    throw new Error("DOCUMENT_REQUIREMENT_NOT_UPLOADABLE");
+  }
+  if (!requirement.employee_upload_allowed && actor.role !== "admin") {
+    throw new Error("FORBIDDEN");
+  }
+  if (actor.role !== "admin" && actor.employeeId !== requirement.employee_id) {
+    throw new Error("FORBIDDEN");
+  }
+
+  const document = await uploadDocument(
+    actor,
+    {
+      employeeId: requirement.employee_id,
+      type: requirement.document_type,
+      file: input.file,
+      expiresAt: input.expiresAt ?? null,
+    },
+    { allowEmployeeSelfUpload: true, auditActionType: "document_requirement.uploaded" },
+  );
+
+  const nextState: DocumentRequirementState = requirement.review_required ? "received" : "accepted";
+  const patch: Record<string, unknown> = {
+    state: nextState,
+    current_document_id: document.id,
+    received_at: new Date().toISOString(),
+  };
+  if (nextState === "accepted") {
+    patch.satisfied_at = new Date().toISOString();
+  }
+
+  const { data: updatedData, error: updateError } = await supabase
+    .from("document_requirements")
+    .update(patch)
+    .eq("tenant_id", tenantId)
+    .eq("id", requirement.id)
+    .select("*")
+    .single();
+
+  if (updateError) throw new Error(`DOCUMENT_REQUIREMENT_RECEIPT_FAILED: ${updateError.message}`);
+  const updated = updatedData as DocumentRequirementRow;
+
+  if (requirement.current_document_id && requirement.current_document_id !== document.id) {
+    const { error: replacedError } = await supabase
+      .from("documents")
+      .update({
+        replaced_at: new Date().toISOString(),
+        replaced_by_document_id: document.id,
+      } as never)
+      .eq("tenant_id", tenantId)
+      .eq("id", requirement.current_document_id)
+      .is("replaced_at", null);
+
+    if (replacedError) throw new Error(`DOCUMENT_REPLACEMENT_MARK_FAILED: ${replacedError.message}`);
+  }
+
+  if (requirement.automation_item_id) {
+    await runAutomationItem({
+      tenantId,
+      itemId: requirement.automation_item_id,
+      complete: true,
+      eventContext: { source: "document_requirement.uploaded", document_id: document.id },
+    });
+  }
+
+  if (requirement.expiry_automation_item_id) {
+    await runAutomationItem({
+      tenantId,
+      itemId: requirement.expiry_automation_item_id,
+      complete: true,
+      eventContext: { source: "document_requirement.replaced", document_id: document.id },
+    });
+  }
+
+  if (requirement.review_required) {
+    const reviewItemId = await ensureAutomationItem({
+      tenantId,
+      ruleKey: "document.review_due",
+      idempotencyKey: `document_request:${requirement.id}:review`,
+      subjectType: "document_requirement",
+      subjectId: requirement.id,
+      dueAt: new Date(),
+      notificationLevel: "decision",
+      metadata: { document_type: requirement.document_type },
+    });
+    await supabase
+      .from("document_requirements")
+      .update({ review_automation_item_id: reviewItemId })
+      .eq("tenant_id", tenantId)
+      .eq("id", requirement.id);
+  } else if (document.expires_at && requirement.expiry_required) {
+    const expiryItemId = await ensureAutomationItem({
+      tenantId,
+      ruleKey: "document.expiry_due",
+      idempotencyKey: `document_request:${requirement.id}:expiry:${document.id}`,
+      subjectType: "document_requirement",
+      subjectId: requirement.id,
+      ownerEmployeeId: requirement.employee_id,
+      dueAt: dateAtUtcHour(document.expires_at),
+      notificationLevel: "routine_reminder",
+      metadata: { document_type: requirement.document_type, document_id: document.id },
+    });
+    await supabase
+      .from("document_requirements")
+      .update({ expiry_automation_item_id: expiryItemId })
+      .eq("tenant_id", tenantId)
+      .eq("id", requirement.id);
+  }
+
+  await writeAudit(actor, nextState === "accepted" ? "document_requirement.accepted" : "document_requirement.received", updated.id);
+  return toRequirementRecord(updated);
+}
+
+export async function reviewDocumentRequirement(
+  actor: Actor,
+  input: { requirementId: string; decision: "accepted" | "rejected" },
+): Promise<DocumentRequirementRecord> {
+  requireAdmin(actor);
+  const tenantId = requireTenant(actor);
+  const supabase: any = createServiceRoleClient();
+  const { data: existingData, error: existingError } = await supabase
+    .from("document_requirements")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .eq("id", input.requirementId)
+    .maybeSingle();
+
+  if (existingError) throw new Error(`DOCUMENT_REQUIREMENT_LOOKUP_FAILED: ${existingError.message}`);
+  if (!existingData) throw new Error("DOCUMENT_REQUIREMENT_NOT_FOUND");
+  const existing = existingData as DocumentRequirementRow;
+  if (existing.state !== "received") throw new Error("DOCUMENT_REQUIREMENT_NOT_REVIEWABLE");
+
+  const accepted = input.decision === "accepted";
+  const { data, error } = await supabase
+    .from("document_requirements")
+    .update({
+      state: input.decision,
+      reviewed_at: new Date().toISOString(),
+      reviewed_by_user_id: actor.authUserId,
+      satisfied_at: accepted ? new Date().toISOString() : null,
+    })
+    .eq("tenant_id", tenantId)
+    .eq("id", input.requirementId)
+    .select("*")
+    .single();
+
+  if (error) throw new Error(`DOCUMENT_REQUIREMENT_REVIEW_FAILED: ${error.message}`);
+
+  if (accepted && existing.review_automation_item_id) {
+    await runAutomationItem({
+      tenantId,
+      itemId: existing.review_automation_item_id,
+      complete: true,
+      eventContext: { source: "document_requirement.reviewed" },
+    });
+  }
+
+  await writeAudit(actor, accepted ? "document_requirement.review_accepted" : "document_requirement.review_rejected", input.requirementId);
+  return toRequirementRecord(data as DocumentRequirementRow);
+}
+
 export async function getSignedDownloadUrl(
   actor: Actor,
   documentId: string,
@@ -786,7 +1172,7 @@ export async function getSignedDownloadUrl(
 
   const { data, error } = await supabase
     .from("documents")
-    .select("id, tenant_id, employee_id, type, document_type, file_url, signed_at, expires_at, subject_person_id, created_at, deleted_at")
+    .select("id, tenant_id, employee_id, type, document_type, file_url, signed_at, expires_at, replaced_at, replaced_by_document_id, subject_person_id, created_at, deleted_at")
     .eq("tenant_id", tenantId)
     .eq("id", documentId)
     .is("deleted_at", null)
@@ -818,7 +1204,7 @@ export async function softDeleteDocument(actor: Actor, documentId: string): Prom
 
   const { data: existing, error: fetchError } = await supabase
     .from("documents")
-    .select("id, tenant_id, employee_id, type, document_type, file_url, signed_at, expires_at, subject_person_id, created_at, deleted_at")
+    .select("id, tenant_id, employee_id, type, document_type, file_url, signed_at, expires_at, replaced_at, replaced_by_document_id, subject_person_id, created_at, deleted_at")
     .eq("tenant_id", tenantId)
     .eq("id", documentId)
     .is("deleted_at", null)
@@ -847,7 +1233,7 @@ export async function softDeleteDocument(actor: Actor, documentId: string): Prom
     .eq("tenant_id", tenantId)
     .eq("id", documentId)
     .is("deleted_at", null)
-    .select("id, tenant_id, employee_id, type, document_type, file_url, signed_at, expires_at, subject_person_id, created_at, deleted_at")
+    .select("id, tenant_id, employee_id, type, document_type, file_url, signed_at, expires_at, replaced_at, replaced_by_document_id, subject_person_id, created_at, deleted_at")
     .maybeSingle();
 
   if (error) {

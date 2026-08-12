@@ -21,6 +21,11 @@ function makeOnboardingTasksTable() {
     employee_id: "employee-1",
     title: "Complete welcome steps",
     status: "completed",
+    completion_mode: "manual_confirmation",
+    required_document_type: null,
+    required_policy_id: null,
+    required_policy_version: null,
+    form_requirement_key: null,
     assigned_by: "admin-1",
     due_date: null,
     completed_at: "2026-08-12T00:00:00.000Z",
@@ -32,13 +37,24 @@ function makeOnboardingTasksTable() {
     select: () => updateBuilder,
     maybeSingle: async () => ({ data: completedTask, error: null }),
   };
+  const lookupBuilder: Record<string, unknown> = {
+    eq: () => lookupBuilder,
+    maybeSingle: async () => ({
+      data: { ...completedTask, status: "pending", completed_at: null, updated_at: "2026-08-11T00:00:00.000Z" },
+      error: null,
+    }),
+  };
   const countBuilder: Record<string, unknown> = {
     eq: () => countBuilder,
     then: (resolve: (value: unknown) => unknown) => resolve({ data: [], error: null, ...(countQueue.shift() ?? { count: 0 }) }),
   };
+  let selectCalls = 0;
   return {
     update: () => updateBuilder,
-    select: () => countBuilder,
+    select: () => {
+      selectCalls += 1;
+      return selectCalls === 1 ? lookupBuilder : countBuilder;
+    },
   };
 }
 

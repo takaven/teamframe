@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireTenantActor } from "@/middleware/rbac";
 import {
   acknowledgePolicy,
+  attachPolicyFile,
   archivePolicy,
   createPolicy,
   publishPolicy,
@@ -24,6 +25,10 @@ const PublishSchema = z.object({
 });
 
 const ArchiveSchema = PublishSchema;
+
+const AttachFileSchema = z.object({
+  policy_id: z.string().uuid(),
+});
 
 const AcknowledgeSchema = z.object({
   policy_id: z.string().uuid(),
@@ -220,6 +225,31 @@ export async function archivePolicyAction(formData: FormData): Promise<void> {
     redirect(`/policies?error=${encodeURIComponent(errorCode)}`);
   }
   redirect("/policies?status=archived");
+}
+
+export async function attachPolicyFileAction(formData: FormData): Promise<void> {
+  let failed = false;
+  let errorCode = "UNKNOWN";
+  let policyId = "";
+
+  try {
+    const actor = await requireTenantActor();
+    const file = formData.get("file");
+    if (!(file instanceof File) || file.size === 0) throw new Error("INVALID_INPUT");
+    const parsed = AttachFileSchema.parse({
+      policy_id: formData.get("policy_id"),
+    });
+    policyId = parsed.policy_id;
+    await attachPolicyFile(actor, { policyId: parsed.policy_id, file });
+  } catch (error) {
+    failed = true;
+    errorCode = getErrorCode(error);
+  }
+
+  if (failed) {
+    redirect(`/policies?error=${encodeURIComponent(errorCode)}&policy=${encodeURIComponent(policyId)}`);
+  }
+  redirect("/policies?status=file_attached");
 }
 
 export async function acknowledgePolicyAction(formData: FormData): Promise<void> {

@@ -18,6 +18,8 @@ export type OnboardingTemplateTask = {
   title: string;
   /** Days after the employee's start date (0 = day 1). */
   dueOffsetDays: number;
+  completionMode?: "manual_confirmation" | "document_required";
+  requiredDocumentType?: string;
 };
 
 export type OnboardingTemplatePackId = "every_hire" | "engineering" | "operations";
@@ -35,10 +37,20 @@ export const ONBOARDING_TEMPLATE_PACKS: readonly OnboardingTemplatePack[] = [
     name: "Every hire",
     description: "The baseline first-two-weeks checklist every new joiner needs.",
     tasks: [
-      { title: "Sign your employment contract", dueOffsetDays: 0 },
+      {
+        title: "Sign your employment contract",
+        dueOffsetDays: 0,
+        completionMode: "document_required",
+        requiredDocumentType: "contract",
+      },
       { title: "Complete your employee profile", dueOffsetDays: 0 },
       { title: "Meet your manager", dueOffsetDays: 2 },
-      { title: "Upload ID and right-to-work documents", dueOffsetDays: 2 },
+      {
+        title: "Upload ID and right-to-work documents",
+        dueOffsetDays: 2,
+        completionMode: "document_required",
+        requiredDocumentType: "right_to_work",
+      },
       { title: "Read and acknowledge company policies", dueOffsetDays: 7 },
       { title: "Confirm payroll and bank details", dueOffsetDays: 7 },
     ],
@@ -101,7 +113,12 @@ export function expandTemplatePack(
   packId: string,
   keptIndexes: readonly number[],
   baseDate: string,
-): Array<{ title: string; due_date: string }> {
+): Array<{
+  title: string;
+  due_date: string;
+  completion_mode: "manual_confirmation" | "document_required";
+  required_document_type: string | null;
+}> {
   const pack = getTemplatePack(packId);
   if (!pack) throw new Error("ONBOARDING_UNKNOWN_PACK");
   const kept = new Set(keptIndexes);
@@ -111,6 +128,8 @@ export function expandTemplatePack(
     .map(({ task }) => ({
       title: task.title,
       due_date: computeDueDate(baseDate, task.dueOffsetDays),
+      completion_mode: task.completionMode ?? "manual_confirmation",
+      required_document_type: task.requiredDocumentType ?? null,
     }));
 }
 

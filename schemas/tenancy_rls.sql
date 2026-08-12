@@ -60,6 +60,7 @@ alter table employee_profiles enable row level security;
 alter table compensation enable row level security;
 alter table positions enable row level security;
 alter table documents enable row level security;
+alter table document_requirements enable row level security;
 alter table leaves enable row level security;
 alter table audit_logs enable row level security;
 alter table risk_signals enable row level security;
@@ -452,6 +453,39 @@ with check (false);
 
 drop policy if exists hr_automation_items_delete_blocked on hr_automation_items;
 create policy hr_automation_items_delete_blocked on hr_automation_items
+for delete
+using (false);
+
+drop policy if exists document_requirements_select on document_requirements;
+create policy document_requirements_select on document_requirements
+for select
+using (
+  tenant_id = current_actor_tenant_id()
+  and (
+    is_current_actor_admin()
+    or employee_id in (
+      select id
+      from employees
+      where tenant_id = current_actor_tenant_id()
+        and lower(email) = current_actor_email()
+        and deleted_at is null
+    )
+  )
+);
+
+drop policy if exists document_requirements_insert_blocked on document_requirements;
+create policy document_requirements_insert_blocked on document_requirements
+for insert
+with check (false);
+
+drop policy if exists document_requirements_update_blocked on document_requirements;
+create policy document_requirements_update_blocked on document_requirements
+for update
+using (false)
+with check (false);
+
+drop policy if exists document_requirements_delete_blocked on document_requirements;
+create policy document_requirements_delete_blocked on document_requirements
 for delete
 using (false);
 

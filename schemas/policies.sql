@@ -8,6 +8,11 @@ create table if not exists policies (
   body        text        not null,
   version     integer     not null default 1,
   is_published boolean    not null default false,
+  file_storage_path text,
+  file_original_name text,
+  file_mime_type text,
+  file_uploaded_at timestamptz,
+  file_uploaded_by uuid,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now(),
   archived_at timestamptz,
@@ -18,6 +23,11 @@ alter table policies add column if not exists tenant_id uuid;
 alter table policies add column if not exists version integer not null default 1;
 alter table policies add column if not exists is_published boolean not null default false;
 alter table policies add column if not exists updated_at timestamptz not null default now();
+alter table policies add column if not exists file_storage_path text;
+alter table policies add column if not exists file_original_name text;
+alter table policies add column if not exists file_mime_type text;
+alter table policies add column if not exists file_uploaded_at timestamptz;
+alter table policies add column if not exists file_uploaded_by uuid;
 
 update policies
 set tenant_id = '00000000-0000-0000-0000-000000000001'

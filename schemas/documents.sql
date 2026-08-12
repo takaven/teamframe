@@ -45,6 +45,8 @@ alter table documents add column if not exists expires_at timestamptz;
 alter table documents add column if not exists document_type text;
 alter table documents add column if not exists signed_at timestamptz;
 alter table documents add column if not exists subject_person_id uuid;
+alter table documents add column if not exists replaced_at timestamptz;
+alter table documents add column if not exists replaced_by_document_id uuid;
 
 update documents
 set document_type = lower(type::text)
@@ -54,3 +56,10 @@ create index if not exists documents_expires_at_idx on documents(expires_at);
 create index if not exists documents_document_type_idx on documents(document_type);
 create index if not exists documents_signed_at_idx on documents(signed_at);
 create index if not exists documents_subject_person_id_idx on documents(subject_person_id);
+create index if not exists documents_replaced_at_idx on documents(replaced_at);
+
+do $$ begin
+  alter table documents
+    add constraint documents_replaced_by_document_fk
+      foreign key (replaced_by_document_id) references documents(id) on delete set null;
+exception when duplicate_object then null; end $$;

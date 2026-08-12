@@ -188,6 +188,23 @@ async function markProbationReviewDueFromAutomation(input: {
   }
 }
 
+async function markDocumentRequirementExpiredFromAutomation(input: {
+  tenantId: string;
+  requirementId: string;
+}): Promise<void> {
+  const supabase: any = createServiceRoleClient();
+  const { error } = await supabase
+    .from("document_requirements")
+    .update({ state: "expired" } as never)
+    .eq("tenant_id", input.tenantId)
+    .eq("id", input.requirementId)
+    .eq("state", "accepted");
+
+  if (error) {
+    throw new Error(`DOCUMENT_REQUIREMENT_EXPIRE_FAILED: ${error.message}`);
+  }
+}
+
 export async function runDueAutomationForTenant(input: {
   tenantId: string;
   now?: Date;
@@ -239,6 +256,17 @@ export async function runDueAutomationForTenant(input: {
         await markProbationReviewDueFromAutomation({
           tenantId: input.tenantId,
           reviewId: item.subject_id,
+        });
+      }
+
+      if (item.rule_key === "document.expiry_due") {
+        if (!item.subject_id) {
+          throw new Error("DOCUMENT_REQUIREMENT_SUBJECT_MISSING");
+        }
+
+        await markDocumentRequirementExpiredFromAutomation({
+          tenantId: input.tenantId,
+          requirementId: item.subject_id,
         });
       }
 

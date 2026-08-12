@@ -31,6 +31,7 @@ const REQUIRED_TABLES = [
   "companies",
   "compensation",
   "documents",
+  "document_requirements",
   "employee_profiles",
   "employees",
   "employment_changes",
