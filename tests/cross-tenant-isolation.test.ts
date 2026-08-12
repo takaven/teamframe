@@ -9,6 +9,8 @@ type LeaveRow = {
   employee_id: string;
   start_date: string;
   end_date: string;
+  leave_type: string;
+  requested_days: number;
   status: string;
   created_at: string;
   updated_at: string;
@@ -25,6 +27,8 @@ const MIXED_LEAVES: LeaveRow[] = [
     employee_id: "emp-a",
     start_date: "2026-06-01",
     end_date: "2026-06-02",
+    leave_type: "annual",
+    requested_days: 2,
     status: "pending",
     created_at: "2026-05-30T00:00:00Z",
     updated_at: "2026-05-30T00:00:00Z",
@@ -35,6 +39,8 @@ const MIXED_LEAVES: LeaveRow[] = [
     employee_id: "emp-a",
     start_date: "2026-07-01",
     end_date: "2026-07-02",
+    leave_type: "annual",
+    requested_days: 2,
     status: "approved",
     created_at: "2026-05-30T00:00:00Z",
     updated_at: "2026-05-30T00:00:00Z",
@@ -45,6 +51,8 @@ const MIXED_LEAVES: LeaveRow[] = [
     employee_id: "emp-b",
     start_date: "2026-06-15",
     end_date: "2026-06-16",
+    leave_type: "annual",
+    requested_days: 2,
     status: "pending",
     created_at: "2026-05-30T00:00:00Z",
     updated_at: "2026-05-30T00:00:00Z",
@@ -68,11 +76,29 @@ const MIXED_EMPLOYEES = [
   },
 ];
 
+const MIXED_COMPANIES = [
+  {
+    id: "TENANT_A",
+    annual_leave_default_days: 20,
+    sick_leave_default_days: 10,
+    unpaid_leave_enabled: true,
+    other_leave_enabled: true,
+  },
+  {
+    id: "TENANT_B",
+    annual_leave_default_days: 15,
+    sick_leave_default_days: 8,
+    unpaid_leave_enabled: true,
+    other_leave_enabled: true,
+  },
+];
+
 type FilterOp = { kind: "eq"; column: string; value: unknown };
 type InFilterOp = { kind: "in"; column: string; values: unknown[] };
+type ComparisonFilterOp = { kind: "gte" | "lte"; column: string; value: string };
 
 function makeFilteringBuilder(table: string, dataset: ReadonlyArray<Record<string, unknown>>) {
-  const filters: Array<FilterOp | InFilterOp | ((row: Record<string, unknown>) => boolean)> = [];
+  const filters: Array<FilterOp | InFilterOp | ComparisonFilterOp | ((row: Record<string, unknown>) => boolean)> = [];
   const builder: Record<string, unknown> = {};
 
   builder.select = (..._args: unknown[]) => builder;
@@ -87,6 +113,14 @@ function makeFilteringBuilder(table: string, dataset: ReadonlyArray<Record<strin
     filters.push({ kind: "in", column, values });
     return builder;
   };
+  builder.gte = (column: string, value: string) => {
+    filters.push({ kind: "gte", column, value });
+    return builder;
+  };
+  builder.lte = (column: string, value: string) => {
+    filters.push({ kind: "lte", column, value });
+    return builder;
+  };
   builder.is = (column: string, value: unknown) => {
     filters.push((row) => (value === null ? row[column] == null : row[column] === value));
     return builder;
@@ -97,6 +131,8 @@ function makeFilteringBuilder(table: string, dataset: ReadonlyArray<Record<strin
       filters.every((f) => {
         if (typeof f === "function") return f(row);
         if (f.kind === "in") return f.values.includes(row[f.column]);
+        if (f.kind === "gte") return String(row[f.column] ?? "") >= f.value;
+        if (f.kind === "lte") return String(row[f.column] ?? "") <= f.value;
         return row[f.column] === f.value;
       }),
     );
@@ -129,6 +165,7 @@ const fakeClient = {
   from: (table: string) => {
     if (table === "leaves") return makeFilteringBuilder(table, MIXED_LEAVES);
     if (table === "employees") return makeFilteringBuilder(table, MIXED_EMPLOYEES);
+    if (table === "companies") return makeFilteringBuilder(table, MIXED_COMPANIES);
     // Other tables: return empty filtering builder so unrelated queries don't crash.
     return makeFilteringBuilder(table, []);
   },

@@ -1,35 +1,57 @@
 import { requireTenantActor } from "@/middleware/rbac";
 import {
-  listLeavesForEmployee,
+  getLeaveOverviewForEmployee,
+  listPendingLeavesWithEmployee,
+  listWhoIsAway,
   type LeaveRecord,
+  type PendingLeaveWithEmployee,
 } from "@/services/leaveService";
-import { listPendingLeavesWithEmployee, type PendingLeaveWithEmployee } from "@/services/leaveService";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { AppShell } from "@/components/AppShell";
 import { EmptyState } from "@/components/EmptyState";
 import { StatusPill, type StatusPillTone } from "@/components/StatusPill";
-import { submitLeaveAction, decideLeaveAction } from "./actions";
+import { cancelLeaveAction, decideLeaveAction, submitLeaveAction, withdrawLeaveAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
 const STATUS_COPY: Record<string, string> = {
   decided_approved: "Request approved.",
-  decided_rejected: "Request rejected.",
+  decided_rejected: "Request declined.",
+  leave_withdrawn: "Leave request withdrawn.",
+  leave_cancelled: "Approved leave cancelled.",
 };
 
 const ERROR_COPY: Record<string, string> = {
   FORBIDDEN: "You do not have permission for that action.",
   NO_EMPLOYEE_RECORD: "Your account is not linked to an employee profile yet. Ask your admin.",
-  NO_TENANT_CONTEXT: "Session error — please sign out and back in.",
+  NO_TENANT_CONTEXT: "Session error. Please sign out and back in.",
   STALE_WRITE: "This request changed. Refresh and try again.",
   MISSING_EXPECTED_UPDATED_AT: "This action is out of date. Refresh and retry.",
   INVALID_INPUT: "Check the dates and try again.",
   LEAVE_EMPLOYEE_NOT_ELIGIBLE: "Leave requests are only available to active employees.",
+  LEAVE_OVERLAP: "This request overlaps an existing pending or approved leave record.",
+  LEAVE_INSUFFICIENT_BALANCE: "Annual leave balance is insufficient. Use an explicit admin override if this is intentional.",
+  LEAVE_OVERRIDE_REASON_REQUIRED: "Override requires a reason.",
   LEAVE_SUBMIT_FAILED: "Could not submit leave request.",
   LEAVE_DECISION_FAILED: "Could not record decision.",
-  AUDIT_LOG_FAILED: "Could not record required audit trail. No change was applied.",
+  LEAVE_WITHDRAW_FAILED: "Could not withdraw request.",
+  LEAVE_CANCEL_FAILED: "Could not cancel approved leave.",
   UNKNOWN: "Something went wrong. Refresh and try again.",
+};
+
+const TYPE_LABEL: Record<string, string> = {
+  annual: "Annual Leave",
+  sick: "Sick Leave",
+  unpaid: "Unpaid Leave",
+  other: "Other",
+};
+
+const LEAVE_STATUS_TONE: Record<LeaveRecord["status"], StatusPillTone> = {
+  pending: "amber",
+  approved: "green",
+  rejected: "red",
+  cancelled: "neutral",
 };
 
 function formatDate(iso: string): string {
@@ -40,24 +62,16 @@ function formatDate(iso: string): string {
   });
 }
 
-function leaveLengthLabel(startDate: string, endDate: string): string {
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  const days = Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
-  return days === 1 ? "1 day" : `${days} days`;
+function days(value: number): string {
+  return value === 1 ? "1 day" : `${value} days`;
 }
 
 function leaveStatusHelp(status: LeaveRecord["status"]): string {
-  if (status === "pending") return "Waiting for manager approval.";
-  if (status === "approved") return "Approved and ready to plan around.";
-  return "Not approved this time. You can submit a new request if plans change.";
+  if (status === "pending") return "Waiting for an admin decision.";
+  if (status === "approved") return "Approved and included in absence records.";
+  if (status === "cancelled") return "Cancelled; retained in history.";
+  return "Declined; retained in history.";
 }
-
-const LEAVE_STATUS_TONE: Record<LeaveRecord["status"], StatusPillTone> = {
-  pending: "amber",
-  approved: "green",
-  rejected: "red",
-};
 
 function StatusBadge({ status }: { status: LeaveRecord["status"] }) {
   return (
@@ -74,22 +88,22 @@ export default async function LeavesPage({
 }) {
   const actor = await requireTenantActor();
   const { status, error } = await searchParams;
-
   const successMessage = status ? (STATUS_COPY[status] ?? null) : null;
   const errorMessage = error ? (ERROR_COPY[error] ?? ERROR_COPY.UNKNOWN) : null;
 
   if (actor.role === "admin") {
-    const pending: PendingLeaveWithEmployee[] = await listPendingLeavesWithEmployee(actor);
+    const [pending, away]: [PendingLeaveWithEmployee[], Awaited<ReturnType<typeof listWhoIsAway>>] =
+      await Promise.all([listPendingLeavesWithEmployee(actor), listWhoIsAway(actor)]);
 
     return (
-      <main className="mx-auto max-w-5xl px-6 py-14">
+      <main className="mx-auto max-w-6xl px-6 py-14">
         <AppShell actor={actor} activePath="/leaves" />
 
         <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink-300/60 pb-5">
           <div className="space-y-2">
-            <p className="text-[12px] tracking-[0.14em] text-ink-500">Admin queue</p>
-            <h1 className="text-[34px] leading-tight tracking-tight">Leave requests</h1>
-            <p className="text-[14px] text-ink-500">Review incoming requests and keep approvals moving.</p>
+            <p className="text-[12px] tracking-[0.14em] text-ink-500">Leave administration</p>
+            <h1 className="text-[34px] leading-tight tracking-tight">Leave</h1>
+            <p className="text-[14px] text-ink-500">Review requests, protect balances and keep absence records truthful.</p>
           </div>
         </div>
 
@@ -99,107 +113,140 @@ export default async function LeavesPage({
             <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{pending.length}</p>
           </article>
           <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
-            <p className="text-[12px] text-ink-500">Oldest request age</p>
-            <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">
-              {pending[0] ? `${Math.max(1, Math.ceil((Date.now() - new Date(pending[0].created_at).getTime()) / (1000 * 60 * 60 * 24)))}d` : "0d"}
-            </p>
+            <p className="text-[12px] text-ink-500">Away in next 30 days</p>
+            <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{away.length}</p>
           </article>
           <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
-            <p className="text-[12px] text-ink-500">Queue status</p>
-            <p className="mt-2 text-[16px] tracking-tight text-ink-900">
-              {pending.length > 0 ? "Action needed" : "All clear"}
+            <p className="text-[12px] text-ink-500">Oldest request age</p>
+            <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">
+              {pending[0] ? `${Math.max(1, Math.ceil((Date.now() - new Date(pending[0].created_at).getTime()) / 86_400_000))}d` : "0d"}
             </p>
           </article>
         </section>
 
-        {successMessage ? (
-          <p className="mt-7 rounded-lg border border-accent/70 bg-white/80 px-4 py-3 text-[14px] text-accent">
-            {successMessage}
-          </p>
-        ) : null}
+        {successMessage ? <p className="mt-7 rounded-lg border border-accent/70 bg-white/80 px-4 py-3 text-[14px] text-accent">{successMessage}</p> : null}
         {errorMessage ? (
-          <p
-            role="alert"
-            className="mt-7 rounded-lg border border-signal-red/30 bg-signal-red/10 px-4 py-3 text-[14px] text-signal-red"
-          >
+          <p role="alert" className="mt-7 rounded-lg border border-signal-red/30 bg-signal-red/10 px-4 py-3 text-[14px] text-signal-red">
             {errorMessage}
           </p>
         ) : null}
 
-        {pending.length === 0 ? (
-          <EmptyState
-            className="mt-10"
-            message="No pending leave requests."
-            hint="New requests from employees will appear here with clear submission timing and approval state."
-          />
-        ) : (
-          <section className="mt-8 rounded-xl border border-ink-300/70 bg-white/80">
-            <div className="border-b border-ink-300/60 px-5 py-4">
-              <h2 className="text-[17px] font-medium tracking-tight">
-                Pending — <span className="font-mono tabular-nums">{pending.length}</span>
-              </h2>
-            </div>
+        <section className="mt-8 rounded-xl border border-ink-300/70 bg-white/80">
+          <div className="border-b border-ink-300/60 px-5 py-4">
+            <h2 className="text-[17px] font-medium tracking-tight">
+              Pending decisions — <span className="font-mono tabular-nums">{pending.length}</span>
+            </h2>
+          </div>
+          {pending.length === 0 ? (
+            <EmptyState className="m-5" message="No pending leave requests." hint="New requests appear here with balance and overlap checks already applied." />
+          ) : (
             <ul className="divide-y divide-ink-300/40">
-              {pending.map((leave) => (
-                <li key={leave.id} className="flex flex-wrap items-center gap-4 px-5 py-4">
-                  <div className="min-w-0 flex-1 space-y-0.5">
-                    <p className="text-[13px] text-ink-900 font-medium">
-                      {leave.employee_full_name} <span className="text-[12px] text-ink-500 font-normal">({leave.employee_role_title})</span>
-                    </p>
-                    <p className="font-mono text-[15px] tabular-nums text-ink-900">
-                      {formatDate(leave.start_date)} → {formatDate(leave.end_date)}
-                    </p>
+              {pending.map((leave) => {
+                const annual = leave.annual_balance;
+                const shortfall = leave.leave_type === "annual" && annual?.available !== null && annual ? leave.requested_days - annual.available : 0;
+                return (
+                  <li key={leave.id} className="grid gap-4 px-5 py-4 lg:grid-cols-[1fr_360px]">
+                    <div className="min-w-0 space-y-1">
+                      <p className="text-[13px] font-medium text-ink-900">
+                        {leave.employee_full_name} <span className="text-[12px] font-normal text-ink-500">({leave.employee_role_title})</span>
+                      </p>
+                      <p className="font-mono text-[15px] tabular-nums text-ink-900">
+                        {formatDate(leave.start_date)} to {formatDate(leave.end_date)}
+                      </p>
+                      <p className="text-[12px] text-ink-500">
+                        {TYPE_LABEL[leave.leave_type]} · {days(leave.requested_days)}
+                        {annual && leave.leave_type === "annual"
+                          ? ` · Available before approval: ${annual.available} days`
+                          : ""}
+                      </p>
+                      {shortfall > 0 ? (
+                        <p className="rounded-md border border-signal-red/30 bg-signal-red/10 px-3 py-2 text-[12px] text-signal-red">
+                          Insufficient annual leave by {days(shortfall)}. Approval requires explicit override.
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="grid gap-2">
+                      <form action={decideLeaveAction} className="grid gap-2 rounded-lg border border-ink-300/50 p-3">
+                        <input type="hidden" name="leave_id" value={leave.id} />
+                        <input type="hidden" name="expected_updated_at" value={leave.updated_at} />
+                        <input type="hidden" name="decision" value="approved" />
+                        {shortfall > 0 ? (
+                          <>
+                            <label className="flex items-center gap-2 text-[12px] text-ink-700">
+                              <input type="checkbox" name="override_insufficient_balance" required />
+                              Override insufficient balance
+                            </label>
+                            <input
+                              name="override_reason"
+                              required
+                              placeholder="Override reason"
+                              className="rounded-md border border-ink-300 px-3 py-2 text-[13px]"
+                            />
+                          </>
+                        ) : null}
+                        <PendingSubmitButton
+                          idleLabel="Approve"
+                          pendingLabel="Approving..."
+                          className="rounded-lg bg-brand-signal px-4 py-2 text-[13px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:bg-ink-300"
+                        />
+                      </form>
+                      <form action={decideLeaveAction} className="flex gap-2">
+                        <input type="hidden" name="leave_id" value={leave.id} />
+                        <input type="hidden" name="expected_updated_at" value={leave.updated_at} />
+                        <input type="hidden" name="decision" value="rejected" />
+                        <ConfirmSubmitButton
+                          idleLabel="Decline"
+                          pendingLabel="Declining..."
+                          confirmMessage={`Decline leave request from ${leave.employee_full_name}?`}
+                          className="w-full rounded-full border border-ink-300 px-4 py-1.5 text-[13px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:border-ink-300/50 disabled:text-ink-300"
+                        />
+                      </form>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+
+        <section className="mt-8 rounded-xl border border-ink-300/70 bg-white/80">
+          <div className="border-b border-ink-300/60 px-5 py-4">
+            <h2 className="text-[17px] font-medium tracking-tight">Who&apos;s away</h2>
+            <p className="mt-1 text-[13px] text-ink-500">Approved leave today and in the next 30 days.</p>
+          </div>
+          {away.length === 0 ? (
+            <EmptyState className="m-5" message="No approved absence is scheduled." hint="Approved leave will appear here automatically." />
+          ) : (
+            <ul className="divide-y divide-ink-300/40">
+              {away.map((item) => (
+                <li key={item.leave_id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+                  <div>
+                    <p className="text-[14px] font-medium text-ink-900">{item.employee_full_name}</p>
                     <p className="text-[12px] text-ink-500">
-                      Submitted <span className="font-mono tabular-nums">{formatDate(leave.created_at)}</span>
-                    </p>
-                    <p className="mt-1">
-                      <StatusPill tone="amber">Needs decision</StatusPill>
+                      {formatDate(item.start_date)} to {formatDate(item.end_date)} · {TYPE_LABEL[item.leave_type]} · {days(item.requested_days)}
                     </p>
                   </div>
-                  <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:flex-nowrap">
-                    <form action={decideLeaveAction} className="w-full sm:w-auto">
-                      <input type="hidden" name="leave_id" value={leave.id} />
-                      <input
-                        type="hidden"
-                        name="expected_updated_at"
-                        value={leave.updated_at}
-                      />
-                      <input type="hidden" name="decision" value="approved" />
-                      <PendingSubmitButton
-                        idleLabel="Approve request"
-                        pendingLabel="Approving…"
-                        className="w-full rounded-lg bg-brand-signal px-4 py-1.5 text-[13px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:cursor-not-allowed disabled:bg-ink-300 sm:w-auto"
-                      />
-                    </form>
-                    <form action={decideLeaveAction} className="w-full sm:w-auto">
-                      <input type="hidden" name="leave_id" value={leave.id} />
-                      <input
-                        type="hidden"
-                        name="expected_updated_at"
-                        value={leave.updated_at}
-                      />
-                      <input type="hidden" name="decision" value="rejected" />
-                      <ConfirmSubmitButton
-                        idleLabel="Reject request"
-                        pendingLabel="Rejecting…"
-                        confirmMessage={`Reject leave request from ${leave.employee_full_name}?`}
-                        className="w-full rounded-full border border-ink-300 px-4 py-1.5 text-[13px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300 sm:w-auto"
-                      />
-                    </form>
-                  </div>
+                  <form action={cancelLeaveAction}>
+                    <input type="hidden" name="leave_id" value={item.leave_id} />
+                    <input type="hidden" name="expected_updated_at" value={item.updated_at} />
+                    <ConfirmSubmitButton
+                      idleLabel="Cancel"
+                      pendingLabel="Cancelling..."
+                      confirmMessage={`Cancel approved leave for ${item.employee_full_name}?`}
+                      className="rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900"
+                    />
+                  </form>
                 </li>
               ))}
             </ul>
-          </section>
-        )}
+          )}
+        </section>
       </main>
     );
   }
 
-  // Employee view
-  const myLeaves = actor.employeeId
-    ? await listLeavesForEmployee(actor, actor.employeeId)
-    : [];
+  const overview = actor.employeeId ? await getLeaveOverviewForEmployee(actor, actor.employeeId) : null;
+  const annual = overview?.balances.find((balance) => balance.leave_type === "annual");
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-14">
@@ -209,103 +256,110 @@ export default async function LeavesPage({
         <div className="space-y-2">
           <p className="text-[12px] tracking-[0.14em] text-ink-500">Self-service</p>
           <h1 className="text-[34px] leading-tight tracking-tight">My leave</h1>
-          <p className="text-[14px] text-ink-500">Request time away and check the latest decision without chasing your manager.</p>
+          <p className="text-[14px] text-ink-500">Request time away and see your balance and request history.</p>
         </div>
       </div>
 
-      {successMessage ? (
-        <p className="mt-7 rounded-lg border border-accent/70 bg-white/80 px-4 py-3 text-[14px] text-accent">
-          {successMessage}
-        </p>
-      ) : null}
+      {successMessage ? <p className="mt-7 rounded-lg border border-accent/70 bg-white/80 px-4 py-3 text-[14px] text-accent">{successMessage}</p> : null}
       {errorMessage ? (
-        <p
-          role="alert"
-          className="mt-7 rounded-lg border border-signal-red/30 bg-signal-red/10 px-4 py-3 text-[14px] text-signal-red"
-        >
+        <p role="alert" className="mt-7 rounded-lg border border-signal-red/30 bg-signal-red/10 px-4 py-3 text-[14px] text-signal-red">
           {errorMessage}
         </p>
       ) : null}
 
-      {actor.employeeId ? (
-        <section className="mt-8 rounded-xl border border-ink-300/70 bg-white/80 p-5">
-          <h2 className="text-[19px] font-medium tracking-tight">Request leave</h2>
-          <form action={submitLeaveAction} className="mt-4 flex flex-wrap items-end gap-3">
-            <div className="flex flex-col gap-1">
-              <label htmlFor="start_date" className="text-[12px] text-ink-500">
-                From
-              </label>
-              <input
-                id="start_date"
-                name="start_date"
-                type="date"
-                required
-                className="rounded-md border border-ink-300 px-3 py-2 text-[14px]"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="end_date" className="text-[12px] text-ink-500">
-                To
-              </label>
-              <input
-                id="end_date"
-                name="end_date"
-                type="date"
-                required
-                className="rounded-md border border-ink-300 px-3 py-2 text-[14px]"
-              />
-            </div>
-            <PendingSubmitButton
-              idleLabel="Submit request"
-              pendingLabel="Submitting…"
-              className="rounded-lg bg-brand-signal px-5 py-2 text-[14px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:cursor-not-allowed disabled:bg-ink-300"
-            />
-          </form>
-        </section>
-      ) : (
-        <EmptyState
-          className="mt-8"
-          message="Your account is not linked to an employee profile."
-          hint="Ask your admin to add you as an employee."
-        />
-      )}
+      {overview ? (
+        <>
+          <section className="mt-8 grid gap-4 sm:grid-cols-3">
+            <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
+              <p className="text-[12px] text-ink-500">Annual allocation</p>
+              <p className="mt-2 font-mono text-[22px] tabular-nums">{annual?.allocation ?? 0}</p>
+            </article>
+            <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
+              <p className="text-[12px] text-ink-500">Pending</p>
+              <p className="mt-2 font-mono text-[22px] tabular-nums">{annual?.pending ?? 0}</p>
+            </article>
+            <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
+              <p className="text-[12px] text-ink-500">Available</p>
+              <p className="mt-2 font-mono text-[22px] tabular-nums">{annual?.available ?? 0}</p>
+            </article>
+          </section>
 
-      {myLeaves.length > 0 ? (
-        <section className="mt-6 rounded-xl border border-ink-300/70 bg-white/80">
-          <div className="border-b border-ink-300/60 px-5 py-4">
-            <h2 className="text-[17px] font-medium tracking-tight">History</h2>
-            <p className="mt-1 text-[13px] text-ink-500">Newest requests appear first.</p>
-          </div>
-          <ul className="divide-y divide-ink-300/40">
-            {myLeaves.map((leave) => (
-              <li key={leave.id} className="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
-                <div className="min-w-0 flex-1 space-y-1">
-                  <p className="font-mono text-[15px] tabular-nums text-ink-900">
-                    {formatDate(leave.start_date)} → {formatDate(leave.end_date)}
-                  </p>
-                  <p className="text-[12px] text-ink-500">
-                    <span className="font-mono tabular-nums">{leaveLengthLabel(leave.start_date, leave.end_date)}</span> · Submitted{" "}
-                    <span className="font-mono tabular-nums">{formatDate(leave.created_at)}</span>
-                  </p>
-                  <p className="text-[12px] text-ink-500">{leaveStatusHelp(leave.status)}</p>
-                </div>
-                <div className="space-y-1 text-left sm:text-right">
-                  <StatusBadge status={leave.status} />
-                  <p className="text-[12px] text-ink-500">
-                    Last updated <span className="font-mono tabular-nums">{formatDate(leave.updated_at)}</span>
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : actor.employeeId ? (
-        <EmptyState
-          className="mt-6 py-6"
-          message="You have not requested time off yet."
-          hint="When you do, approvals and updates will appear here automatically."
-        />
-      ) : null}
+          <section className="mt-8 rounded-xl border border-ink-300/70 bg-white/80 p-5">
+            <h2 className="text-[19px] font-medium tracking-tight">Request leave</h2>
+            <form action={submitLeaveAction} className="mt-4 grid gap-3 sm:grid-cols-2">
+              <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+                Leave type
+                <select name="leave_type" required className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900">
+                  <option value="annual">Annual Leave</option>
+                  <option value="sick">Sick Leave</option>
+                  <option value="unpaid">Unpaid Leave</option>
+                  <option value="other">Other</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+                From
+                <input name="start_date" type="date" required className="rounded-md border border-ink-300 px-3 py-2 text-[14px]" />
+              </label>
+              <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+                To
+                <input name="end_date" type="date" required className="rounded-md border border-ink-300 px-3 py-2 text-[14px]" />
+              </label>
+              <label className="flex flex-col gap-1 text-[12px] text-ink-500 sm:col-span-2">
+                Reason
+                <input name="reason" maxLength={500} className="rounded-md border border-ink-300 px-3 py-2 text-[14px]" />
+              </label>
+              <PendingSubmitButton
+                idleLabel="Submit request"
+                pendingLabel="Submitting..."
+                className="rounded-lg bg-brand-signal px-5 py-2 text-[14px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:bg-ink-300 sm:w-fit"
+              />
+            </form>
+          </section>
+
+          {overview.requests.length > 0 ? (
+            <section className="mt-6 rounded-xl border border-ink-300/70 bg-white/80">
+              <div className="border-b border-ink-300/60 px-5 py-4">
+                <h2 className="text-[17px] font-medium tracking-tight">History</h2>
+                <p className="mt-1 text-[13px] text-ink-500">Newest requests appear first.</p>
+              </div>
+              <ul className="divide-y divide-ink-300/40">
+                {overview.requests.map((leave) => (
+                  <li key={leave.id} className="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <p className="font-mono text-[15px] tabular-nums text-ink-900">
+                        {formatDate(leave.start_date)} to {formatDate(leave.end_date)}
+                      </p>
+                      <p className="text-[12px] text-ink-500">
+                        {TYPE_LABEL[leave.leave_type]} · {days(leave.requested_days)} · Submitted {formatDate(leave.created_at)}
+                      </p>
+                      <p className="text-[12px] text-ink-500">{leaveStatusHelp(leave.status)}</p>
+                    </div>
+                    <div className="space-y-2 text-left sm:text-right">
+                      <StatusBadge status={leave.status} />
+                      {leave.status === "pending" ? (
+                        <form action={withdrawLeaveAction}>
+                          <input type="hidden" name="leave_id" value={leave.id} />
+                          <input type="hidden" name="expected_updated_at" value={leave.updated_at} />
+                          <ConfirmSubmitButton
+                            idleLabel="Withdraw"
+                            pendingLabel="Withdrawing..."
+                            confirmMessage="Withdraw this leave request?"
+                            className="rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700"
+                          />
+                        </form>
+                      ) : null}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : (
+            <EmptyState className="mt-6 py-6" message="You have not requested time off yet." hint="When you do, decisions and updates will appear here." />
+          )}
+        </>
+      ) : (
+        <EmptyState className="mt-8" message="Your account is not linked to an employee profile." hint="Ask your admin to add you as an employee." />
+      )}
     </main>
   );
 }

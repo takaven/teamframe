@@ -125,6 +125,15 @@ type FinanceEmployeeRow = {
   status: string;
 };
 
+type FinanceLeaveRow = {
+  employee_id: string;
+  leave_type: string;
+  requested_days: string | number;
+  start_date: string;
+  end_date: string;
+  status: string;
+};
+
 type CompensationRow = {
   employee_id: string;
   base_salary: string | number;
@@ -1500,6 +1509,10 @@ export async function exportFinanceHandoffUrl(actor: Actor): Promise<string> {
   const employeeIds = employees.map((employee) => employee.id);
 
   let compensationByEmployee = new Map<string, CompensationRow>();
+  let approvedLeaveByEmployee = new Map<
+    string,
+    { annualDays: number; sickDays: number; unpaidDays: number; otherDays: number; unpaidPeriods: string[] }
+  >();
   if (employeeIds.length > 0) {
     const { data: compensationData, error: compensationError } = await supabase
       .from("compensation")
@@ -1514,6 +1527,43 @@ export async function exportFinanceHandoffUrl(actor: Actor): Promise<string> {
     compensationByEmployee = new Map(
       ((compensationData ?? []) as CompensationRow[]).map((row) => [row.employee_id, row]),
     );
+
+    const currentYear = new Date().getUTCFullYear();
+    const leaveYearStart = `${currentYear}-01-01`;
+    const leaveYearEnd = `${currentYear}-12-31`;
+    const { data: approvedLeaveData, error: approvedLeaveError } = await supabase
+      .from("leaves")
+      .select("employee_id, leave_type, requested_days, start_date, end_date, status")
+      .eq("tenant_id", tenantId)
+      .in("employee_id", employeeIds)
+      .eq("status", "approved")
+      .gte("start_date", leaveYearStart)
+      .lte("start_date", leaveYearEnd);
+
+    if (approvedLeaveError && !isSchemaMissingColumnError(approvedLeaveError.message)) {
+      throw new Error(`DOCUMENT_EXPORT_FAILED: ${approvedLeaveError.message}`);
+    }
+
+    for (const leave of (approvedLeaveData ?? []) as FinanceLeaveRow[]) {
+      const summary =
+        approvedLeaveByEmployee.get(leave.employee_id) ?? {
+          annualDays: 0,
+          sickDays: 0,
+          unpaidDays: 0,
+          otherDays: 0,
+          unpaidPeriods: [],
+        };
+      const days = Number(leave.requested_days);
+      const safeDays = Number.isFinite(days) ? days : 0;
+      if (leave.leave_type === "annual") summary.annualDays += safeDays;
+      if (leave.leave_type === "sick") summary.sickDays += safeDays;
+      if (leave.leave_type === "unpaid") {
+        summary.unpaidDays += safeDays;
+        summary.unpaidPeriods.push(`${leave.start_date} to ${leave.end_date}`);
+      }
+      if (leave.leave_type === "other") summary.otherDays += safeDays;
+      approvedLeaveByEmployee.set(leave.employee_id, summary);
+    }
   }
 
   const { data: contractDocuments, error: contractError } = await supabase
@@ -1545,10 +1595,16 @@ export async function exportFinanceHandoffUrl(actor: Actor): Promise<string> {
     "start_date",
     "contract_status",
     "bank_account_details",
+    "approved_annual_leave_days_ytd",
+    "approved_sick_leave_days_ytd",
+    "approved_unpaid_leave_days_ytd",
+    "approved_other_leave_days_ytd",
+    "approved_unpaid_leave_periods_ytd",
   ];
 
   const dataRows = employees.map((employee) => {
     const compensation = compensationByEmployee.get(employee.id);
+    const approvedLeave = approvedLeaveByEmployee.get(employee.id);
     const salaryAmount = compensation?.base_salary == null ? "" : String(compensation.base_salary);
     return [
       employee.full_name,
@@ -1560,6 +1616,11 @@ export async function exportFinanceHandoffUrl(actor: Actor): Promise<string> {
       employee.start_date ?? "",
       signedContractEmployeeIds.has(employee.id) ? "signed" : "missing",
       "",
+      approvedLeave?.annualDays ? String(approvedLeave.annualDays) : "",
+      approvedLeave?.sickDays ? String(approvedLeave.sickDays) : "",
+      approvedLeave?.unpaidDays ? String(approvedLeave.unpaidDays) : "",
+      approvedLeave?.otherDays ? String(approvedLeave.otherDays) : "",
+      approvedLeave?.unpaidPeriods.join("; ") ?? "",
     ];
   });
 

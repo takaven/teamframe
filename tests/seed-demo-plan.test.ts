@@ -124,6 +124,8 @@ describe("demo seed plan — leaves", () => {
     expect(pending.length).toBeGreaterThanOrEqual(1);
     for (const leave of pending) {
       expect(leave.end_date >= leave.start_date).toBe(true);
+      expect(leave.leave_type).toBe("annual");
+      expect(leave.requested_days).toBe(3);
     }
   });
 });

@@ -46,7 +46,10 @@ export type DemoLeavePlan = {
   employeeKey: string;
   start_date: string;
   end_date: string;
-  status: "pending" | "approved" | "rejected";
+  leave_type: "annual" | "sick" | "unpaid" | "other";
+  requested_days: number;
+  reason: string | null;
+  status: "pending" | "approved" | "rejected" | "cancelled";
 };
 
 export type DemoSignalPlan = {

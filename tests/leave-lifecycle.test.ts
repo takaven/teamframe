@@ -44,7 +44,19 @@ function makeRpcBuilder() {
         employee_id: "emp-a",
         start_date: "2026-08-20",
         end_date: "2026-08-21",
+        leave_type: "annual",
+        requested_days: 2,
+        reason: null,
         status: "pending",
+        decided_by_user_id: null,
+        decided_at: null,
+        decision_note: null,
+        override_insufficient_balance: false,
+        override_reason: null,
+        cancelled_by_user_id: null,
+        cancelled_at: null,
+        cancellation_reason: null,
+        approval_automation_item_id: "automation-1",
         created_at: "2026-08-11T00:00:00.000Z",
         updated_at: "2026-08-11T00:00:00.000Z",
       },
@@ -101,6 +113,7 @@ describe("leave lifecycle eligibility", () => {
     const leave = await submitLeaveRequest(employeeActor, {
       startDate: "2026-08-20",
       endDate: "2026-08-21",
+      leaveType: "annual",
     });
 
     expect(leave.id).toBe("leave-1");
@@ -113,6 +126,7 @@ describe("leave lifecycle eligibility", () => {
     const leave = await submitLeaveRequest(employeeActor, {
       startDate: "2026-08-20",
       endDate: "2026-08-21",
+      leaveType: "sick",
     });
 
     expect(leave.id).toBe("leave-1");

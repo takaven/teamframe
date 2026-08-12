@@ -538,12 +538,17 @@ begin
 end;
 $$;
 
+drop function if exists teamframe_submit_leave(uuid, uuid, uuid, date, date);
+drop function if exists teamframe_decide_leave(uuid, uuid, uuid, leave_status, timestamptz);
+
 create or replace function teamframe_submit_leave(
   p_tenant_id uuid,
   p_actor_user_id uuid,
   p_employee_id uuid,
   p_start_date date,
-  p_end_date date
+  p_end_date date,
+  p_leave_type leave_type default 'annual',
+  p_reason text default null
 )
 returns leaves
 language plpgsql
@@ -553,12 +558,23 @@ as $$
 declare
   v_leave leaves;
   v_employee employees;
+  v_days numeric(6,2);
+  v_automation_item_id uuid;
 begin
+  if p_end_date < p_start_date then
+    raise exception 'INVALID_INPUT';
+  end if;
+
+  if p_reason is not null and char_length(p_reason) > 500 then
+    raise exception 'INVALID_INPUT';
+  end if;
+
   select * into v_employee
   from employees
   where tenant_id = p_tenant_id
     and id = p_employee_id
-    and deleted_at is null;
+    and deleted_at is null
+  for update;
 
   if not found then
     raise exception 'LEAVE_EMPLOYEE_NOT_ELIGIBLE';
@@ -574,8 +590,60 @@ begin
     raise exception 'LEAVE_EMPLOYEE_NOT_ELIGIBLE';
   end if;
 
-  insert into leaves (tenant_id, employee_id, start_date, end_date, status)
-  values (p_tenant_id, p_employee_id, p_start_date, p_end_date, 'pending')
+  if exists (
+    select 1
+    from leaves l
+    where l.tenant_id = p_tenant_id
+      and l.employee_id = p_employee_id
+      and l.status in ('pending', 'approved')
+      and l.start_date <= p_end_date
+      and p_start_date <= l.end_date
+  ) then
+    raise exception 'LEAVE_OVERLAP';
+  end if;
+
+  v_days := (p_end_date - p_start_date + 1)::numeric;
+
+  insert into leaves (
+    tenant_id,
+    employee_id,
+    start_date,
+    end_date,
+    leave_type,
+    requested_days,
+    reason,
+    status
+  )
+  values (
+    p_tenant_id,
+    p_employee_id,
+    p_start_date,
+    p_end_date,
+    p_leave_type,
+    v_days,
+    nullif(trim(coalesce(p_reason, '')), ''),
+    'pending'
+  )
+  returning * into v_leave;
+
+  v_automation_item_id := teamframe_ensure_hr_automation_item(
+    p_tenant_id,
+    'leave.approval_due',
+    'leave:' || v_leave.id::text || ':approval',
+    'leave',
+    v_leave.id,
+    p_employee_id,
+    clock_timestamp() + interval '1 day',
+    'decision',
+    null,
+    jsonb_build_object('leave_type', p_leave_type, 'requested_days', v_days),
+    3
+  );
+
+  update leaves
+  set approval_automation_item_id = v_automation_item_id
+  where tenant_id = p_tenant_id
+    and id = v_leave.id
   returning * into v_leave;
 
   insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)
@@ -590,7 +658,10 @@ create or replace function teamframe_decide_leave(
   p_actor_user_id uuid,
   p_leave_id uuid,
   p_decision leave_status,
-  p_expected_updated_at timestamptz
+  p_expected_updated_at timestamptz,
+  p_override_insufficient_balance boolean default false,
+  p_override_reason text default null,
+  p_decision_note text default null
 )
 returns leaves
 language plpgsql
@@ -599,17 +670,113 @@ set search_path = public
 as $$
 declare
   v_leave leaves;
+  v_company companies;
+  v_allocation numeric(8,2);
+  v_pending numeric(8,2);
+  v_approved numeric(8,2);
+  v_available numeric(8,2);
 begin
-  update leaves
-  set status = p_decision
+  if p_decision not in ('approved', 'rejected') then
+    raise exception 'INVALID_INPUT';
+  end if;
+
+  if p_override_insufficient_balance and nullif(trim(coalesce(p_override_reason, '')), '') is null then
+    raise exception 'LEAVE_OVERRIDE_REASON_REQUIRED';
+  end if;
+
+  if p_decision_note is not null and char_length(p_decision_note) > 500 then
+    raise exception 'INVALID_INPUT';
+  end if;
+
+  select * into v_leave
+  from leaves
   where tenant_id = p_tenant_id
     and id = p_leave_id
     and status = 'pending'
-    and updated_at = p_expected_updated_at
-  returning * into v_leave;
+    and teamframe_timestamp_matches(updated_at, p_expected_updated_at)
+  for update;
 
   if not found then
     return null;
+  end if;
+
+  perform 1
+  from employees
+  where tenant_id = p_tenant_id
+    and id = v_leave.employee_id
+  for update;
+
+  if p_decision = 'approved' then
+    if exists (
+      select 1
+      from leaves l
+      where l.tenant_id = p_tenant_id
+        and l.employee_id = v_leave.employee_id
+        and l.id <> v_leave.id
+        and l.status = 'approved'
+        and l.start_date <= v_leave.end_date
+        and v_leave.start_date <= l.end_date
+    ) then
+      raise exception 'LEAVE_OVERLAP';
+    end if;
+
+    if v_leave.leave_type = 'annual' then
+      select * into v_company
+      from companies
+      where id = p_tenant_id
+      for update;
+
+      v_allocation := coalesce(v_company.annual_leave_default_days, 0)::numeric;
+      select coalesce(sum(l.requested_days), 0)
+      into v_pending
+      from leaves l
+      where l.tenant_id = p_tenant_id
+        and l.employee_id = v_leave.employee_id
+        and l.leave_type = 'annual'
+        and l.status = 'pending'
+        and l.id <> v_leave.id
+        and extract(year from l.start_date) = extract(year from v_leave.start_date);
+
+      select coalesce(sum(l.requested_days), 0)
+      into v_approved
+      from leaves l
+      where l.tenant_id = p_tenant_id
+        and l.employee_id = v_leave.employee_id
+        and l.leave_type = 'annual'
+        and l.status = 'approved'
+        and extract(year from l.start_date) = extract(year from v_leave.start_date);
+
+      v_available := v_allocation - v_pending - v_approved;
+      if v_leave.requested_days > v_available and not p_override_insufficient_balance then
+        raise exception 'LEAVE_INSUFFICIENT_BALANCE';
+      end if;
+    end if;
+  end if;
+
+  update leaves
+  set
+    status = p_decision,
+    decided_by_user_id = p_actor_user_id,
+    decided_at = clock_timestamp(),
+    decision_note = nullif(trim(coalesce(p_decision_note, '')), ''),
+    override_insufficient_balance = case when p_decision = 'approved' then p_override_insufficient_balance else false end,
+    override_reason = case when p_decision = 'approved' and p_override_insufficient_balance then nullif(trim(coalesce(p_override_reason, '')), '') else null end
+  where tenant_id = p_tenant_id
+    and id = p_leave_id
+  returning * into v_leave;
+
+  if v_leave.approval_automation_item_id is not null then
+    perform teamframe_run_hr_automation_item(
+      p_tenant_id,
+      v_leave.approval_automation_item_id,
+      clock_timestamp(),
+      true,
+      false,
+      null,
+      null,
+      null,
+      jsonb_build_object('source', 'leave.decision', 'decision', p_decision)
+    );
   end if;
 
   insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)
@@ -619,6 +786,106 @@ begin
     case when p_decision = 'approved' then 'leave.approved' else 'leave.rejected' end,
     p_leave_id
   );
+
+  return v_leave;
+end;
+$$;
+
+create or replace function teamframe_withdraw_leave(
+  p_tenant_id uuid,
+  p_actor_user_id uuid,
+  p_employee_id uuid,
+  p_leave_id uuid,
+  p_expected_updated_at timestamptz,
+  p_reason text default null
+)
+returns leaves
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_leave leaves;
+begin
+  if p_reason is not null and char_length(p_reason) > 500 then
+    raise exception 'INVALID_INPUT';
+  end if;
+
+  update leaves
+  set
+    status = 'cancelled',
+    cancelled_by_user_id = p_actor_user_id,
+    cancelled_at = clock_timestamp(),
+    cancellation_reason = nullif(trim(coalesce(p_reason, '')), '')
+  where tenant_id = p_tenant_id
+    and id = p_leave_id
+    and employee_id = p_employee_id
+    and status = 'pending'
+    and teamframe_timestamp_matches(updated_at, p_expected_updated_at)
+  returning * into v_leave;
+
+  if not found then
+    return null;
+  end if;
+
+  if v_leave.approval_automation_item_id is not null then
+    perform teamframe_run_hr_automation_item(
+      p_tenant_id,
+      v_leave.approval_automation_item_id,
+      clock_timestamp(),
+      true,
+      false,
+      null,
+      null,
+      null,
+      jsonb_build_object('source', 'leave.withdrawn')
+    );
+  end if;
+
+  insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)
+  values (p_tenant_id, p_actor_user_id, 'leave.withdrawn', p_leave_id);
+
+  return v_leave;
+end;
+$$;
+
+create or replace function teamframe_cancel_approved_leave(
+  p_tenant_id uuid,
+  p_actor_user_id uuid,
+  p_leave_id uuid,
+  p_expected_updated_at timestamptz,
+  p_reason text default null
+)
+returns leaves
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_leave leaves;
+begin
+  if p_reason is not null and char_length(p_reason) > 500 then
+    raise exception 'INVALID_INPUT';
+  end if;
+
+  update leaves
+  set
+    status = 'cancelled',
+    cancelled_by_user_id = p_actor_user_id,
+    cancelled_at = clock_timestamp(),
+    cancellation_reason = nullif(trim(coalesce(p_reason, '')), '')
+  where tenant_id = p_tenant_id
+    and id = p_leave_id
+    and status = 'approved'
+    and teamframe_timestamp_matches(updated_at, p_expected_updated_at)
+  returning * into v_leave;
+
+  if not found then
+    return null;
+  end if;
+
+  insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)
+  values (p_tenant_id, p_actor_user_id, 'leave.cancelled', p_leave_id);
 
   return v_leave;
 end;
@@ -801,8 +1068,10 @@ revoke all on function teamframe_complete_guided_company_setup(
 ) from public, anon, authenticated;
 revoke all on function teamframe_update_employee(uuid, uuid, uuid, timestamptz, jsonb) from public, anon, authenticated;
 revoke all on function teamframe_archive_employee(uuid, uuid, uuid, timestamptz) from public, anon, authenticated;
-revoke all on function teamframe_submit_leave(uuid, uuid, uuid, date, date) from public, anon, authenticated;
-revoke all on function teamframe_decide_leave(uuid, uuid, uuid, leave_status, timestamptz) from public, anon, authenticated;
+revoke all on function teamframe_submit_leave(uuid, uuid, uuid, date, date, leave_type, text) from public, anon, authenticated;
+revoke all on function teamframe_decide_leave(uuid, uuid, uuid, leave_status, timestamptz, boolean, text, text) from public, anon, authenticated;
+revoke all on function teamframe_withdraw_leave(uuid, uuid, uuid, uuid, timestamptz, text) from public, anon, authenticated;
+revoke all on function teamframe_cancel_approved_leave(uuid, uuid, uuid, timestamptz, text) from public, anon, authenticated;
 revoke all on function teamframe_create_position(uuid, uuid, text, text, uuid, uuid, text) from public, anon, authenticated;
 revoke all on function teamframe_update_position(uuid, uuid, uuid, timestamptz, text, text, uuid, uuid, text) from public, anon, authenticated;
 revoke all on function teamframe_delete_position(uuid, uuid, uuid, timestamptz) from public, anon, authenticated;
@@ -820,8 +1089,10 @@ grant execute on function teamframe_complete_guided_company_setup(
 ) to service_role;
 grant execute on function teamframe_update_employee(uuid, uuid, uuid, timestamptz, jsonb) to service_role;
 grant execute on function teamframe_archive_employee(uuid, uuid, uuid, timestamptz) to service_role;
-grant execute on function teamframe_submit_leave(uuid, uuid, uuid, date, date) to service_role;
-grant execute on function teamframe_decide_leave(uuid, uuid, uuid, leave_status, timestamptz) to service_role;
+grant execute on function teamframe_submit_leave(uuid, uuid, uuid, date, date, leave_type, text) to service_role;
+grant execute on function teamframe_decide_leave(uuid, uuid, uuid, leave_status, timestamptz, boolean, text, text) to service_role;
+grant execute on function teamframe_withdraw_leave(uuid, uuid, uuid, uuid, timestamptz, text) to service_role;
+grant execute on function teamframe_cancel_approved_leave(uuid, uuid, uuid, timestamptz, text) to service_role;
 grant execute on function teamframe_create_position(uuid, uuid, text, text, uuid, uuid, text) to service_role;
 grant execute on function teamframe_update_position(uuid, uuid, uuid, timestamptz, text, text, uuid, uuid, text) to service_role;
 grant execute on function teamframe_delete_position(uuid, uuid, uuid, timestamptz) to service_role;

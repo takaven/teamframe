@@ -16,6 +16,8 @@ const expectedFunctions = [
   "teamframe_archive_employee",
   "teamframe_submit_leave",
   "teamframe_decide_leave",
+  "teamframe_withdraw_leave",
+  "teamframe_cancel_approved_leave",
 ];
 
 describe("transactional mutation RPCs", () => {
@@ -72,6 +74,7 @@ describe("transactional mutation RPCs", () => {
     expect(body).toContain("teamframe_derive_employee_lifecycle");
     expect(body).toContain("not in ('active', 'offboarding')");
     expect(body).toContain("LEAVE_EMPLOYEE_NOT_ELIGIBLE");
+    expect(body).toContain("LEAVE_OVERLAP");
   });
 
   it("routes employee and leave database mutations through RPCs", () => {
@@ -87,6 +90,8 @@ describe("transactional mutation RPCs", () => {
     for (const fn of ["teamframe_submit_leave", "teamframe_decide_leave"]) {
       expect(leaveService).toContain(`.rpc("${fn}"`);
     }
+    expect(leaveService).toContain('.rpc("teamframe_withdraw_leave"');
+    expect(leaveService).toContain('.rpc("teamframe_cancel_approved_leave"');
     expect(leaveService).not.toMatch(/from\("leaves"\)\s*\n\s*\.insert\(/);
     expect(leaveService).not.toMatch(/from\("leaves"\)\s*\n\s*\.update\(/);
   });

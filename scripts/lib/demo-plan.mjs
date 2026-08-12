@@ -148,6 +148,9 @@ export function buildDemoPlan(now = new Date()) {
         employeeKey: "operator",
         start_date: dateOnlyDaysFrom(now, 10),
         end_date: dateOnlyDaysFrom(now, 12),
+        leave_type: "annual",
+        requested_days: 3,
+        reason: "Synthetic annual leave request for the founder review demo.",
         status: "pending", // pending leave in the admin queue
       },
     ],

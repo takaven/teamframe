@@ -255,6 +255,12 @@ async function upsertLeave(tenantId, employeeId, input) {
     employee_id: employeeId,
     start_date: input.start_date,
     end_date: input.end_date,
+    leave_type: input.leave_type ?? "annual",
+    requested_days:
+      input.requested_days ??
+      Math.floor((Date.parse(`${input.end_date}T00:00:00.000Z`) - Date.parse(`${input.start_date}T00:00:00.000Z`)) / 86_400_000) +
+        1,
+    reason: input.reason ?? null,
     status: input.status,
   };
 

@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireTenantActor } from "@/middleware/rbac";
-import { submitLeaveRequest, decideLeaveRequest } from "@/services/leaveService";
+import { cancelApprovedLeave, decideLeaveRequest, submitLeaveRequest, withdrawPendingLeave } from "@/services/leaveService";
 import { logAction } from "@/lib/telemetry/logger";
 import { captureActionError } from "@/lib/telemetry/sentry";
 
@@ -11,6 +11,8 @@ const SubmitSchema = z
   .object({
     start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    leave_type: z.enum(["annual", "sick", "unpaid", "other"]),
+    reason: z.string().trim().max(500).optional(),
   })
   .refine((d) => d.end_date >= d.start_date, { message: "INVALID_INPUT" });
 
@@ -18,6 +20,16 @@ const DecideSchema = z.object({
   leave_id: z.string().uuid(),
   expected_updated_at: z.string().trim().min(1),
   decision: z.enum(["approved", "rejected"]),
+  override_insufficient_balance: z.string().optional(),
+  override_reason: z.string().trim().max(500).optional(),
+  decision_note: z.string().trim().max(500).optional(),
+  return_to: z.string().trim().optional(),
+});
+
+const CancelSchema = z.object({
+  leave_id: z.string().uuid(),
+  expected_updated_at: z.string().trim().min(1),
+  reason: z.string().trim().max(500).optional(),
   return_to: z.string().trim().optional(),
 });
 
@@ -62,6 +74,8 @@ export async function submitLeaveAction(formData: FormData): Promise<void> {
     await submitLeaveRequest(actor, {
       startDate: parsed.start_date,
       endDate: parsed.end_date,
+      leaveType: parsed.leave_type,
+      reason: parsed.reason,
     });
   } catch (error) {
     failed = true;
@@ -130,6 +144,11 @@ export async function decideLeaveAction(formData: FormData): Promise<void> {
       parsed.leave_id,
       parsed.decision,
       parsed.expected_updated_at,
+      {
+        overrideInsufficientBalance: parsed.override_insufficient_balance === "on",
+        overrideReason: parsed.override_reason,
+        decisionNote: parsed.decision_note,
+      },
     );
   } catch (error) {
     failed = true;
@@ -168,4 +187,48 @@ export async function decideLeaveAction(formData: FormData): Promise<void> {
     redirect(`${returnTo}?error=${encodeURIComponent(errorCode)}&leave=${encodeURIComponent(leaveId)}`);
   }
   redirect(`${returnTo}?status=decided_${decision}`);
+}
+
+export async function withdrawLeaveAction(formData: FormData): Promise<void> {
+  let errorCode = "UNKNOWN";
+  let returnTo = "/leaves";
+
+  try {
+    const actor = await requireTenantActor();
+    const parsed = CancelSchema.parse({
+      leave_id: formData.get("leave_id"),
+      expected_updated_at: formData.get("expected_updated_at"),
+      reason: optionalString(formData.get("reason")),
+      return_to: optionalString(formData.get("return_to")),
+    });
+    returnTo = safeReturnPath(parsed.return_to, "/leaves");
+    await withdrawPendingLeave(actor, parsed.leave_id, parsed.expected_updated_at, parsed.reason);
+  } catch (error) {
+    errorCode = getErrorCode(error);
+    redirect(`${returnTo}?error=${encodeURIComponent(errorCode)}`);
+  }
+
+  redirect(`${returnTo}?status=leave_withdrawn`);
+}
+
+export async function cancelLeaveAction(formData: FormData): Promise<void> {
+  let errorCode = "UNKNOWN";
+  let returnTo = "/leaves";
+
+  try {
+    const actor = await requireTenantActor();
+    const parsed = CancelSchema.parse({
+      leave_id: formData.get("leave_id"),
+      expected_updated_at: formData.get("expected_updated_at"),
+      reason: optionalString(formData.get("reason")),
+      return_to: optionalString(formData.get("return_to")),
+    });
+    returnTo = safeReturnPath(parsed.return_to, "/leaves");
+    await cancelApprovedLeave(actor, parsed.leave_id, parsed.expected_updated_at, parsed.reason);
+  } catch (error) {
+    errorCode = getErrorCode(error);
+    redirect(`${returnTo}?error=${encodeURIComponent(errorCode)}`);
+  }
+
+  redirect(`${returnTo}?status=leave_cancelled`);
 }
