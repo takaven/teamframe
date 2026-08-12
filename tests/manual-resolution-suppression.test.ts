@@ -8,6 +8,8 @@ const db = {
   employees: [] as Row[],
   documents: [] as Row[],
   leaves: [] as Row[],
+  policies: [] as Row[],
+  acknowledgements: [] as Row[],
   risk_signals: [] as Row[],
   action_items: [] as Row[],
   audit_logs: [] as Row[],
@@ -96,11 +98,14 @@ vi.mock("@/lib/db/supabaseServer", () => ({
 
 import { reconcileMissingJurisdictionRequirementSignals } from "@/services/signalEngine/missingJurisdictionRequirement";
 import { reconcileLeaveConflictSignals } from "@/services/signalEngine/leaveConflict";
+import { reconcileUnacknowledgedPolicySignals } from "@/services/signalEngine/unacknowledgedPolicy";
 
 beforeEach(() => {
   db.employees = [];
   db.documents = [];
   db.leaves = [];
+  db.policies = [];
+  db.acknowledgements = [];
   db.risk_signals = [];
   db.action_items = [];
   db.audit_logs = [];
@@ -219,6 +224,55 @@ describe("missing_jurisdiction_requirement manual resolution", () => {
     expect(newSignal?.evidence).toMatchObject({
       evidence_fingerprint: "missing_jurisdiction_requirement:uk:right_to_work",
     });
+  });
+});
+
+describe("evidence-backed policy acknowledgement resolution", () => {
+  it("does not let generic completed dashboard actions suppress missing policy acknowledgement", async () => {
+    db.employees = [
+      { id: "emp-a", tenant_id: "TENANT_A", lifecycle_state: "active", deleted_at: null },
+    ];
+    db.policies = [
+      {
+        id: "policy-a",
+        tenant_id: "TENANT_A",
+        version: 1,
+        is_published: true,
+        archived_at: null,
+      },
+    ];
+    db.acknowledgements = [];
+    db.risk_signals = [
+      {
+        id: "signal-open",
+        tenant_id: "TENANT_A",
+        kind: "unacknowledged_policy",
+        subject_employee_id: "emp-a",
+        evidence: { evidence_fingerprint: "unacknowledged_policy:policy-a:1" },
+        resolved_at: null,
+      },
+    ];
+    db.action_items = [
+      {
+        id: "action-done",
+        tenant_id: "TENANT_A",
+        risk_signal_id: "signal-open",
+        subject_employee_id: "emp-a",
+        category: "unacknowledged_policy",
+        status: "done",
+        resolved_at: "2026-07-03T00:00:00Z",
+      },
+    ];
+
+    const result = await reconcileUnacknowledgedPolicySignals({
+      tenantId: "TENANT_A",
+      actorUserId: "admin-user",
+      now: new Date("2026-07-03T01:00:00Z"),
+    });
+
+    expect(result.resolvedSignals).toBe(0);
+    const signal = db.risk_signals.find((s) => s.id === "signal-open");
+    expect(signal?.resolved_at).toBeNull();
   });
 });
 

@@ -4,9 +4,9 @@
 
 Current verdict:
 
-> **NOT READY - IMPLEMENTATION PENDING**
+> **NOT READY - FINAL E2E VERIFICATION PENDING**
 
-The current source foundation has passed technical verification, but the market-ready implementation is not complete. This document is the release gate for future market-ready approval.
+The market-ready implementation checkpoints through MR-7 are locked. MR-8 is the current reliability and release-closure checkpoint. A final fresh-disposable full-system E2E verification remains required before any market-ready verdict.
 
 ## Verdict Options
 
@@ -90,6 +90,8 @@ The current source foundation has passed technical verification, but the market-
 - Resolution/history remains durable.
 - False-success vacant-position deletion regression covered.
 - Sentry/App Router production observability warnings resolved or formally accepted.
+- Control Centre counts and work queues are derived from authoritative current workflow state.
+- Routine HR work does not become a Signal merely because it is due.
 
 ## Security Gate
 
@@ -118,6 +120,6 @@ Before a readiness verdict can advance, run and record:
 
 ## Initial Verdict
 
-> **NOT READY - IMPLEMENTATION PENDING**
+> **NOT READY - FINAL E2E VERIFICATION PENDING**
 
-Reason: the verified foundation is strong, but market-ready lifecycle, automation, documents, policies, leave, delegation, offboarding and reliability requirements have not yet been implemented.
+Reason: the market-ready implementation workstreams require MR-8 lock and a final full-system disposable E2E release verification before any production or founder-facing market-ready decision.

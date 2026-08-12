@@ -281,7 +281,8 @@ export async function deleteVacantPosition(actor: Actor, positionId: string, exp
     } as never)
     .maybeSingle();
   if (error) throw new Error(`POSITION_DELETE_FAILED: ${error.message}`);
-  if (!data) throw new Error("POSITION_DELETE_UNSAFE");
+  const deleted = Array.isArray(data) ? (data[0] as PositionRow | undefined) : (data as PositionRow | null);
+  if (!deleted || deleted.id !== positionId) throw new Error("POSITION_DELETE_UNSAFE");
 }
 
 function extensionFromFileName(fileName: string): string {

@@ -7,8 +7,10 @@
  * Without this file, the `sentry.{server,edge}.config.ts` modules are never
  * imported and `Sentry.init()` never executes — leaving capture wrappers as
  * silent no-ops. Client-side init is loaded via the framework's automatic
- * `sentry.client.config.ts` discovery.
+ * `instrumentation-client.ts` discovery.
  */
+
+import * as Sentry from "@sentry/nextjs";
 
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
@@ -18,3 +20,5 @@ export async function register() {
     await import("./sentry.edge.config");
   }
 }
+
+export const onRequestError = Sentry.captureRequestError;

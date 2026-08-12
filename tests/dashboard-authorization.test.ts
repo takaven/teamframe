@@ -1,72 +1,24 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
-
-vi.mock("server-only", () => ({}));
-
-const mocks = vi.hoisted(() => ({
-  requireTenantRole: vi.fn(),
-  runSignalEngine: vi.fn(),
-  revalidatePath: vi.fn(),
-  createServiceRoleClient: vi.fn(),
-}));
-
-vi.mock("@/middleware/rbac", () => ({
-  requireTenantRole: mocks.requireTenantRole,
-}));
-
-vi.mock("@/services/signalEngine", () => ({
-  runSignalEngineForTenant: mocks.runSignalEngine,
-}));
-
-vi.mock("next/cache", () => ({
-  revalidatePath: mocks.revalidatePath,
-}));
-
-vi.mock("@/lib/db/supabaseServer", () => ({
-  createServiceRoleClient: mocks.createServiceRoleClient,
-}));
-
-vi.mock("@/components/AppShell", () => ({
-  AppShell: () => null,
-}));
-
-vi.mock("@/app/dashboard/SignalSection", () => ({
-  SignalSection: () => null,
-}));
-
-import { executeActionItemAction } from "@/app/dashboard/actions";
-
-beforeEach(() => {
-  mocks.requireTenantRole.mockReset();
-  mocks.runSignalEngine.mockReset();
-  mocks.revalidatePath.mockReset();
-  mocks.createServiceRoleClient.mockReset();
-});
+import { describe, expect, it } from "vitest";
 
 describe("dashboard authorization", () => {
-  it("denies non-admin page access before service-role dashboard queries run", async () => {
+  it("requires admin authorization before service-role Control Centre queries run", () => {
     const source = readFileSync(join(process.cwd(), "app", "dashboard", "page.tsx"), "utf8");
 
     expect(source).toContain('import { requireTenantRole } from "@/middleware/rbac";');
-    expect(source).toContain('loadDashboardData');
+    expect(source).toContain("loadControlCentreData");
     expect(source).toContain('const actor = await requireTenantRole("admin");');
     expect(source.indexOf('const actor = await requireTenantRole("admin");')).toBeLessThan(
-      source.indexOf("loadDashboardData({"),
+      source.indexOf("loadControlCentreData({"),
     );
   });
 
-  it("denies non-admin dashboard actions before mutating action items", async () => {
-    mocks.requireTenantRole.mockRejectedValue(new Error("FORBIDDEN"));
-    const formData = new FormData();
-    formData.set("actionItemId", "11111111-1111-4111-8111-111111111111");
-    formData.set("nextStatus", "done");
+  it("does not expose a generic dashboard Mark done mutation for Signals", () => {
+    expect(existsSync(join(process.cwd(), "app", "dashboard", "actions.ts"))).toBe(false);
 
-    await expect(executeActionItemAction(formData)).rejects.toThrow("FORBIDDEN");
-
-    expect(mocks.requireTenantRole).toHaveBeenCalledWith("admin");
-    expect(mocks.createServiceRoleClient).not.toHaveBeenCalled();
-    expect(mocks.runSignalEngine).not.toHaveBeenCalled();
-    expect(mocks.revalidatePath).not.toHaveBeenCalled();
+    const dashboardSource = readFileSync(join(process.cwd(), "app", "dashboard", "page.tsx"), "utf8");
+    expect(dashboardSource).not.toContain("executeActionItemAction");
+    expect(dashboardSource).not.toContain("Mark done");
   });
 });

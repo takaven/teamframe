@@ -1,195 +1,111 @@
 import Link from "next/link";
 import { requireTenantRole } from "@/middleware/rbac";
-import { SignalSection } from "@/app/dashboard/SignalSection";
-import type { DashboardSignal } from "@/app/dashboard/RiskCard";
 import { AppShell } from "@/components/AppShell";
+import { StatusPill, type StatusPillTone } from "@/components/StatusPill";
 import {
-  loadDashboardData,
-  type ActionItemRow,
-  type RiskSignalRow,
+  loadControlCentreData,
+  type ControlCentreClass,
+  type ControlCentreItem,
+  type ResolvedControlCentreItem,
 } from "@/app/dashboard/data";
 
 export const dynamic = "force-dynamic";
 
-function signalTitle(kind: string): string {
-  if (kind === "missing_contract") return "Missing signed contract";
-  if (kind === "expired_document") return "Expired document";
-  if (kind === "expiring_document") return "Document expiring soon";
-  if (kind === "unacknowledged_policy") return "Unacknowledged policy";
-  if (kind === "incomplete_onboarding") return "Incomplete onboarding";
-  if (kind === "incomplete_offboarding") return "Incomplete offboarding";
-  if (kind === "active_access_after_exit") return "Active access after exit";
-  if (kind === "unreturned_asset") return "Unreturned asset";
-  if (kind === "missing_jurisdiction_requirement") return "Missing jurisdiction document";
-  if (kind === "leave_conflict") return "Leave conflict";
-  return "Team risk signal";
+function formatDateTime(iso: string | null): string {
+  if (!iso) return "No due date";
+  return new Date(iso).toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
-function signalCategory(kind: string): string {
-  if (kind === "missing_contract" || kind === "expired_document" || kind === "expiring_document" || kind === "missing_jurisdiction_requirement") {
-    return "Documents";
-  }
-  if (kind === "unacknowledged_policy") return "Policies";
-  if (kind === "incomplete_onboarding") return "Onboarding";
-  if (kind === "incomplete_offboarding" || kind === "active_access_after_exit" || kind === "unreturned_asset") {
-    return "Offboarding";
-  }
-  if (kind === "leave_conflict") return "Leave";
-  return "Operations";
+function classLabel(value: ControlCentreClass): string {
+  if (value === "decision") return "Decision";
+  if (value === "overdue") return "Overdue";
+  if (value === "exception") return "Exception";
+  return "Due";
 }
 
-function signalCount(evidence: RiskSignalRow["evidence"]): number {
-  if (!evidence) return 1;
-  const candidates = [
-    evidence.missing_policy_count,
-    evidence.pending_task_count,
-    evidence.open_action_count,
-    evidence.open_asset_return_count,
-    evidence.overlap_count,
-  ];
-  for (const candidate of candidates) {
-    if (typeof candidate === "number" && Number.isFinite(candidate) && candidate > 0) {
-      return candidate;
-    }
-  }
-  return 1;
+function classTone(value: ControlCentreClass): StatusPillTone {
+  if (value === "exception") return "red";
+  if (value === "decision") return "amber";
+  if (value === "overdue") return "amber";
+  return "neutral";
 }
 
-function signalCtas(kind: string): {
-  primaryLabel: "View details" | "Resolve" | "Open record";
-  primaryHref: string;
-  secondaryLabel: "View details" | "Resolve" | "Open record";
-  secondaryHref: string;
-} {
-  if (kind === "incomplete_onboarding") {
-    return { primaryLabel: "View details", primaryHref: "/onboarding", secondaryLabel: "Resolve", secondaryHref: "/onboarding" };
-  }
-  if (kind === "leave_conflict") {
-    return { primaryLabel: "View details", primaryHref: "/leaves", secondaryLabel: "Resolve", secondaryHref: "/leaves" };
-  }
-  if (kind === "missing_contract" || kind === "expired_document" || kind === "expiring_document" || kind === "missing_jurisdiction_requirement") {
-    return { primaryLabel: "Open record", primaryHref: "/employees", secondaryLabel: "Resolve", secondaryHref: "/employees" };
-  }
-  if (kind === "unacknowledged_policy") {
-    return { primaryLabel: "Resolve", primaryHref: "/policies", secondaryLabel: "View details", secondaryHref: "/policies" };
-  }
-  return { primaryLabel: "Resolve", primaryHref: "/employees", secondaryLabel: "View details", secondaryHref: "/employees" };
+function classSpine(value: ControlCentreClass): string {
+  if (value === "exception") return "border-l-signal-red";
+  if (value === "decision" || value === "overdue") return "border-l-signal-amber";
+  return "border-l-ink-300";
 }
 
-function fallbackWrong(kind: string): string {
-  if (kind === "missing_contract") return "A teammate has no signed contract on file.";
-  if (kind === "expired_document") return "A key document is already expired.";
-  if (kind === "expiring_document") return "A key document is close to expiry.";
-  if (kind === "unacknowledged_policy") return "A published policy has not been acknowledged.";
-  if (kind === "incomplete_onboarding") return "Onboarding work is still incomplete.";
-  if (kind === "incomplete_offboarding") return "Offboarding actions are still open.";
-  if (kind === "active_access_after_exit") return "An exited teammate still appears active.";
-  if (kind === "unreturned_asset") return "A company asset has not been returned.";
-  if (kind === "missing_jurisdiction_requirement") return "A jurisdiction-specific document is missing.";
-  if (kind === "leave_conflict") return "Overlapping leave records were found.";
-  return "A people-ops risk needs attention.";
+function sourceLabel(source: string): string {
+  if (source.startsWith("policy")) return "Policies";
+  if (source.startsWith("document")) return "Documents";
+  if (source.startsWith("onboarding")) return "Onboarding";
+  if (source.startsWith("probation")) return "Probation";
+  if (source.startsWith("leave")) return "Leave";
+  if (source.startsWith("offboarding")) return "Offboarding";
+  if (source.startsWith("automation")) return "Automation";
+  if (source.startsWith("signal")) return "Signal";
+  return "People ops";
 }
 
-function fallbackWhy(kind: string): string {
-  if (kind === "missing_contract") {
-    return "This creates legal and compliance exposure as work starts or continues.";
-  }
-  if (kind === "expired_document" || kind === "expiring_document") {
-    return "This can block operations, travel, onboarding, or compliance readiness.";
-  }
-  if (kind === "unacknowledged_policy") {
-    return "This weakens compliance evidence and creates policy ambiguity.";
-  }
-  if (kind === "incomplete_onboarding") {
-    return "Unfinished setup can block work and create operational gaps.";
-  }
-  if (kind === "incomplete_offboarding" || kind === "active_access_after_exit" || kind === "unreturned_asset") {
-    return "Loose offboarding creates security, asset, and handover risk.";
-  }
-  if (kind === "missing_jurisdiction_requirement") {
-    return "Missing required documents can create work authorization and compliance risk.";
-  }
-  if (kind === "leave_conflict") {
-    return "Conflicting leave data can disrupt approvals and coverage planning.";
-  }
-  return "Unresolved risks can slow operations and reduce trust.";
+function ItemCard({ item }: { item: ControlCentreItem }) {
+  return (
+    <article className={`rounded-lg border border-ink-300/70 border-l-[3px] bg-white p-4 ${classSpine(item.class)}`}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="flex flex-wrap items-center gap-2 text-[12px] text-ink-500">
+            <StatusPill tone={classTone(item.class)}>{classLabel(item.class)}</StatusPill>
+            <span>{sourceLabel(item.source)}</span>
+            <span>{item.subjectName}</span>
+          </div>
+          <h3 className="mt-2 text-[18px] leading-tight tracking-tight text-ink-800">{item.title}</h3>
+        </div>
+        <p className="font-mono text-[12px] tabular-nums text-ink-500">{formatDateTime(item.dueAt)}</p>
+      </div>
+      <p className="mt-3 text-[14px] text-ink-700">{item.detail}</p>
+      <div className="mt-4 flex items-center justify-between gap-3 border-t border-ink-300/60 pt-3">
+        <p className="text-[12px] text-ink-500">
+          Updated <span className="font-mono tabular-nums">{formatDateTime(item.updatedAt)}</span>
+        </p>
+        <Link
+          href={item.href}
+          className="rounded-lg border border-ink-300 px-3 py-1.5 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900"
+        >
+          Open
+        </Link>
+      </div>
+    </article>
+  );
 }
 
-function fallbackNext(kind: string): string {
-  if (kind === "missing_contract") return "Upload the signed contract.";
-  if (kind === "expired_document") return "Upload the renewed document now.";
-  if (kind === "expiring_document") return "Request renewal before expiry.";
-  if (kind === "unacknowledged_policy") return "Collect the missing acknowledgement.";
-  if (kind === "incomplete_onboarding") return "Finish the remaining onboarding tasks.";
-  if (kind === "incomplete_offboarding") return "Close the remaining offboarding items.";
-  if (kind === "active_access_after_exit") return "Remove access and mark the record inactive.";
-  if (kind === "unreturned_asset") return "Recover the outstanding company asset.";
-  if (kind === "missing_jurisdiction_requirement") return "Upload the required jurisdiction document.";
-  if (kind === "leave_conflict") return "Review and correct the overlapping leave entries.";
-  return "Review the risk and take the next action.";
-}
-
-function toDashboardSignal(params: {
-  row: RiskSignalRow;
-  employeeName: string;
-  action: ActionItemRow | null;
-}): DashboardSignal {
-  const lane = params.row.resolved_at ? "resolved" : params.row.severity;
-  const ctas = signalCtas(params.row.kind);
-  return {
-    id: params.row.id,
-    kind: params.row.kind,
-    severity: params.row.severity,
-    lane,
-    subjectName: params.employeeName,
-    title: signalTitle(params.row.kind),
-    category: signalCategory(params.row.kind),
-    count: signalCount(params.row.evidence),
-    whatIsWrong: params.row.evidence?.what_is_wrong ?? fallbackWrong(params.row.kind),
-    whyItMatters: params.row.evidence?.why_it_matters ?? fallbackWhy(params.row.kind),
-    whatToDoNext: params.row.evidence?.what_to_do_next ?? fallbackNext(params.row.kind),
-    actionStatus: params.action?.status ?? "none",
-    actionItemId: params.action?.id ?? null,
-    actionTitle: params.action?.title ?? null,
-    updatedAt: params.row.last_seen_at,
-    primaryCtaLabel: ctas.primaryLabel,
-    primaryCtaHref: ctas.primaryHref,
-    secondaryCtaLabel: ctas.secondaryLabel,
-    secondaryCtaHref: ctas.secondaryHref,
-  };
+function ResolutionRow({ item }: { item: ResolvedControlCentreItem }) {
+  return (
+    <li className="flex flex-wrap items-center justify-between gap-3 border-b border-ink-100 py-3 last:border-b-0">
+      <div>
+        <p className="text-[14px] font-medium text-ink-800">{item.title}</p>
+        <p className="mt-0.5 text-[12px] text-ink-500">
+          {item.subjectName} · {item.detail}
+        </p>
+      </div>
+      <p className="font-mono text-[12px] tabular-nums text-ink-500">{formatDateTime(item.resolvedAt)}</p>
+    </li>
+  );
 }
 
 export default async function DashboardPage() {
   const actor = await requireTenantRole("admin");
-  const { refreshStatus, savedDataStatus, signals, actions, employees } = await loadDashboardData({
-    tenantId: actor.tenantId,
-    actorUserId: actor.authUserId,
-  });
+  const { savedDataStatus, summary, previewItems, allItems, resolvedItems, activeEmployeeCount } =
+    await loadControlCentreData({
+      tenantId: actor.tenantId,
+    });
 
-  const employeeNames = new Map(employees.map((row) => [row.id, row.full_name]));
-  const firstActionBySignalId = new Map<string, ActionItemRow>();
-  for (const action of actions) {
-    if (!firstActionBySignalId.has(action.risk_signal_id)) {
-      firstActionBySignalId.set(action.risk_signal_id, action);
-    }
-  }
-
-  const dashboardSignals = signals.map((row) =>
-    toDashboardSignal({
-      row,
-      employeeName: row.subject_employee_id ? (employeeNames.get(row.subject_employee_id) ?? "Team member") : "Team member",
-      action: firstActionBySignalId.get(row.id) ?? null,
-    }),
-  );
-
-  const redSignals = dashboardSignals.filter((s) => s.lane === "red");
-  const yellowSignals = dashboardSignals.filter((s) => s.lane === "yellow");
-  const resolvedSignals = dashboardSignals.filter((s) => s.lane === "resolved");
-  const openSignalCount = redSignals.length + yellowSignals.length;
-  const openActions = actions.filter((a) => a.status === "open" || a.status === "in_progress").length;
-  const topPriority = redSignals[0] ?? yellowSignals[0] ?? null;
-  const latestResolution = resolvedSignals[0] ?? null;
-  const shouldShowRefreshWarning = refreshStatus.state !== "success" && dashboardSignals.length === 0;
+  const hasMoreItems = allItems.length > previewItems.length;
+  const exceptionItems = allItems.filter((item) => item.class === "exception").slice(0, 3);
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-12">
@@ -197,58 +113,17 @@ export default async function DashboardPage() {
 
       <header className="border-b border-ink-300/60 pb-5">
         <div className="space-y-2">
-          <p className="text-[12px] tracking-[0.14em] text-ink-500">Founder view</p>
-          <h1 className="font-display text-[36px] font-extrabold leading-tight tracking-[-0.8px] text-ink-800">
-            {openSignalCount === 0
-              ? "Nothing needs your attention."
-              : `${openSignalCount} thing${openSignalCount === 1 ? "" : "s"} need your attention.`}
+          <p className="text-[12px] tracking-[0.14em] text-ink-500">HR Control Centre</p>
+          <h1 className="font-display text-[36px] font-extrabold leading-tight text-ink-800">
+            {summary.total === 0
+              ? "No HR actions need your attention right now."
+              : `${summary.total} HR action${summary.total === 1 ? "" : "s"} need attention.`}
           </h1>
           <p className="max-w-3xl text-[14px] text-ink-500">
-            See what needs attention. Know what comes next.
+            Decisions, due work, overdue work and exceptions are separated from durable resolution history.
           </p>
         </div>
       </header>
-
-      <section className="mt-7 grid gap-3 border-y border-ink-100 bg-white/70 py-4 md:grid-cols-3" aria-label="Signal Action Resolution progression">
-        {[
-          { label: "Signal", count: openSignalCount, help: "Open risks found in the team records." },
-          { label: "Action", count: openActions, help: "Tasks with an owner and a next step." },
-          { label: "Resolution", count: resolvedSignals.length, help: "Evidence closed and ready to show." },
-        ].map((stage, index) => (
-          <article key={stage.label} className="grid grid-cols-[2px_1fr_auto] gap-3 px-2 py-2">
-            <span className={`h-9 w-[2px] rounded-full ${openSignalCount > 0 && index === 0 ? "bg-brand-signal" : "bg-ink-100"}`} aria-hidden="true" />
-            <div>
-              <h2 className="text-[15px] font-extrabold text-ink-800">{stage.label}</h2>
-              <p className="mt-1 text-[13px] text-ink-500">{stage.help}</p>
-            </div>
-            <p className="font-mono text-[22px] tabular-nums text-ink-800">{stage.count}</p>
-          </article>
-        ))}
-      </section>
-
-      {shouldShowRefreshWarning ? (
-        <section
-          role="status"
-          className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-signal-amber/35 bg-signal-amber/10 px-4 py-3 text-[13px] text-ink-700"
-        >
-          <div>
-            <p className="font-medium text-ink-900">
-              Showing the latest saved signals.
-            </p>
-            <p className="mt-0.5 text-ink-500">
-              {refreshStatus.state === "timeout"
-                ? "The live signal refresh is taking longer than expected."
-                : "The live signal refresh could not complete safely."}
-            </p>
-          </div>
-          <Link
-            href="/dashboard"
-            className="rounded-full border border-ink-300 bg-white px-3 py-1.5 text-[12px] text-ink-800 transition hover:border-ink-900"
-          >
-            Retry refresh
-          </Link>
-        </section>
-      ) : null}
 
       {savedDataStatus.state !== "success" ? (
         <section
@@ -256,106 +131,126 @@ export default async function DashboardPage() {
           className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-signal-red/30 bg-signal-red/10 px-4 py-3 text-[13px] text-ink-700"
         >
           <div>
-            <p className="font-medium text-ink-900">Dashboard data could not load yet.</p>
+            <p className="font-medium text-ink-900">Control Centre data could not load yet.</p>
             <p className="mt-0.5 text-ink-500">
               {savedDataStatus.state === "timeout"
-                ? "The saved signal read took too long, so this page is showing an intentional empty state."
-                : "The saved signal read failed safely. Retry without exposing provider details."}
+                ? "The current-state read took too long, so no all-clear is being shown."
+                : "The current-state read failed safely. Retry without exposing provider details."}
             </p>
           </div>
           <Link
             href="/dashboard"
             className="rounded-full border border-ink-300 bg-white px-3 py-1.5 text-[12px] text-ink-800 transition hover:border-ink-900"
           >
-            Retry dashboard
+            Retry
           </Link>
         </section>
       ) : null}
 
-      <section className="mt-6 space-y-4">
-        <article className="border-l-2 border-brand-signal bg-surface-elevated py-5 pl-5">
-          <p className="flex items-center gap-2 text-[12px] uppercase tracking-[0.14em] text-ink-500">
-            <span className="h-2 w-2 rounded-full bg-brand-signal" aria-hidden="true" />
-            Priority signal
-          </p>
-          {topPriority ? (
-            <div className="mt-3 grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
-              <div>
-                <h2 className="text-[22px] leading-tight tracking-tight">{topPriority.title}</h2>
-                <p className="mt-2 max-w-3xl text-[14px] text-ink-700">{topPriority.whatIsWrong}</p>
-                <p className="mt-2 text-[13px] text-ink-500">
-                  Owner: <span className="text-ink-800">{topPriority.subjectName}</span> · Action:{" "}
-                  <span className="text-ink-800">{topPriority.actionTitle ?? topPriority.whatToDoNext}</span>
-                </p>
-              </div>
-              <Link
-                href={topPriority.primaryCtaHref}
-                className="tf-primary-action inline-flex h-10 items-center justify-center px-4 text-center text-[13px]"
-              >
-                Open priority
-              </Link>
+      <section className="mt-7 grid gap-3 border-y border-ink-100 bg-white/70 py-4 md:grid-cols-5" aria-label="Control Centre totals">
+        {[
+          { label: "Decisions", value: summary.decisions, help: "Human judgement needed." },
+          { label: "Overdue", value: summary.overdue, help: "Unresolved after due date." },
+          { label: "Due", value: summary.due, help: "Routine work due now." },
+          { label: "Exceptions", value: summary.exceptions, help: "Meaningful unresolved issues." },
+          { label: "Active", value: activeEmployeeCount, help: "Current active employees." },
+        ].map((stage, index) => (
+          <article key={stage.label} className="grid grid-cols-[2px_1fr_auto] gap-3 px-2 py-2">
+            <span className={`h-9 w-[2px] rounded-full ${index === 3 && stage.value > 0 ? "bg-signal-red" : "bg-ink-100"}`} aria-hidden="true" />
+            <div>
+              <h2 className="text-[15px] font-extrabold text-ink-800">{stage.label}</h2>
+              <p className="mt-1 text-[13px] text-ink-500">{stage.help}</p>
             </div>
-          ) : (
-            <p className="mt-3 text-[14px] text-ink-700">
-              No open risk signals right now. New issues will appear here with the owner and required action.
-            </p>
-          )}
-        </article>
-
-        <article className="rounded-xl border border-ink-300/70 bg-surface-elevated p-5">
-          <p className="text-[12px] uppercase tracking-[0.14em] text-ink-500">Recent progress</p>
-          {latestResolution ? (
-            <>
-              <h2 className="mt-3 text-[20px] leading-tight tracking-tight">{latestResolution.title}</h2>
-              <p className="mt-2 text-[13px] text-ink-500">
-                Resolved for <span className="text-ink-800">{latestResolution.subjectName}</span>.
-              </p>
-            </>
-          ) : (
-            <p className="mt-3 text-[14px] text-ink-700">
-              Completed actions will appear here so the founder can see readiness improving.
-            </p>
-          )}
-        </article>
+            <p className="font-mono text-[22px] tabular-nums text-ink-800">{stage.value}</p>
+          </article>
+        ))}
       </section>
 
-      <div className="mt-6 space-y-5">
-        <SignalSection
-          title="Urgent now"
-          subtitle="Red issues that need immediate action."
-          lane="red"
-          signals={redSignals.slice(0, 2)}
-        />
-        <SignalSection
-          title="Important next"
-          subtitle="Yellow issues to resolve before they become urgent."
-          lane="yellow"
-          signals={yellowSignals.slice(0, 2)}
-        />
-        <SignalSection
-          title="Resolved"
-          subtitle="Completed items that build confidence and trust."
-          lane="resolved"
-          signals={resolvedSignals.slice(0, 2)}
-        />
-      </div>
+      <section className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(320px,0.85fr)]">
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-[22px] tracking-tight text-ink-800">Needs attention</h2>
+              <p className="text-[13px] text-ink-500">
+                Showing {previewItems.length} of {summary.total} current item{summary.total === 1 ? "" : "s"} in deterministic priority order.
+              </p>
+            </div>
+            {hasMoreItems ? (
+              <a href="#all-current-items" className="rounded-lg border border-ink-300 px-3 py-1.5 text-[12px] text-ink-700 transition hover:border-ink-900">
+                View all
+              </a>
+            ) : null}
+          </div>
 
-      <section className="mt-7 grid gap-3 sm:grid-cols-3">
-        <Link href="/employees" className="rounded-xl border border-ink-300/70 bg-white/75 p-4 transition hover:border-ink-900">
-          <p className="text-[12px] tracking-[0.12em] text-ink-500">Act</p>
-          <p className="mt-2 text-[18px] tracking-tight">Team roster</p>
-          <p className="mt-1 text-[13px] text-ink-500">Update employee records and documents.</p>
-        </Link>
-        <Link href="/onboarding" className="rounded-xl border border-ink-300/70 bg-white/75 p-4 transition hover:border-ink-900">
-          <p className="text-[12px] tracking-[0.12em] text-ink-500">Track</p>
-          <p className="mt-2 text-[18px] tracking-tight">Onboarding</p>
-          <p className="mt-1 text-[13px] text-ink-500">Move pending tasks to done.</p>
-        </Link>
-        <Link href="/leaves" className="rounded-xl border border-ink-300/70 bg-white/75 p-4 transition hover:border-ink-900">
-          <p className="text-[12px] tracking-[0.12em] text-ink-500">Operate</p>
-          <p className="mt-2 text-[18px] tracking-tight">Leave</p>
-          <p className="mt-1 text-[13px] text-ink-500">Keep coverage and approvals on track.</p>
-        </Link>
+          {previewItems.length === 0 ? (
+            <article className="rounded-lg border border-ink-300/70 bg-white p-5 text-[14px] text-ink-700">
+              No current decisions, due work, overdue work or exceptions were found.
+            </article>
+          ) : (
+            <div className="space-y-3">
+              {previewItems.map((item) => (
+                <ItemCard key={item.id} item={item} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <aside className="space-y-4">
+          <article className="rounded-lg border border-ink-300/70 bg-surface-elevated p-5">
+            <p className="text-[12px] uppercase tracking-[0.14em] text-ink-500">Exceptions</p>
+            {exceptionItems.length === 0 ? (
+              <p className="mt-3 text-[14px] text-ink-700">No active exceptions right now.</p>
+            ) : (
+              <div className="mt-3 space-y-3">
+                {exceptionItems.map((item) => (
+                  <ItemCard key={item.id} item={item} />
+                ))}
+              </div>
+            )}
+          </article>
+
+          <article className="rounded-lg border border-ink-300/70 bg-white p-5">
+            <p className="text-[12px] uppercase tracking-[0.14em] text-ink-500">Recent resolutions</p>
+            {resolvedItems.length === 0 ? (
+              <p className="mt-3 text-[14px] text-ink-700">Resolved exceptions will remain visible here as durable history.</p>
+            ) : (
+              <ul className="mt-2">
+                {resolvedItems.map((item) => (
+                  <ResolutionRow key={item.id} item={item} />
+                ))}
+              </ul>
+            )}
+          </article>
+        </aside>
+      </section>
+
+      <section id="all-current-items" className="mt-7 rounded-lg border border-ink-300/70 bg-white p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-[20px] tracking-tight text-ink-800">All current items</h2>
+            <p className="text-[13px] text-ink-500">The headline count and this list use the same current-state query.</p>
+          </div>
+          <StatusPill tone="neutral">{allItems.length} total</StatusPill>
+        </div>
+        {allItems.length === 0 ? (
+          <p className="mt-4 text-[14px] text-ink-700">No HR actions need your attention right now.</p>
+        ) : (
+          <div className="mt-4 divide-y divide-ink-100">
+            {allItems.map((item) => (
+              <div key={item.id} className="grid gap-2 py-3 md:grid-cols-[110px_1fr_160px_80px] md:items-center">
+                <StatusPill tone={classTone(item.class)}>{classLabel(item.class)}</StatusPill>
+                <div>
+                  <p className="text-[14px] font-medium text-ink-800">{item.title}</p>
+                  <p className="text-[12px] text-ink-500">{item.subjectName} · {sourceLabel(item.source)}</p>
+                </div>
+                <p className="font-mono text-[12px] tabular-nums text-ink-500">{formatDateTime(item.dueAt)}</p>
+                <Link href={item.href} className="text-[12px] text-ink-700 underline-offset-4 hover:underline">
+                  Open
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
     </main>
   );

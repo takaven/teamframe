@@ -102,54 +102,6 @@ export async function reconcileUnacknowledgedPolicySignals(params: {
     acknowledgements.map((row) => `${row.employee_id}:${row.policy_id}:${row.policy_version}`),
   );
 
-  const { data: completedActionData, error: completedActionError } = await supabase
-    .from("action_items")
-    .select("subject_employee_id, risk_signal_id")
-    .eq("tenant_id", params.tenantId)
-    .eq("category", "unacknowledged_policy")
-    .eq("status", "done");
-
-  if (completedActionError) {
-    throw new Error(`UNACKNOWLEDGED_POLICY_COMPLETED_ACTION_QUERY_FAILED: ${completedActionError.message}`);
-  }
-
-  const completedActions = (completedActionData ?? []) as {
-    subject_employee_id: string | null;
-    risk_signal_id: string | null;
-  }[];
-  const completedSignalIds = completedActions
-    .map((row) => row.risk_signal_id)
-    .filter((value): value is string => Boolean(value));
-  const completedFingerprintsByEmployeeId = new Map<string, Set<string>>();
-
-  if (completedSignalIds.length > 0) {
-    const { data: completedSignalData, error: completedSignalError } = await supabase
-      .from("risk_signals")
-      .select("id, evidence")
-      .eq("tenant_id", params.tenantId)
-      .eq("kind", "unacknowledged_policy")
-      .in("id", completedSignalIds);
-
-    if (completedSignalError) {
-      throw new Error(`UNACKNOWLEDGED_POLICY_COMPLETED_SIGNAL_QUERY_FAILED: ${completedSignalError.message}`);
-    }
-
-    const fingerprintBySignalId = new Map(
-      ((completedSignalData ?? []) as Array<{ id: string; evidence: { evidence_fingerprint?: string } | null }>)
-        .map((row) => [row.id, row.evidence?.evidence_fingerprint])
-        .filter((entry): entry is [string, string] => typeof entry[1] === "string" && entry[1].length > 0),
-    );
-    for (const action of completedActions) {
-      if (!action.subject_employee_id || !action.risk_signal_id) continue;
-      const fingerprint = fingerprintBySignalId.get(action.risk_signal_id);
-      if (!fingerprint) continue;
-      if (!completedFingerprintsByEmployeeId.has(action.subject_employee_id)) {
-        completedFingerprintsByEmployeeId.set(action.subject_employee_id, new Set<string>());
-      }
-      completedFingerprintsByEmployeeId.get(action.subject_employee_id)?.add(fingerprint);
-    }
-  }
-
   const { data: openSignalData, error: openSignalError } = await supabase
     .from("risk_signals")
     .select("id, kind, subject_employee_id, evidence, resolved_at")
@@ -178,7 +130,6 @@ export async function reconcileUnacknowledgedPolicySignals(params: {
     const count = missingPolicyKeys.length;
     if (count <= 0) continue;
     const fingerprint = policyFingerprint(missingPolicyKeys);
-    if (completedFingerprintsByEmployeeId.get(employee.id)?.has(fingerprint)) continue;
     desired.set(employee.id, { severity: count > 1 ? "red" : "yellow", count, fingerprint });
   }
 

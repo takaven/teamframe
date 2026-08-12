@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   buildPositionTree,
   validatePositionJdFileForTest,
@@ -10,6 +10,8 @@ import {
 } from "@/services/positionService/model";
 
 const ROOT = process.cwd();
+
+vi.mock("server-only", () => ({}));
 
 function read(path: string): string {
   return readFileSync(join(ROOT, path), "utf8");
@@ -158,5 +160,61 @@ describe("Org Chart schema and UI contracts", () => {
     expect(page).toContain("Design your team structure.");
     expect(page).toContain("JD attached");
     expect(page).toContain("Open employee");
+  });
+});
+
+describe("Org Chart deletion truth", () => {
+  it("treats empty RPC results as unsafe deletion rather than success", async () => {
+    vi.resetModules();
+    vi.doMock("@/lib/db/supabaseServer", () => ({
+      createServiceRoleClient: () => ({
+        rpc: () => ({
+          maybeSingle: async () => ({ data: [], error: null }),
+        }),
+      }),
+    }));
+
+    const { deleteVacantPosition } = await import("@/services/positionService");
+
+    await expect(
+      deleteVacantPosition(
+        {
+          authUserId: "10000000-0000-4000-8000-000000000001",
+          email: "admin@example.test",
+          employeeId: null,
+          tenantId: "10000000-0000-4000-8000-000000000002",
+          role: "admin",
+        },
+        "10000000-0000-4000-8000-000000000003",
+        "2026-08-12T00:00:00.000Z",
+      ),
+    ).rejects.toThrow("POSITION_DELETE_UNSAFE");
+  });
+
+  it("treats empty object RPC results as unsafe deletion rather than success", async () => {
+    vi.resetModules();
+    vi.doMock("@/lib/db/supabaseServer", () => ({
+      createServiceRoleClient: () => ({
+        rpc: () => ({
+          maybeSingle: async () => ({ data: {}, error: null }),
+        }),
+      }),
+    }));
+
+    const { deleteVacantPosition } = await import("@/services/positionService");
+
+    await expect(
+      deleteVacantPosition(
+        {
+          authUserId: "10000000-0000-4000-8000-000000000001",
+          email: "admin@example.test",
+          employeeId: null,
+          tenantId: "10000000-0000-4000-8000-000000000002",
+          role: "admin",
+        },
+        "10000000-0000-4000-8000-000000000003",
+        "2026-08-12T00:00:00.000Z",
+      ),
+    ).rejects.toThrow("POSITION_DELETE_UNSAFE");
   });
 });

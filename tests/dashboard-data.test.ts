@@ -1,18 +1,24 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+import { vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
-
-const mocks = vi.hoisted(() => ({
-  runSignalEngineForTenant: vi.fn(),
-}));
 
 type Row = Record<string, unknown>;
 
 const db = {
-  risk_signals: [] as Row[],
-  action_items: [] as Row[],
   employees: [] as Row[],
+  hr_automation_items: [] as Row[],
+  risk_signals: [] as Row[],
+  leaves: [] as Row[],
+  document_requirements: [] as Row[],
+  policies: [] as Row[],
+  acknowledgements: [] as Row[],
+  onboarding_tasks: [] as Row[],
+  probation_reviews: [] as Row[],
+  offboarding_cases: [] as Row[],
+  offboarding_items: [] as Row[],
 };
+
 let stalledTable: keyof typeof db | null = null;
 
 function makeBuilder(table: keyof typeof db) {
@@ -30,6 +36,10 @@ function makeBuilder(table: keyof typeof db) {
     filters.push((row) => (value === null ? row[column] == null : row[column] === value));
     return builder;
   };
+  builder.in = (column: string, values: unknown[]) => {
+    filters.push((row) => values.includes(row[column]));
+    return builder;
+  };
   builder.then = (resolve: (value: unknown) => unknown) => {
     if (stalledTable === table) {
       return new Promise(() => {});
@@ -41,133 +51,236 @@ function makeBuilder(table: keyof typeof db) {
   return builder;
 }
 
-vi.mock("@/services/signalEngine", () => ({
-  runSignalEngineForTenant: mocks.runSignalEngineForTenant,
-}));
-
 vi.mock("@/lib/db/supabaseServer", () => ({
   createServiceRoleClient: () => ({
     from: (table: string) => makeBuilder(table as keyof typeof db),
   }),
 }));
 
-import { loadDashboardData } from "@/app/dashboard/data";
+import { loadControlCentreData } from "@/app/dashboard/data";
 
 beforeEach(() => {
-  mocks.runSignalEngineForTenant.mockReset();
   stalledTable = null;
-  db.risk_signals = [
-    {
-      id: "signal-a",
-      tenant_id: "TENANT_A",
-      kind: "missing_contract",
-      severity: "red",
-      subject_employee_id: "emp-a",
-      evidence: null,
-      last_seen_at: "2026-08-06T08:00:00Z",
-      resolved_at: null,
-    },
-  ];
-  db.action_items = [
-    {
-      id: "action-a",
-      tenant_id: "TENANT_A",
-      risk_signal_id: "signal-a",
-      title: "Upload contract",
-      status: "open",
-      created_at: "2026-08-06T08:00:00Z",
-    },
-  ];
+  for (const key of Object.keys(db) as Array<keyof typeof db>) {
+    db[key] = [];
+  }
   db.employees = [
     {
-      id: "emp-a",
+      id: "emp-active",
       tenant_id: "TENANT_A",
       full_name: "Amina Rahman",
+      status: "active",
+      setup_status: "active",
+      lifecycle_state: "active",
+      start_date: "2026-01-01",
+      end_date: null,
       deleted_at: null,
+    },
+    {
+      id: "emp-former",
+      tenant_id: "TENANT_A",
+      full_name: "Former Person",
+      status: "inactive",
+      setup_status: "active",
+      lifecycle_state: "exited",
+      start_date: "2025-01-01",
+      end_date: "2026-01-31",
+      deleted_at: "2026-02-01T00:00:00Z",
     },
   ];
 });
 
-describe("dashboard data loading", () => {
-  it("returns saved dashboard data after a successful signal refresh", async () => {
-    mocks.runSignalEngineForTenant.mockResolvedValue({});
+describe("Control Centre data", () => {
+  it("derives due, overdue, decision and exception totals from current source records", async () => {
+    db.leaves = [
+      {
+        id: "leave-pending",
+        tenant_id: "TENANT_A",
+        employee_id: "emp-active",
+        start_date: "2026-08-15",
+        end_date: "2026-08-16",
+        leave_type: "annual",
+        status: "pending",
+        updated_at: "2026-08-10T00:00:00Z",
+      },
+    ];
+    db.document_requirements = [
+      {
+        id: "doc-overdue",
+        tenant_id: "TENANT_A",
+        employee_id: "emp-active",
+        document_type: "passport",
+        due_date: "2026-08-01",
+        review_required: false,
+        state: "requested",
+        updated_at: "2026-08-01T00:00:00Z",
+      },
+      {
+        id: "doc-review",
+        tenant_id: "TENANT_A",
+        employee_id: "emp-active",
+        document_type: "contract",
+        due_date: "2026-08-12",
+        review_required: true,
+        state: "received",
+        updated_at: "2026-08-12T00:00:00Z",
+      },
+    ];
+    db.risk_signals = [
+      {
+        id: "signal-open",
+        tenant_id: "TENANT_A",
+        kind: "onboarding_check_in_follow_up",
+        severity: "yellow",
+        subject_employee_id: "emp-active",
+        evidence: { what_is_wrong: "A blocker was reported." },
+        last_seen_at: "2026-08-12T00:00:00Z",
+        resolved_at: null,
+      },
+      {
+        id: "signal-resolved",
+        tenant_id: "TENANT_A",
+        kind: "leave_conflict",
+        severity: "yellow",
+        subject_employee_id: "emp-active",
+        evidence: {},
+        last_seen_at: "2026-08-11T00:00:00Z",
+        resolved_at: "2026-08-11T12:00:00Z",
+      },
+    ];
 
-    const result = await loadDashboardData({
+    const result = await loadControlCentreData({
       tenantId: "TENANT_A",
-      actorUserId: "admin-a",
-      refreshTimeoutMs: 50,
+      now: new Date("2026-08-12T12:00:00Z"),
+      savedDataTimeoutMs: 50,
     });
 
-    expect(result.refreshStatus).toEqual({ state: "success" });
     expect(result.savedDataStatus).toEqual({ state: "success" });
-    expect(result.signals).toHaveLength(1);
-    expect(result.actions).toHaveLength(1);
-    expect(result.employees[0]?.full_name).toBe("Amina Rahman");
+    expect(result.summary).toMatchObject({
+      total: 4,
+      decisions: 2,
+      overdue: 1,
+      due: 0,
+      exceptions: 1,
+      resolved: 1,
+    });
+    expect(result.allItems.map((item) => item.id)).toEqual([
+      "signal:signal-open",
+      "document:doc-review",
+      "leave:leave-pending",
+      "document:doc-overdue",
+    ]);
   });
 
-  it("renders from empty saved data when the tenant has no signals yet", async () => {
-    mocks.runSignalEngineForTenant.mockResolvedValue({});
-    db.risk_signals = [];
-    db.action_items = [];
+  it("excludes former employees, archived policies, cancelled leave and replaced documents from current state", async () => {
+    db.policies = [
+      {
+        id: "policy-current",
+        tenant_id: "TENANT_A",
+        title: "Current handbook",
+        version: 2,
+        is_published: true,
+        archived_at: null,
+        updated_at: "2026-08-01T00:00:00Z",
+      },
+      {
+        id: "policy-archived",
+        tenant_id: "TENANT_A",
+        title: "Old handbook",
+        version: 1,
+        is_published: true,
+        archived_at: "2026-08-01T00:00:00Z",
+        updated_at: "2026-07-01T00:00:00Z",
+      },
+    ];
+    db.acknowledgements = [
+      {
+        tenant_id: "TENANT_A",
+        policy_id: "policy-current",
+        policy_version: 2,
+        employee_id: "emp-former",
+      },
+    ];
+    db.leaves = [
+      {
+        id: "leave-cancelled",
+        tenant_id: "TENANT_A",
+        employee_id: "emp-active",
+        start_date: "2026-08-10",
+        end_date: "2026-08-11",
+        leave_type: "annual",
+        status: "cancelled",
+        updated_at: "2026-08-09T00:00:00Z",
+      },
+    ];
+    db.document_requirements = [
+      {
+        id: "doc-replaced",
+        tenant_id: "TENANT_A",
+        employee_id: "emp-active",
+        document_type: "passport",
+        due_date: "2026-08-01",
+        review_required: false,
+        state: "replaced",
+        updated_at: "2026-08-01T00:00:00Z",
+      },
+      {
+        id: "doc-former",
+        tenant_id: "TENANT_A",
+        employee_id: "emp-former",
+        document_type: "visa",
+        due_date: "2026-08-01",
+        review_required: false,
+        state: "requested",
+        updated_at: "2026-08-01T00:00:00Z",
+      },
+    ];
 
-    const result = await loadDashboardData({
+    const result = await loadControlCentreData({
       tenantId: "TENANT_A",
-      actorUserId: "admin-a",
-      refreshTimeoutMs: 50,
+      now: new Date("2026-08-12T12:00:00Z"),
+      savedDataTimeoutMs: 50,
     });
 
-    expect(result.refreshStatus).toEqual({ state: "success" });
-    expect(result.savedDataStatus).toEqual({ state: "success" });
-    expect(result.signals).toEqual([]);
-    expect(result.actions).toEqual([]);
+    expect(result.activeEmployeeCount).toBe(1);
+    expect(result.summary.total).toBe(1);
+    expect(result.allItems).toHaveLength(1);
+    expect(result.allItems[0]?.id).toBe("policy:policy-current:2:emp-active");
   });
 
-  it("does not block indefinitely when signal refresh is delayed", async () => {
-    mocks.runSignalEngineForTenant.mockReturnValue(new Promise(() => {}));
+  it("keeps headline totals independent from the preview limit", async () => {
+    db.onboarding_tasks = Array.from({ length: 8 }, (_, index) => ({
+      id: `task-${index}`,
+      tenant_id: "TENANT_A",
+      employee_id: "emp-active",
+      title: `Task ${index}`,
+      status: "pending",
+      owner_role: "employee",
+      due_date: "2026-08-12",
+      updated_at: `2026-08-12T00:00:0${index}Z`,
+    }));
 
-    const result = await loadDashboardData({
+    const result = await loadControlCentreData({
       tenantId: "TENANT_A",
-      actorUserId: "admin-a",
-      refreshTimeoutMs: 1,
+      now: new Date("2026-08-12T12:00:00Z"),
+      savedDataTimeoutMs: 50,
     });
 
-    expect(result.refreshStatus).toEqual({ state: "timeout" });
-    expect(result.savedDataStatus).toEqual({ state: "success" });
-    expect(result.signals[0]?.id).toBe("signal-a");
+    expect(result.summary.total).toBe(8);
+    expect(result.previewItems).toHaveLength(6);
+    expect(result.allItems).toHaveLength(8);
   });
 
-  it("returns saved data with a failed refresh status when refresh throws", async () => {
-    mocks.runSignalEngineForTenant.mockRejectedValue(new Error("engine exploded"));
+  it("does not show an all-clear when the current-state read times out", async () => {
+    stalledTable = "employees";
 
-    const result = await loadDashboardData({
+    const result = await loadControlCentreData({
       tenantId: "TENANT_A",
-      actorUserId: "admin-a",
-      refreshTimeoutMs: 50,
-    });
-
-    expect(result.refreshStatus).toEqual({
-      state: "failed",
-      message: "engine exploded",
-    });
-    expect(result.savedDataStatus).toEqual({ state: "success" });
-    expect(result.signals[0]?.id).toBe("signal-a");
-  });
-
-  it("returns an intentional empty state when saved dashboard rows are delayed", async () => {
-    mocks.runSignalEngineForTenant.mockResolvedValue({});
-    stalledTable = "risk_signals";
-
-    const result = await loadDashboardData({
-      tenantId: "TENANT_A",
-      actorUserId: "admin-a",
-      refreshTimeoutMs: 50,
+      now: new Date("2026-08-12T12:00:00Z"),
       savedDataTimeoutMs: 1,
     });
 
-    expect(result.refreshStatus).toEqual({ state: "success" });
     expect(result.savedDataStatus).toEqual({ state: "timeout" });
-    expect(result.signals).toEqual([]);
-    expect(result.actions).toEqual([]);
-    expect(result.employees).toEqual([]);
+    expect(result.summary.total).toBe(0);
   });
 });

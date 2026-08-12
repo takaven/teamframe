@@ -744,6 +744,20 @@ async function createExportFileUrl(input: {
     .createSignedUrl(input.storagePath, 60 * 15, { download: input.fileName });
 
   if (signedError || !signed?.signedUrl) {
+    const { error: exportDeleteError } = await supabase
+      .from("export_files")
+      .update({ deleted_at: new Date().toISOString() } as never)
+      .eq("tenant_id", tenantId)
+      .eq("storage_path", input.storagePath)
+      .is("deleted_at", null);
+    if (exportDeleteError) {
+      console.error("DOCUMENT_EXPORT_METADATA_RETIRE_FAILED", {
+        tenant_id: tenantId,
+        export_kind: input.exportKind,
+        storage_path: input.storagePath,
+        error: exportDeleteError.message,
+      });
+    }
     await finalizeFileOperation(
       tenantId,
       operationId,
