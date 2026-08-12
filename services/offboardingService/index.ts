@@ -132,6 +132,10 @@ function toCase(row: OffboardingCaseRow): OffboardingCase {
   return record;
 }
 
+function isEmptyCaseRow(row: Partial<OffboardingCaseRow> | null | undefined): boolean {
+  return !row?.id;
+}
+
 function toItem(row: OffboardingItemRow): OffboardingItem {
   const { tenant_id: _tenantId, completed_by_user_id: _completedBy, ...record } = row;
   return record;
@@ -293,7 +297,7 @@ export async function cancelOffboarding(actor: Actor, caseId: string): Promise<O
     .maybeSingle();
 
   if (error) throw new Error(`OFFBOARDING_CANCEL_FAILED: ${error.message}`);
-  if (!data) throw new Error("OFFBOARDING_NOT_FOUND");
+  if (!data || isEmptyCaseRow(data as Partial<OffboardingCaseRow>)) throw new Error("OFFBOARDING_NOT_FOUND");
   return toCase(data as OffboardingCaseRow);
 }
 
@@ -316,7 +320,7 @@ export async function evaluateOffboardingClosure(input: {
     .maybeSingle();
 
   if (error) throw new Error(`OFFBOARDING_CLOSURE_FAILED: ${error.message}`);
-  if (data) return toCase(data as OffboardingCaseRow);
+  if (data && !isEmptyCaseRow(data as Partial<OffboardingCaseRow>)) return toCase(data as OffboardingCaseRow);
 
   const { data: caseData, error: fetchError } = await supabase
     .from("offboarding_cases")

@@ -46,6 +46,7 @@ describe("MR-7 bounded offboarding workflow", () => {
   it("closes only after end date and required work are complete, then makes the employee former and vacates positions", () => {
     const schema = read("schemas/offboarding.sql");
     const automation = read("services/hrAutomation/index.ts");
+    const policyService = read("services/policyService/index.ts");
 
     expect(schema).toContain("v_case.effective_end_date > p_as_of");
     expect(schema).toContain("and required");
@@ -56,6 +57,7 @@ describe("MR-7 bounded offboarding workflow", () => {
     expect(schema).toContain("position.vacated_by_offboarding_completion");
     expect(automation).toContain('item.rule_key === "offboarding.closure_due"');
     expect(automation).toContain("evaluateOffboardingClosureFromAutomation");
+    expect(policyService).toContain("isPolicyEligibleEmployee(employeeData)");
   });
 
   it("keeps evidence-backed exit document completion non-bypassable and synced from MR-5 evidence", () => {

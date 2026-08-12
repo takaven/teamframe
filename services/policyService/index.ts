@@ -18,7 +18,7 @@ import { randomUUID } from "node:crypto";
 import { Buffer } from "node:buffer";
 import type { Actor } from "@/middleware/rbac";
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
-import { CURRENT_EMPLOYEE_DB_LIFECYCLE_STATES } from "@/services/employeeLifecycle";
+import { CURRENT_EMPLOYEE_DB_LIFECYCLE_STATES, isPolicyEligibleEmployee } from "@/services/employeeLifecycle";
 import {
   assertPrivateDocumentStorageReady,
   sanitizePrivateFileName,
@@ -331,6 +331,20 @@ export async function listUnacknowledgedForEmployee(actor: Actor): Promise<Polic
   const employeeId = requireLinkedEmployee(actor);
 
   const supabase = createServiceRoleClient();
+  const { data: employeeData, error: employeeError } = await supabase
+    .from("employees")
+    .select("status, setup_status, lifecycle_state, start_date, end_date, deleted_at")
+    .eq("tenant_id", tenantId)
+    .eq("id", employeeId)
+    .maybeSingle();
+
+  if (employeeError) {
+    throw new Error(`POLICY_EMPLOYEE_LOOKUP_FAILED: ${employeeError.message}`);
+  }
+  if (!employeeData || !isPolicyEligibleEmployee(employeeData)) {
+    return [];
+  }
+
   const { data: policyData, error: policyError } = await supabase
     .from("policies")
     .select(POLICY_COLUMNS)
