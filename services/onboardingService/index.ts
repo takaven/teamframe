@@ -73,6 +73,41 @@ async function writeAudit(actor: Actor, actionType: string, targetId?: string): 
   }
 }
 
+async function activateEmployeeSetupIfOnboardingComplete(actor: Actor, employeeId: string): Promise<void> {
+  const tenantId = requireTenant(actor);
+  const supabase = createServiceRoleClient();
+
+  const pendingResult = await supabase
+    .from("onboarding_tasks")
+    .select("id", { count: "exact", head: true })
+    .eq("tenant_id", tenantId)
+    .eq("employee_id", employeeId)
+    .eq("status", "pending");
+
+  if (pendingResult.error) {
+    throw new Error(`ONBOARDING_ACTIVATION_CHECK_FAILED: ${pendingResult.error.message}`);
+  }
+  if ((pendingResult.count ?? 0) > 0) return;
+
+  const { data, error } = await supabase
+    .from("employees")
+    .update({ setup_status: "active", lifecycle_state: "active" } as never)
+    .eq("tenant_id", tenantId)
+    .eq("id", employeeId)
+    .is("deleted_at", null)
+    .neq("status", "inactive")
+    .neq("lifecycle_state", "offboarding")
+    .neq("lifecycle_state", "exited")
+    .neq("setup_status", "active")
+    .select("id")
+    .maybeSingle();
+
+  if (error) throw new Error(`ONBOARDING_ACTIVATION_FAILED: ${error.message}`);
+  if (!data) return;
+
+  await writeAudit(actor, "onboarding.employee_activated", employeeId);
+}
+
 // All events queried in a single round-trip: the 5 prerequisite workflow events plus
 // activation_completed itself so we can short-circuit if it has already been inserted.
 const ACTIVATION_COMPLETED_CHECK_EVENTS = [
@@ -299,6 +334,7 @@ export async function completeOnboardingTask(
 
   const updated = data as OnboardingTaskRow;
   await writeAudit(actor, "onboarding.completed", taskId);
+  await activateEmployeeSetupIfOnboardingComplete(actor, updated.employee_id);
 
   // Fire first_onboarding_completed once per tenant
   const countResult = await supabase

@@ -236,4 +236,16 @@ describe("MR-4 join and early employment workflows", () => {
       }),
     ).resolves.toMatchObject({ status: "completed", outcome: "confirmed" });
   });
+
+  it("records probation extension as history and schedules one next review obligation", () => {
+    const schema = read("schemas/early_employment.sql");
+
+    expect(schema).toContain("if p_outcome = 'extended' then");
+    expect(schema).toContain("p_extended_until is null or p_extended_until <= v_review.probation_end_date");
+    expect(schema).toContain("insert into probation_reviews");
+    expect(schema).toContain("on conflict (tenant_id, employee_id, probation_end_date) do update set updated_at = clock_timestamp()");
+    expect(schema).toContain("'probation.review:' || v_review.employee_id::text || ':' || p_extended_until::text");
+    expect(schema).toContain("'extended_from', p_review_id");
+    expect(schema).not.toContain("teamframe_record_employment_change");
+  });
 });
