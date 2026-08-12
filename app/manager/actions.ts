@@ -6,6 +6,7 @@ import { requireTenantActor } from "@/middleware/rbac";
 import { decideLeaveRequestAsManager } from "@/services/leaveService";
 import { completeManagerOnboardingTask } from "@/services/onboardingService";
 import { submitManagerProbationInput } from "@/services/earlyEmploymentService";
+import { completeOffboardingItem } from "@/services/offboardingService";
 
 const DecideLeaveSchema = z.object({
   leave_id: z.string().uuid(),
@@ -66,6 +67,21 @@ export async function completeManagerOnboardingTaskAction(formData: FormData): P
       expected_updated_at: formData.get("expected_updated_at"),
     });
     await completeManagerOnboardingTask(actor, parsed.task_id, parsed.expected_updated_at);
+  } catch (error) {
+    redirect(`/manager?error=${encodeURIComponent(getErrorCode(error))}`);
+  }
+
+  redirect("/manager?status=task_completed");
+}
+
+export async function completeManagerOffboardingItemAction(formData: FormData): Promise<void> {
+  try {
+    const actor = await requireTenantActor();
+    const parsed = CompleteTaskSchema.parse({
+      task_id: formData.get("task_id"),
+      expected_updated_at: formData.get("expected_updated_at"),
+    });
+    await completeOffboardingItem(actor, parsed.task_id, parsed.expected_updated_at);
   } catch (error) {
     redirect(`/manager?error=${encodeURIComponent(getErrorCode(error))}`);
   }

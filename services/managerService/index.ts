@@ -5,12 +5,14 @@ import { listCurrentDirectReports, type ManagerEmployeeRow } from "@/services/ma
 import { listPendingLeavesForManager, type PendingLeaveWithEmployee } from "@/services/leaveService";
 import { listManagerOnboardingTasks, type OnboardingTask } from "@/services/onboardingService";
 import { listManagerProbationReviews, type ProbationReview } from "@/services/earlyEmploymentService";
+import { listManagerOffboardingItems, type OffboardingItem } from "@/services/offboardingService";
 
 export type ManagerDashboard = {
   directReports: ManagerEmployeeRow[];
   pendingLeaves: PendingLeaveWithEmployee[];
   onboardingTasks: OnboardingTask[];
   probationReviews: ProbationReview[];
+  offboardingItems: OffboardingItem[];
 };
 
 export async function getManagerDashboard(actor: Actor): Promise<ManagerDashboard> {
@@ -21,13 +23,15 @@ export async function getManagerDashboard(actor: Actor): Promise<ManagerDashboar
       pendingLeaves: [],
       onboardingTasks: [],
       probationReviews: [],
+      offboardingItems: [],
     };
   }
 
-  const [pendingLeaves, onboardingTasks, probationReviews] = await Promise.all([
+  const [pendingLeaves, onboardingTasks, probationReviews, offboardingItems] = await Promise.all([
     listPendingLeavesForManager(actor),
     listManagerOnboardingTasks(actor),
     listManagerProbationReviews(actor),
+    listManagerOffboardingItems(actor),
   ]);
 
   return {
@@ -35,5 +39,6 @@ export async function getManagerDashboard(actor: Actor): Promise<ManagerDashboar
     pendingLeaves,
     onboardingTasks,
     probationReviews,
+    offboardingItems,
   };
 }

@@ -14,6 +14,7 @@ type EmployeeRow = {
 };
 
 let employeeRow: EmployeeRow | null = null;
+let offboardingCaseRow: { effective_end_date: string } | null = null;
 const rpcCalls: string[] = [];
 
 function makeEmployeeBuilder() {
@@ -31,6 +32,15 @@ function makeCountBuilder() {
     select: () => builder,
     eq: () => builder,
     then: (resolve: (value: unknown) => unknown) => resolve({ data: [], error: null, count: 1 }),
+  };
+  return builder;
+}
+
+function makeOffboardingBuilder() {
+  const builder: Record<string, unknown> = {
+    select: () => builder,
+    eq: () => builder,
+    maybeSingle: async () => ({ data: offboardingCaseRow, error: null }),
   };
   return builder;
 }
@@ -69,6 +79,7 @@ vi.mock("@/lib/db/supabaseServer", () => ({
   createServiceRoleClient: () => ({
     from: (table: string) => {
       if (table === "employees") return makeEmployeeBuilder();
+      if (table === "offboarding_cases") return makeOffboardingBuilder();
       return makeCountBuilder();
     },
     rpc: (name: string) => {
@@ -96,6 +107,7 @@ const employeeActor: Actor = {
 
 beforeEach(() => {
   rpcCalls.length = 0;
+  offboardingCaseRow = null;
   employeeRow = {
     id: "emp-a",
     tenant_id: "TENANT_A",
@@ -148,6 +160,20 @@ describe("leave lifecycle eligibility", () => {
 
     expect(leave.id).toBe("leave-1");
     expect(rpcCalls).toEqual(["teamframe_submit_leave"]);
+  });
+
+  it("rejects leave after an active offboarding effective end date before the leave RPC", async () => {
+    employeeRow = { ...employeeRow!, lifecycle_state: "offboarding", end_date: "2026-08-25" };
+    offboardingCaseRow = { effective_end_date: "2026-08-25" };
+
+    await expect(
+      submitLeaveRequest(employeeActor, {
+        startDate: "2026-08-24",
+        endDate: "2026-08-26",
+        leaveType: "annual",
+      }),
+    ).rejects.toThrow("LEAVE_AFTER_OFFBOARDING_END_DATE");
+    expect(rpcCalls).toHaveLength(0);
   });
 
   it("blocks pre-start, onboarding and former employees before the leave RPC", async () => {

@@ -14,6 +14,7 @@ import { track } from "@/lib/telemetry/track";
 import { maybeFireActivationCompleted } from "@/services/onboardingService";
 import { isLeaveRequestEligibleEmployee, type LegacyEmployeeLifecycleState } from "@/services/employeeLifecycle";
 import { assertCurrentDirectManager, listCurrentDirectReports } from "@/services/managerAuthorization";
+import { assertLeaveDoesNotExceedActiveOffboardingEndDate } from "@/services/offboardingService";
 
 export type LeaveType = "annual" | "sick" | "unpaid" | "other";
 export type LeaveStatus = "pending" | "approved" | "rejected" | "cancelled";
@@ -432,6 +433,7 @@ export async function submitLeaveRequest(
   }
 
   await assertLeaveEligible(actor, employeeId);
+  await assertLeaveDoesNotExceedActiveOffboardingEndDate(actor, employeeId, parsed.data.endDate);
 
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase

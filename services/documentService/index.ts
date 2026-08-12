@@ -122,6 +122,8 @@ type FinanceEmployeeRow = {
   employment_type?: string | null;
   country?: string | null;
   start_date?: string | null;
+  end_date?: string | null;
+  lifecycle_state?: string | null;
   status: string;
 };
 
@@ -1467,7 +1469,7 @@ export async function exportFinanceHandoffUrl(actor: Actor): Promise<string> {
   const tenantId = requireTenant(actor);
   const supabase = createServiceRoleClient();
 
-  const employeeSelect = "id, full_name, employment_type, country, start_date, status";
+  const employeeSelect = "id, full_name, employment_type, country, start_date, end_date, lifecycle_state, status";
   const legacyEmployeeSelect = "id, full_name, status";
 
   const { data: employeeData, error: employeeError } = await supabase
@@ -1498,10 +1500,12 @@ export async function exportFinanceHandoffUrl(actor: Actor): Promise<string> {
 
     employees = ((legacyEmployeeData ?? []) as FinanceEmployeeRow[]).map((employee) => ({
       ...employee,
-      employment_type: null,
-      country: null,
-      start_date: null,
-    }));
+        employment_type: null,
+        country: null,
+        start_date: null,
+        end_date: null,
+        lifecycle_state: null,
+      }));
   } else if (employeeError) {
     throw new Error(`DOCUMENT_EXPORT_FAILED: ${employeeError.message}`);
   }
@@ -1593,6 +1597,9 @@ export async function exportFinanceHandoffUrl(actor: Actor): Promise<string> {
     "currency",
     "payment_method_reference",
     "start_date",
+    "end_date",
+    "employment_status",
+    "lifecycle_state",
     "contract_status",
     "bank_account_details",
     "approved_annual_leave_days_ytd",
@@ -1614,6 +1621,9 @@ export async function exportFinanceHandoffUrl(actor: Actor): Promise<string> {
       compensation?.currency ?? "",
       "",
       employee.start_date ?? "",
+      employee.end_date ?? "",
+      employee.status,
+      employee.lifecycle_state ?? "",
       signedContractEmployeeIds.has(employee.id) ? "signed" : "missing",
       "",
       approvedLeave?.annualDays ? String(approvedLeave.annualDays) : "",

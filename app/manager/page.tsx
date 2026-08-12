@@ -6,6 +6,7 @@ import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { StatusPill } from "@/components/StatusPill";
 import { getManagerDashboard } from "@/services/managerService";
 import {
+  completeManagerOffboardingItemAction,
   completeManagerOnboardingTaskAction,
   decideManagerLeaveAction,
   submitManagerProbationInputAction,
@@ -58,7 +59,8 @@ export default async function ManagerPage({
     dashboard.directReports.length > 0 ||
     dashboard.pendingLeaves.length > 0 ||
     dashboard.onboardingTasks.length > 0 ||
-    dashboard.probationReviews.length > 0;
+    dashboard.probationReviews.length > 0 ||
+    dashboard.offboardingItems.length > 0;
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-14">
@@ -91,7 +93,7 @@ export default async function ManagerPage({
         />
       ) : (
         <>
-          <section className="mt-7 grid gap-4 sm:grid-cols-4">
+          <section className="mt-7 grid gap-4 sm:grid-cols-5">
             <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
               <p className="text-[12px] text-ink-500">Direct reports</p>
               <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{dashboard.directReports.length}</p>
@@ -107,6 +109,10 @@ export default async function ManagerPage({
             <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
               <p className="text-[12px] text-ink-500">Probation input</p>
               <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{dashboard.probationReviews.length}</p>
+            </article>
+            <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
+              <p className="text-[12px] text-ink-500">Handover</p>
+              <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{dashboard.offboardingItems.length}</p>
             </article>
           </section>
 
@@ -187,6 +193,38 @@ export default async function ManagerPage({
                       <form action={completeManagerOnboardingTaskAction}>
                         <input type="hidden" name="task_id" value={task.id} />
                         <input type="hidden" name="expected_updated_at" value={task.updated_at} />
+                        <PendingSubmitButton
+                          idleLabel="Mark complete"
+                          pendingLabel="Saving..."
+                          className="rounded-full border border-ink-300 px-3 py-1.5 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:text-ink-300"
+                        />
+                      </form>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </article>
+
+            <article className="rounded-xl border border-ink-300/70 bg-white/80">
+              <div className="border-b border-ink-300/60 px-5 py-4">
+                <h2 className="text-[17px] font-medium tracking-tight">Offboarding handover</h2>
+                <p className="mt-1 text-[13px] text-ink-500">Only manager-owned handover tasks for current direct reports appear here.</p>
+              </div>
+              {dashboard.offboardingItems.length === 0 ? (
+                <p className="px-5 py-4 text-[14px] text-ink-500">No manager-owned offboarding work is open.</p>
+              ) : (
+                <ul className="divide-y divide-ink-300/40">
+                  {dashboard.offboardingItems.map((item) => (
+                    <li key={item.id} className="space-y-3 px-5 py-4">
+                      <div>
+                        <p className="text-[14px] font-medium text-ink-900">{item.title}</p>
+                        <p className="mt-1 text-[12px] text-ink-500">
+                          {employeeMap.get(item.employee_id)?.full_name ?? "Direct report"} · Due {formatDate(item.due_date)}
+                        </p>
+                      </div>
+                      <form action={completeManagerOffboardingItemAction}>
+                        <input type="hidden" name="task_id" value={item.id} />
+                        <input type="hidden" name="expected_updated_at" value={item.updated_at} />
                         <PendingSubmitButton
                           idleLabel="Mark complete"
                           pendingLabel="Saving..."

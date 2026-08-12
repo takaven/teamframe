@@ -64,6 +64,7 @@ const TABLES_BY_MIGRATION = {
   "document_requirements.sql": ["document_requirements"],
   "employment_changes.sql": ["employment_changes"],
   "early_employment.sql": ["employee_join_initializations", "onboarding_check_ins", "probation_reviews"],
+  "offboarding.sql": ["offboarding_cases", "offboarding_items"],
 };
 const REQUIRED_TABLES = SCHEMA_ORDER.flatMap((f) =>
   NON_TABLE_MIGRATIONS.has(f) ? [] : TABLES_BY_MIGRATION[f] ?? [f.replace(/\.sql$/, "")],

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
+import { evaluateOffboardingClosure } from "@/services/offboardingService";
 
 export type AutomationNotificationLevel =
   | "background"
@@ -205,6 +206,20 @@ async function markDocumentRequirementExpiredFromAutomation(input: {
   }
 }
 
+async function evaluateOffboardingClosureFromAutomation(input: {
+  tenantId: string;
+  caseId: string;
+  now: Date;
+}): Promise<"active" | "cancelled" | "completed" | null> {
+  const result = await evaluateOffboardingClosure({
+    tenantId: input.tenantId,
+    caseId: input.caseId,
+    actorType: "system",
+    asOf: isoDate(input.now),
+  });
+  return result?.status ?? null;
+}
+
 export async function runDueAutomationForTenant(input: {
   tenantId: string;
   now?: Date;
@@ -268,6 +283,36 @@ export async function runDueAutomationForTenant(input: {
           tenantId: input.tenantId,
           requirementId: item.subject_id,
         });
+      }
+
+      if (item.rule_key === "offboarding.closure_due") {
+        if (!item.subject_id) {
+          throw new Error("OFFBOARDING_CASE_SUBJECT_MISSING");
+        }
+
+        const status = await evaluateOffboardingClosureFromAutomation({
+          tenantId: input.tenantId,
+          caseId: item.subject_id,
+          now,
+        });
+
+        if (status === "completed" || status === "cancelled" || status === null) {
+          outcomes.push(
+            await runAutomationItem({
+              tenantId: input.tenantId,
+              itemId: item.id,
+              now,
+              complete: true,
+              eventContext: {
+                runner: "api.automation.run",
+                rule_key: item.rule_key,
+                subject_id: item.subject_id,
+                offboarding_status: status,
+              },
+            }),
+          );
+          continue;
+        }
       }
 
       outcomes.push(

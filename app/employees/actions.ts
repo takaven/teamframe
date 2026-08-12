@@ -14,7 +14,11 @@ import {
   cancelEmploymentChange,
   recordEmploymentChange,
 } from "@/services/employmentChangeService";
-import { signalEngine } from "@/services/signalEngine";
+import {
+  cancelOffboarding,
+  completeOffboardingItem,
+  startOffboarding,
+} from "@/services/offboardingService";
 import {
   exportFinanceHandoffUrl,
   exportEmployeeDueDiligencePackUrl,
@@ -55,7 +59,21 @@ const UpdateInputSchema = z.object({
 
 const StartOffboardingInputSchema = z.object({
   employee_id: z.string().uuid(),
+  effective_end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   expected_updated_at: z.string().trim().min(1),
+  return_to: z.string().trim().optional(),
+});
+
+const CompleteOffboardingItemInputSchema = z.object({
+  item_id: z.string().uuid(),
+  expected_updated_at: z.string().trim().min(1),
+  employee_id: z.string().uuid(),
+  return_to: z.string().trim().optional(),
+});
+
+const CancelOffboardingInputSchema = z.object({
+  case_id: z.string().uuid(),
+  employee_id: z.string().uuid(),
   return_to: z.string().trim().optional(),
 });
 
@@ -323,6 +341,7 @@ export async function archiveEmployeeAction(formData: FormData): Promise<void> {
     actor = await requireTenantActor();
     const parsed = ArchiveInputSchema.parse({
       employee_id: formData.get("employee_id"),
+      effective_end_date: formData.get("effective_end_date"),
       expected_updated_at: formData.get("expected_updated_at"),
       return_to: optionalString(formData.get("return_to")),
     });
@@ -392,18 +411,10 @@ export async function startOffboardingAction(formData: FormData): Promise<void> 
     employeeId = parsed.employee_id;
     returnTo = safeReturnPath(parsed.return_to, "/employees");
 
-    await updateEmployee(
-      actor,
-      parsed.employee_id,
-      { lifecycle_state: "offboarding" },
-      parsed.expected_updated_at,
-    );
-
-    await signalEngine.emit({
-      tenant_id: actor.tenantId,
-      employee_id: parsed.employee_id,
-      kind: "incomplete_offboarding",
-      status: "open",
+    await startOffboarding(actor, {
+      employeeId: parsed.employee_id,
+      effectiveEndDate: parsed.effective_end_date,
+      expectedUpdatedAt: parsed.expected_updated_at,
     });
   } catch (error) {
     failed = true;
@@ -443,6 +454,65 @@ export async function startOffboardingAction(formData: FormData): Promise<void> 
   }
 
   redirect(`${returnTo}?status=offboarding_started&employee=${encodeURIComponent(employeeId)}`);
+}
+
+export async function completeOffboardingItemAction(formData: FormData): Promise<void> {
+  let failed = false;
+  let errorCode = "UNKNOWN";
+  let employeeId = "";
+  let returnTo = "/employees";
+
+  try {
+    const actor = await requireTenantActor();
+    const parsed = CompleteOffboardingItemInputSchema.parse({
+      item_id: formData.get("item_id"),
+      expected_updated_at: formData.get("expected_updated_at"),
+      employee_id: formData.get("employee_id"),
+      return_to: optionalString(formData.get("return_to")),
+    });
+    employeeId = parsed.employee_id;
+    returnTo = safeReturnPath(parsed.return_to, "/employees");
+
+    await completeOffboardingItem(actor, parsed.item_id, parsed.expected_updated_at);
+  } catch (error) {
+    failed = true;
+    errorCode = getErrorCode(error);
+  }
+
+  if (failed) {
+    redirect(`${returnTo}?error=${encodeURIComponent(errorCode)}&employee=${encodeURIComponent(employeeId)}`);
+  }
+
+  redirect(`${returnTo}?status=offboarding_item_completed&employee=${encodeURIComponent(employeeId)}`);
+}
+
+export async function cancelOffboardingAction(formData: FormData): Promise<void> {
+  let failed = false;
+  let errorCode = "UNKNOWN";
+  let employeeId = "";
+  let returnTo = "/employees";
+
+  try {
+    const actor = await requireTenantActor();
+    const parsed = CancelOffboardingInputSchema.parse({
+      case_id: formData.get("case_id"),
+      employee_id: formData.get("employee_id"),
+      return_to: optionalString(formData.get("return_to")),
+    });
+    employeeId = parsed.employee_id;
+    returnTo = safeReturnPath(parsed.return_to, "/employees");
+
+    await cancelOffboarding(actor, parsed.case_id);
+  } catch (error) {
+    failed = true;
+    errorCode = getErrorCode(error);
+  }
+
+  if (failed) {
+    redirect(`${returnTo}?error=${encodeURIComponent(errorCode)}&employee=${encodeURIComponent(employeeId)}`);
+  }
+
+  redirect(`${returnTo}?status=offboarding_cancelled&employee=${encodeURIComponent(employeeId)}`);
 }
 
 export async function reinviteEmployeeAction(formData: FormData): Promise<void> {

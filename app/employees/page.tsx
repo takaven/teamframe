@@ -7,6 +7,7 @@ import {
 } from "@/services/employeeService";
 import { listDocumentRequirementsForEmployee, listDocumentsForEmployee } from "@/services/documentService";
 import { listEmploymentChangesForEmployee } from "@/services/employmentChangeService";
+import { getOffboardingLeaveReconciliation, listOffboardingForEmployee } from "@/services/offboardingService";
 import { listPositions } from "@/services/positionService";
 import { CopyInviteEmailButton } from "./CopyInviteEmailButton";
 import {
@@ -18,6 +19,8 @@ import {
   exportEmployeeDueDiligencePackAction,
   generateActivationLinkAction,
   cancelEmploymentChangeAction,
+  cancelOffboardingAction,
+  completeOffboardingItemAction,
   recordEmploymentChangeAction,
   startOffboardingAction,
   updateEmployeeAction,
@@ -36,6 +39,8 @@ const STATUS_COPY: Record<string, string> = {
   created: "Employee created.",
   updated: "Employee updated.",
   offboarding_started: "Offboarding started.",
+  offboarding_cancelled: "Offboarding cancelled.",
+  offboarding_item_completed: "Offboarding item completed.",
   archived: "Employee archived.",
   reinvited: "Invite link sent. The employee should use the newest email only.",
   activation_link_ready: "Activation link generated.",
@@ -57,6 +62,13 @@ const ERROR_COPY: Record<string, string> = {
   EMPLOYEE_CREATE_FAILED: "Could not create employee.",
   EMPLOYEE_UPDATE_FAILED: "Could not update employee.",
   EMPLOYEE_DELETE_FAILED: "Could not archive employee.",
+  OFFBOARDING_START_FAILED: "Could not start offboarding.",
+  OFFBOARDING_END_DATE_REQUIRED: "Choose an effective end date before starting offboarding.",
+  OFFBOARDING_EMPLOYEE_NOT_ELIGIBLE: "This employee is not eligible for offboarding.",
+  OFFBOARDING_ITEM_COMPLETE_FAILED: "Could not complete offboarding item.",
+  OFFBOARDING_CANCEL_FAILED: "Could not cancel offboarding.",
+  OFFBOARDING_NOT_FOUND: "No active offboarding workflow was found.",
+  EVIDENCE_REQUIRED: "This offboarding item requires configured evidence and cannot be manually completed.",
   EMPLOYEE_INVITE_TENANT_CONFLICT: "Invite blocked: this email is already linked to another company.",
   EMPLOYEE_INVITE_FAILED: "Employee saved, but invite delivery failed. Try Re-send invite.",
   EMPLOYEE_INVITE_RATE_LIMIT: "Invite rate limit reached. Wait briefly, then try Re-send invite.",
@@ -214,6 +226,15 @@ export default async function EmployeesPage({
     })),
   );
   const changesByEmployee = new Map(employmentChanges.map((item) => [item.employeeId, item.changes]));
+  const offboardingWorkflows = await Promise.all(
+    detailEmployees.map(async (employee) => ({
+      employeeId: employee.id,
+      workflow: await listOffboardingForEmployee(actor, employee.id),
+      leaveReconciliation: await getOffboardingLeaveReconciliation(actor, employee.id),
+    })),
+  );
+  const offboardingByEmployee = new Map(offboardingWorkflows.map((item) => [item.employeeId, item.workflow]));
+  const offboardingLeaveByEmployee = new Map(offboardingWorkflows.map((item) => [item.employeeId, item.leaveReconciliation]));
   const employeeNameById = new Map(employees.map((employee) => [employee.id, employee.full_name]));
   const positionTitleById = new Map(positions.map((position) => [position.id, position.title]));
   const changeLookup = new Map([...employeeNameById, ...positionTitleById]);
@@ -480,6 +501,8 @@ export default async function EmployeesPage({
                 const documents = documentsByEmployee.get(employee.id) ?? [];
                 const documentRequirements = documentRequirementsByEmployee.get(employee.id) ?? [];
                 const changes = changesByEmployee.get(employee.id) ?? [];
+                const offboarding = offboardingByEmployee.get(employee.id) ?? null;
+                const offboardingLeave = offboardingLeaveByEmployee.get(employee.id) ?? null;
                 const position = positionByEmployeeId.get(employee.id);
                 const state = inviteState(employee);
                 const detailOpen = employeeParam === employee.id;
@@ -684,6 +707,93 @@ export default async function EmployeesPage({
                   />
                 </div>
               </form>
+
+              <section className="mt-4 rounded-md border border-ink-300/50 bg-white px-3 py-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h4 className="text-[13px] font-medium text-ink-900">Offboarding</h4>
+                    <p className="mt-1 text-[12px] text-ink-500">
+                      Departure workflow, handover work, final evidence and access closeout.
+                    </p>
+                  </div>
+                  <StatusPill tone={offboarding ? "amber" : "neutral"}>
+                    {offboarding ? `Ends ${formatDate(offboarding.case.effective_end_date)}` : "Not started"}
+                  </StatusPill>
+                </div>
+
+                {offboarding ? (
+                  <div className="mt-3 space-y-3">
+                    {offboardingLeave ? (
+                      <div className="rounded-md border border-ink-300/50 bg-ink-100/30 px-3 py-2 text-[12px] text-ink-700">
+                        Leave reconciliation: {offboardingLeave.pending_leave_count} pending ·{" "}
+                        {offboardingLeave.approved_crossing_end_count + offboardingLeave.approved_post_end_count} approved after end date
+                      </div>
+                    ) : null}
+                    <ul className="divide-y divide-ink-300/40 rounded-md border border-ink-300/50">
+                      {offboarding.items.map((item) => (
+                        <li key={item.id} className="grid gap-3 px-3 py-2 text-[12px] md:grid-cols-[1fr_auto] md:items-center">
+                          <div>
+                            <p className="font-medium text-ink-900">{item.title}</p>
+                            <p className="text-ink-500">
+                              Owner: {item.owner_role} · Due: {formatDate(item.due_date)} · Mode: {item.completion_mode.replace(/_/g, " ")}
+                            </p>
+                          </div>
+                          {item.status === "pending" && item.completion_mode === "manual_confirmation" ? (
+                            <form action={completeOffboardingItemAction}>
+                              <input type="hidden" name="item_id" value={item.id} />
+                              <input type="hidden" name="expected_updated_at" value={item.updated_at} />
+                              <input type="hidden" name="employee_id" value={employee.id} />
+                              <input type="hidden" name="return_to" value="/employees" />
+                              <PendingSubmitButton
+                                idleLabel="Mark complete"
+                                pendingLabel="Saving..."
+                                className="rounded-md border border-ink-300 px-3 py-1.5 text-[12px] font-medium text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:text-ink-300"
+                              />
+                            </form>
+                          ) : (
+                            <StatusPill tone={item.status === "completed" ? "green" : item.completion_mode === "document_required" ? "amber" : "neutral"}>
+                              {item.status === "pending" && item.completion_mode === "document_required" ? "Needs evidence" : item.status}
+                            </StatusPill>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                    <form action={cancelOffboardingAction}>
+                      <input type="hidden" name="case_id" value={offboarding.case.id} />
+                      <input type="hidden" name="employee_id" value={employee.id} />
+                      <input type="hidden" name="return_to" value="/employees" />
+                      <ConfirmSubmitButton
+                        idleLabel="Cancel offboarding"
+                        pendingLabel="Cancelling..."
+                        confirmMessage={`Cancel offboarding for ${employee.full_name}?`}
+                        className="rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:text-ink-300"
+                      />
+                    </form>
+                  </div>
+                ) : (
+                  <form action={startOffboardingAction} className="mt-3 grid gap-2 md:grid-cols-[1fr_auto] md:items-end">
+                    <input type="hidden" name="employee_id" value={employee.id} />
+                    <input type="hidden" name="expected_updated_at" value={employee.updated_at} />
+                    <input type="hidden" name="return_to" value="/employees" />
+                    <label className="flex flex-col gap-1 text-[11px] text-ink-500">
+                      Effective end date
+                      <input
+                        name="effective_end_date"
+                        type="date"
+                        required
+                        defaultValue={employee.end_date ?? ""}
+                        className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900"
+                      />
+                    </label>
+                    <ConfirmSubmitButton
+                      idleLabel="Start offboarding"
+                      pendingLabel="Starting..."
+                      confirmMessage={`Start offboarding for ${employee.full_name}?`}
+                      className="rounded-md border border-ink-300 px-3 py-1.5 text-[12px] font-medium text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:text-ink-300"
+                    />
+                  </form>
+                )}
+              </section>
 
               <section className="mt-4 rounded-md border border-ink-300/50 bg-white px-3 py-3">
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1105,17 +1215,6 @@ export default async function EmployeesPage({
                     </form>
                   </>
                 ) : null}
-                <form action={startOffboardingAction} className="w-full sm:w-auto">
-                  <input type="hidden" name="employee_id" value={employee.id} />
-                  <input type="hidden" name="expected_updated_at" value={employee.updated_at} />
-                  <input type="hidden" name="return_to" value="/employees" />
-                  <ConfirmSubmitButton
-                    idleLabel="Start offboarding"
-                    pendingLabel="Starting…"
-                    confirmMessage={`Start offboarding for ${employee.full_name}?`}
-                    className="w-full rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300 sm:w-auto"
-                  />
-                </form>
                 <form action={archiveEmployeeAction} className="w-full sm:w-auto">
                   <input type="hidden" name="employee_id" value={employee.id} />
                   <input type="hidden" name="expected_updated_at" value={employee.updated_at} />
