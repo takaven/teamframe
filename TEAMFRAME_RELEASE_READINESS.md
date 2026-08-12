@@ -4,9 +4,9 @@
 
 Current verdict:
 
-> **NOT READY - FINAL E2E VERIFICATION PENDING**
+> **MARKET READY - CONTROLLED ACTUAL USE VERIFIED**
 
-The market-ready implementation checkpoints through MR-7 are locked. MR-8 is the current reliability and release-closure checkpoint. A final fresh-disposable full-system E2E verification remains required before any market-ready verdict.
+The market-ready implementation checkpoints MR-0 through MR-8 are locked. Final fresh-disposable full-system E2E verification completed on 2026-08-12 against `codex/market-ready-implementation` at final commit `268d9682d15e6c4afb4c83dbfde76b8b531f541d`.
 
 ## Verdict Options
 
@@ -118,8 +118,30 @@ Before a readiness verdict can advance, run and record:
 - production-readiness checks;
 - package and secret scans where relevant.
 
-## Initial Verdict
+## Final Verification Record
 
-> **NOT READY - FINAL E2E VERIFICATION PENDING**
+| Item | Result |
+| --- | --- |
+| Final disposable project | `teamframe-final-e2e-20260812194017` / `idtttbnijnjhwctthorf` |
+| Disposable project cleanup | Deleted and confirmed absent |
+| Clean schema apply / reapply | PASS |
+| Storage setup | PASS |
+| Verify install | PASS |
+| Verify integration | PASS |
+| Verify RLS | PASS |
+| Full synthetic E2E | PASS |
+| Typecheck | PASS |
+| Lint | PASS |
+| Tests | PASS, 32 files / 186 tests |
+| Guards | PASS |
+| Production build | PASS |
+| `git diff --check` | PASS |
+| Release-blocker correction | `fix: close final market-ready release blockers` |
 
-Reason: the market-ready implementation workstreams require MR-8 lock and a final full-system disposable E2E release verification before any production or founder-facing market-ready decision.
+Runtime verification found one release-blocking defect in the Who's Away projection: the original Supabase embedded relationship query was ambiguous after the market-ready schema gained multiple employee relationships. The fix fetches approved leave rows and same-tenant employee display data explicitly, avoiding relationship-cache ambiguity while preserving the MR-6 leave contract.
+
+## Final Verdict
+
+> **MARKET READY - CONTROLLED ACTUAL USE VERIFIED**
+
+No P0 or P1 market-ready blocker remains based on the final disposable full-system verification. Deployment, production secret rotation and production go-live remain separate authorisations.

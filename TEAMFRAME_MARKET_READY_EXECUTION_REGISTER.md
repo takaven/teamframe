@@ -35,8 +35,9 @@ The following implementation checkpoints have been locally completed and product
 - MR-6 Leave
 - MR-3B Bounded Manager Delegation
 - MR-7 Offboarding
+- MR-8 Control Centre / Reliability / Release Closure
 
-MR-8 is the current reliability and release-closure checkpoint. A final full-system disposable E2E release verification remains required before any market-ready verdict.
+Final full-system disposable E2E release verification completed on 2026-08-12 at `268d9682d15e6c4afb4c83dbfde76b8b531f541d`. The final verification found and fixed one bounded release blocker in the Who's Away projection. No P0 or P1 market-ready blocker remained after the final gate.
 
 ## Decision Values
 

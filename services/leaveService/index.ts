@@ -399,7 +399,7 @@ export async function listWhoIsAway(actor: Actor, input: { from?: string; to?: s
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from("leaves")
-    .select(`${LEAVE_COLUMNS}, employees!inner(full_name, role_title)`)
+    .select(LEAVE_COLUMNS)
     .eq("tenant_id", tenantId)
     .eq("status", "approved")
     .lte("start_date", to)
@@ -407,17 +407,34 @@ export async function listWhoIsAway(actor: Actor, input: { from?: string; to?: s
     .order("start_date", { ascending: true });
 
   if (error) throw new Error(`LEAVE_WHO_IS_AWAY_FAILED: ${error.message}`);
-  return ((data ?? []) as Array<LeaveRow & { employees: { full_name: string; role_title: string } | null }>).map((row) => ({
+  const leaveRows = (data ?? []) as LeaveRow[];
+  const employeeIds = [...new Set(leaveRows.map((row) => row.employee_id))];
+  const employeesById = new Map<string, { full_name: string; role_title: string }>();
+  if (employeeIds.length > 0) {
+    const { data: employeeData, error: employeeError } = await supabase
+      .from("employees")
+      .select("id, full_name, role_title")
+      .eq("tenant_id", tenantId)
+      .in("id", employeeIds);
+    if (employeeError) throw new Error(`LEAVE_WHO_IS_AWAY_FAILED: ${employeeError.message}`);
+    for (const employee of (employeeData ?? []) as Array<{ id: string; full_name: string; role_title: string }>) {
+      employeesById.set(employee.id, employee);
+    }
+  }
+  return leaveRows.map((row) => {
+    const employee = employeesById.get(row.employee_id);
+    return {
     leave_id: row.id,
     employee_id: row.employee_id,
-    employee_full_name: row.employees?.full_name ?? "(unknown)",
-    employee_role_title: row.employees?.role_title ?? "(unknown)",
+    employee_full_name: employee?.full_name ?? "(unknown)",
+    employee_role_title: employee?.role_title ?? "(unknown)",
     leave_type: row.leave_type,
     start_date: row.start_date,
     end_date: row.end_date,
     requested_days: Number(row.requested_days),
     updated_at: row.updated_at,
-  }));
+    };
+  });
 }
 
 export async function submitLeaveRequest(

@@ -78,6 +78,8 @@ describe("MR-6 leave market-ready scope", () => {
 
   it("exposes bounded admin and employee surfaces only", () => {
     expect(page).toContain("Who&apos;s away");
+    expect(service).toContain(".select(\"id, full_name, role_title\")");
+    expect(service).toContain("employeesById.get(row.employee_id)");
     expect(page).toContain("Override insufficient balance");
     expect(page).toContain("Annual Leave");
     expect(page).toContain("Withdraw");
