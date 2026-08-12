@@ -519,6 +519,12 @@ begin
   insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)
   values (p_tenant_id, p_actor_user_id, 'employee.archived', p_employee_id);
 
+  update hr_automation_items
+  set owner_employee_id = null
+  where tenant_id = p_tenant_id
+    and owner_employee_id = p_employee_id
+    and status in ('scheduled', 'due', 'failed', 'escalated');
+
   with vacated_positions as (
     update positions
     set assigned_employee_id = null
@@ -652,7 +658,7 @@ begin
     'leave:' || v_leave.id::text || ':approval',
     'leave',
     v_leave.id,
-    p_employee_id,
+    v_employee.manager_id,
     clock_timestamp() + interval '1 day',
     'decision',
     null,

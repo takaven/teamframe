@@ -5,6 +5,7 @@ import { getEmployee } from "@/services/employeeService";
 import { listDocumentRequirementsForEmployee } from "@/services/documentService";
 import { listUnacknowledgedForEmployee, type PolicyRecord } from "@/services/policyService";
 import { listMyOnboardingCheckIns } from "@/services/earlyEmploymentService";
+import { getManagerDashboard } from "@/services/managerService";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { AppShell } from "@/components/AppShell";
@@ -39,6 +40,22 @@ const ERROR_COPY: Record<string, string> = {
   AUDIT_LOG_FAILED: "Could not record required audit trail. No change was applied.",
   UNKNOWN: "Something went wrong. Refresh and try again.",
 };
+
+async function getOptionalManagerDashboard(actor: Awaited<ReturnType<typeof requireTenantActor>>) {
+  try {
+    return await getManagerDashboard(actor);
+  } catch (error) {
+    if (error instanceof Error && ["MANAGER_NOT_ACTIVE", "NO_EMPLOYEE_RECORD"].includes(error.message)) {
+      return {
+        directReports: [],
+        pendingLeaves: [],
+        onboardingTasks: [],
+        probationReviews: [],
+      };
+    }
+    throw error;
+  }
+}
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
@@ -76,18 +93,25 @@ export default async function MePage({
     );
   }
 
-  const [employee, unacknowledgedPolicies, checkIns, documentRequirements]: [
+  const [employee, unacknowledgedPolicies, checkIns, documentRequirements, managerDashboard]: [
     Awaited<ReturnType<typeof getEmployee>>,
     PolicyRecord[],
     Awaited<ReturnType<typeof listMyOnboardingCheckIns>>,
     Awaited<ReturnType<typeof listDocumentRequirementsForEmployee>>,
+    Awaited<ReturnType<typeof getOptionalManagerDashboard>>,
   ] = await Promise.all([
     getEmployee(actor, actor.employeeId),
     listUnacknowledgedForEmployee(actor),
     listMyOnboardingCheckIns(actor),
     listDocumentRequirementsForEmployee(actor, actor.employeeId),
+    getOptionalManagerDashboard(actor),
   ]);
   const openCheckIn = checkIns.find((checkIn) => checkIn.status === "scheduled");
+  const hasManagerWork =
+    managerDashboard.directReports.length > 0 ||
+    managerDashboard.pendingLeaves.length > 0 ||
+    managerDashboard.onboardingTasks.length > 0 ||
+    managerDashboard.probationReviews.length > 0;
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-14">
@@ -207,6 +231,25 @@ export default async function MePage({
           >
             Complete check-in
           </Link>
+        </section>
+      ) : null}
+
+      {hasManagerWork ? (
+        <section className="mt-8 rounded-xl border border-ink-300/70 bg-white/80 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="text-[17px] font-bold tracking-tight text-ink-800">Manager work</h2>
+              <p className="mt-2 text-[14px] text-ink-500">
+                Review direct-report leave, manager-owned onboarding tasks and probation input.
+              </p>
+            </div>
+            <Link
+              href="/manager"
+              className="rounded-lg bg-brand-signal px-4 py-2 text-[13px] font-medium text-ink-800 transition hover:bg-[#00E51F]"
+            >
+              Open manager work
+            </Link>
+          </div>
         </section>
       ) : null}
 

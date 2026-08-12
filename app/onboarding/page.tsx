@@ -334,6 +334,19 @@ export default async function OnboardingPage({
                   className="rounded-md border border-ink-300 px-3 py-2 text-[14px]"
                 />
               </div>
+              <div className="flex flex-col gap-1">
+                <label htmlFor="owner_role" className="text-[12px] text-ink-500">Owner</label>
+                <select
+                  id="owner_role"
+                  name="owner_role"
+                  defaultValue="employee"
+                  className="rounded-md border border-ink-300 bg-white px-3 py-2 text-[14px]"
+                >
+                  <option value="employee">Employee</option>
+                  <option value="manager">Manager</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
               <PendingSubmitButton
                 idleLabel="Assign"
                 pendingLabel="Assigning…"

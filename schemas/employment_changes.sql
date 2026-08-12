@@ -349,6 +349,40 @@ begin
       grade_band = excluded.grade_band;
   end if;
 
+  if v_change.new_values ? 'manager_id' then
+    update hr_automation_items
+    set owner_employee_id = case
+        when jsonb_typeof(v_change.new_values -> 'manager_id') = 'null' then null
+        else (v_change.new_values ->> 'manager_id')::uuid
+      end
+    where tenant_id = p_tenant_id
+      and status in ('scheduled', 'due', 'failed', 'escalated')
+      and (
+        (subject_type = 'leave' and subject_id in (
+          select id
+          from leaves
+          where tenant_id = p_tenant_id
+            and employee_id = v_change.employee_id
+            and status = 'pending'
+        ))
+        or (subject_type = 'onboarding_task' and subject_id in (
+          select id
+          from onboarding_tasks
+          where tenant_id = p_tenant_id
+            and employee_id = v_change.employee_id
+            and owner_role = 'manager'
+            and status = 'pending'
+        ))
+        or (subject_type = 'probation_review' and rule_key = 'probation.manager_input_due' and subject_id in (
+          select id
+          from probation_reviews
+          where tenant_id = p_tenant_id
+            and employee_id = v_change.employee_id
+            and status in ('scheduled', 'due')
+        ))
+      );
+  end if;
+
   update employment_changes
   set status = 'applied',
     applied_at = clock_timestamp(),

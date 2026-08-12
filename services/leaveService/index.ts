@@ -13,6 +13,7 @@ import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 import { track } from "@/lib/telemetry/track";
 import { maybeFireActivationCompleted } from "@/services/onboardingService";
 import { isLeaveRequestEligibleEmployee, type LegacyEmployeeLifecycleState } from "@/services/employeeLifecycle";
+import { assertCurrentDirectManager, listCurrentDirectReports } from "@/services/managerAuthorization";
 
 export type LeaveType = "annual" | "sick" | "unpaid" | "other";
 export type LeaveStatus = "pending" | "approved" | "rejected" | "cancelled";
@@ -188,7 +189,7 @@ export async function listLeaveBalancesForEmployee(
 ): Promise<LeaveBalanceSummary[]> {
   const tenantId = requireTenant(actor);
   if (actor.role !== "admin" && actor.employeeId !== employeeId) {
-    throw new Error("FORBIDDEN");
+    await assertCurrentDirectManager(actor, employeeId);
   }
   const period = periodForYear(year);
   const supabase = createServiceRoleClient();
@@ -347,6 +348,48 @@ export async function listPendingLeavesWithEmployee(actor: Actor): Promise<Pendi
   });
 }
 
+export async function listPendingLeavesForManager(actor: Actor): Promise<PendingLeaveWithEmployee[]> {
+  const tenantId = requireTenant(actor);
+  const directReports = await listCurrentDirectReports(actor);
+  const directReportIds = directReports.map((employee) => employee.id);
+  if (directReportIds.length === 0) return [];
+
+  const supabase = createServiceRoleClient();
+  const { data, error } = await supabase
+    .from("leaves")
+    .select(LEAVE_COLUMNS)
+    .eq("tenant_id", tenantId)
+    .eq("status", "pending")
+    .in("employee_id", directReportIds)
+    .order("created_at", { ascending: true });
+
+  if (error) throw new Error(`MANAGER_LEAVE_LIST_FAILED: ${error.message}`);
+
+  const leaves = ((data ?? []) as LeaveRow[]).map(rowToRecord);
+  const employeesById = new Map(directReports.map((employee) => [
+    employee.id,
+    {
+      full_name: employee.full_name,
+      role_title: employee.role_title,
+    },
+  ]));
+
+  const annualBalances = new Map<string, LeaveBalanceSummary>();
+  for (const employeeId of directReportIds) {
+    annualBalances.set(employeeId, (await listLeaveBalancesForEmployee(actor, employeeId))[0]!);
+  }
+
+  return leaves.map((row) => {
+    const employee = employeesById.get(row.employee_id);
+    return {
+      ...row,
+      employee_full_name: employee?.full_name ?? "(unknown)",
+      employee_role_title: employee?.role_title ?? "(unknown)",
+      annual_balance: annualBalances.get(row.employee_id),
+    };
+  });
+}
+
 export async function listWhoIsAway(actor: Actor, input: { from?: string; to?: string } = {}): Promise<WhoIsAwayEntry[]> {
   requireAdmin(actor);
   const tenantId = requireTenant(actor);
@@ -437,6 +480,63 @@ export async function decideLeaveRequest(
       p_override_insufficient_balance: parsed.overrideInsufficientBalance,
       p_override_reason: parsed.overrideReason ?? null,
       p_decision_note: parsed.decisionNote ?? null,
+    } as never)
+    .maybeSingle();
+
+  if (error) throw new Error(`LEAVE_DECISION_FAILED: ${error.message}`);
+  if (!data) throw new Error("STALE_WRITE");
+
+  if (decision === "approved") {
+    const countResult = await supabase
+      .from("leaves")
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", tenantId)
+      .eq("status", "approved");
+    if ((countResult.count ?? 0) === 1) {
+      await track({ tenantId, userId: actor.authUserId, eventName: "first_leave_approved", properties: { leave_id: leaveId } });
+      await maybeFireActivationCompleted(tenantId, actor.authUserId);
+    }
+  }
+
+  return rowToRecord(data as LeaveRow);
+}
+
+export async function decideLeaveRequestAsManager(
+  actor: Actor,
+  leaveId: string,
+  decision: "approved" | "rejected",
+  expectedUpdatedAt: string,
+  input: { decisionNote?: string | null; overrideInsufficientBalance?: boolean } = {},
+): Promise<LeaveRecord> {
+  const tenantId = requireTenant(actor);
+  if (!expectedUpdatedAt) throw new Error("MISSING_EXPECTED_UPDATED_AT");
+  if (input.overrideInsufficientBalance) throw new Error("MANAGER_LEAVE_OVERRIDE_FORBIDDEN");
+
+  const supabase = createServiceRoleClient();
+  const { data: leaveData, error: leaveLookupError } = await supabase
+    .from("leaves")
+    .select(LEAVE_COLUMNS)
+    .eq("tenant_id", tenantId)
+    .eq("id", leaveId)
+    .eq("status", "pending")
+    .maybeSingle();
+
+  if (leaveLookupError) throw new Error(`MANAGER_LEAVE_LOOKUP_FAILED: ${leaveLookupError.message}`);
+  if (!leaveData) throw new Error("LEAVE_NOT_FOUND");
+
+  const pendingLeave = leaveData as LeaveRow;
+  await assertCurrentDirectManager(actor, pendingLeave.employee_id);
+
+  const { data, error } = await supabase
+    .rpc("teamframe_decide_leave", {
+      p_tenant_id: tenantId,
+      p_actor_user_id: actor.authUserId,
+      p_leave_id: leaveId,
+      p_decision: decision,
+      p_expected_updated_at: expectedUpdatedAt,
+      p_override_insufficient_balance: false,
+      p_override_reason: null,
+      p_decision_note: input.decisionNote ?? null,
     } as never)
     .maybeSingle();
 

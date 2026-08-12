@@ -85,6 +85,10 @@ create table if not exists probation_reviews (
   review_due_date date not null,
   status probation_review_status not null default 'scheduled',
   review_owner_user_id uuid not null,
+  manager_input text,
+  manager_input_submitted_at timestamptz,
+  manager_input_submitted_by_user_id uuid,
+  manager_input_automation_item_id uuid,
   outcome probation_review_outcome,
   outcome_notes text,
   completed_at timestamptz,
@@ -93,6 +97,7 @@ create table if not exists probation_reviews (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   check (review_due_date <= probation_end_date),
+  check (manager_input is null or char_length(manager_input) <= 1200),
   check (outcome_notes is null or char_length(outcome_notes) <= 1200),
   check (
     (status = 'completed' and outcome is not null and completed_at is not null)
@@ -105,8 +110,32 @@ create table if not exists probation_reviews (
   constraint probation_reviews_automation_fk
     foreign key (tenant_id, automation_item_id)
     references hr_automation_items(tenant_id, id)
+    on delete set null,
+  constraint probation_reviews_manager_input_automation_fk
+    foreign key (tenant_id, manager_input_automation_item_id)
+    references hr_automation_items(tenant_id, id)
     on delete set null
 );
+
+alter table probation_reviews add column if not exists manager_input text;
+alter table probation_reviews add column if not exists manager_input_submitted_at timestamptz;
+alter table probation_reviews add column if not exists manager_input_submitted_by_user_id uuid;
+alter table probation_reviews add column if not exists manager_input_automation_item_id uuid;
+
+do $$ begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'probation_reviews_manager_input_automation_fk'
+      and conrelid = 'probation_reviews'::regclass
+  ) then
+    alter table probation_reviews
+      add constraint probation_reviews_manager_input_automation_fk
+        foreign key (tenant_id, manager_input_automation_item_id)
+        references hr_automation_items(tenant_id, id)
+        on delete set null;
+  end if;
+exception when duplicate_object then null; when duplicate_table then null; end $$;
 
 create unique index if not exists probation_reviews_employee_end_date_idx
   on probation_reviews(tenant_id, employee_id, probation_end_date);
@@ -176,7 +205,10 @@ declare
   v_check_in_item_id uuid;
   v_probation_id uuid;
   v_probation_item_id uuid;
+  v_probation_manager_input_item_id uuid;
   v_probation_end date;
+  v_manager_task_id uuid;
+  v_manager_task_item_id uuid;
 begin
   select *
   into v_employee
@@ -217,10 +249,52 @@ begin
   values
     (p_tenant_id, p_employee_id, 'Sign your employment contract', 'pending', p_actor_user_id, v_base_date),
     (p_tenant_id, p_employee_id, 'Complete your employee profile', 'pending', p_actor_user_id, v_base_date),
-    (p_tenant_id, p_employee_id, 'Meet your manager', 'pending', p_actor_user_id, v_base_date + 2),
     (p_tenant_id, p_employee_id, 'Upload ID and right-to-work documents', 'pending', p_actor_user_id, v_base_date + 2),
     (p_tenant_id, p_employee_id, 'Read and acknowledge company policies', 'pending', p_actor_user_id, v_base_date + 7),
     (p_tenant_id, p_employee_id, 'Confirm payroll and bank details', 'pending', p_actor_user_id, v_base_date + 7);
+
+  if v_employee.manager_id is not null then
+    insert into onboarding_tasks (
+      tenant_id,
+      employee_id,
+      title,
+      status,
+      owner_role,
+      owner_employee_id,
+      assigned_by,
+      due_date
+    )
+    values (
+      p_tenant_id,
+      p_employee_id,
+      'Meet your manager',
+      'pending',
+      'manager',
+      v_employee.manager_id,
+      p_actor_user_id,
+      v_base_date + 2
+    )
+    returning id into v_manager_task_id;
+
+    v_manager_task_item_id := teamframe_ensure_hr_automation_item(
+      p_tenant_id,
+      'onboarding.manager_task_due',
+      'onboarding.manager_task:' || v_manager_task_id::text,
+      'onboarding_task',
+      v_manager_task_id,
+      v_employee.manager_id,
+      ((v_base_date + 2)::text || 'T09:00:00Z')::timestamptz,
+      'routine_reminder',
+      null,
+      jsonb_build_object('employee_id', p_employee_id, 'task_id', v_manager_task_id),
+      3
+    );
+
+    update onboarding_tasks
+    set automation_item_id = v_manager_task_item_id
+    where tenant_id = p_tenant_id
+      and id = v_manager_task_id;
+  end if;
 
   insert into onboarding_check_ins (tenant_id, employee_id, due_date, questions)
   values (p_tenant_id, p_employee_id, v_base_date + 30, teamframe_onboarding_check_in_questions())
@@ -283,6 +357,27 @@ begin
     set automation_item_id = v_probation_item_id
     where tenant_id = p_tenant_id
       and id = v_probation_id;
+
+    if v_employee.manager_id is not null then
+      v_probation_manager_input_item_id := teamframe_ensure_hr_automation_item(
+        p_tenant_id,
+        'probation.manager_input_due',
+        'probation.manager_input:' || v_probation_id::text,
+        'probation_review',
+        v_probation_id,
+        v_employee.manager_id,
+        ((v_probation_end - 14)::text || 'T09:00:00Z')::timestamptz,
+        'routine_reminder',
+        null,
+        jsonb_build_object('employee_id', p_employee_id, 'probation_end_date', v_probation_end),
+        3
+      );
+
+      update probation_reviews
+      set manager_input_automation_item_id = v_probation_manager_input_item_id
+      where tenant_id = p_tenant_id
+        and id = v_probation_id;
+    end if;
   end if;
 
   insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)

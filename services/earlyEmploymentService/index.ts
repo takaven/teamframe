@@ -3,6 +3,8 @@ import "server-only";
 import { z } from "zod";
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 import type { Actor } from "@/middleware/rbac";
+import { runAutomationItem } from "@/services/hrAutomation";
+import { assertCurrentDirectManager, listCurrentDirectReports } from "@/services/managerAuthorization";
 
 export const CHECK_IN_DEFAULTS = {
   milestoneDays: 30,
@@ -38,6 +40,10 @@ export type ProbationReview = {
   review_due_date: string;
   status: ProbationReviewStatus;
   review_owner_user_id: string;
+  manager_input: string | null;
+  manager_input_submitted_at: string | null;
+  manager_input_submitted_by_user_id: string | null;
+  manager_input_automation_item_id: string | null;
   outcome: ProbationReviewOutcome | null;
   outcome_notes: string | null;
   completed_at: string | null;
@@ -68,6 +74,11 @@ const CompleteProbationSchema = z.object({
   outcome: z.enum(["confirmed", "extended", "employment_ending"]),
   outcomeNotes: z.string().trim().max(1200).optional(),
   extendedUntil: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+});
+
+const ManagerProbationInputSchema = z.object({
+  reviewId: z.string().uuid(),
+  input: z.string().trim().min(1).max(1200),
 });
 
 function requireTenant(actor: Actor): string {
@@ -108,6 +119,10 @@ function toProbationReview(row: Record<string, unknown>): ProbationReview {
     review_due_date: String(row.review_due_date),
     status: row.status as ProbationReviewStatus,
     review_owner_user_id: String(row.review_owner_user_id),
+    manager_input: (row.manager_input as string | null) ?? null,
+    manager_input_submitted_at: (row.manager_input_submitted_at as string | null) ?? null,
+    manager_input_submitted_by_user_id: (row.manager_input_submitted_by_user_id as string | null) ?? null,
+    manager_input_automation_item_id: (row.manager_input_automation_item_id as string | null) ?? null,
     outcome: (row.outcome as ProbationReviewOutcome | null) ?? null,
     outcome_notes: (row.outcome_notes as string | null) ?? null,
     completed_at: (row.completed_at as string | null) ?? null,
@@ -129,7 +144,7 @@ export async function listEarlyEmploymentForAdmin(actor: Actor): Promise<EarlyEm
       .order("due_date", { ascending: true }),
     supabase
       .from("probation_reviews")
-      .select("id, employee_id, probation_end_date, review_due_date, status, review_owner_user_id, outcome, outcome_notes, completed_at, created_at, updated_at")
+      .select("id, employee_id, probation_end_date, review_due_date, status, review_owner_user_id, manager_input, manager_input_submitted_at, manager_input_submitted_by_user_id, manager_input_automation_item_id, outcome, outcome_notes, completed_at, created_at, updated_at")
       .eq("tenant_id", tenantId)
       .order("review_due_date", { ascending: true }),
   ]);
@@ -207,4 +222,83 @@ export async function completeProbationReview(
   if (error) throw new Error(`PROBATION_REVIEW_COMPLETE_FAILED: ${error.message}`);
   if (!data) throw new Error("PROBATION_REVIEW_NOT_FOUND");
   return toProbationReview(data);
+}
+
+export async function listManagerProbationReviews(actor: Actor): Promise<ProbationReview[]> {
+  const tenantId = requireTenant(actor);
+  const directReports = await listCurrentDirectReports(actor);
+  const directReportIds = directReports.map((employee) => employee.id);
+  if (directReportIds.length === 0) return [];
+
+  const supabase: any = createServiceRoleClient();
+  const { data, error } = await supabase
+    .from("probation_reviews")
+    .select("id, employee_id, probation_end_date, review_due_date, status, review_owner_user_id, manager_input, manager_input_submitted_at, manager_input_submitted_by_user_id, manager_input_automation_item_id, outcome, outcome_notes, completed_at, created_at, updated_at")
+    .eq("tenant_id", tenantId)
+    .in("employee_id", directReportIds)
+    .in("status", ["scheduled", "due"])
+    .order("review_due_date", { ascending: true });
+
+  if (error) throw new Error(`MANAGER_PROBATION_LIST_FAILED: ${error.message}`);
+  return (data ?? []).map(toProbationReview);
+}
+
+export async function submitManagerProbationInput(actor: Actor, input: unknown): Promise<ProbationReview> {
+  const tenantId = requireTenant(actor);
+  const parsed = ManagerProbationInputSchema.parse(input);
+  const supabase: any = createServiceRoleClient();
+
+  const { data: reviewData, error: reviewError } = await supabase
+    .from("probation_reviews")
+    .select("id, employee_id, probation_end_date, review_due_date, status, review_owner_user_id, manager_input, manager_input_submitted_at, manager_input_submitted_by_user_id, manager_input_automation_item_id, outcome, outcome_notes, completed_at, created_at, updated_at")
+    .eq("tenant_id", tenantId)
+    .eq("id", parsed.reviewId)
+    .in("status", ["scheduled", "due"])
+    .maybeSingle();
+
+  if (reviewError) throw new Error(`MANAGER_PROBATION_LOOKUP_FAILED: ${reviewError.message}`);
+  if (!reviewData) throw new Error("PROBATION_REVIEW_NOT_FOUND");
+
+  const review = toProbationReview(reviewData);
+  await assertCurrentDirectManager(actor, review.employee_id);
+
+  const { data, error } = await supabase
+    .from("probation_reviews")
+    .update({
+      manager_input: parsed.input,
+      manager_input_submitted_at: new Date().toISOString(),
+      manager_input_submitted_by_user_id: actor.authUserId,
+    })
+    .eq("tenant_id", tenantId)
+    .eq("id", parsed.reviewId)
+    .in("status", ["scheduled", "due"])
+    .select("id, employee_id, probation_end_date, review_due_date, status, review_owner_user_id, manager_input, manager_input_submitted_at, manager_input_submitted_by_user_id, manager_input_automation_item_id, outcome, outcome_notes, completed_at, created_at, updated_at")
+    .maybeSingle();
+
+  if (error) throw new Error(`MANAGER_PROBATION_INPUT_FAILED: ${error.message}`);
+  if (!data) throw new Error("PROBATION_REVIEW_NOT_FOUND");
+
+  const updated = toProbationReview(data);
+  if (updated.manager_input_automation_item_id) {
+    await runAutomationItem({
+      tenantId,
+      itemId: updated.manager_input_automation_item_id,
+      complete: true,
+      eventContext: {
+        source: "probation.manager_input_submitted",
+        probation_review_id: parsed.reviewId,
+      },
+    });
+  }
+
+  const { error: auditError } = await supabase.from("audit_logs").insert({
+    tenant_id: tenantId,
+    actor_user_id: actor.authUserId,
+    actor_type: "human",
+    action_type: "probation.manager_input_submitted",
+    target_id: parsed.reviewId,
+  });
+  if (auditError) throw new Error(`AUDIT_LOG_FAILED: ${auditError.message}`);
+
+  return updated;
 }

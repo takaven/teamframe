@@ -18,6 +18,7 @@ import { captureActionError } from "@/lib/telemetry/sentry";
 const AssignSchema = z.object({
   employee_id: z.string().uuid(),
   title: z.string().trim().min(1),
+  owner_role: z.enum(["employee", "manager", "admin"]).optional(),
 });
 
 const AssignPackSchema = z.object({
@@ -74,10 +75,12 @@ export async function assignOnboardingTaskAction(formData: FormData): Promise<vo
     const parsed = AssignSchema.parse({
       employee_id: formData.get("employee_id"),
       title: formData.get("title"),
+      owner_role: formData.get("owner_role") || undefined,
     });
     await assignOnboardingTask(actor, {
       employeeId: parsed.employee_id,
       title: parsed.title,
+      ownerRole: parsed.owner_role,
     });
   } catch (error) {
     failed = true;

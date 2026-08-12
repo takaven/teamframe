@@ -21,8 +21,8 @@ describe("MR-2 HR automation operating layer", () => {
     const verifyInstall = read("scripts/verify-install.mjs");
     const verifyIntegration = read("scripts/verify-integration.mjs");
 
-    expect(schemaOrder.indexOf('"tenant_integrity.sql"')).toBeLessThan(
-      schemaOrder.indexOf('"hr_automation.sql"'),
+    expect(schemaOrder.indexOf('"hr_automation.sql"')).toBeLessThan(
+      schemaOrder.indexOf('"onboarding_tasks.sql"'),
     );
     expect(schemaOrder.indexOf('"hr_automation.sql"')).toBeLessThan(
       schemaOrder.indexOf('"tenancy_rls.sql"'),

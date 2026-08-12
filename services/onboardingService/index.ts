@@ -15,9 +15,12 @@ import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 import { track } from "@/lib/telemetry/track";
 import { logAction } from "@/lib/telemetry/logger";
 import { captureActionError } from "@/lib/telemetry/sentry";
+import { runAutomationItem } from "@/services/hrAutomation";
+import { assertCurrentDirectManager, listCurrentDirectReports } from "@/services/managerAuthorization";
 import { expandTemplatePack } from "./templates";
 
 export type OnboardingTaskStatus = "pending" | "completed";
+export type OnboardingTaskOwnerRole = "employee" | "manager" | "admin" | "system";
 export type OnboardingCompletionMode =
   | "manual_confirmation"
   | "document_required"
@@ -29,6 +32,8 @@ export type OnboardingTask = {
   employee_id: string;
   title: string;
   status: OnboardingTaskStatus;
+  owner_role: OnboardingTaskOwnerRole;
+  owner_employee_id: string | null;
   completion_mode: OnboardingCompletionMode;
   required_document_type: string | null;
   required_policy_id: string | null;
@@ -36,13 +41,14 @@ export type OnboardingTask = {
   form_requirement_key: string | null;
   assigned_by: string;
   due_date: string | null;
+  automation_item_id: string | null;
   completed_at: string | null;
   created_at: string;
   updated_at: string;
 };
 
 const TASK_SELECT =
-  "id, tenant_id, employee_id, title, status, completion_mode, required_document_type, required_policy_id, required_policy_version, form_requirement_key, assigned_by, due_date, completed_at, created_at, updated_at";
+  "id, tenant_id, employee_id, title, status, owner_role, owner_employee_id, completion_mode, required_document_type, required_policy_id, required_policy_version, form_requirement_key, assigned_by, due_date, automation_item_id, completed_at, created_at, updated_at";
 
 type OnboardingTaskRow = OnboardingTask & { tenant_id: string };
 
@@ -206,12 +212,25 @@ export async function listAllOnboardingTasks(actor: Actor): Promise<OnboardingTa
 
 export async function assignOnboardingTask(
   actor: Actor,
-  input: { employeeId: string; title: string },
+  input: { employeeId: string; title: string; ownerRole?: OnboardingTaskOwnerRole },
 ): Promise<OnboardingTask> {
   requireAdmin(actor);
   const tenantId = requireTenant(actor);
+  const ownerRole = input.ownerRole ?? "employee";
+  if (!["employee", "manager", "admin"].includes(ownerRole)) throw new Error("INVALID_INPUT");
 
   const supabase = createServiceRoleClient();
+  const { data: employeeData, error: employeeError } = await supabase
+    .from("employees")
+    .select("id, manager_id")
+    .eq("tenant_id", tenantId)
+    .eq("id", input.employeeId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (employeeError) throw new Error(`ONBOARDING_ASSIGN_FAILED: ${employeeError.message}`);
+  if (!employeeData) throw new Error("NOT_FOUND");
+  const employee = employeeData as { id: string; manager_id: string | null };
+
   const { data, error } = await supabase
     .from("onboarding_tasks")
     .insert({
@@ -219,6 +238,8 @@ export async function assignOnboardingTask(
       employee_id: input.employeeId,
       title: input.title.trim(),
       status: "pending",
+      owner_role: ownerRole,
+      owner_employee_id: ownerRole === "manager" ? employee.manager_id : null,
       assigned_by: actor.authUserId,
     } as never)
     .select(TASK_SELECT)
@@ -373,6 +394,88 @@ export async function completeOnboardingTask(
     await track({ tenantId, userId: actor.authUserId, eventName: "first_onboarding_completed", properties: { task_id: taskId } });
     await maybeFireActivationCompleted(tenantId, actor.authUserId);
   }
+
+  const { tenant_id: _t, ...row } = updated;
+  return row;
+}
+
+export async function listManagerOnboardingTasks(actor: Actor): Promise<OnboardingTask[]> {
+  const tenantId = requireTenant(actor);
+  const directReports = await listCurrentDirectReports(actor);
+  const directReportIds = directReports.map((employee) => employee.id);
+  if (directReportIds.length === 0) return [];
+
+  const supabase = createServiceRoleClient();
+  const { data, error } = await supabase
+    .from("onboarding_tasks")
+    .select(TASK_SELECT)
+    .eq("tenant_id", tenantId)
+    .eq("owner_role", "manager")
+    .eq("status", "pending")
+    .in("employee_id", directReportIds)
+    .order("due_date", { ascending: true, nullsFirst: false });
+
+  if (error) throw new Error(`MANAGER_ONBOARDING_LIST_FAILED: ${error.message}`);
+  return ((data ?? []) as OnboardingTaskRow[]).map(({ tenant_id: _t, ...row }) => row);
+}
+
+export async function completeManagerOnboardingTask(
+  actor: Actor,
+  taskId: string,
+  expectedUpdatedAt: string,
+): Promise<OnboardingTask> {
+  const tenantId = requireTenant(actor);
+  if (!expectedUpdatedAt) throw new Error("MISSING_EXPECTED_UPDATED_AT");
+
+  const supabase = createServiceRoleClient();
+  const { data: existingTask, error: existingError } = await supabase
+    .from("onboarding_tasks")
+    .select(TASK_SELECT)
+    .eq("tenant_id", tenantId)
+    .eq("id", taskId)
+    .eq("updated_at", expectedUpdatedAt)
+    .eq("status", "pending")
+    .eq("owner_role", "manager")
+    .maybeSingle();
+
+  if (existingError) throw new Error(`MANAGER_ONBOARDING_LOOKUP_FAILED: ${existingError.message}`);
+  if (!existingTask) throw new Error("STALE_WRITE");
+
+  const existing = existingTask as OnboardingTaskRow;
+  await assertCurrentDirectManager(actor, existing.employee_id);
+
+  if (existing.completion_mode !== "manual_confirmation") {
+    throw new Error("EVIDENCE_REQUIRED");
+  }
+
+  const { data, error } = await supabase
+    .from("onboarding_tasks")
+    .update({ status: "completed", completed_at: new Date().toISOString() } as never)
+    .eq("tenant_id", tenantId)
+    .eq("id", taskId)
+    .eq("updated_at", expectedUpdatedAt)
+    .eq("status", "pending")
+    .eq("owner_role", "manager")
+    .select(TASK_SELECT)
+    .maybeSingle();
+
+  if (error) throw new Error(`MANAGER_ONBOARDING_COMPLETE_FAILED: ${error.message}`);
+  if (!data) throw new Error("STALE_WRITE");
+
+  const updated = data as OnboardingTaskRow;
+  await writeAudit(actor, "onboarding.manager_completed", taskId);
+  if (updated.automation_item_id) {
+    await runAutomationItem({
+      tenantId,
+      itemId: updated.automation_item_id,
+      complete: true,
+      eventContext: {
+        source: "onboarding.manager_completed",
+        task_id: taskId,
+      },
+    });
+  }
+  await activateEmployeeSetupIfOnboardingComplete(actor, updated.employee_id);
 
   const { tenant_id: _t, ...row } = updated;
   return row;
