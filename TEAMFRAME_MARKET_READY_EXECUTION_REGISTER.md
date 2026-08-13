@@ -45,7 +45,7 @@ Additional release checkpoints:
 - Final Visual Readiness - COMPLETE
 - Final Visual Correction Pass - COMPLETE
 - Final Mobile Fit Verification - COMPLETE
-- Production Release - CURRENT OPERATIONS PHASE
+- Production Release - LIVE / MERGE PAUSED BY GITHUB BILLING LOCK
 
 No P0 or P1 market-ready blocker remains after the final gate.
 
@@ -150,7 +150,7 @@ Do not mark a market-ready requirement implemented merely because a partial prim
 6. MR-7 offboarding workflow - LOCKED.
 7. MR-8 reliability/product-truth closure - LOCKED.
 8. Final full-system E2E and visual/mobile readiness verification - COMPLETE.
-9. Production release preparation/deployment - CURRENT OPERATIONS PHASE.
+9. Production release preparation/deployment - LIVE on dedicated production infrastructure; merge to `main` paused by GitHub Actions billing lock.
 
 ## Scope-Control Rule
 

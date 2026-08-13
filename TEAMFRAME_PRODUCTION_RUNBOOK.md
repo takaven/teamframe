@@ -263,17 +263,27 @@ Record after successful release:
 
 | Field | Value |
 | --- | --- |
-| Release date | |
-| Release tag | |
-| Deployed application SHA | |
-| Documentation commit SHA | |
-| Vercel project/domain | |
-| Vercel deployment identifier | |
-| Supabase project ref | |
-| Schema/migration result | |
-| Storage result | |
-| Automation schedule status | |
-| Health status | |
-| Smoke-test result | |
+| Release date | 2026-08-13 |
+| Release tag | `teamframe-production-v1.0.0` |
+| Deployed application SHA | `3e3daaf517054a561b031057383b2b6f5a9bf143` |
+| Documentation commit SHA | Pending final provenance commit |
+| Vercel project/domain | `teamframe-production` / `https://teamframe-production.vercel.app` |
+| Vercel deployment identifier | `dpl_9dLb1FCgaC95sb5LofxTkkZRaqjy` |
+| Supabase project ref | `zylllrvcmockvfcfubkp` |
+| Schema/migration result | PASS |
+| Storage result | PASS |
+| Automation schedule status | Active via Vercel Cron, daily `0 6 * * *` on current Hobby plan |
+| Health status | Public health PASS; protected deep health PASS |
+| Smoke-test result | PASS for production-safe smoke checks |
 
 Do not include secret values.
+
+## 18. Remaining Repository Merge Step
+
+Production is live from `codex/market-ready-implementation` at `3e3daaf517054a561b031057383b2b6f5a9bf143`.
+
+GitHub PR:
+
+`https://github.com/ismaelloveexcel/TeamFrame/pull/85`
+
+Merge to `main` is paused because GitHub Actions reports an account billing lock and branch protection requires the `Gate Chain (Strict)` check. After the billing lock is cleared, rerun CI and merge PR #85 through the normal protected path.

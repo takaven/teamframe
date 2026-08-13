@@ -4,17 +4,17 @@
 
 Current product verdict:
 
-> **GO - MARKET-READY FOR PRODUCTION USE**
+> **PRODUCTION RELEASED**
 
 Current visual verdict:
 
 > **VISUAL GO - READY FOR PRODUCTION**
 
-Final verified pre-release source:
+Production application source:
 
-`0f72d633dcb9ef436e146e87c1f6b9366c761bda`
+`3e3daaf517054a561b031057383b2b6f5a9bf143`
 
-This file records product readiness. Production deployment, production secret rotation and production infrastructure activation are governed by `TEAMFRAME_PRODUCTION_RUNBOOK.md`.
+This file records product readiness and production release provenance.
 
 ## Verdict Options
 
@@ -93,6 +93,30 @@ The final visual production-readiness programme is closed.
 | Mobile `/me` Documents containment at 390px | PASS |
 | Mobile Org Chart containment at 390px | PASS |
 | Final visual source | `0f72d633dcb9ef436e146e87c1f6b9366c761bda` |
+
+## Production Release Record
+
+| Item | Value |
+| --- | --- |
+| Release date | 2026-08-13 |
+| Production application source SHA | `3e3daaf517054a561b031057383b2b6f5a9bf143` |
+| Release tag | `teamframe-production-v1.0.0` |
+| Vercel project | `teamframe-production` |
+| Production URL | `https://teamframe-production.vercel.app` |
+| Vercel deployment ID | `dpl_9dLb1FCgaC95sb5LofxTkkZRaqjy` |
+| Supabase project | `teamframe-production` |
+| Supabase project ref | `zylllrvcmockvfcfubkp` |
+| Region | `eu-central-1` |
+| Schema apply / reapply | PASS |
+| Storage setup | PASS |
+| Auth config | PASS |
+| Public health | PASS |
+| Protected deep health | PASS |
+| Automation runner protection | PASS |
+| Automation safe invocation | PASS |
+| Production business data | Clean empty production state after setup |
+| GitHub PR | `https://github.com/ismaelloveexcel/TeamFrame/pull/85` |
+| Production branch merge | PAUSED - GitHub Actions billing lock prevents required check from running |
 
 ## Release Gates
 
@@ -203,8 +227,10 @@ These are intentional release boundaries, not defects:
 
 ## Production Release Status
 
-TeamFrame is market-ready for production use. Production release is now an operations task: identify the production Vercel and Supabase targets, rotate/configure production secrets, deploy the verified source, activate the automation runner and perform the bounded production smoke test in `TEAMFRAME_PRODUCTION_RUNBOOK.md`.
+TeamFrame is deployed to the dedicated production Vercel and Supabase targets above. The production app is live on the Vercel production URL.
+
+Repository merge to `main` is paused because GitHub Actions reports: "The job was not started because your account is locked due to a billing issue." Branch protection requires `Gate Chain (Strict)`, so the production PR cannot be merged until the GitHub account billing lock is cleared and CI can run.
 
 ## Final Product Verdict
 
-> **GO - MARKET-READY FOR PRODUCTION USE**
+> **PRODUCTION RELEASED**
