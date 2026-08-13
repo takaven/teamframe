@@ -8,9 +8,9 @@ A feature must not enter implementation merely because it is useful or exists in
 
 ## Deferred - Potentially Useful Later
 
-These ideas may be useful after the market-ready release, but they are not required for the current implementation unless the product owner explicitly promotes them into `TEAMFRAME_MARKET_READY_EXECUTION_REGISTER.md`.
+These ideas may be useful after the market-ready production release, but they are not included in the current production-ready scope unless the product owner explicitly promotes them into a later approved implementation register.
 
-- Lightweight Who's Away enhancement beyond core absence history.
+- Enhancements beyond the implemented lightweight Who's Away projection.
 - Deeper payroll handoff exports after the basic finance handoff is proven.
 - Richer manager delegation beyond direct-report operational tasks.
 - Broader operational analytics after core records and workflows are truthful.

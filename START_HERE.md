@@ -1,5 +1,9 @@
 # START HERE — TeamFrame from zero to running
 
+> **LOCAL INSTALL / HISTORICAL PRODUCTION NOTES**
+>
+> This file remains useful for local setup provenance. Current production release and operations instructions are governed by `TEAMFRAME_PRODUCTION_RUNBOOK.md`.
+
 This is the complete path from a fresh copy of this code to a working local
 install and a production deploy. Every command is copy-pasteable. Steps that
 cannot be automated are explicitly marked **MANUAL** with the exact click path —
@@ -41,7 +45,7 @@ come from your Supabase project dashboard.
 | `SUPABASE_SERVICE_ROLE_KEY` | yes | Same page — the `service_role` key. Server-only; never expose it |
 | `SUPABASE_DB_URL` | yes | Supabase dashboard → Project Settings → Database → Connection string → URI. Use the **Session pooler** (port 5432) form and replace `[YOUR-PASSWORD]` with your database password |
 | `SITE_URL` | yes | `http://localhost:3030` for a local install |
-| `HEALTHCHECK_SECRET` | recommended | Any random secret (`openssl rand -hex 32`); gates the detailed `/api/health` output |
+| `DEEP_HEALTH_SECRET` | recommended | Any random secret (`openssl rand -hex 32`); gates the protected `/api/health/deep` output via `x-teamframe-health-secret` |
 | `NEXT_PUBLIC_PILOT_CONTACT_EMAIL` | optional | Address behind the landing page "Request a pilot" button. Leave unset and the button simply isn't rendered |
 | `SUPABASE_ACCESS_TOKEN` | optional | Personal access token (<https://supabase.com/dashboard/account/tokens>) — only needed if the `npx supabase` CLI in step 6 is not already logged in |
 | `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_DEBUG` | optional | Leave blank; Sentry stays dormant |
@@ -215,7 +219,7 @@ Full detail: `docs/launch/deployment-runbook.md` (Option A). Summary:
    ```
    Then `vercel env add` for each of: `NEXT_PUBLIC_SUPABASE_URL`,
    `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SITE_URL`
-   (your production domain), `HEALTHCHECK_SECRET`,
+   (your production domain), `DEEP_HEALTH_SECRET`, `TEAMFRAME_AUTOMATION_SECRET`,
    `NEXT_PUBLIC_PILOT_CONTACT_EMAIL`, and the Sentry variables if used.
 4. Deploy:
    ```bash

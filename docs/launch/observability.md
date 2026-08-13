@@ -1,5 +1,9 @@
 # Observability — TeamFrame
 
+> **HISTORICAL / SUPERSEDED — NOT GOVERNING CURRENT PRODUCTION RELEASE**
+>
+> Retained for launch-era provenance. Current production health and observability instructions are governed by `../../TEAMFRAME_PRODUCTION_RUNBOOK.md`.
+
 **Phase:** 1B — Reliability Foundation  
 **Status:** Scaffolded — Sentry dormant until DSN provisioned
 

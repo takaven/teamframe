@@ -2,11 +2,19 @@
 
 **STATUS: CANONICAL / CONTROLLING RELEASE GATE**
 
-Current verdict:
+Current product verdict:
 
-> **MARKET READY - CONTROLLED ACTUAL USE VERIFIED**
+> **GO - MARKET-READY FOR PRODUCTION USE**
 
-The market-ready implementation checkpoints MR-0 through MR-8 are locked. Final fresh-disposable full-system E2E verification completed on 2026-08-12 against `codex/market-ready-implementation` at final commit `268d9682d15e6c4afb4c83dbfde76b8b531f541d`.
+Current visual verdict:
+
+> **VISUAL GO - READY FOR PRODUCTION**
+
+Final verified pre-release source:
+
+`0f72d633dcb9ef436e146e87c1f6b9366c761bda`
+
+This file records product readiness. Production deployment, production secret rotation and production infrastructure activation are governed by `TEAMFRAME_PRODUCTION_RUNBOOK.md`.
 
 ## Verdict Options
 
@@ -14,111 +22,45 @@ The market-ready implementation checkpoints MR-0 through MR-8 are locked. Final 
 - CONDITIONAL READY
 - MARKET READY
 
-## Product Scope Gate
+## Final Verification Summary
 
-- All `IMPLEMENT` items in `TEAMFRAME_MARKET_READY_EXECUTION_REGISTER.md` completed.
-- All `VERIFY DURING IMPLEMENTATION` items verified or promoted to fixes.
-- `DEFER` and `OUT OF SCOPE` boundaries preserved.
-- No unapproved feature expansion.
+| Gate | Result |
+| --- | --- |
+| MR-0 Guided Company Setup | LOCKED / COMPLETE |
+| MR-1 Canonical Lifecycle | LOCKED / COMPLETE |
+| MR-2 Automation Layer | LOCKED / COMPLETE |
+| MR-3A Effective-Dated Employment Changes | LOCKED / COMPLETE |
+| MR-3B Manager Delegation | LOCKED / COMPLETE |
+| MR-4 Join / Early Employment | LOCKED / COMPLETE |
+| MR-5 Documents / Evidence / Policies | LOCKED / COMPLETE |
+| MR-6 Leave | LOCKED / COMPLETE |
+| MR-7 Offboarding | LOCKED / COMPLETE |
+| MR-8 Control Centre / Reliability | LOCKED / COMPLETE |
+| Final full-system disposable E2E | PASS |
+| Final visual correction pass | PASS |
+| Final mobile containment verification | PASS |
+| Security / tenant isolation | PASS |
+| Data integrity | PASS |
+| Reliability / failure recovery | PASS |
+| Source release gates | PASS |
+| Remaining P0 blockers | None |
+| Remaining P1 blockers | None |
 
-## Company Setup Gate
+## Final Source Gate Record
 
-- New target customer can establish the company, administrator and basic defaults.
-- Guided setup can begin ordinary use without developer or direct database intervention.
+| Item | Result |
+| --- | --- |
+| Typecheck | PASS |
+| Lint | PASS |
+| Tests | PASS, 32 files / 186 tests |
+| Guards | PASS, 4/4 |
+| Production build | PASS |
+| `npm run verify:release` | PASS |
+| `git diff --check` | PASS |
 
-## Lifecycle Gate
+## Final E2E Record
 
-- Canonical lifecycle works end-to-end.
-- PRE_START, ONBOARDING, ACTIVE, OFFBOARDING and FORMER behaviour is truthful.
-- Active counts and obligations use the lifecycle projection.
-- Former employees do not create normal active-HR obligations.
-
-## People & Early Employment Gate
-
-- Employee, position and reporting truth remains synchronized.
-- Employment changes preserve effective-dated history.
-- 30-day check-in works from deterministic configured conditions.
-- Probation workflow works without becoming performance management.
-
-## Automation Gate
-
-- Reminder/escalation mechanism operational.
-- No duplicate or noisy reminders.
-- Completion suppresses future reminders correctly.
-- Founder primarily sees decisions and exceptions.
-- Background jobs are idempotent and tenant-scoped.
-
-## Documents Gate
-
-- Employee request/upload loop works.
-- Admin upload remains secure.
-- Evidence-required task closure is truthful.
-- Expiry and replacement logic works.
-- Upload validation and private storage protections remain intact.
-
-## Policies Gate
-
-- File upload/version/acknowledgement/reminder works.
-- Simple in-app authoring remains truthful if retained.
-- Archived versions retain history but create no current obligations.
-- Former users do not contaminate current acknowledgement counts.
-
-## Leave Gate
-
-- Leave type, allocation, balance, request, conflict, approval/decline and history work.
-- Insufficient Annual Leave is warned/blocked by default with explicit authorised override.
-- Manager/founder routing follows the approved delegation model.
-
-## Offboarding Gate
-
-- Exit workflow works end-to-end.
-- End date, checklist, owners, handover, access-removal, asset-return and final HR/payroll inputs are represented where relevant.
-- Former/archive transition suppresses inappropriate future reminders.
-- Org Chart vacancy behaviour is correct.
-
-## Delegation Gate
-
-- Approved manager scope works securely.
-- Managers can act only for authorised direct-report responsibilities.
-- Managers do not gain private HR document access, policy administration, tenant administration or unrestricted employment-change authority.
-
-## Reliability Gate
-
-- No ambiguous success/failure.
-- Exports are reliable and provide truthful status.
-- Stale counters resolved.
-- Resolution/history remains durable.
-- False-success vacant-position deletion regression covered.
-- Sentry/App Router production observability warnings resolved or formally accepted.
-- Control Centre counts and work queues are derived from authoritative current workflow state.
-- Routine HR work does not become a Signal merely because it is due.
-
-## Security Gate
-
-- RLS tests pass.
-- Tenant isolation tests pass.
-- Manager delegation tests pass.
-- Employee upload tests pass.
-- Service-role paths remain server-only and tenant-scoped.
-- Storage paths remain private and tenant-scoped.
-
-## Verification Gate
-
-Before a readiness verdict can advance, run and record:
-
-- typecheck;
-- lint;
-- unit/integration tests;
-- guards;
-- production build;
-- database/schema apply and reapply;
-- RLS/adversarial tenant tests;
-- disposable runtime verification;
-- browser/E2E review;
-- production-readiness checks;
-- package and secret scans where relevant.
-
-## Final Verification Record
+Final fresh-disposable full-system E2E verification completed on 2026-08-12 against `codex/market-ready-implementation`.
 
 | Item | Result |
 | --- | --- |
@@ -130,18 +72,139 @@ Before a readiness verdict can advance, run and record:
 | Verify integration | PASS |
 | Verify RLS | PASS |
 | Full synthetic E2E | PASS |
-| Typecheck | PASS |
-| Lint | PASS |
-| Tests | PASS, 32 files / 186 tests |
-| Guards | PASS |
-| Production build | PASS |
-| `git diff --check` | PASS |
 | Release-blocker correction | `fix: close final market-ready release blockers` |
 
-Runtime verification found one release-blocking defect in the Who's Away projection: the original Supabase embedded relationship query was ambiguous after the market-ready schema gained multiple employee relationships. The fix fetches approved leave rows and same-tenant employee display data explicitly, avoiding relationship-cache ambiguity while preserving the MR-6 leave contract.
+Runtime verification found one release-blocking defect in the Who's Away projection. The fix fetches approved leave rows and same-tenant employee display data explicitly, avoiding Supabase relationship-cache ambiguity while preserving the MR-6 leave contract.
 
-## Final Verdict
+## Final Visual Record
 
-> **MARKET READY - CONTROLLED ACTUAL USE VERIFIED**
+The final visual production-readiness programme is closed.
 
-No P0 or P1 market-ready blocker remains based on the final disposable full-system verification. Deployment, production secret rotation and production go-live remain separate authorisations.
+| Item | Result |
+| --- | --- |
+| Direction B / brand system | LOCKED |
+| Six-item visual correction pass | PASS |
+| `/setup` layout clipping | PASS |
+| Desktop Org Chart fit at 1440 and 1366 | PASS |
+| Evidence-backed onboarding action | PASS |
+| Accepted document replacement state | PASS |
+| Employee Profile containment/action hierarchy | PASS |
+| Policy upload/version hierarchy | PASS |
+| Mobile `/me` Documents containment at 390px | PASS |
+| Mobile Org Chart containment at 390px | PASS |
+| Final visual source | `0f72d633dcb9ef436e146e87c1f6b9366c761bda` |
+
+## Release Gates
+
+### Product Scope
+
+- All `IMPLEMENT` items in `TEAMFRAME_MARKET_READY_EXECUTION_REGISTER.md` completed and locked.
+- All `VERIFY DURING IMPLEMENTATION` items verified or promoted to fixes.
+- `DEFER` and `OUT OF SCOPE` boundaries preserved.
+- No unapproved feature expansion.
+
+### Company Setup
+
+- New target customer can establish the company, administrator and basic defaults.
+- Guided setup can begin ordinary use without developer or direct database intervention after controlled admin provisioning.
+
+### Lifecycle
+
+- Canonical lifecycle works end-to-end.
+- PRE_START, ONBOARDING, ACTIVE, OFFBOARDING and FORMER behaviour is truthful.
+- Active counts and obligations use the lifecycle projection.
+- Former employees do not create normal active-HR obligations.
+
+### People & Early Employment
+
+- Employee, position and reporting truth remains synchronized.
+- Employment changes preserve effective-dated history.
+- 30-day check-in works from deterministic configured conditions.
+- Probation workflow works without becoming performance management.
+
+### Automation
+
+- Reminder/escalation mechanism operational.
+- No duplicate or noisy reminders.
+- Completion suppresses future reminders correctly.
+- Founder primarily sees decisions and exceptions.
+- Background jobs are idempotent and tenant-scoped.
+
+### Documents
+
+- Employee request/upload loop works.
+- Admin upload remains secure.
+- Evidence-required task closure is truthful.
+- Expiry and replacement logic works.
+- Upload validation and private storage protections remain intact.
+
+### Policies
+
+- File upload/version/acknowledgement/reminder works.
+- Simple in-app authoring remains truthful if retained.
+- Archived versions retain history but create no current obligations.
+- Former users do not contaminate current acknowledgement counts.
+
+### Leave
+
+- Leave type, allocation, balance, request, conflict, approval/decline and history work.
+- Insufficient Annual Leave is warned/blocked by default with explicit authorised override.
+- Manager/founder routing follows the approved delegation model.
+- Annual Leave uses Monday-Friday working days and Jan 1-Dec 31 calendar-year periods.
+
+### Offboarding
+
+- Exit workflow works end-to-end.
+- End date, checklist, owners, handover, access-removal, asset-return and final HR/payroll inputs are represented where relevant.
+- Former/archive transition suppresses inappropriate future reminders.
+- Org Chart vacancy behaviour is correct.
+
+### Delegation
+
+- Approved manager scope works securely.
+- Managers can act only for authorised direct-report responsibilities.
+- Managers do not gain private HR document access, policy administration, tenant administration or unrestricted employment-change authority.
+
+### Reliability
+
+- No ambiguous success/failure.
+- Exports are reliable and provide truthful status.
+- Stale counters resolved.
+- Resolution/history remains durable.
+- False-success vacant-position deletion regression covered.
+- Sentry/App Router production observability warnings resolved.
+- Control Centre counts and work queues are derived from authoritative current workflow state.
+- Routine HR work does not become a Signal merely because it is due.
+
+### Security
+
+- RLS tests pass.
+- Tenant isolation tests pass.
+- Manager delegation tests pass.
+- Employee upload tests pass.
+- Service-role paths remain server-only and tenant-scoped.
+- Storage paths remain private and tenant-scoped.
+
+## Accepted Limitations
+
+These are intentional release boundaries, not defects:
+
+- no statutory leave engine;
+- no leave accrual, carry-forward or pro-rating;
+- no public-holiday engine;
+- no payroll calculation, tax filing or payslips;
+- no ATS/recruiting pipeline;
+- no benefits administration;
+- no enterprise RBAC;
+- no workflow builder;
+- no performance-management suite;
+- no AI legal/compliance conclusions;
+- no standalone asset-management module.
+
+## Production Release Status
+
+TeamFrame is market-ready for production use. Production release is now an operations task: identify the production Vercel and Supabase targets, rotate/configure production secrets, deploy the verified source, activate the automation runner and perform the bounded production smoke test in `TEAMFRAME_PRODUCTION_RUNBOOK.md`.
+
+## Final Product Verdict
+
+> **GO - MARKET-READY FOR PRODUCTION USE**

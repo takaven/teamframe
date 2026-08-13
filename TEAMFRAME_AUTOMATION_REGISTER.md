@@ -4,6 +4,15 @@
 
 This register describes required market-ready product behaviour. It is not a technical architecture document and does not freeze table names, job-runner implementation or exact reminder day/hour defaults.
 
+Implementation status:
+
+- MR-2 automation is implemented and locked.
+- Production execution uses the protected server endpoint `POST /api/automation/run`.
+- The runner must be invoked only with the server-only `TEAMFRAME_AUTOMATION_SECRET` via `x-teamframe-automation-secret` or `Authorization: Bearer <secret>`.
+- Production scheduling must use the approved Vercel Cron or equivalent trusted scheduler for the production deployment target.
+- The runner is idempotent: repeated or overlapping invocations must not duplicate business effects.
+- Completion suppression, recurrence, retry/failure visibility and human/system audit attribution are verified release behaviour.
+
 Notification levels:
 
 - BACKGROUND: silent system action.
@@ -31,4 +40,4 @@ Notification levels:
 | TF-AUTO-016 | Signal/action resolved | Required evidence or manual confirmation exists | Mark signal/action resolved and preserve durable history | System/admin/founder | Immediate background action | Completion suppresses future reminders for same obligation | Resolution recorded without suppressing legitimate recurrence | MARKET-READY REQUIRED |
 | TF-AUTO-017 | Export requested | Export type and authorised actor are known | Generate export and provide truthful status/download | Admin/founder | Immediate or queued job | Escalate only on persistent export failure | Export generated or clear failure recorded | MARKET-READY REQUIRED |
 
-Exact reminder timing must be defined during implementation, not invented here.
+Exact production schedule cadence must be recorded during deployment. Do not add founder-facing automation-rule configuration unless separately approved.

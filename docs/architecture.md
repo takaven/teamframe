@@ -49,28 +49,34 @@ No layer may be skipped. No client may bypass middleware. No service-role key ma
 - Compensation and sensitive HR data must not leak through org chart, employee self-service or manager-delegated views.
 - Private Storage must use tenant-scoped paths and short-lived signed URLs.
 
-## Current Implemented Domains
+## Implemented Domains
 
-At baseline `489c9606441618e898f21eafb0443a9ca33474ad`, the current implemented foundation includes:
+The market-ready implementation includes:
 
 - admin/employee authentication;
-- employee records;
+- guided company setup;
+- canonical employee lifecycle;
+- employee records and effective-dated employment changes;
 - position-based Org Chart;
-- onboarding templates/tasks;
-- policy publication and acknowledgement;
-- basic leave requests and decisions;
-- admin document upload/download/delete;
-- exports;
-- risk signals and action items;
+- onboarding templates/tasks and 30-day check-in;
+- probation workflow;
+- document requirements, employee uploads and evidence-backed completion;
+- policy file/version publication and acknowledgement;
+- leave types, balances, requests and decisions;
+- bounded manager delegation;
+- offboarding workflow;
+- finance handoff and exports;
+- HR Control Centre, signals and action items;
+- protected automation runner;
 - audit logs;
 - file lifecycle records;
 - health checks.
 
 ## Market-Ready Architecture Direction
 
-The market-ready programme requires controlled extension, not a rewrite.
+The market-ready programme used controlled extension, not a rewrite. MR-0 through MR-8 are implemented and locked.
 
-Architecture must add or extend support for:
+Future production changes must preserve:
 
 - canonical lifecycle projection;
 - event/rule/action/reminder/escalation/completion operating layer;
@@ -83,7 +89,7 @@ Architecture must add or extend support for:
 - complete offboarding workflow;
 - reliability/product-truth closure.
 
-These are approved market-ready requirements when implemented according to `TEAMFRAME_MARKET_READY_EXECUTION_REGISTER.md`. They are not permission to build an enterprise workflow builder or broad HRIS platform.
+These implemented requirements are not permission to build an enterprise workflow builder or broad HRIS platform.
 
 ## Scaling Posture
 

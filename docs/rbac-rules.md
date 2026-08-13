@@ -13,16 +13,16 @@ See [`auth-rules.md`](auth-rules.md).
 
 ## Current Implemented Roles
 
-At baseline `489c9606441618e898f21eafb0443a9ca33474ad`, TeamFrame has two implemented roles:
+TeamFrame has two implemented auth roles:
 
 1. `admin`
 2. `employee`
 
-The market-ready programme approves **bounded manager delegation**, but it has not yet been implemented. Do not add ad hoc roles or client-side role shortcuts. Manager delegation must be designed and tested under `TEAMFRAME_MARKET_READY_EXECUTION_REGISTER.md`, especially `TF-MR-008`.
+Manager delegation is implemented as bounded direct-report authority derived from the reporting relationship. It is not a third broad RBAC role. Do not add ad hoc roles or client-side role shortcuts.
 
 ## Market-Ready Manager Delegation Boundary
 
-When TF-MR-008 is implemented, managers may, for authorised direct reports only:
+Managers may, for authorised direct reports only:
 
 - approve/decline leave;
 - contribute to onboarding;
@@ -50,9 +50,9 @@ Prefer deriving manager/reporting relationships from existing employee/org struc
 | View any profile in full | yes | no |
 | Create/update/archive employee | yes | no |
 | View/edit compensation | yes, where implemented | no |
-| Upload document for any employee | yes | no current general self-upload workflow |
+| Upload document for any employee | yes | own requested documents only |
 | Submit own leave request | yes, if linked employee | yes |
-| Approve/reject leave | yes | no |
+| Approve/reject leave | yes | direct-report manager only where authorised |
 | Manage policies | yes | no |
 | Acknowledge assigned policies | no normal admin need | yes |
 | Manage Org Chart positions/JDs | yes | no |

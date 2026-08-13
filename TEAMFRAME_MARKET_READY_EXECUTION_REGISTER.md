@@ -20,7 +20,7 @@ Where older repository documents conflict with this register, this register and 
 | Guards | PASS, 4/4 |
 | Build | PASS |
 
-Technical verification confirms the starting foundation only. It does not mean market-ready implementation is complete.
+Technical verification confirmed the starting foundation only. Market-ready implementation was subsequently completed, runtime-verified and locked through MR-8.
 
 ## Current Programme Checkpoints
 
@@ -37,7 +37,17 @@ The following implementation checkpoints have been locally completed and product
 - MR-7 Offboarding
 - MR-8 Control Centre / Reliability / Release Closure
 
-Final full-system disposable E2E release verification completed on 2026-08-12 at `268d9682d15e6c4afb4c83dbfde76b8b531f541d`. The final verification found and fixed one bounded release blocker in the Who's Away projection. No P0 or P1 market-ready blocker remained after the final gate.
+Final full-system disposable E2E release verification completed on 2026-08-12. The final verification found and fixed one bounded release blocker in the Who's Away projection. Final visual production-readiness and mobile containment verification completed at `0f72d633dcb9ef436e146e87c1f6b9366c761bda`.
+
+Additional release checkpoints:
+
+- Final Full-System E2E - COMPLETE
+- Final Visual Readiness - COMPLETE
+- Final Visual Correction Pass - COMPLETE
+- Final Mobile Fit Verification - COMPLETE
+- Production Release - CURRENT OPERATIONS PHASE
+
+No P0 or P1 market-ready blocker remains after the final gate.
 
 ## Decision Values
 
@@ -114,10 +124,10 @@ Do not mark a market-ready requirement implemented merely because a partial prim
 | TF-MR-019 | MR-6 - Leave | Add overlap/conflict detection into request/approval flow and balance warning/block with authorised override for insufficient annual leave. | Conflict detection, pending reservation, approval/decline and authorised override implemented. | IMPLEMENT | P0 | TF-MR-017, TF-MR-018 | IMPLEMENTED | LOCKED | Manager routing integrates through TF-MR-008; cross-year Annual Leave requests are rejected. |
 | TF-MR-020 | MR-7 - Offboarding | Add complete offboarding workflow with end date, checklist, owners, due dates, handover, access removal, asset return where applicable, final HR/payroll inputs and final documents. | Bounded offboarding case/checklist workflow implemented. | IMPLEMENT | P0 | TF-MR-002, TF-MR-004, TF-MR-009, TF-MR-013 | IMPLEMENTED | LOCKED | FORMER requires end date reached plus required exit work complete. |
 | TF-MR-021 | MR-7 - Offboarding | Ensure departure/archive vacates positions, suppresses active reminders, preserves history and handles employee access appropriately. | Position vacancy, former suppression and historical retention runtime-proven. | IMPLEMENT | P0 | TF-MR-020 | IMPLEMENTED | LOCKED | Do not delete HR history merely because employment ended. |
-| TF-MR-022 | MR-8 - Reliability & Product Truth | Remove ambiguous success/failure in mutations and exports. | Export signed-url failures now retire unusable metadata and preserve failed file-operation truth. | IMPLEMENT | P0 | Relevant workflows | IMPLEMENTED | SOURCE VERIFIED | Founder must never guess whether an action succeeded. Runtime verification remains part of MR-8 lock. |
-| TF-MR-023 | MR-8 - Reliability & Product Truth | Make the HR Control Centre/dashboard operationally truthful: integrate due, overdue, decision and exception states across market-ready workflows while preserving durable Resolution/history and avoiding unnecessary Signal inflation. | Dashboard now derives current state from authoritative domain rows instead of request-time signal reconciliation. | IMPLEMENT | P1 | TF-MR-004, TF-MR-014 | IMPLEMENTED | SOURCE VERIFIED | Avoid disappearing progress evidence and do not force every routine task into a Signal. |
-| TF-MR-024 | MR-8 - Reliability & Product Truth | Verify/fix false-success vacant-position deletion and preserve regression coverage. | Existing position service rejects unsafe deletion with `POSITION_DELETE_UNSAFE`; MR-8 runtime must prove current behaviour. | VERIFY DURING IMPLEMENTATION | P1 | Runtime verification | IMPLEMENTED | SOURCE VERIFIED | Treat previous browser finding as stale unless reproduced against current source. |
-| TF-MR-025 | MR-8 - Reliability & Product Truth | Close Sentry/App Router observability warnings before production readiness. | Build-time observability warnings are tracked as a production-readiness gate rather than product functionality. | IMPLEMENT | P2 | Production observability closure | IN PROGRESS | SOURCE VERIFIED | Must be resolved or formally accepted before final market-ready release. |
+| TF-MR-022 | MR-8 - Reliability & Product Truth | Remove ambiguous success/failure in mutations and exports. | Export success, secure retrieval, controlled failure and bounded retry runtime-proven. | IMPLEMENT | P0 | Relevant workflows | IMPLEMENTED | LOCKED | Founder must never guess whether an action succeeded. |
+| TF-MR-023 | MR-8 - Reliability & Product Truth | Make the HR Control Centre/dashboard operationally truthful: integrate due, overdue, decision and exception states across market-ready workflows while preserving durable Resolution/history and avoiding unnecessary Signal inflation. | Dashboard derives current state from authoritative domain rows; count/list truth and durable resolution recurrence are runtime-proven. | IMPLEMENT | P1 | TF-MR-004, TF-MR-014 | IMPLEMENTED | LOCKED | Avoid disappearing progress evidence and do not force every routine task into a Signal. |
+| TF-MR-024 | MR-8 - Reliability & Product Truth | Verify/fix false-success vacant-position deletion and preserve regression coverage. | Unsafe deletion is rejected truthfully with regression coverage. | VERIFY DURING IMPLEMENTATION | P1 | Runtime verification | IMPLEMENTED | LOCKED | Previous browser finding closed against current source. |
+| TF-MR-025 | MR-8 - Reliability & Product Truth | Close Sentry/App Router observability warnings before production readiness. | Sentry/App Router instrumentation corrected and verified. | IMPLEMENT | P2 | Production observability closure | IMPLEMENTED | LOCKED | Production observability still requires real production DSN/environment configuration. |
 
 ## MR-8 Reliability Register
 
@@ -130,14 +140,17 @@ Do not mark a market-ready requirement implemented merely because a partial prim
 | Vacant-position deletion had a historical browser false-success report. | Current source contains unsafe-delete rejection; runtime verification remains required for MR-8 lock. |
 | Automation failure/retry state could be invisible to founders. | Failed/escalated automation items are surfaced as overdue exceptions in the Control Centre. |
 
-## Execution Order
+## Execution History
 
-1. MR-0 / MR-1 foundation: guided setup and canonical lifecycle.
-2. MR-2 operating layer: events, jobs, reminders, escalation and completion conditions.
-3. MR-4/MR-5 evidence flows: onboarding, document requests, policy attachments and evidence closure.
-4. MR-6/MR-3 delegation: leave types/balances/conflicts and bounded manager delegation.
-5. MR-7 offboarding workflow.
-6. MR-8 reliability/product-truth closure and full release verification.
+1. MR-0 / MR-1 foundation: guided setup and canonical lifecycle - LOCKED.
+2. MR-2 operating layer: events, jobs, reminders, escalation and completion conditions - LOCKED.
+3. MR-3A people truth: effective-dated employment changes - LOCKED.
+4. MR-4/MR-5 evidence flows: onboarding, document requests, policy attachments and evidence closure - LOCKED.
+5. MR-6/MR-3B leave and delegation: balances, conflicts and bounded manager delegation - LOCKED.
+6. MR-7 offboarding workflow - LOCKED.
+7. MR-8 reliability/product-truth closure - LOCKED.
+8. Final full-system E2E and visual/mobile readiness verification - COMPLETE.
+9. Production release preparation/deployment - CURRENT OPERATIONS PHASE.
 
 ## Scope-Control Rule
 

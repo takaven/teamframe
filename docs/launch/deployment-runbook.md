@@ -1,5 +1,9 @@
 # Deployment Runbook — TeamFrame
 
+> **HISTORICAL / SUPERSEDED — NOT GOVERNING CURRENT PRODUCTION RELEASE**
+>
+> Retained for launch-era provenance. Current production release and operations instructions are governed by `../../TEAMFRAME_PRODUCTION_RUNBOOK.md`.
+
 **Phase:** 1D — Stabilization  
 **Status:** Operator-ready
 

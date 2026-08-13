@@ -2,7 +2,7 @@
 ## Governing Product Definition for Market-Ready Implementation
 
 **STATUS: CANONICAL / CONTROLLING**
-**Purpose:** Freeze the market-ready TeamFrame product scope for bounded implementation.
+**Purpose:** Record the market-ready TeamFrame product scope that has now been implemented and release-verified.
 **Audience:** Product owner, Codex, engineering reviewers, QA/release reviewers.
 **Important:** Where older repository documents conflict with this file, this file controls unless explicitly superseded by a later product-owner decision.
 
@@ -33,7 +33,10 @@ Technical verification: **COMPLETE**.
 Baseline: `489c9606441618e898f21eafb0443a9ca33474ad`.
 Final technical verdict: controlled extension, no rewrite required.
 Product-scope reconciliation: **COMPLETE**.
-Next phase: bounded implementation against `TEAMFRAME_MARKET_READY_EXECUTION_REGISTER.md`.
+Market-ready implementation: **COMPLETE**.
+Final full-system E2E: **COMPLETE**.
+Final visual production-readiness: **COMPLETE**.
+Current phase: production release preparation and deployment against `TEAMFRAME_PRODUCTION_RUNBOOK.md`.
 
 ---
 
@@ -797,7 +800,7 @@ The system should be usable without the TeamFrame team manually configuring, exp
 
 ---
 
-# 15. GOVERNANCE FOR NEXT PHASE
+# 15. GOVERNANCE FOR PRODUCTION PHASE
 
 ## Technical verification
 
@@ -815,13 +818,15 @@ Product-scope reconciliation is complete. The current governing set is:
 
 ## Implementation
 
-Codex then executes bounded workstreams.
+Bounded workstreams MR-0 through MR-8 have been implemented, verified, reviewed and locked.
 
-Each workstream must be:
+Future source changes should now be driven by:
 
-> implemented → tested → independently reviewed → locked
+- production defects;
+- customer feedback;
+- separately approved product development.
 
-before unnecessary new scope is introduced.
+Do not reopen the market-ready scope merely because an additional HRIS feature is useful or common elsewhere.
 
 ---
 
