@@ -45,6 +45,23 @@ create table if not exists leaves (
   )
 );
 
+create table if not exists leave_opening_adjustments (
+  id uuid primary key default gen_random_uuid(),
+  tenant_id uuid not null references companies(id) on delete restrict,
+  employee_id uuid not null,
+  period_year integer not null,
+  leave_type leave_type not null default 'annual',
+  used_days numeric(6,2) not null default 0,
+  note text,
+  created_by_user_id uuid not null,
+  created_at timestamptz not null default now(),
+  constraint leave_opening_adjustments_employee_fk
+    foreign key (tenant_id, employee_id) references employees(tenant_id, id) on delete cascade,
+  constraint leave_opening_adjustments_unique unique (tenant_id, employee_id, period_year, leave_type),
+  check (period_year between 2000 and 2200),
+  check (used_days >= 0)
+);
+
 alter table leaves add column if not exists tenant_id uuid;
 alter table leaves add column if not exists updated_at timestamptz not null default now();
 alter table leaves add column if not exists leave_type leave_type not null default 'annual';
@@ -82,6 +99,7 @@ create index if not exists leaves_type_idx        on leaves(tenant_id, leave_typ
 create index if not exists leaves_period_idx      on leaves(tenant_id, employee_id, start_date, end_date);
 create index if not exists leaves_approval_automation_idx on leaves(tenant_id, approval_automation_item_id)
   where approval_automation_item_id is not null;
+create index if not exists leave_opening_adjustments_employee_idx on leave_opening_adjustments(tenant_id, employee_id);
 
 create or replace function leaves_touch_updated_at()
 returns trigger

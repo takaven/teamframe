@@ -27,5 +27,6 @@ export const SCHEMA_ORDER = [
   "file_lifecycle.sql",
   "tenancy_rls.sql",
   "tenancy_rls_v2.sql",
+  "access_model.sql",
   "offboarding.sql",
 ];

@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { requireTenantRole } from "@/middleware/rbac";
+import { requireTenantCapability } from "@/middleware/rbac";
 import { completeGuidedCompanySetup } from "@/services/companySetupService";
 import { logAction } from "@/lib/telemetry/logger";
 import { captureActionError } from "@/lib/telemetry/sentry";
@@ -35,11 +35,11 @@ function getErrorCode(error: unknown): string {
 export async function completeGuidedSetupAction(formData: FormData): Promise<void> {
   const start = Date.now();
   const requestId = crypto.randomUUID();
-  let actor: Awaited<ReturnType<typeof requireTenantRole>> | null = null;
+  let actor: Awaited<ReturnType<typeof requireTenantCapability>> | null = null;
   let caughtError: unknown = null;
 
   try {
-    actor = await requireTenantRole("admin");
+    actor = await requireTenantCapability("company_access_settings");
     const parsed = SetupFormSchema.parse({
       company_name: formData.get("company_name"),
       country: formData.get("country"),

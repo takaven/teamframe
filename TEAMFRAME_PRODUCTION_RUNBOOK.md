@@ -31,6 +31,7 @@ Production deployment must use an explicitly identified production Vercel projec
 | Authentication | Supabase Auth in the production project |
 | File storage | Supabase Storage private `documents` bucket |
 | Authorization | Server-side RBAC, service-layer authorization, Supabase RLS |
+| Deployment ownership | Platform Owner with MFA/AAL2 |
 | Background automation | Protected `/api/automation/run` runner invoked by approved scheduler |
 | Observability | Public health, protected deep health, Sentry where configured, deployment logs |
 | Source control | GitHub repository and release tag |
@@ -68,6 +69,9 @@ The local `.vercel/project.json` must be inspected before deployment. If it poin
 | `NEXT_PUBLIC_PILOT_CONTACT_EMAIL` | Landing-page contact CTA | Optional | Client | Product owner |
 | `SUPABASE_ACCESS_TOKEN` | Supabase management/CLI operations | Operator only, not runtime | Local/CI secret | Supabase account token |
 | `SEED_ADMIN_PASSWORD` | One-time bootstrap admin password | Bootstrap only | Local shell/env only | Generated for intended admin |
+| `PLATFORM_OWNER_EMAIL` | Real Platform Owner email | Final provisioning only | Local shell/env only | Product owner supplied |
+| `PLATFORM_OWNER_NAME` | Real Platform Owner name | Final provisioning only | Local shell/env only | Product owner supplied |
+| `PLATFORM_OWNER_PASSWORD` | Initial Platform Owner password | Final provisioning only | Local shell/env only | Generated securely |
 
 Never commit `.env`, `.env.local`, production credential files, screenshots containing tokens or provider dashboards containing secrets.
 
@@ -99,11 +103,21 @@ npm run storage:setup
 
 Do not seed synthetic tenants, employees or visual-audit fixtures into production.
 
-## 6. Production Admin Provisioning
+## 6. Platform Owner Provisioning
 
 Production does not use ordinary open signup.
 
-Provision the first intended production administrator through the supported bootstrap path:
+Platform Owner is provisioned through the dedicated Platform Owner mechanism, not the tenant-admin bootstrap:
+
+```bash
+PLATFORM_OWNER_EMAIL='<real-email>' PLATFORM_OWNER_NAME='<real-name>' PLATFORM_OWNER_PASSWORD='<initial-password>' npm run provision:platform-owner
+```
+
+Do not invent the email address. If the real Platform Owner identity has not been supplied, stop before real account creation. The production access architecture may still be deployed.
+
+Platform Owner activation is not complete until TOTP enrollment and an AAL2 login to `/platform` are verified.
+
+Customer Full Access/Admin users are provisioned through the access/provisioning model or controlled setup flow. Legacy bootstrap remains available for controlled recovery only:
 
 ```bash
 SEED_ADMIN_PASSWORD='<production-admin-password>' npm run seed:admin -- admin@example.com "Admin Name" "Founder" "Leadership" "UTC"
@@ -178,14 +192,28 @@ Before production use, confirm:
 
 ## 11. Backup / Recovery
 
-Before first real customer data, confirm:
+Before production migrations, create a fresh logical production database backup/export using the supported Supabase CLI/`pg_dump` path and record:
 
-- production Supabase backup mechanism;
+- timestamp;
+- source project ref;
+- secure backup location;
+- successful completion;
+- restore procedure.
+
+Do not print database credentials. Do not commit the backup.
+
+Before first real customer HR data, confirm:
+
+- provider-managed daily backups are enabled on the production Supabase project;
 - retention period where known;
 - recovery owner;
 - recovery procedure;
 - whether PITR or provider-managed backup is enabled;
 - whether any non-destructive recovery verification has been performed.
+
+If the production project is on a tier without provider-managed daily backups at first-customer activation, upgrade production before loading real customer HR data.
+
+PITR is not required for initial launch.
 
 Do not run destructive restore tests against production.
 

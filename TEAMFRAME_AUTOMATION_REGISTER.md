@@ -11,6 +11,7 @@ Implementation status:
 - The runner must be invoked only with the server-only `TEAMFRAME_AUTOMATION_SECRET` via `x-teamframe-automation-secret` or `Authorization: Bearer <secret>`. Vercel Cron invokes the same endpoint with `Authorization: Bearer $CRON_SECRET`; production sets `CRON_SECRET` to the same generated automation secret.
 - Production scheduling must use the approved Vercel Cron or equivalent trusted scheduler for the production deployment target.
 - The runner is idempotent: repeated or overlapping invocations must not duplicate business effects.
+- Ordinary tenant automation must not process suspended or closed companies except for explicitly approved platform/recovery operations.
 - Completion suppression, recurrence, retry/failure visibility and human/system audit attribution are verified release behaviour.
 
 Notification levels:

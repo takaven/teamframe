@@ -547,17 +547,45 @@ $$;
 drop function if exists teamframe_submit_leave(uuid, uuid, uuid, date, date);
 drop function if exists teamframe_decide_leave(uuid, uuid, uuid, leave_status, timestamptz);
 
+drop function if exists teamframe_calculate_leave_days(date, date);
 create or replace function teamframe_calculate_leave_days(
+  p_tenant_id uuid,
+  p_employee_id uuid,
   p_start_date date,
   p_end_date date
 )
 returns numeric
-language sql
-immutable
+language plpgsql
+stable
 as $$
+declare
+  v_working_days smallint[];
+  v_days numeric;
+begin
+  select coalesce(e.working_days_override, c.default_working_days)
+  into v_working_days
+  from employees e
+  join companies c on c.id = e.tenant_id
+  where e.tenant_id = p_tenant_id
+    and e.id = p_employee_id;
+
+  if v_working_days is null or cardinality(v_working_days) = 0 then
+    raise exception 'INVALID_WORKING_DAYS';
+  end if;
+
   select count(*)::numeric
+  into v_days
   from generate_series(p_start_date, p_end_date, interval '1 day') as leave_day(day)
-  where extract(isodow from leave_day.day) between 1 and 5
+  where extract(isodow from leave_day.day)::smallint = any(v_working_days)
+    and not exists (
+      select 1
+      from company_holidays ch
+      where ch.tenant_id = p_tenant_id
+        and ch.holiday_date = leave_day.day::date
+    );
+
+  return coalesce(v_days, 0);
+end;
 $$;
 
 create or replace function teamframe_submit_leave(
@@ -625,7 +653,7 @@ begin
     raise exception 'LEAVE_OVERLAP';
   end if;
 
-  v_days := teamframe_calculate_leave_days(p_start_date, p_end_date);
+  v_days := teamframe_calculate_leave_days(p_tenant_id, p_employee_id, p_start_date, p_end_date);
   if v_days <= 0 then
     raise exception 'INVALID_INPUT';
   end if;
@@ -698,6 +726,7 @@ declare
   v_leave leaves;
   v_company companies;
   v_allocation numeric(8,2);
+  v_opening_used numeric(8,2);
   v_pending numeric(8,2);
   v_approved numeric(8,2);
   v_available numeric(8,2);
@@ -752,7 +781,19 @@ begin
       where id = p_tenant_id
       for update;
 
-      v_allocation := coalesce(v_company.annual_leave_default_days, 0)::numeric;
+      select coalesce(e.annual_leave_entitlement_override, v_company.annual_leave_default_days::numeric, 0)
+      into v_allocation
+      from employees e
+      where e.tenant_id = p_tenant_id
+        and e.id = v_leave.employee_id;
+      select coalesce(sum(loa.used_days), 0)
+      into v_opening_used
+      from leave_opening_adjustments loa
+      where loa.tenant_id = p_tenant_id
+        and loa.employee_id = v_leave.employee_id
+        and loa.leave_type = 'annual'
+        and loa.period_year = extract(year from v_leave.start_date)::integer;
+
       select coalesce(sum(l.requested_days), 0)
       into v_pending
       from leaves l
@@ -772,7 +813,7 @@ begin
         and l.status = 'approved'
         and extract(year from l.start_date) = extract(year from v_leave.start_date);
 
-      v_available := v_allocation - v_pending - v_approved;
+      v_available := v_allocation - coalesce(v_opening_used, 0) - v_pending - v_approved;
       if v_leave.requested_days > v_available and not p_override_insufficient_balance then
         raise exception 'LEAVE_INSUFFICIENT_BALANCE';
       end if;
@@ -1094,7 +1135,7 @@ revoke all on function teamframe_complete_guided_company_setup(
 ) from public, anon, authenticated;
 revoke all on function teamframe_update_employee(uuid, uuid, uuid, timestamptz, jsonb) from public, anon, authenticated;
 revoke all on function teamframe_archive_employee(uuid, uuid, uuid, timestamptz) from public, anon, authenticated;
-revoke all on function teamframe_calculate_leave_days(date, date) from public, anon, authenticated;
+revoke all on function teamframe_calculate_leave_days(uuid, uuid, date, date) from public, anon, authenticated;
 revoke all on function teamframe_submit_leave(uuid, uuid, uuid, date, date, leave_type, text) from public, anon, authenticated;
 revoke all on function teamframe_decide_leave(uuid, uuid, uuid, leave_status, timestamptz, boolean, text, text) from public, anon, authenticated;
 revoke all on function teamframe_withdraw_leave(uuid, uuid, uuid, uuid, timestamptz, text) from public, anon, authenticated;
@@ -1116,7 +1157,7 @@ grant execute on function teamframe_complete_guided_company_setup(
 ) to service_role;
 grant execute on function teamframe_update_employee(uuid, uuid, uuid, timestamptz, jsonb) to service_role;
 grant execute on function teamframe_archive_employee(uuid, uuid, uuid, timestamptz) to service_role;
-grant execute on function teamframe_calculate_leave_days(date, date) to service_role;
+grant execute on function teamframe_calculate_leave_days(uuid, uuid, date, date) to service_role;
 grant execute on function teamframe_submit_leave(uuid, uuid, uuid, date, date, leave_type, text) to service_role;
 grant execute on function teamframe_decide_leave(uuid, uuid, uuid, leave_status, timestamptz, boolean, text, text) to service_role;
 grant execute on function teamframe_withdraw_leave(uuid, uuid, uuid, uuid, timestamptz, text) to service_role;

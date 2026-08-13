@@ -54,7 +54,7 @@ function requireTenant(actor: Actor): string {
 }
 
 function requireAdmin(actor: Actor): void {
-  if (actor.role !== "admin") throw new Error("FORBIDDEN");
+  if (actor.role !== "admin" && !actor.isPlatformOwner) throw new Error("FORBIDDEN");
 }
 
 function removeUndefinedValues(value: Record<string, unknown>): Record<string, unknown> {

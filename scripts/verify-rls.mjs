@@ -5,12 +5,13 @@
  *
  * Setup (uses service-role — the ONE permitted use):
  *   Seeds tenant_a + tenant_b companies, 3 employees each (1 admin + 2 non-admin),
- *   creates Supabase auth users, sets app_metadata.tenant_id + role.
+ *   creates Supabase auth users, sets compatibility app_metadata, and creates
+ *   tenant membership rows for the current production access model.
  *
  * Probes (all run with anon key + authenticated user JWT — never service-role):
  *   1. App-layer isolation: tenant_a admin queries employees → only tenant_a rows
  *   2. Raw SQL isolation: tenant_a admin queries known tenant_b IDs → 0 rows
- *   3. Missing-tenant probe: user with no tenant_id claim → 0 rows (v2 guarantee)
+ *   3. Missing-membership probe: user with no active tenant membership → 0 rows
  *   4. Admin-boundary probes (one per domain):
  *      4a. updateEmployee — non-admin → 0 rows modified (FORBIDDEN)
  *      4b. approveLeave  — non-admin → 0 rows modified (FORBIDDEN)
@@ -110,7 +111,18 @@ async function cleanup() {
   const tenantIds = (existingCompanies ?? []).map((c) => c.id);
   if (tenantIds.length === 0) return;
 
-  for (const table of ["documents", "audit_logs", "onboarding_tasks", "leaves", "employees"]) {
+  for (const table of [
+    "membership_access_rules",
+    "tenant_access_invitations",
+    "tenant_memberships",
+    "leave_opening_adjustments",
+    "setup_import_batches",
+    "documents",
+    "audit_logs",
+    "onboarding_tasks",
+    "leaves",
+    "employees",
+  ]) {
     const { error: delErr } = await adminClient.from(table).delete().in("tenant_id", tenantIds);
     if (delErr) throw new Error(`[SETUP] Failed to clean ${table}: ${delErr.message}`);
   }
@@ -207,7 +219,8 @@ async function seed() {
     .select("id");
   if (taskBErr) throw new Error(`[SETUP] Tenant B onboarding_task insert failed: ${taskBErr.message}`);
 
-  // Create auth users and set app_metadata (tenant_id + role).
+  // Create auth users, set compatibility app_metadata, and create membership
+  // rows used by the current production access model.
   const authUserIds = {};
   for (const [key, { email, role }] of Object.entries(TEST_USERS)) {
     const tenantId = (key === "no_tenant") ? undefined
@@ -226,6 +239,18 @@ async function seed() {
     // Link auth_user_id to the employee row (if applicable).
     if (tenantId) {
       await adminClient.from("employees").update({ auth_user_id: created.user.id }).eq("email", email).is("deleted_at", null);
+      const employee = [...empA, ...empB].find((row) => row.email === email);
+      if (!employee) throw new Error(`[SETUP] Employee row not found for membership: ${email}`);
+      const { error: membershipErr } = await adminClient.from("tenant_memberships").insert({
+        tenant_id: tenantId,
+        auth_user_id: created.user.id,
+        employee_id: employee.id,
+        email,
+        display_name: email,
+        profile: role === "admin" ? "admin" : "employee",
+        active: true,
+      });
+      if (membershipErr) throw new Error(`[SETUP] Membership create failed for ${email}: ${membershipErr.message}`);
     }
   }
 
@@ -330,15 +355,16 @@ async function main() {
     assert(auditData.length === 0, `[RAW_SQL_PROBE] Got ${auditData.length} audit_log row(s) for tenant_b.`);
   });
 
-  // ── Probe 3: Missing-tenant probe ─────────────────────────────────────────
-  // User with no app_metadata.tenant_id → v2 returns NULL → RLS blocks all rows.
-  await runProbe("3. Missing-tenant probe (no JWT tenant_id → 0 rows)", async () => {
+  // ── Probe 3: Missing-membership probe ─────────────────────────────────────
+  // User with no active tenant membership → current_actor_tenant_id() returns
+  // NULL → RLS blocks all tenant rows.
+  await runProbe("3. Missing-membership probe (no active membership → 0 rows)", async () => {
     const { data, error } = await noTenantClient.from("employees").select("id, tenant_id");
     if (error) throw new Error(`Query error: ${error.message}`);
     assert(
       data.length === 0,
       `[MISSING_TENANT] Expected 0 rows but got ${data.length}. ` +
-      "v2 current_actor_tenant_id() should return NULL for sessions without app_metadata.tenant_id."
+      "current_actor_tenant_id() should return NULL for sessions without an active membership."
     );
   });
 

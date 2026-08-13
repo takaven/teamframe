@@ -77,7 +77,7 @@ export default async function PoliciesPage({
   const actor = await requireTenantActor();
   const { status, error } = await searchParams;
 
-  if (actor.role !== "admin") {
+  if (actor.role !== "admin" && !actor.isPlatformOwner) {
     // Employees acknowledge policies from their self-service hub.
     redirect("/me");
   }

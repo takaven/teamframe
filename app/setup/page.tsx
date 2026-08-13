@@ -1,19 +1,16 @@
 import { AppShell } from "@/components/AppShell";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
-import { requireTenantRole } from "@/middleware/rbac";
+import { requireTenantCapability } from "@/middleware/rbac";
 import { getCompanySetupState } from "@/services/companySetupService";
 import { completeGuidedSetupAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
-const DEFAULT_POSITIONS = `Managing Director | Leadership
+const POSITIONS_PLACEHOLDER = `Managing Director | Leadership
 Head of Operations | Operations | Managing Director
-Operations Coordinator | Operations | Head of Operations
-Finance Manager | Finance | Managing Director
-Product Lead | Product | Managing Director`;
+Operations Coordinator | Operations | Head of Operations`;
 
-const DEFAULT_EMPLOYEES = `Amina Rahman | amina.rahman@setup.example | Managing Director | Leadership | 2026-08-17
-Mateo Silva | mateo.silva@setup.example | Operations Coordinator | Operations | 2026-08-24`;
+const EMPLOYEES_PLACEHOLDER = `Full Name | email@company.com | Role title | Department | YYYY-MM-DD`;
 
 const ERROR_COPY: Record<string, string> = {
   INVALID_INPUT: "Check the required fields and try again.",
@@ -33,7 +30,7 @@ export default async function SetupPage({
 }: {
   searchParams?: Promise<{ error?: string; status?: string }>;
 }) {
-  const actor = await requireTenantRole("admin");
+  const actor = await requireTenantCapability("company_access_settings");
   const company = await getCompanySetupState(actor);
   const params = (await searchParams) ?? {};
   const error = params.error ? ERROR_COPY[params.error] ?? "Setup could not be completed. Check the details and try again." : null;
@@ -117,7 +114,7 @@ export default async function SetupPage({
                 name="positions"
                 required
                 rows={8}
-                defaultValue={DEFAULT_POSITIONS}
+                placeholder={POSITIONS_PLACEHOLDER}
                 className="mt-4 w-full rounded-lg border border-[color:var(--border-default)] bg-white px-3 py-2 font-mono text-[13px] leading-6 text-ink-800"
               />
             </section>
@@ -132,7 +129,7 @@ export default async function SetupPage({
                 name="employees"
                 required
                 rows={7}
-                defaultValue={DEFAULT_EMPLOYEES}
+                placeholder={EMPLOYEES_PLACEHOLDER}
                 className="mt-4 w-full rounded-lg border border-[color:var(--border-default)] bg-white px-3 py-2 font-mono text-[13px] leading-6 text-ink-800"
               />
             </section>

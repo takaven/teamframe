@@ -5,9 +5,10 @@
  * the documented install pipeline actually produced a working system:
  *
  *   A. schema-apply    — every file in SCHEMA_ORDER applies cleanly (idempotent re-apply).
- *   B. tenancy-rls-v2  — the LIVE definition of current_actor_tenant_id() is the V2
- *                        JWT-only version (no email fallback), and the V2 unique
- *                        index exists. Queried from the pg catalog, not the files.
+ *   B. tenancy-rls-v2  — the LIVE definition of current_actor_tenant_id() is
+ *                        the current membership-backed version (no V1 email
+ *                        fallback), and the V2 unique index exists. Queried
+ *                        from the pg catalog, not the files.
  *   C. required-objects— all tables, the employees_public view, the tenancy helper
  *                        functions exist, and RLS is enabled on every table.
  *   D. seed-admin      — `seed:admin` produces a login-capable admin: runs the script
@@ -64,6 +65,15 @@ const TABLES_BY_MIGRATION = {
   "document_requirements.sql": ["document_requirements"],
   "employment_changes.sql": ["employment_changes"],
   "early_employment.sql": ["employee_join_initializations", "onboarding_check_ins", "probation_reviews"],
+  "access_model.sql": [
+    "platform_owners",
+    "platform_owner_transfer_requests",
+    "tenant_memberships",
+    "tenant_access_invitations",
+    "membership_access_rules",
+    "setup_import_batches",
+    "leave_opening_adjustments",
+  ],
   "offboarding.sql": ["offboarding_cases", "offboarding_items"],
 };
 const REQUIRED_TABLES = SCHEMA_ORDER.flatMap((f) =>
@@ -131,8 +141,8 @@ async function assertTenancyRlsV2() {
   `);
   if (rows.length === 0) throw new Error("current_actor_tenant_id() does not exist");
   const def = rows[0].def;
-  if (!def.includes("app_metadata")) {
-    throw new Error("current_actor_tenant_id() does not read JWT app_metadata");
+  if (!def.includes("tenant_memberships")) {
+    throw new Error("current_actor_tenant_id() does not read tenant_memberships");
   }
   // The V1 fallback resolved tenant_id by email from the employees table.
   if (/from\s+employees/i.test(def) || /current_actor_email/i.test(def)) {
@@ -147,7 +157,7 @@ async function assertTenancyRlsV2() {
   if (idx.length === 0) {
     throw new Error("unique index employees_tenant_email_active_idx (tenancy_rls_v2.sql) is missing");
   }
-  return "live current_actor_tenant_id() is JWT-only (no email fallback); V2 unique index present";
+  return "live current_actor_tenant_id() is membership-backed (no V1 email fallback); V2 unique index present";
 }
 
 async function assertRequiredObjects() {

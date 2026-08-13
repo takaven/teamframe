@@ -13,6 +13,11 @@ import type { Actor } from "@/middleware/rbac";
 import { randomUUID } from "node:crypto";
 import { Buffer } from "node:buffer";
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
+import {
+  canReadPrivateDocuments,
+  canRunFinanceExport,
+  requireCapability,
+} from "@/lib/rbac/access";
 import { logAction } from "@/lib/telemetry/logger";
 import { captureActionError } from "@/lib/telemetry/sentry";
 import { runSignalEngineForTenant } from "@/services/signalEngine";
@@ -420,7 +425,7 @@ function requireTenant(actor: Actor): string {
 }
 
 function requireAdmin(actor: Actor): void {
-  if (actor.role !== "admin") throw new Error("FORBIDDEN");
+  if (actor.role !== "admin" && !actor.isPlatformOwner) throw new Error("FORBIDDEN");
 }
 
 function isSchemaMissingColumnError(message: string): boolean {
@@ -773,8 +778,7 @@ async function createExportFileUrl(input: {
 }
 
 async function canReadEmployeeDocuments(actor: Actor, employeeId: string): Promise<boolean> {
-  if (actor.role === "admin") return true;
-  return actor.employeeId === employeeId;
+  return canReadPrivateDocuments(actor, employeeId);
 }
 
 export async function listDocumentsForEmployee(
@@ -820,11 +824,11 @@ export async function uploadDocument(
   try {
     const tenantId = requireTenant(actor);
     if (options.allowEmployeeSelfUpload) {
-      if (actor.role !== "admin" && actor.employeeId !== input.employeeId) {
+      if (!(await canReadPrivateDocuments(actor, input.employeeId))) {
         throw new Error("FORBIDDEN");
       }
     } else {
-      requireAdmin(actor);
+      await requireCapability(actor, "private_employee_documents", { employeeId: input.employeeId });
     }
     const normalizedInputType = normalizeDocumentType(input.type);
     const fileType = validateUploadBeforeBuffer(input.file);
@@ -938,7 +942,7 @@ export async function createDocumentRequirement(
     employeeUploadAllowed?: boolean;
   },
 ): Promise<DocumentRequirementRecord> {
-  requireAdmin(actor);
+  await requireCapability(actor, "people_operations", { employeeId: input.employeeId });
   const tenantId = requireTenant(actor);
   const documentType = normalizeDocumentType(input.documentType);
   const supabase: any = createServiceRoleClient();
@@ -1030,10 +1034,10 @@ export async function uploadDocumentForRequirement(
   if (!["requested", "rejected", "expired", "accepted"].includes(requirement.state)) {
     throw new Error("DOCUMENT_REQUIREMENT_NOT_UPLOADABLE");
   }
-  if (!requirement.employee_upload_allowed && actor.role !== "admin") {
+  if (!requirement.employee_upload_allowed && actor.role !== "admin" && !actor.isPlatformOwner) {
     throw new Error("FORBIDDEN");
   }
-  if (actor.role !== "admin" && actor.employeeId !== requirement.employee_id) {
+  if (actor.role !== "admin" && !actor.isPlatformOwner && actor.employeeId !== requirement.employee_id) {
     throw new Error("FORBIDDEN");
   }
 
@@ -1144,7 +1148,6 @@ export async function reviewDocumentRequirement(
   actor: Actor,
   input: { requirementId: string; decision: "accepted" | "rejected" },
 ): Promise<DocumentRequirementRecord> {
-  requireAdmin(actor);
   const tenantId = requireTenant(actor);
   const supabase: any = createServiceRoleClient();
   const { data: existingData, error: existingError } = await supabase
@@ -1157,6 +1160,7 @@ export async function reviewDocumentRequirement(
   if (existingError) throw new Error(`DOCUMENT_REQUIREMENT_LOOKUP_FAILED: ${existingError.message}`);
   if (!existingData) throw new Error("DOCUMENT_REQUIREMENT_NOT_FOUND");
   const existing = existingData as DocumentRequirementRow;
+  await requireCapability(actor, "people_operations", { employeeId: existing.employee_id });
   if (existing.state !== "received") throw new Error("DOCUMENT_REQUIREMENT_NOT_REVIEWABLE");
 
   const accepted = input.decision === "accepted";
@@ -1223,7 +1227,6 @@ export async function getSignedDownloadUrl(
 }
 
 export async function softDeleteDocument(actor: Actor, documentId: string): Promise<void> {
-  requireAdmin(actor);
   const tenantId = requireTenant(actor);
   const supabase = createServiceRoleClient();
 
@@ -1243,6 +1246,7 @@ export async function softDeleteDocument(actor: Actor, documentId: string): Prom
   }
 
   const document = existing as DocumentRow;
+  await requireCapability(actor, "private_employee_documents", { employeeId: document.employee_id });
   const operationId = await beginFileOperation({
     tenantId,
     kind: "document_delete",
@@ -1284,7 +1288,7 @@ export async function exportEmployeeDocumentsZip(
   actor: Actor,
   employeeId: string,
 ): Promise<Blob> {
-  requireAdmin(actor);
+  await requireCapability(actor, "private_employee_documents", { employeeId });
   const docs = await listDocumentsForEmployee(actor, employeeId);
   const payload = JSON.stringify({
     generated_at: new Date().toISOString(),
@@ -1307,7 +1311,7 @@ export async function exportEmployeeDueDiligencePackUrl(
   actor: Actor,
   employeeId: string,
 ): Promise<string> {
-  requireAdmin(actor);
+  await requireCapability(actor, "private_employee_documents", { employeeId });
   const tenantId = requireTenant(actor);
   const supabase = createServiceRoleClient();
 
@@ -1479,7 +1483,7 @@ export async function exportEmployeeDueDiligencePackUrl(
 }
 
 export async function exportFinanceHandoffUrl(actor: Actor): Promise<string> {
-  requireAdmin(actor);
+  if (!(await canRunFinanceExport(actor))) throw new Error("FORBIDDEN");
   const tenantId = requireTenant(actor);
   const supabase = createServiceRoleClient();
 

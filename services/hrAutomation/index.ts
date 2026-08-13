@@ -367,13 +367,18 @@ export async function runDueAutomationForTenant(input: {
 
 export async function runDueAutomation(input: { now?: Date; limitPerTenant?: number } = {}): Promise<RunDueAutomationResult> {
   const supabase: any = createServiceRoleClient();
-  const { data, error } = await supabase.from("companies").select("id").is("archived_at", null);
+  let { data, error } = await supabase.from("companies").select("id, status").eq("status", "active").is("archived_at", null);
+  if (error && error.message?.toLowerCase().includes("status")) {
+    const legacyResult = await supabase.from("companies").select("id").is("archived_at", null);
+    data = legacyResult.data;
+    error = legacyResult.error;
+  }
 
   if (error) {
     throw new Error(`AUTOMATION_TENANT_LOOKUP_FAILED: ${error.message}`);
   }
 
-  const tenantRows = (data ?? []) as Array<{ id: string }>;
+  const tenantRows = (data ?? []) as Array<{ id: string; status?: string }>;
   const tenantResults: RunDueAutomationForTenantResult[] = [];
   for (const tenant of tenantRows) {
     tenantResults.push(

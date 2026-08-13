@@ -24,7 +24,7 @@ Scope: Full repository cleanup and structural audit readiness pass
 - Manual reference checks confirm dashboard and signal-engine files are in use.
 
 ### 4) Debug, temporary, experimental
-- No active scratch artifacts detected in working tree from temp/system patterns.
+- No active scratch artifacts detected in working tree from temp/platform patterns.
 - Runtime and verification docs in docs/launch/verification are evidence artifacts, not temp code.
 
 ### 5) Duplicate or overlapping implementations
@@ -41,7 +41,7 @@ Scope: Full repository cleanup and structural audit readiness pass
 
 ### 8) Noise
 - node_modules and .next are generated/runtime folders and should remain untracked noise only.
-- No tracked binary/system noise detected in this pass.
+- No tracked binary/platform noise detected in this pass.
 
 ## Phase 2 - Cleanup Execution (Applied Rules)
 

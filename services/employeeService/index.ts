@@ -357,7 +357,7 @@ function requireTenant(actor: Actor): string {
 }
 
 function requireAdmin(actor: Actor): void {
-  if (actor.role !== "admin") {
+  if (actor.role !== "admin" && !actor.isPlatformOwner) {
     throw new Error("FORBIDDEN");
   }
 }
@@ -833,7 +833,7 @@ export async function getEmployee(
   employeeId: string,
 ): Promise<EmployeeFullRecord> {
   const tenantId = requireTenant(actor);
-  if (actor.role !== "admin" && actor.employeeId !== employeeId) {
+  if (actor.role !== "admin" && !actor.isPlatformOwner && actor.employeeId !== employeeId) {
     throw new Error("FORBIDDEN");
   }
 

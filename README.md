@@ -14,6 +14,7 @@ TeamFrame gives founder-led teams the practical HR administration layer they nee
 - [TEAMFRAME_DEFERRED_SCOPE.md](TEAMFRAME_DEFERRED_SCOPE.md) - deferred and out-of-scope work.
 - [TEAMFRAME_RELEASE_READINESS.md](TEAMFRAME_RELEASE_READINESS.md) - release-readiness record.
 - [TEAMFRAME_PRODUCTION_RUNBOOK.md](TEAMFRAME_PRODUCTION_RUNBOOK.md) - production release and operations runbook.
+- [TEAMFRAME_ACCESS_MODEL.md](TEAMFRAME_ACCESS_MODEL.md) - production Platform Owner, customer access and provisioning model.
 
 Older V1/readiness/finalisation documents are retained as provenance. Where they conflict with the files above, the canonical documents control.
 
@@ -32,6 +33,7 @@ Older V1/readiness/finalisation documents are retained as provenance. Where they
 - Offboarding and former-employee closure.
 - HR Control Centre, durable resolution history and operational exceptions.
 - Finance handoff exports.
+- Deployment-level Platform Owner, flexible customer access and setup-pack provisioning.
 
 ## Product Operating Model
 
@@ -46,6 +48,7 @@ TeamFrame is intentionally not payroll, ATS, employee ratings/review software, e
 - Next.js App Router.
 - React and TypeScript.
 - Supabase Postgres, Auth, Storage, RLS and RPCs.
+- Database-backed company memberships, access profiles and scoped capability exceptions.
 - Vercel-compatible application hosting.
 - Protected server-side automation runner.
 - Sentry instrumentation where configured.
@@ -97,7 +100,7 @@ npm run storage:setup
 
 Admins sign in with email and password at `/admin/login`. Employees use magic-link authentication through `/auth`. Open public self-registration is not part of the current auth model.
 
-The auth contract is documented in [docs/auth-rules.md](docs/auth-rules.md).
+The auth contract is documented in [docs/auth-rules.md](docs/auth-rules.md). The production access model is documented in [TEAMFRAME_ACCESS_MODEL.md](TEAMFRAME_ACCESS_MODEL.md).
 
 ### Bootstrap Admin
 

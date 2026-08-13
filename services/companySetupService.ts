@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import type { Actor } from "@/middleware/rbac";
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
+import { requireCapability } from "@/lib/rbac/access";
 
 export type CompanySetupState = {
   id: string;
@@ -42,8 +43,8 @@ function requireTenant(actor: Actor): string {
   return actor.tenantId;
 }
 
-function requireAdmin(actor: Actor): void {
-  if (actor.role !== "admin") throw new Error("FORBIDDEN");
+async function requireCompanySetupAccess(actor: Actor): Promise<void> {
+  await requireCapability(actor, "company_access_settings");
 }
 
 function normaliseTitle(value: string): string {
@@ -133,7 +134,7 @@ export function orderPositionsForCreation(positions: ParsedSetupPosition[]): Par
 }
 
 export async function getCompanySetupState(actor: Actor): Promise<CompanySetupState> {
-  requireAdmin(actor);
+  await requireCompanySetupAccess(actor);
   const tenantId = requireTenant(actor);
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
@@ -148,7 +149,7 @@ export async function getCompanySetupState(actor: Actor): Promise<CompanySetupSt
 }
 
 export async function completeGuidedCompanySetup(actor: Actor, input: unknown): Promise<CompanySetupState> {
-  requireAdmin(actor);
+  await requireCompanySetupAccess(actor);
   const tenantId = requireTenant(actor);
   const current = await getCompanySetupState(actor);
   if (current.setup_completed_at) throw new Error("SETUP_ALREADY_COMPLETED");

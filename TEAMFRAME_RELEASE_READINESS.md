@@ -16,6 +16,8 @@ Production application source:
 
 This file records product readiness and production release provenance.
 
+Production operation additionally requires the independent-deployment Platform Owner, flexible access and setup/handover model documented in `TEAMFRAME_ACCESS_MODEL.md`.
+
 ## Verdict Options
 
 - NOT READY
@@ -36,6 +38,7 @@ This file records product readiness and production release provenance.
 | MR-6 Leave | LOCKED / COMPLETE |
 | MR-7 Offboarding | LOCKED / COMPLETE |
 | MR-8 Control Centre / Reliability | LOCKED / COMPLETE |
+| Independent deployment access and setup/handover | IN PROGRESS |
 | Final full-system disposable E2E | PASS |
 | Final visual correction pass | PASS |
 | Final mobile containment verification | PASS |

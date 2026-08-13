@@ -46,8 +46,11 @@ Additional release checkpoints:
 - Final Visual Correction Pass - COMPLETE
 - Final Mobile Fit Verification - COMPLETE
 - Production Release - LIVE / MERGE PAUSED BY GITHUB BILLING LOCK
+- Platform Access & Customer Provisioning Architecture - IN PROGRESS
 
 No P0 or P1 market-ready blocker remains after the final gate.
+
+The production access/provisioning architecture is governed by `TEAMFRAME_ACCESS_MODEL.md`. This is not a new HR feature workstream; it is the production SaaS control, permission and customer-onboarding architecture required before real customer HR data is introduced.
 
 ## Decision Values
 

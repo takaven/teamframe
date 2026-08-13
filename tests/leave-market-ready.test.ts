@@ -39,11 +39,13 @@ describe("MR-6 leave market-ready scope", () => {
     }
   });
 
-  it("uses Monday-Friday working-day semantics without hourly leave", () => {
+  it("uses configured working-day semantics without hourly leave", () => {
     expect(workingDays("2026-09-07", "2026-09-13")).toBe(5);
     expect(service).toContain("cursor.getUTCDate() + 1");
     expect(mutations).toContain("teamframe_calculate_leave_days");
     expect(mutations).toContain("extract(isodow");
+    expect(mutations).toContain("coalesce(e.working_days_override, c.default_working_days)");
+    expect(mutations).toContain("company_holidays");
     expect(() => workingDays("2026-09-12", "2026-09-13")).toThrow("INVALID_INPUT");
     expect(service).not.toContain("hourly");
     expect(service).not.toContain("accrual_rate");
@@ -55,7 +57,8 @@ describe("MR-6 leave market-ready scope", () => {
     expect(service).toContain("LEAVE_PERIOD_CROSSING");
     expect(mutations).toContain("raise exception 'LEAVE_PERIOD_CROSSING'");
     expect(service).toContain("status\", [\"pending\", \"approved\"]");
-    expect(service).toContain("available: (company.annual_leave_default_days ?? 0) - annual.pending - annual.approved");
+    expect(service).toContain("annual_leave_entitlement_override");
+    expect(service).toContain("annualAllocation - annual.pending - annual.approved");
     expect(service).toContain("periodForYear");
   });
 

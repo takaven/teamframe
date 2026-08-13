@@ -6,15 +6,16 @@
  *
  * Contract:
  *  - server-only (never imported into a client component)
- *  - two roles only: 'admin' | 'employee'
- *  - role is read from Supabase Auth `app_metadata.role`, never from input
- *  - employeeId is resolved by matching session email to employees.email
+ *  - session resolves to Platform Owner, tenant membership, or employee baseline
+ *  - capabilities are database-backed and never accepted from input
  *  - services accept an explicit `Actor` and re-validate authorization
  */
 
 import "server-only";
 import { requireAuthSession } from "./auth";
-import { resolveIdentity, type Role } from "@/lib/rbac/roles";
+import { createServerClient } from "@/lib/db/supabaseServer";
+import { resolveIdentity, type AccessProfile, type ResolvedMembership, type Role } from "@/lib/rbac/roles";
+import { requireCapability } from "@/lib/rbac/access";
 
 /**
  * Thrown when a session has no tenant_id in its JWT app_metadata.
@@ -39,6 +40,12 @@ export type Actor = {
   employeeId: string | null;
   tenantId: string | null;
   role: Role;
+  isPlatformOwner?: boolean;
+  accessProfile?: AccessProfile | "platform_owner";
+  membershipId?: string | null;
+  memberships?: ResolvedMembership[];
+  currentMembership?: ResolvedMembership | null;
+  tenantStatus?: "active" | "suspended" | "closed";
 };
 
 export async function getActor(): Promise<Actor | null> {
@@ -58,14 +65,14 @@ export async function requireActor(): Promise<Actor> {
 
 export async function requireRole(role: Role): Promise<Actor> {
   const actor = await requireActor();
-  if (actor.role !== role) {
+  if (actor.role !== role && !(role === "admin" && actor.isPlatformOwner)) {
     throw new Error("FORBIDDEN");
   }
   return actor;
 }
 
 export async function requireTenantRole(role: Role): Promise<Actor & { tenantId: string }> {
-  const actor = await requireRole(role);
+  const actor = role === "admin" ? await requireTenantCapability("people_operations") : await requireRole(role);
   if (!actor.tenantId) {
     console.error("[TENANT_RESOLUTION_FAIL] requireTenantRole: actor has no tenantId", {
       authUserId: actor.authUserId,
@@ -79,9 +86,22 @@ export async function requireTenantRole(role: Role): Promise<Actor & { tenantId:
 
 export async function requireSelfOrAdmin(targetEmployeeId: string): Promise<Actor> {
   const actor = await requireActor();
-  if (actor.role === "admin") return actor;
-  if (actor.employeeId && actor.employeeId === targetEmployeeId) return actor;
+  if (await requireSelfOrCapability(actor, targetEmployeeId, "people_operations")) return actor;
   throw new Error("FORBIDDEN");
+}
+
+async function requireSelfOrCapability(
+  actor: Actor,
+  targetEmployeeId: string,
+  capability: "people_operations",
+): Promise<boolean> {
+  if (actor.employeeId && actor.employeeId === targetEmployeeId) return true;
+  try {
+    await requireCapability(actor, capability, { employeeId: targetEmployeeId });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function requireLinkedEmployee(): Promise<Actor & { employeeId: string }> {
@@ -105,4 +125,30 @@ export async function requireTenantActor(): Promise<Actor & { tenantId: string }
     throw new MissingTenantContextError();
   }
   return { ...actor, tenantId: actor.tenantId };
+}
+
+export async function requireTenantCapability(
+  capability: "people_operations" | "compensation_view" | "compensation_manage" | "private_employee_documents" | "finance_payroll_exports" | "company_access_settings",
+  target: { employeeId?: string | null; department?: string | null } = {},
+): Promise<Actor & { tenantId: string }> {
+  const actor = await requireTenantActor();
+  await requireCapability(actor, capability, target);
+  return actor;
+}
+
+export async function requirePlatformOwner(): Promise<Actor> {
+  const actor = await requireActor();
+  if (!actor.isPlatformOwner) throw new Error("FORBIDDEN");
+  return actor;
+}
+
+export async function requirePlatformOwnerAal2(): Promise<Actor> {
+  const actor = await requirePlatformOwner();
+  const supabase = await createServerClient();
+  const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (error) throw new Error("MFA_STATUS_UNAVAILABLE");
+  if (data.currentLevel !== "aal2") {
+    throw new Error("MFA_REQUIRED");
+  }
+  return actor;
 }

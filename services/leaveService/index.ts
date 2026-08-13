@@ -101,7 +101,7 @@ function requireTenant(actor: Actor): string {
 }
 
 function requireAdmin(actor: Actor): void {
-  if (actor.role !== "admin") throw new Error("FORBIDDEN");
+  if (actor.role !== "admin" && !actor.isPlatformOwner) throw new Error("FORBIDDEN");
 }
 
 function requireLinkedEmployee(actor: Actor): string {
@@ -136,13 +136,25 @@ function todayIso(now = new Date()): string {
 }
 
 export function calculateLeaveDays(startDate: string, endDate: string): number {
+  return calculateLeaveDaysForCalendar(startDate, endDate, [1, 2, 3, 4, 5], new Set());
+}
+
+export function calculateLeaveDaysForCalendar(
+  startDate: string,
+  endDate: string,
+  workingDays: number[],
+  holidays: Set<string>,
+): number {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate) || endDate < startDate) {
     throw new Error("INVALID_INPUT");
   }
+  if (workingDays.length === 0 || workingDays.some((day) => day < 1 || day > 7)) throw new Error("INVALID_WORKING_DAYS");
   let days = 0;
+  const workdaySet = new Set(workingDays);
   for (let cursor = toDate(startDate); cursor <= toDate(endDate); cursor.setUTCDate(cursor.getUTCDate() + 1)) {
-    const day = cursor.getUTCDay();
-    if (day !== 0 && day !== 6) days += 1;
+    const iso = cursor.toISOString().slice(0, 10);
+    const isoDay = cursor.getUTCDay() === 0 ? 7 : cursor.getUTCDay();
+    if (workdaySet.has(isoDay) && !holidays.has(iso)) days += 1;
   }
   if (days <= 0) throw new Error("INVALID_INPUT");
   return days;
@@ -189,16 +201,27 @@ export async function listLeaveBalancesForEmployee(
   year = new Date().getUTCFullYear(),
 ): Promise<LeaveBalanceSummary[]> {
   const tenantId = requireTenant(actor);
-  if (actor.role !== "admin" && actor.employeeId !== employeeId) {
+  if (actor.role !== "admin" && !actor.isPlatformOwner && actor.employeeId !== employeeId) {
     await assertCurrentDirectManager(actor, employeeId);
   }
   const period = periodForYear(year);
   const supabase = createServiceRoleClient();
-  const [{ data: companyData, error: companyError }, { data: leaveData, error: leaveError }] = await Promise.all([
+  const [
+    { data: companyData, error: companyError },
+    { data: employeeData, error: employeeError },
+    { data: leaveData, error: leaveError },
+    { data: openingData, error: openingError },
+  ] = await Promise.all([
     supabase
       .from("companies")
       .select("annual_leave_default_days, sick_leave_default_days, unpaid_leave_enabled, other_leave_enabled")
       .eq("id", tenantId)
+      .single(),
+    supabase
+      .from("employees")
+      .select("annual_leave_entitlement_override")
+      .eq("tenant_id", tenantId)
+      .eq("id", employeeId)
       .single(),
     supabase
       .from("leaves")
@@ -208,13 +231,26 @@ export async function listLeaveBalancesForEmployee(
       .gte("start_date", period.start)
       .lte("start_date", period.end)
       .in("status", ["pending", "approved"]),
+    supabase
+      .from("leave_opening_adjustments")
+      .select("leave_type, used_days")
+      .eq("tenant_id", tenantId)
+      .eq("employee_id", employeeId)
+      .eq("period_year", year),
   ]);
 
   if (companyError) throw new Error(`LEAVE_COMPANY_FETCH_FAILED: ${companyError.message}`);
+  if (employeeError) throw new Error(`LEAVE_EMPLOYEE_FETCH_FAILED: ${employeeError.message}`);
   if (leaveError) throw new Error(`LEAVE_BALANCE_FETCH_FAILED: ${leaveError.message}`);
+  if (openingError) throw new Error(`LEAVE_OPENING_BALANCE_FETCH_FAILED: ${openingError.message}`);
 
   const byType = new Map<LeaveType, { pending: number; approved: number }>();
   for (const type of LEAVE_TYPES) byType.set(type, { pending: 0, approved: 0 });
+  for (const row of (openingData ?? []) as Array<{ leave_type: LeaveType; used_days: string | number }>) {
+    const bucket = byType.get(row.leave_type) ?? { pending: 0, approved: 0 };
+    bucket.approved += Number(row.used_days);
+    byType.set(row.leave_type, bucket);
+  }
   for (const row of (leaveData ?? []) as Array<{ leave_type: LeaveType; status: LeaveStatus; requested_days: string | number }>) {
     const bucket = byType.get(row.leave_type) ?? { pending: 0, approved: 0 };
     if (row.status === "pending") bucket.pending += Number(row.requested_days);
@@ -228,16 +264,20 @@ export async function listLeaveBalancesForEmployee(
     unpaid_leave_enabled: boolean | null;
     other_leave_enabled: boolean | null;
   };
+  const employee = employeeData as { annual_leave_entitlement_override: string | number | null };
+  const annualAllocation = employee.annual_leave_entitlement_override == null
+    ? (company.annual_leave_default_days ?? 0)
+    : Number(employee.annual_leave_entitlement_override);
 
   const annual = byType.get("annual")!;
   return [
     {
       leave_type: "annual",
       tracked: true,
-      allocation: company.annual_leave_default_days ?? 0,
+      allocation: annualAllocation,
       pending: annual.pending,
       approved_taken: annual.approved,
-      available: (company.annual_leave_default_days ?? 0) - annual.pending - annual.approved,
+      available: annualAllocation - annual.pending - annual.approved,
       period_start: period.start,
       period_end: period.end,
     },
@@ -282,7 +322,7 @@ export async function getLeaveOverviewForEmployee(actor: Actor, employeeId: stri
 
 export async function listLeavesForEmployee(actor: Actor, employeeId: string): Promise<LeaveRecord[]> {
   const tenantId = requireTenant(actor);
-  if (actor.role !== "admin" && actor.employeeId !== employeeId) {
+  if (actor.role !== "admin" && !actor.isPlatformOwner && actor.employeeId !== employeeId) {
     throw new Error("FORBIDDEN");
   }
 

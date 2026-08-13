@@ -15,8 +15,8 @@ describe("MR-3B bounded manager delegation", () => {
     const appShell = read("components/AppShell.tsx");
     const managerAuth = read("services/managerAuthorization.ts");
 
-    expect(roles).toContain('export type Role = "admin" | "employee"');
-    expect(roles).toContain('export const ROLES: readonly Role[] = ["admin", "employee"]');
+    expect(roles).toContain('export type Role = "admin" | "employee" | "platform_owner"');
+    expect(roles).toContain('export const CUSTOMER_ACCESS_PROFILES');
     expect(rbac).not.toContain('"manager"');
     expect(roles).not.toContain('"manager"');
     expect(appShell).not.toContain('href: "/manager"');
@@ -95,7 +95,7 @@ describe("MR-3B bounded manager delegation", () => {
     const employmentChanges = read("services/employmentChangeService/index.ts");
     const managerService = read("services/managerService/index.ts");
 
-    expect(documentService).toContain("requireAdmin(actor)");
+    expect(documentService).toContain('"private_employee_documents"');
     expect(policyService).toContain("requireAdmin(actor)");
     expect(orgPage).not.toContain("/manager");
     expect(employmentChanges).toContain("requireAdmin(actor)");

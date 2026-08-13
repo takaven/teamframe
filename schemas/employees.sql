@@ -20,7 +20,15 @@ create table if not exists employees (
   tenant_id       uuid        not null references companies(id) on delete restrict,
   auth_user_id    uuid unique,
   full_name       text        not null,
+  preferred_name  text,
+  employee_number text,
   email           text        not null,
+  personal_email text,
+  mobile text,
+  residential_address text,
+  date_of_birth date,
+  nationality text,
+  work_location text,
   role_title      text        not null,
   department      text        not null,
   timezone        text        not null,
@@ -41,6 +49,14 @@ create table if not exists employees (
 
 alter table employees add column if not exists tenant_id uuid;
 alter table employees add column if not exists auth_user_id uuid;
+alter table employees add column if not exists preferred_name text;
+alter table employees add column if not exists employee_number text;
+alter table employees add column if not exists personal_email text;
+alter table employees add column if not exists mobile text;
+alter table employees add column if not exists residential_address text;
+alter table employees add column if not exists date_of_birth date;
+alter table employees add column if not exists nationality text;
+alter table employees add column if not exists work_location text;
 alter table employees add column if not exists updated_at timestamptz not null default now();
 alter table employees add column if not exists invite_attempt_count integer not null default 0;
 alter table employees add column if not exists invite_last_attempt_at timestamptz;
@@ -142,11 +158,50 @@ alter table employees add column if not exists employment_type employment_type n
 alter table employees add column if not exists start_date date;
 alter table employees add column if not exists end_date date;
 alter table employees add column if not exists country text;
+alter table employees add column if not exists working_days_override smallint[];
+alter table employees add column if not exists annual_leave_entitlement_override numeric(6,2);
+alter table employees add column if not exists emergency_contact_name text;
+alter table employees add column if not exists emergency_contact_relationship text;
+alter table employees add column if not exists emergency_contact_phone text;
+alter table employees add column if not exists emergency_contact_email text;
 
 create index if not exists employees_lifecycle_state_idx on employees(lifecycle_state);
 create index if not exists employees_employment_type_idx on employees(employment_type);
 create index if not exists employees_start_date_idx on employees(start_date);
 create index if not exists employees_end_date_idx on employees(end_date);
+create unique index if not exists employees_tenant_employee_number_unique
+  on employees(tenant_id, employee_number)
+  where employee_number is not null;
+
+do $$ begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'employees_working_days_override_check'
+      and conrelid = 'employees'::regclass
+  ) then
+    alter table employees
+      add constraint employees_working_days_override_check
+      check (
+        working_days_override is null
+        or (
+          cardinality(working_days_override) between 1 and 7
+          and working_days_override <@ array[1,2,3,4,5,6,7]::smallint[]
+        )
+      );
+  end if;
+end $$;
+
+do $$ begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'employees_annual_leave_entitlement_override_check'
+      and conrelid = 'employees'::regclass
+  ) then
+    alter table employees
+      add constraint employees_annual_leave_entitlement_override_check
+      check (annual_leave_entitlement_override is null or annual_leave_entitlement_override between 0 and 365);
+  end if;
+end $$;
 
 create or replace function employees_touch_updated_at()
 returns trigger

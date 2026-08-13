@@ -1,97 +1,95 @@
 # RBAC Rules
 
+**STATUS: CURRENT / PRODUCTION ACCESS GUARD**
+
+This document summarises the implemented authorization guardrails. The canonical product model is [TEAMFRAME_ACCESS_MODEL.md](../TEAMFRAME_ACCESS_MODEL.md).
+
 ## Core Rule
 
 All authorization is enforced server-side. Client-side checks are UX hints only and never grant access.
 
-Authentication is currently two-tier:
+The implemented access model is:
 
-- admins use email + password at `/admin/login`;
-- employees use magic links at `/auth`.
+```text
+auth identity -> company membership -> profile -> capability/scope rules -> effective access
+```
 
-See [`auth-rules.md`](auth-rules.md).
+Legacy JWT role/tenant claims exist only for compatibility and migration fallback. New ordinary customer permission changes must resolve from database-backed membership and access data.
 
-## Current Implemented Roles
+## Access Profiles
 
-TeamFrame has two implemented auth roles:
+Customer-facing profiles:
 
-1. `admin`
-2. `employee`
+- `Admin`: company-wide People Operations.
+- `Finance`: compensation view and finance handoff.
+- `Full Access`: all company authority, including access settings.
+- `Employee`: self-service baseline.
 
-Manager delegation is implemented as bounded direct-report authority derived from the reporting relationship. It is not a third broad RBAC role. Do not add ad hoc roles or client-side role shortcuts.
+Platform operator:
 
-## Market-Ready Manager Delegation Boundary
+- `Platform Owner`: unrestricted internal operator identity across TeamFrame customer companies, protected by MFA/AAL2 for privileged surfaces.
 
-Managers may, for authorised direct reports only:
+Derived:
 
-- approve/decline leave;
-- contribute to onboarding;
-- provide probation input;
-- complete manager-owned tasks;
-- receive routine escalations.
+- `Manager`: current direct reports only. This is not a manually assigned broad role.
 
-Managers do not automatically gain:
+Flexible:
 
-- private HR document access;
-- company-wide employee access;
-- policy administration;
-- tenant administration;
-- confidential employee-relations information;
-- unrestricted employment-change authority.
+- `Custom Access`: profile plus explicit allow/restrict rules.
 
-Prefer deriving manager/reporting relationships from existing employee/org structure where technically safe. No enterprise RBAC.
+## Capability Matrix
 
-## Current Capability Matrix
+| Capability | Admin | Finance | Full Access | Manager | Employee | Platform Owner |
+| --- | :-: | :-: | :-: | :-: | :-: | :-: |
+| People Operations | company-wide | no | yes | direct reports | own self-service | platform-wide |
+| Compensation view | no by default | yes | yes | direct reports | no | platform-wide |
+| Compensation manage | no | no | yes | no | no | platform-wide |
+| Private documents | metadata only | no | yes | no | own permitted documents | platform-wide |
+| Finance exports | no | yes | yes | no | no | platform-wide |
+| Company/access settings | no by default | no | yes | no | no | platform-wide |
 
-| Capability | admin | employee |
-| --- | :-: | :-: |
-| List all employees | yes | limited org/public fields only where exposed |
-| View own profile | yes | yes |
-| View any profile in full | yes | no |
-| Create/update/archive employee | yes | no |
-| View/edit compensation | yes, where implemented | no |
-| Upload document for any employee | yes | own requested documents only |
-| Submit own leave request | yes, if linked employee | yes |
-| Approve/reject leave | yes | direct-report manager only where authorised |
-| Manage policies | yes | no |
-| Acknowledge assigned policies | no normal admin need | yes |
-| Manage Org Chart positions/JDs | yes | no |
-| Generate exports | yes | no |
+Custom Access can explicitly allow or restrict capabilities by Whole Company, Own Team, Department or Selected People where the scope is meaningful.
 
-## Org Chart And Employee-Scope Field Whitelist
+## Precedence
 
-When non-admin employee/org views are exposed, return only non-sensitive organisation fields unless an explicit employee self-service flow authorises more:
+1. tenant suspension or closure denies ordinary tenant operation;
+2. Platform Owner is unrestricted after MFA/AAL2;
+3. employee self-service baseline applies to own permitted records;
+4. explicit restriction wins;
+5. explicit allow applies;
+6. standard profile applies;
+7. derived direct-report manager access applies;
+8. otherwise deny.
 
-- `id`
-- `full_name`
-- `role_title`
-- `department`
-- `manager_id`
-- `status` / lifecycle-safe public equivalent
+## Sensitive Boundaries
 
-Compensation, private contact details, HR documents, policy administration data and confidential records must not be selected in employee-scope or future manager-scope queries unless specifically authorised and tested.
+Admin may operate document workflow metadata but does not automatically open, download or export private employee files.
+
+Salary visibility is separate from salary-change authority.
+
+Finance export access does not grant People Operations or private HR documents.
+
+Manager access is direct-report-only, not recursive.
 
 ## Enforcement Pattern
 
 ```text
 Request
   -> resolve Supabase session
-  -> resolve actor server-side
-  -> derive tenant and role from trusted metadata/database state
-  -> call role/tenant guard
-  -> service layer executes scoped query or mutation
+  -> resolve identity server-side
+  -> resolve current company membership/profile/rules
+  -> enforce capability/scope
+  -> service/RPC executes scoped operation
 ```
 
-Service-layer functions accept an explicit `Actor` argument and re-validate authorization. They never trust role, tenant or employee identifiers supplied by a browser as authority.
-
-## Audit
-
-Sensitive admin, future manager-delegated and storage-affecting actions must write audit evidence from the service layer or transactional database mutation path.
+Every service must reject role, tenant, profile, capability and scope values supplied by a browser as authority.
 
 ## Forbidden
 
-- Frontend-only `role === admin` or `role === manager` as a security boundary.
+- Frontend-only role checks as security.
 - Supabase service-role key in browser-reachable code.
-- Role, tenant or manager scope accepted from request body, cookie, header or query string as authority.
-- Broad custom roles to satisfy one-off features.
-- Manager delegation implemented without tenant, direct-report and negative authorization tests.
+- Customer Manager as a third broad RBAC role.
+- Platform Owner represented as a customer employee.
+- Private document access inferred from document workflow metadata.
+- Recursive Own Team access.
+- Permission changes that only take effect after long JWT expiry.

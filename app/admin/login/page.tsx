@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createServerClient } from "@/lib/db/supabaseServer";
+import { resolveIdentity } from "@/lib/rbac/roles";
 import { BrandLogo } from "@/components/BrandLogo";
 
 const CredentialsSchema = z.object({
@@ -40,7 +41,11 @@ async function signInAdminAction(formData: FormData): Promise<void> {
     redirect(`/admin/login?error=invalid_credentials${emailParam}`);
   }
 
-  if (data.session.user.app_metadata?.role !== "admin") {
+  const identity = await resolveIdentity(data.session.user.id);
+  if (identity.isPlatformOwner) {
+    redirect("/platform");
+  }
+  if (data.session.user.app_metadata?.role !== "admin" && identity.role !== "admin") {
     await supabase.auth.signOut();
     redirect("/admin/login?error=access_denied");
   }

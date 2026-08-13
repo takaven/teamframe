@@ -472,7 +472,7 @@ export default async function OrgChartPage({
   const successMessage = status ? (STATUS_COPY[status] ?? null) : null;
   const errorMessage = error ? (ERROR_COPY[error] ?? ERROR_COPY.UNKNOWN) : null;
 
-  if (actor.role !== "admin") {
+  if (actor.role !== "admin" && !actor.isPlatformOwner) {
     return (
       <main className="mx-auto max-w-3xl px-6 py-14">
         <AppShell actor={actor} activePath="/org-chart" />

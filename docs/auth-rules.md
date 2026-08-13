@@ -7,7 +7,7 @@
   - Employees: Magic Link at `/auth`
 - **No password reset flows** exist
 - **No OAuth providers** allowed (Google / GitHub / Microsoft / etc.)
-- **No MFA** in the current implemented auth model
+- **Platform Owner MFA**: TOTP required for Platform Owner privileged access
 
 User identity is always:
 - a Supabase Auth user, keyed by email
@@ -24,16 +24,24 @@ User identity is always:
      auth.users.id (session)
      → employees.email match
      → employees.id
-     → app_metadata.role  →  'admin' | 'employee'
+     → database membership/profile
 6. Redirect to role default
 ```
 
 ```
 1. Admin enters email + password on /admin/login
 2. Server action calls supabase.auth.signInWithPassword({ email, password })
-3. Server verifies session.user.app_metadata.role === 'admin'
+3. Server resolves identity and verifies Admin/Full Access/Platform Owner authority
 4. Non-admin sessions are signed out and denied
-5. Admin redirects to /dashboard
+5. Admin redirects to /dashboard; Platform Owner redirects to /platform
+```
+
+```text
+1. Platform Owner enters email + password on /admin/login
+2. Server resolves the identity from platform_owners
+3. Platform Owner redirects to /platform
+4. /platform requires an MFA-verified AAL2 session
+5. Platform Owner enrolls/verifies TOTP at /platform/mfa where required
 ```
 
 ## Role assignment
@@ -42,7 +50,10 @@ Roles are **server-controlled** and never derived from client input.
 
 Guided company setup does not itself authorize public/open self-registration. A paid-customer administrator may be provisioned through a controlled onboarding path, after which ordinary company setup must not require developer or direct database intervention.
 
-- The `admin` role is set **only** via:
+- Platform Owner is provisioned only by the dedicated Platform Owner mechanism.
+- Customer access is database-backed through company memberships and access rules.
+- Legacy `admin` role claims migrate to Full Access.
+- The legacy `admin` role is set **only** via:
   - The Supabase Dashboard, or
   - The bootstrap script (`npm run seed:admin -- email@company.com`)
 - Employees are created by an admin via the in-product flow. The admin's
@@ -60,7 +71,7 @@ Guided company setup does not itself authorize public/open self-registration. A 
 - Sign-up form / open registration
 - Password reset or email-change flows
 - "Continue with Google" or any OAuth provider
-- TOTP, WebAuthn, SMS, or any MFA
+- TOTP, WebAuthn, SMS, or any MFA for ordinary tenant users
 - Account-deletion self-service (admins handle this server-side)
 
 ## Supabase project configuration
@@ -75,6 +86,9 @@ In the Supabase Dashboard (or via Management API), the following must be true:
 | **Allow new users to sign up** | **disabled** (admin-invite only) |
 | Confirm email | disabled for password signups |
 | OAuth providers | all disabled |
+| TOTP MFA | enabled for Platform Owner |
+
+Platform Owner privileged access requires AAL2. This does not impose MFA on normal Admin, Finance, Full Access or Employee accounts during this workstream.
 
 Two working ways to apply these settings:
 

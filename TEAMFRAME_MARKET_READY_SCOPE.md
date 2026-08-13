@@ -38,6 +38,8 @@ Final full-system E2E: **COMPLETE**.
 Final visual production-readiness: **COMPLETE**.
 Current phase: production release preparation and deployment against `TEAMFRAME_PRODUCTION_RUNBOOK.md`.
 
+Independent deployment access and setup are governed by `TEAMFRAME_ACCESS_MODEL.md`. That model approves deployment-level Platform Owner, customer profiles, Custom Access, direct-report manager scope and 48-hour setup/handover for customer-owned stacks. It does not authorize a central customer hub, billing, enterprise RBAC, SSO or a generic permissions/workflow builder.
+
 ---
 
 # 2. TARGET CUSTOMER
