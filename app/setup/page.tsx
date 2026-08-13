@@ -40,9 +40,8 @@ export default async function SetupPage({
   const completed = params.status === "completed";
 
   return (
-    <>
+    <main className="mx-auto max-w-6xl px-6 py-14">
       <AppShell actor={actor} activePath="/setup" />
-      <main className="tf-main-surface">
         <section className="tf-page-header">
           <div>
             <p className="tf-section-kicker">Company setup</p>
@@ -185,7 +184,6 @@ export default async function SetupPage({
             </section>
           </aside>
         </form>
-      </main>
-    </>
+    </main>
   );
 }

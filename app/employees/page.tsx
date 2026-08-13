@@ -565,17 +565,17 @@ export default async function EmployeesPage({
                 <p className="mt-2 text-[12px] text-ink-500">{state.help}</p>
 
                 <dl className="mt-4 grid gap-x-6 gap-y-3 rounded-md border border-ink-300/50 bg-white px-4 py-3 text-[13px] sm:grid-cols-2 lg:grid-cols-4">
-                  <div>
+                  <div className="min-w-0">
                     <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Email</dt>
-                    <dd className="mt-0.5 text-ink-900">{employee.email}</dd>
+                    <dd className="mt-0.5 break-words text-ink-900">{employee.email}</dd>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Role title</dt>
-                    <dd className="mt-0.5 text-ink-900">{employee.role_title}</dd>
+                    <dd className="mt-0.5 break-words text-ink-900">{employee.role_title}</dd>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Position</dt>
-                    <dd className="mt-0.5 text-ink-900">
+                    <dd className="mt-0.5 break-words text-ink-900">
                       {position ? (
                         <a href="/org-chart" className="underline decoration-ink-300 underline-offset-4">
                           {position.title}
@@ -585,33 +585,33 @@ export default async function EmployeesPage({
                       )}
                     </dd>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Department</dt>
-                    <dd className="mt-0.5 text-ink-900">{employee.department}</dd>
+                    <dd className="mt-0.5 break-words text-ink-900">{employee.department}</dd>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Timezone</dt>
-                    <dd className="mt-0.5 text-ink-900">{employee.timezone}</dd>
+                    <dd className="mt-0.5 break-words text-ink-900">{employee.timezone}</dd>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Country</dt>
-                    <dd className="mt-0.5 text-ink-900">{employee.country ?? "-"}</dd>
+                    <dd className="mt-0.5 break-words text-ink-900">{employee.country ?? "-"}</dd>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Lifecycle state</dt>
-                    <dd className="mt-0.5 text-ink-900">{employee.canonical_lifecycle_label}</dd>
+                    <dd className="mt-0.5 break-words text-ink-900">{employee.canonical_lifecycle_label}</dd>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Invite state</dt>
-                    <dd className="mt-0.5 text-ink-900">{state.label}</dd>
+                    <dd className="mt-0.5 break-words text-ink-900">{state.label}</dd>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Employment</dt>
-                    <dd className="mt-0.5 capitalize text-ink-900">{employee.employment_type.replace("_", " ")}</dd>
+                    <dd className="mt-0.5 break-words capitalize text-ink-900">{employee.employment_type.replace("_", " ")}</dd>
                   </div>
                 </dl>
 
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-ink-300 bg-ink-100/50 px-4 py-3">
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-y border-ink-100 py-3">
                   <div>
                     <p className="text-[13px] font-medium text-ink-900">Due diligence pack</p>
                     <p className="text-[12px] text-ink-500">
@@ -624,7 +624,7 @@ export default async function EmployeesPage({
                     <PendingSubmitButton
                       idleLabel="Export due diligence pack"
                       pendingLabel="Preparing pack…"
-                      className="rounded-md bg-brand-signal px-4 py-2 text-[13px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:cursor-not-allowed disabled:bg-ink-300"
+                      className="rounded-md border border-ink-300 bg-white px-4 py-2 text-[13px] font-medium text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:text-ink-300"
                     />
                   </form>
                 </div>
@@ -703,12 +703,12 @@ export default async function EmployeesPage({
                   <PendingSubmitButton
                     idleLabel="Save"
                     pendingLabel="Saving…"
-                    className="rounded-md bg-brand-signal px-3 py-2 text-[14px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:cursor-not-allowed disabled:bg-ink-300"
+                    className="rounded-md border border-ink-300 bg-white px-3 py-2 text-[14px] font-medium text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:text-ink-300"
                   />
                 </div>
               </form>
 
-              <section className="mt-4 rounded-md border border-ink-300/50 bg-white px-3 py-3">
+              <section className="mt-4 border-t border-ink-100 pt-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h4 className="text-[13px] font-medium text-ink-900">Offboarding</h4>
@@ -795,7 +795,7 @@ export default async function EmployeesPage({
                 )}
               </section>
 
-              <section className="mt-4 rounded-md border border-ink-300/50 bg-white px-3 py-3">
+              <section className="mt-4 border-t border-ink-100 pt-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h4 className="text-[13px] font-medium text-ink-900">Employment changes</h4>
@@ -897,7 +897,7 @@ export default async function EmployeesPage({
                     <PendingSubmitButton
                       idleLabel="Record employment change"
                       pendingLabel="Recording…"
-                      className="rounded-md bg-brand-signal px-3 py-2 text-[13px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:cursor-not-allowed disabled:bg-ink-300"
+                      className="rounded-md border border-ink-300 bg-white px-3 py-2 text-[13px] font-medium text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:text-ink-300"
                     />
                   </div>
                 </form>
@@ -976,7 +976,7 @@ export default async function EmployeesPage({
                 )}
               </section>
 
-              <dl className="mt-3 grid gap-x-6 gap-y-2 rounded-md border border-ink-300/50 bg-ink-100/40 px-4 py-3 text-[12px] sm:grid-cols-2 lg:grid-cols-4">
+              <dl className="mt-3 grid gap-x-6 gap-y-2 border-y border-ink-100 bg-ink-50/40 py-3 text-[12px] sm:grid-cols-2 lg:grid-cols-4">
                 <div>
                   <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Invite attempts</dt>
                   <dd className="mt-0.5 font-mono tabular-nums text-ink-700">{employee.invite_attempt_count}</dd>
@@ -995,7 +995,7 @@ export default async function EmployeesPage({
                 </div>
               </dl>
 
-              <section className="mt-4 rounded-md border border-ink-300/50 bg-white px-3 py-3">
+              <section className="mt-4 border-t border-ink-100 pt-4">
                 <h4 className="text-[13px] font-medium text-ink-900">Documents</h4>
 
                 <form action={createDocumentRequirementAction} className="mt-3 grid gap-2 md:grid-cols-5">

@@ -139,10 +139,16 @@ export default async function PoliciesPage({
       <section className="mt-8 rounded-xl border border-ink-300/70 bg-white/80 p-5">
         <h2 className="text-[19px] font-medium tracking-tight">Create policy</h2>
         <p className="mt-1 text-[13px] text-ink-500">
-          Policies start as drafts. Publishing asks every current team member to acknowledge that version.
+          Upload the policy file and version details first. Simple text remains available for lightweight policies.
         </p>
         <form action={createPolicyAction} className="mt-4 grid gap-3">
-          <div className="grid gap-3 md:grid-cols-[1fr_140px]">
+          <div className="rounded-lg border border-ink-300/60 bg-ink-50/60 px-4 py-3">
+            <p className="text-[12px] font-medium text-ink-900">Policy file</p>
+            <p className="mt-1 text-[12px] text-ink-500">
+              Attach the PDF or DOCX after creating the draft, then publish the exact version employees will acknowledge.
+            </p>
+          </div>
+          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_140px]">
             <label className="flex flex-col gap-1 text-[12px] text-ink-500">
               Title
               <input
@@ -167,17 +173,22 @@ export default async function PoliciesPage({
               />
             </label>
           </div>
-          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
-            Policy text
-            <textarea
-              name="body"
-              placeholder="Write the policy in plain text"
-              required
-              rows={6}
-              maxLength={20000}
-              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
-            />
-          </label>
+          <div className="rounded-lg border border-ink-300/50 bg-white">
+            <div className="px-3 py-2 text-[12px] font-medium text-ink-700">
+              Simple text policy
+            </div>
+            <label className="flex flex-col gap-1 border-t border-ink-300/40 px-3 py-3 text-[12px] text-ink-500">
+              Policy text
+              <textarea
+                name="body"
+                placeholder="Write the policy in plain text"
+                required
+                rows={4}
+                maxLength={20000}
+                className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+              />
+            </label>
+          </div>
           <div>
             <PendingSubmitButton
               idleLabel="Create draft"

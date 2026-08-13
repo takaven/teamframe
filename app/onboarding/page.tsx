@@ -96,6 +96,20 @@ function TaskStatusBadge({ status }: { status: OnboardingTask["status"] }) {
   );
 }
 
+function completionModeLabel(mode: OnboardingTask["completion_mode"]): string {
+  switch (mode) {
+    case "document_required":
+      return "Requires evidence";
+    case "policy_acknowledgement":
+      return "Awaiting acknowledgement";
+    case "form_or_data_required":
+      return "Requires data";
+    case "manual_confirmation":
+    default:
+      return "Needs action";
+  }
+}
+
 function progressCopy(progress: number): string {
   if (progress === 100) return "You are all set.";
   if (progress >= 60) return "You are close to finishing.";
@@ -376,15 +390,21 @@ export default async function OnboardingPage({
                   </div>
                   <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
                     <TaskStatusBadge status={task.status} />
-                    <form action={completeOnboardingTaskAction} className="w-full sm:w-auto">
-                      <input type="hidden" name="task_id" value={task.id} />
-                      <input type="hidden" name="expected_updated_at" value={task.updated_at} />
-                      <PendingSubmitButton
-                        idleLabel="Mark complete"
-                        pendingLabel="Saving..."
-                        className="w-full rounded-full border border-ink-300 px-3 py-1.5 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300 sm:w-auto"
-                      />
-                    </form>
+                    {task.completion_mode === "manual_confirmation" ? (
+                      <form action={completeOnboardingTaskAction} className="w-full sm:w-auto">
+                        <input type="hidden" name="task_id" value={task.id} />
+                        <input type="hidden" name="expected_updated_at" value={task.updated_at} />
+                        <PendingSubmitButton
+                          idleLabel="Mark complete"
+                          pendingLabel="Saving..."
+                          className="w-full rounded-full border border-ink-300 px-3 py-1.5 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300 sm:w-auto"
+                        />
+                      </form>
+                    ) : (
+                      <span className="w-full rounded-full border border-ink-300 bg-ink-50 px-3 py-1.5 text-center text-[12px] font-medium text-ink-700 sm:w-auto">
+                        {completionModeLabel(task.completion_mode)}
+                      </span>
+                    )}
                   </div>
                 </li>
               ))}
@@ -524,15 +544,21 @@ export default async function OnboardingPage({
                       <DueDateBadge task={task} />
                       <p className="text-[12px] text-ink-500">Complete this once the step is finished.</p>
                     </div>
-                    <form action={completeOnboardingTaskAction}>
-                      <input type="hidden" name="task_id" value={task.id} />
-                      <input type="hidden" name="expected_updated_at" value={task.updated_at} />
-                      <PendingSubmitButton
-                        idleLabel="Mark done"
-                        pendingLabel="Saving..."
-                        className="rounded-lg bg-brand-signal px-4 py-1.5 text-[13px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:cursor-not-allowed disabled:bg-ink-300"
-                      />
-                    </form>
+                    {task.completion_mode === "manual_confirmation" ? (
+                      <form action={completeOnboardingTaskAction}>
+                        <input type="hidden" name="task_id" value={task.id} />
+                        <input type="hidden" name="expected_updated_at" value={task.updated_at} />
+                        <PendingSubmitButton
+                          idleLabel="Mark done"
+                          pendingLabel="Saving..."
+                          className="rounded-lg bg-brand-signal px-4 py-1.5 text-[13px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:cursor-not-allowed disabled:bg-ink-300"
+                        />
+                      </form>
+                    ) : (
+                      <span className="rounded-lg border border-ink-300 bg-ink-50 px-4 py-1.5 text-[13px] font-medium text-ink-700">
+                        {completionModeLabel(task.completion_mode)}
+                      </span>
+                    )}
                   </li>
                 ))}
               </ul>

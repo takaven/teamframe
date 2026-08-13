@@ -193,25 +193,52 @@ export default async function MePage({
                   </StatusPill>
                 </div>
                 {requirement.employee_upload_allowed && ["requested", "rejected", "expired", "accepted"].includes(requirement.state) ? (
-                  <form action={uploadRequirementDocumentAction} className="mt-3 grid gap-2 sm:grid-cols-[1fr_150px_auto]" encType="multipart/form-data">
-                    <input type="hidden" name="requirement_id" value={requirement.id} />
-                    <input type="hidden" name="return_to" value="/me" />
-                    <label className="flex flex-col gap-1 text-[11px] text-ink-500">
-                      File
-                      <input name="file" type="file" required className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900" />
-                    </label>
-                    <label className="flex flex-col gap-1 text-[11px] text-ink-500">
-                      Expires
-                      <input name="expires_at" type="date" className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900" />
-                    </label>
-                    <div className="flex items-end">
-                      <PendingSubmitButton
-                        idleLabel="Upload"
-                        pendingLabel="Uploading…"
-                        className="rounded-md bg-brand-signal px-4 py-2 text-[13px] font-medium text-ink-800 disabled:bg-ink-300"
-                      />
-                    </div>
-                  </form>
+                  requirement.state === "accepted" ? (
+                    <details className="mt-3 rounded-md border border-ink-300/50 bg-ink-50/60">
+                      <summary className="cursor-pointer px-3 py-2 text-[12px] font-medium text-ink-700 hover:text-ink-900">
+                        Replace document
+                      </summary>
+                      <form action={uploadRequirementDocumentAction} className="grid gap-2 border-t border-ink-300/40 px-3 py-3 sm:grid-cols-[1fr_150px_auto]" encType="multipart/form-data">
+                        <input type="hidden" name="requirement_id" value={requirement.id} />
+                        <input type="hidden" name="return_to" value="/me" />
+                        <label className="flex flex-col gap-1 text-[11px] text-ink-500">
+                          File
+                          <input name="file" type="file" required className="rounded-md border border-ink-300 bg-white px-2 py-1.5 text-[12px] text-ink-900" />
+                        </label>
+                        <label className="flex flex-col gap-1 text-[11px] text-ink-500">
+                          Expires
+                          <input name="expires_at" type="date" className="rounded-md border border-ink-300 bg-white px-2 py-1.5 text-[12px] text-ink-900" />
+                        </label>
+                        <div className="flex items-end">
+                          <PendingSubmitButton
+                            idleLabel="Replace"
+                            pendingLabel="Uploading…"
+                            className="rounded-md border border-ink-300 bg-white px-4 py-2 text-[13px] font-medium text-ink-700 hover:border-ink-900 disabled:text-ink-300"
+                          />
+                        </div>
+                      </form>
+                    </details>
+                  ) : (
+                    <form action={uploadRequirementDocumentAction} className="mt-3 grid gap-2 sm:grid-cols-[1fr_150px_auto]" encType="multipart/form-data">
+                      <input type="hidden" name="requirement_id" value={requirement.id} />
+                      <input type="hidden" name="return_to" value="/me" />
+                      <label className="flex flex-col gap-1 text-[11px] text-ink-500">
+                        File
+                        <input name="file" type="file" required className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900" />
+                      </label>
+                      <label className="flex flex-col gap-1 text-[11px] text-ink-500">
+                        Expires
+                        <input name="expires_at" type="date" className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900" />
+                      </label>
+                      <div className="flex items-end">
+                        <PendingSubmitButton
+                          idleLabel="Upload"
+                          pendingLabel="Uploading…"
+                          className="rounded-md bg-brand-signal px-4 py-2 text-[13px] font-medium text-ink-800 disabled:bg-ink-300"
+                        />
+                      </div>
+                    </form>
+                  )
                 ) : null}
               </li>
             ))}
