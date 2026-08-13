@@ -19,7 +19,7 @@ function isAuthorized(req: NextRequest): boolean {
   return safeCompareSecret(headerSecret, secret) || safeCompareSecret(bearer, secret);
 }
 
-export async function POST(req: NextRequest): Promise<NextResponse> {
+async function handleAutomationRun(req: NextRequest): Promise<NextResponse> {
   if (!isAuthorized(req)) {
     return NextResponse.json({ status: "unauthorized" }, { status: 401 });
   }
@@ -33,4 +33,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     failed: result.failed,
     tenants: result.tenants,
   });
+}
+
+export async function POST(req: NextRequest): Promise<NextResponse> {
+  return handleAutomationRun(req);
+}
+
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  return handleAutomationRun(req);
 }

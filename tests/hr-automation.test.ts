@@ -144,10 +144,12 @@ describe("MR-2 HR automation operating layer", () => {
     const tenancyGuard = read("scripts/guard-tenancy-filter.mjs");
 
     expect(route).toContain("export async function POST");
+    expect(route).toContain("export async function GET");
+    expect(route).toContain("return handleAutomationRun(req)");
     expect(route).toContain("TEAMFRAME_AUTOMATION_SECRET");
     expect(route).toContain("runDueAutomation");
     expect(route).toContain("timingSafeEqual");
-    expect(route).not.toContain("export async function GET");
+    expect(route).toMatch(/export async function GET[\s\S]*return handleAutomationRun\(req\);[\s\S]*}/);
     expect(service).toContain("runDueAutomationForTenant");
     expect(service).toContain("listDueAutomationItemsForTenant");
     expect(service).toContain(".from(\"hr_automation_items\")");

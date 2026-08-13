@@ -7,8 +7,8 @@ This register describes required market-ready product behaviour. It is not a tec
 Implementation status:
 
 - MR-2 automation is implemented and locked.
-- Production execution uses the protected server endpoint `POST /api/automation/run`.
-- The runner must be invoked only with the server-only `TEAMFRAME_AUTOMATION_SECRET` via `x-teamframe-automation-secret` or `Authorization: Bearer <secret>`.
+- Production execution uses the protected server endpoint `/api/automation/run`.
+- The runner must be invoked only with the server-only `TEAMFRAME_AUTOMATION_SECRET` via `x-teamframe-automation-secret` or `Authorization: Bearer <secret>`. Vercel Cron invokes the same endpoint with `Authorization: Bearer $CRON_SECRET`; production sets `CRON_SECRET` to the same generated automation secret.
 - Production scheduling must use the approved Vercel Cron or equivalent trusted scheduler for the production deployment target.
 - The runner is idempotent: repeated or overlapping invocations must not duplicate business effects.
 - Completion suppression, recurrence, retry/failure visibility and human/system audit attribution are verified release behaviour.

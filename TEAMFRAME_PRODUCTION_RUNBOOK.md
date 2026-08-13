@@ -31,7 +31,7 @@ Production deployment must use an explicitly identified production Vercel projec
 | Authentication | Supabase Auth in the production project |
 | File storage | Supabase Storage private `documents` bucket |
 | Authorization | Server-side RBAC, service-layer authorization, Supabase RLS |
-| Background automation | Protected `POST /api/automation/run` runner invoked by approved scheduler |
+| Background automation | Protected `/api/automation/run` runner invoked by approved scheduler |
 | Observability | Public health, protected deep health, Sentry where configured, deployment logs |
 | Source control | GitHub repository and release tag |
 
@@ -125,12 +125,14 @@ Do not deploy from or to the founder-review Vercel project unless it has explici
 
 The production automation runner is:
 
-`POST /api/automation/run`
+`/api/automation/run`
 
 Authorization:
 
 - `x-teamframe-automation-secret: <TEAMFRAME_AUTOMATION_SECRET>`; or
 - `Authorization: Bearer <TEAMFRAME_AUTOMATION_SECRET>`.
+
+Vercel Cron invokes the endpoint with `Authorization: Bearer $CRON_SECRET`. Set `CRON_SECRET` to the same generated production value as `TEAMFRAME_AUTOMATION_SECRET`.
 
 Production scheduler requirements:
 
