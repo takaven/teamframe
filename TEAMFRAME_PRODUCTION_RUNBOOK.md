@@ -144,6 +144,12 @@ Production scheduler requirements:
 
 Do not create a founder-facing workflow-rule editor.
 
+Initial production cadence on the available Vercel plan:
+
+- `0 6 * * *` daily at 06:00 UTC.
+
+This is the nearest supported production-safe cadence on the current Vercel Hobby plan. Higher-frequency automation requires a Vercel plan that supports more frequent Cron Jobs.
+
 ## 9. Health Checks
 
 Public shallow health:
