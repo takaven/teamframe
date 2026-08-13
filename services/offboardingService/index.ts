@@ -118,7 +118,7 @@ function requireTenant(actor: Actor): string {
 }
 
 function requireAdmin(actor: Actor): void {
-  if (actor.role !== "admin" && !actor.isPlatformOwner) throw new Error("FORBIDDEN");
+  if (actor.role !== "admin") throw new Error("FORBIDDEN");
 }
 
 function toCase(row: OffboardingCaseRow): OffboardingCase {
@@ -202,7 +202,7 @@ export async function startOffboarding(
 
 export async function listOffboardingForEmployee(actor: Actor, employeeId: string): Promise<OffboardingWorkflow | null> {
   const tenantId = requireTenant(actor);
-  if (actor.role !== "admin" && !actor.isPlatformOwner && actor.employeeId !== employeeId) {
+  if (actor.role !== "admin" && actor.employeeId !== employeeId) {
     await assertCurrentDirectManager(actor, employeeId);
   }
 
@@ -260,7 +260,7 @@ export async function completeOffboardingItem(
   if (!itemData) throw new Error("OFFBOARDING_ITEM_NOT_FOUND");
   const item = itemData as OffboardingItemRow;
 
-  if (actor.role === "admin" || actor.isPlatformOwner) {
+  if (actor.role === "admin") {
     // Admin owns final HR closeout and remains fallback for stranded work.
   } else if (item.owner_role === "manager") {
     await assertCurrentDirectManager(actor, item.employee_id);

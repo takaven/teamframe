@@ -16,9 +16,8 @@ export type OpenSignalCounts = {
 };
 
 type ActorScope = {
-  role: "admin" | "employee" | "platform_owner";
+  role: "admin" | "employee";
   tenantId: string | null;
-  isPlatformOwner?: boolean;
 };
 
 /**
@@ -31,7 +30,7 @@ type ActorScope = {
  * in memory, so red vs yellow comes from a single query.
  */
 export async function countOpenSignals(actor: ActorScope): Promise<OpenSignalCounts> {
-  if (actor.role !== "admin" && !actor.isPlatformOwner) {
+  if (actor.role !== "admin") {
     throw new Error("FORBIDDEN");
   }
   if (!actor.tenantId) {

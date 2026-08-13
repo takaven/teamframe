@@ -6,14 +6,13 @@
  *
  * Contract:
  *  - server-only (never imported into a client component)
- *  - session resolves to Platform Owner, tenant membership, or employee baseline
+ *  - session resolves to local customer membership or employee baseline
  *  - capabilities are database-backed and never accepted from input
  *  - services accept an explicit `Actor` and re-validate authorization
  */
 
 import "server-only";
 import { requireAuthSession } from "./auth";
-import { createServerClient } from "@/lib/db/supabaseServer";
 import { resolveIdentity, type AccessProfile, type ResolvedMembership, type Role } from "@/lib/rbac/roles";
 import { requireCapability } from "@/lib/rbac/access";
 
@@ -40,12 +39,10 @@ export type Actor = {
   employeeId: string | null;
   tenantId: string | null;
   role: Role;
-  isPlatformOwner?: boolean;
-  accessProfile?: AccessProfile | "platform_owner";
+  accessProfile?: AccessProfile;
   membershipId?: string | null;
   memberships?: ResolvedMembership[];
   currentMembership?: ResolvedMembership | null;
-  tenantStatus?: "active" | "suspended" | "closed";
 };
 
 export async function getActor(): Promise<Actor | null> {
@@ -65,7 +62,7 @@ export async function requireActor(): Promise<Actor> {
 
 export async function requireRole(role: Role): Promise<Actor> {
   const actor = await requireActor();
-  if (actor.role !== role && !(role === "admin" && actor.isPlatformOwner)) {
+  if (actor.role !== role) {
     throw new Error("FORBIDDEN");
   }
   return actor;
@@ -129,26 +126,9 @@ export async function requireTenantActor(): Promise<Actor & { tenantId: string }
 
 export async function requireTenantCapability(
   capability: "people_operations" | "compensation_view" | "compensation_manage" | "private_employee_documents" | "finance_payroll_exports" | "company_access_settings",
-  target: { employeeId?: string | null; department?: string | null } = {},
+  target: { employeeId?: string | null } = {},
 ): Promise<Actor & { tenantId: string }> {
   const actor = await requireTenantActor();
   await requireCapability(actor, capability, target);
-  return actor;
-}
-
-export async function requirePlatformOwner(): Promise<Actor> {
-  const actor = await requireActor();
-  if (!actor.isPlatformOwner) throw new Error("FORBIDDEN");
-  return actor;
-}
-
-export async function requirePlatformOwnerAal2(): Promise<Actor> {
-  const actor = await requirePlatformOwner();
-  const supabase = await createServerClient();
-  const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-  if (error) throw new Error("MFA_STATUS_UNAVAILABLE");
-  if (data.currentLevel !== "aal2") {
-    throw new Error("MFA_REQUIRED");
-  }
   return actor;
 }

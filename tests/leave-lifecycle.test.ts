@@ -94,7 +94,7 @@ vi.mock("@/services/onboardingService", () => ({
   maybeFireActivationCompleted: vi.fn(async () => {}),
 }));
 
-import { calculateLeaveDays, submitLeaveRequest } from "@/services/leaveService";
+import { calculateLeaveDays, calculateLeaveDaysForCalendar, submitLeaveRequest } from "@/services/leaveService";
 import type { Actor } from "@/middleware/rbac";
 
 const employeeActor: Actor = {
@@ -125,6 +125,12 @@ describe("leave lifecycle eligibility", () => {
     expect(calculateLeaveDays("2026-09-07", "2026-09-13")).toBe(5);
     expect(calculateLeaveDays("2026-09-07", "2026-09-11")).toBe(5);
     expect(() => calculateLeaveDays("2026-09-12", "2026-09-13")).toThrow("INVALID_INPUT");
+  });
+
+  it("charges only effective employee working days that are not company holidays", () => {
+    expect(calculateLeaveDaysForCalendar("2026-09-07", "2026-09-13", [1, 2, 3, 4, 5], new Set(["2026-09-10"]))).toBe(4);
+    expect(calculateLeaveDaysForCalendar("2026-09-07", "2026-09-13", [2, 3, 4, 5, 6], new Set(["2026-09-07"]))).toBe(5);
+    expect(calculateLeaveDaysForCalendar("2026-09-07", "2026-09-13", [2, 3, 4, 5, 6], new Set(["2026-09-10"]))).toBe(4);
   });
 
   it("allows an active employee to submit leave", async () => {

@@ -66,7 +66,7 @@ function requireTenant(actor: Actor): string {
 }
 
 function requireAdmin(actor: Actor): void {
-  if (actor.role !== "admin" && !actor.isPlatformOwner) throw new Error("FORBIDDEN");
+  if (actor.role !== "admin") throw new Error("FORBIDDEN");
 }
 
 async function writeAudit(actor: Actor, actionType: string, targetId?: string): Promise<void> {
@@ -179,7 +179,7 @@ export async function listOnboardingTasksForEmployee(
   employeeId: string,
 ): Promise<OnboardingTask[]> {
   const tenantId = requireTenant(actor);
-  if (actor.role !== "admin" && !actor.isPlatformOwner && actor.employeeId !== employeeId) {
+  if (actor.role !== "admin" && actor.employeeId !== employeeId) {
     throw new Error("FORBIDDEN");
   }
 
@@ -353,7 +353,7 @@ export async function completeOnboardingTask(
     .eq("updated_at", expectedUpdatedAt)
     .eq("status", "pending");
 
-  if (actor.role !== "admin" && !actor.isPlatformOwner) {
+  if (actor.role !== "admin") {
     if (!actor.employeeId) throw new Error("NO_EMPLOYEE_RECORD");
     taskQuery = taskQuery.eq("employee_id", actor.employeeId);
   }

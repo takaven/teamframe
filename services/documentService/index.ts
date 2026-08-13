@@ -425,7 +425,7 @@ function requireTenant(actor: Actor): string {
 }
 
 function requireAdmin(actor: Actor): void {
-  if (actor.role !== "admin" && !actor.isPlatformOwner) throw new Error("FORBIDDEN");
+  if (actor.role !== "admin") throw new Error("FORBIDDEN");
 }
 
 function isSchemaMissingColumnError(message: string): boolean {
@@ -1034,10 +1034,10 @@ export async function uploadDocumentForRequirement(
   if (!["requested", "rejected", "expired", "accepted"].includes(requirement.state)) {
     throw new Error("DOCUMENT_REQUIREMENT_NOT_UPLOADABLE");
   }
-  if (!requirement.employee_upload_allowed && actor.role !== "admin" && !actor.isPlatformOwner) {
+  if (!requirement.employee_upload_allowed && actor.role !== "admin") {
     throw new Error("FORBIDDEN");
   }
-  if (actor.role !== "admin" && !actor.isPlatformOwner && actor.employeeId !== requirement.employee_id) {
+  if (actor.role !== "admin" && actor.employeeId !== requirement.employee_id) {
     throw new Error("FORBIDDEN");
   }
 

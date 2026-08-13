@@ -141,7 +141,7 @@ export default async function OnboardingPage({
   const successMessage = status ? (STATUS_COPY[status] ?? null) : null;
   const errorMessage = error ? (ERROR_COPY[error] ?? ERROR_COPY.UNKNOWN) : null;
 
-  if (actor.role === "admin" || actor.isPlatformOwner) {
+  if (actor.role === "admin") {
     const [tasks, employees, earlyEmployment] = await Promise.all([
       listAllOnboardingTasks(actor),
       listEmployeesForAdmin(actor),

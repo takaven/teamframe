@@ -2,7 +2,7 @@
  * Identity + membership resolution for TeamFrame.
  *
  * Session/auth identity establishes WHO the user is. Database-backed
- * memberships, access profiles and exceptions establish WHAT the user may do
+ * memberships, access profiles and effective access fields establish WHAT the user may do
  * right now. Legacy app_metadata.role/app_metadata.tenant_id is used only as a
  * compatibility fallback while old environments migrate into memberships.
  */
@@ -11,8 +11,12 @@ import "server-only";
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 import { isSelfServiceEligibleEmployee, type LegacyEmployeeLifecycleState } from "@/services/employeeLifecycle";
 
-export type Role = "admin" | "employee" | "platform_owner";
+export type Role = "admin" | "employee";
 export type AccessProfile = "admin" | "finance" | "full_access" | "employee";
+export type PeopleAccessScope = "none" | "all" | "direct_reports" | "selected_people" | "all_except_selected_people";
+export type SalaryAccessLevel = "none" | "view" | "manage";
+export type SalaryAccessScope = "all" | "direct_reports" | "selected_people" | "all_except_selected_people";
+export type PrivateDocumentsScope = "none" | "all" | "selected_people" | "all_except_selected_people";
 export type AccessCapability =
   | "people_operations"
   | "compensation_view"
@@ -20,20 +24,9 @@ export type AccessCapability =
   | "private_employee_documents"
   | "finance_payroll_exports"
   | "company_access_settings";
-export type AccessScope = "whole_company" | "own_team" | "department" | "selected_people";
-export type AccessEffect = "allow" | "restrict";
 
-export const ROLES: readonly Role[] = ["admin", "employee", "platform_owner"] as const;
+export const ROLES: readonly Role[] = ["admin", "employee"] as const;
 export const CUSTOMER_ACCESS_PROFILES: readonly AccessProfile[] = ["admin", "finance", "full_access", "employee"] as const;
-
-export type MembershipAccessRule = {
-  id: string;
-  capability: AccessCapability;
-  effect: AccessEffect;
-  scope: AccessScope;
-  department: string | null;
-  employeeId: string | null;
-};
 
 export type ResolvedMembership = {
   id: string;
@@ -41,8 +34,15 @@ export type ResolvedMembership = {
   employeeId: string | null;
   profile: AccessProfile;
   displayProfile: "Admin" | "Finance" | "Full Access" | "Employee" | "Custom";
-  tenantStatus: "active" | "suspended" | "closed";
-  rules: MembershipAccessRule[];
+  peopleAccess: PeopleAccessScope;
+  peopleSelectedEmployeeIds: string[];
+  salaryAccessLevel: SalaryAccessLevel;
+  salaryAccessScope: SalaryAccessScope;
+  salarySelectedEmployeeIds: string[];
+  privateDocumentsScope: PrivateDocumentsScope;
+  privateDocumentsSelectedEmployeeIds: string[];
+  financeExportsAccess: boolean;
+  manageUsersAccess: boolean;
 };
 
 export type ResolvedIdentity = {
@@ -51,12 +51,10 @@ export type ResolvedIdentity = {
   employeeId: string | null;
   tenantId: string | null;
   role: Role;
-  isPlatformOwner: boolean;
-  accessProfile: AccessProfile | "platform_owner";
+  accessProfile: AccessProfile;
   membershipId: string | null;
   memberships: ResolvedMembership[];
   currentMembership: ResolvedMembership | null;
-  tenantStatus?: "active" | "suspended" | "closed";
 };
 
 type AuthUser = {
@@ -87,20 +85,102 @@ type MembershipRow = {
   profile: AccessProfile;
   active: boolean;
   removed_at: string | null;
+  people_access_scope: PeopleAccessScope | null;
+  people_selected_employee_ids: string[] | null;
+  salary_access_level: SalaryAccessLevel | null;
+  salary_access_scope: SalaryAccessScope | null;
+  salary_selected_employee_ids: string[] | null;
+  private_documents_scope: PrivateDocumentsScope | null;
+  private_documents_selected_employee_ids: string[] | null;
+  finance_exports_access: boolean | null;
+  manage_users_access: boolean | null;
 };
 
-type RuleRow = {
-  id: string;
-  membership_id: string;
-  capability: AccessCapability;
-  effect: AccessEffect;
-  scope: AccessScope;
-  department: string | null;
-  employee_id: string | null;
-};
+function presetAccess(profile: AccessProfile): Omit<ResolvedMembership, "id" | "tenantId" | "employeeId" | "profile" | "displayProfile"> {
+  if (profile === "full_access") {
+    return {
+      peopleAccess: "all",
+      peopleSelectedEmployeeIds: [],
+      salaryAccessLevel: "manage",
+      salaryAccessScope: "all",
+      salarySelectedEmployeeIds: [],
+      privateDocumentsScope: "all",
+      privateDocumentsSelectedEmployeeIds: [],
+      financeExportsAccess: true,
+      manageUsersAccess: true,
+    };
+  }
+  if (profile === "admin") {
+    return {
+      peopleAccess: "all",
+      peopleSelectedEmployeeIds: [],
+      salaryAccessLevel: "none",
+      salaryAccessScope: "all",
+      salarySelectedEmployeeIds: [],
+      privateDocumentsScope: "none",
+      privateDocumentsSelectedEmployeeIds: [],
+      financeExportsAccess: false,
+      manageUsersAccess: false,
+    };
+  }
+  if (profile === "finance") {
+    return {
+      peopleAccess: "none",
+      peopleSelectedEmployeeIds: [],
+      salaryAccessLevel: "view",
+      salaryAccessScope: "all",
+      salarySelectedEmployeeIds: [],
+      privateDocumentsScope: "none",
+      privateDocumentsSelectedEmployeeIds: [],
+      financeExportsAccess: true,
+      manageUsersAccess: false,
+    };
+  }
+  return {
+    peopleAccess: "none",
+    peopleSelectedEmployeeIds: [],
+    salaryAccessLevel: "none",
+    salaryAccessScope: "all",
+    salarySelectedEmployeeIds: [],
+    privateDocumentsScope: "none",
+    privateDocumentsSelectedEmployeeIds: [],
+    financeExportsAccess: false,
+    manageUsersAccess: false,
+  };
+}
 
-function displayProfile(profile: AccessProfile, rules: MembershipAccessRule[]): ResolvedMembership["displayProfile"] {
-  if (rules.length > 0) return "Custom";
+function accessForRow(row: MembershipRow): Omit<ResolvedMembership, "id" | "tenantId" | "employeeId" | "profile" | "displayProfile"> {
+  const preset = presetAccess(row.profile);
+  return {
+    peopleAccess: row.people_access_scope ?? preset.peopleAccess,
+    peopleSelectedEmployeeIds: row.people_selected_employee_ids ?? preset.peopleSelectedEmployeeIds,
+    salaryAccessLevel: row.salary_access_level ?? preset.salaryAccessLevel,
+    salaryAccessScope: row.salary_access_scope ?? preset.salaryAccessScope,
+    salarySelectedEmployeeIds: row.salary_selected_employee_ids ?? preset.salarySelectedEmployeeIds,
+    privateDocumentsScope: row.private_documents_scope ?? preset.privateDocumentsScope,
+    privateDocumentsSelectedEmployeeIds: row.private_documents_selected_employee_ids ?? preset.privateDocumentsSelectedEmployeeIds,
+    financeExportsAccess: row.finance_exports_access ?? preset.financeExportsAccess,
+    manageUsersAccess: row.manage_users_access ?? preset.manageUsersAccess,
+  };
+}
+
+function accessMatchesPreset(profile: AccessProfile, access: ReturnType<typeof presetAccess>): boolean {
+  const preset = presetAccess(profile);
+  return (
+    access.peopleAccess === preset.peopleAccess &&
+    access.peopleSelectedEmployeeIds.length === 0 &&
+    access.salaryAccessLevel === preset.salaryAccessLevel &&
+    access.salaryAccessScope === preset.salaryAccessScope &&
+    access.salarySelectedEmployeeIds.length === 0 &&
+    access.privateDocumentsScope === preset.privateDocumentsScope &&
+    access.privateDocumentsSelectedEmployeeIds.length === 0 &&
+    access.financeExportsAccess === preset.financeExportsAccess &&
+    access.manageUsersAccess === preset.manageUsersAccess
+  );
+}
+
+function displayProfile(profile: AccessProfile, access: ReturnType<typeof presetAccess>): ResolvedMembership["displayProfile"] {
+  if (!accessMatchesPreset(profile, access)) return "Custom";
   if (profile === "admin") return "Admin";
   if (profile === "finance") return "Finance";
   if (profile === "full_access") return "Full Access";
@@ -111,78 +191,14 @@ function legacyProfileFromAppMetadata(user: AuthUser): AccessProfile {
   return user.app_metadata?.role === "admin" ? "full_access" : "employee";
 }
 
-function compatibilityRole(profile: AccessProfile | "platform_owner"): Role {
-  if (profile === "platform_owner") return "platform_owner";
+function compatibilityRole(profile: AccessProfile): Role {
   if (profile === "admin" || profile === "full_access") return "admin";
   return "employee";
 }
 
 function preferredTenantFromMetadata(user: AuthUser): string | null {
-  const systemValue = user.app_metadata?.platform_view_tenant_id;
-  if (typeof systemValue === "string" && systemValue.length > 0) return systemValue;
   const value = user.app_metadata?.tenant_id;
   return typeof value === "string" && value.length > 0 ? value : null;
-}
-
-async function resolveTenantStatus(tenantId: string | null): Promise<"active" | "suspended" | "closed" | undefined> {
-  if (!tenantId) return undefined;
-  const supabase = createServiceRoleClient();
-  const { data, error } = await supabase.from("companies").select("status").eq("id", tenantId).maybeSingle();
-  if (error) throw new Error(`RBAC: failed to resolve tenant status (${error.message})`);
-  return ((data as { status?: "active" | "suspended" | "closed" } | null)?.status ?? "active");
-}
-
-async function resolvePlatformTenantId(preferredTenantId: string | null): Promise<string | null> {
-  const supabase = createServiceRoleClient();
-  if (!preferredTenantId) return null;
-
-  if (preferredTenantId) {
-    const { data, error } = await supabase
-      .from("companies")
-      .select("id")
-      .eq("id", preferredTenantId)
-      .neq("status", "closed")
-      .maybeSingle();
-    if (error) throw new Error(`RBAC: failed to resolve platform tenant context (${error.message})`);
-    if (data) return (data as { id: string }).id;
-  }
-  return null;
-}
-
-async function listMembershipRules(membershipIds: string[]): Promise<Map<string, MembershipAccessRule[]>> {
-  if (membershipIds.length === 0) return new Map();
-  const supabase = createServiceRoleClient();
-  let result;
-  try {
-    result = await supabase
-      .from("membership_access_rules")
-      .select("id, membership_id, capability, effect, scope, department, employee_id")
-      .in("membership_id", membershipIds);
-  } catch {
-    return new Map();
-  }
-  const { data, error } = result;
-
-  if (error) {
-    const message = error.message.toLowerCase();
-    if (message.includes("membership_access_rules") || message.includes("does not exist")) return new Map();
-    throw new Error(`RBAC: failed to resolve access rules (${error.message})`);
-  }
-
-  const byMembership = new Map<string, MembershipAccessRule[]>();
-  for (const row of (data ?? []) as RuleRow[]) {
-    const next = byMembership.get(row.membership_id) ?? [];
-    next.push({
-      id: row.id,
-      capability: row.capability,
-      effect: row.effect,
-      scope: row.scope,
-      department: row.department,
-      employeeId: row.employee_id,
-    });
-    byMembership.set(row.membership_id, next);
-  }
-  return byMembership;
 }
 
 async function listDatabaseMemberships(user: AuthUser): Promise<ResolvedMembership[]> {
@@ -191,7 +207,7 @@ async function listDatabaseMemberships(user: AuthUser): Promise<ResolvedMembersh
   try {
     result = await supabase
       .from("tenant_memberships")
-      .select("id, tenant_id, employee_id, email, display_name, profile, active, removed_at")
+      .select("id, tenant_id, employee_id, email, display_name, profile, active, removed_at, people_access_scope, people_selected_employee_ids, salary_access_level, salary_access_scope, salary_selected_employee_ids, private_documents_scope, private_documents_selected_employee_ids, finance_exports_access, manage_users_access")
       .eq("auth_user_id", user.id)
       .eq("active", true)
       .is("removed_at", null)
@@ -208,33 +224,15 @@ async function listDatabaseMemberships(user: AuthUser): Promise<ResolvedMembersh
   }
 
   const rows = (data ?? []) as MembershipRow[];
-  const ruleMap = await listMembershipRules(rows.map((row) => row.id));
-  const tenantIds = [...new Set(rows.map((row) => row.tenant_id))];
-  const statusMap = new Map<string, "active" | "suspended" | "closed">();
-  if (tenantIds.length > 0) {
-    try {
-      const { data: companies, error: companyError } = await supabase
-        .from("companies")
-        .select("id, status")
-        .in("id", tenantIds);
-      if (companyError) throw new Error(`RBAC: failed to resolve tenant status (${companyError.message})`);
-      for (const company of (companies ?? []) as Array<{ id: string; status?: "active" | "suspended" | "closed" | null }>) {
-        statusMap.set(company.id, company.status ?? "active");
-      }
-    } catch {
-      for (const tenantId of tenantIds) statusMap.set(tenantId, "active");
-    }
-  }
   return rows.map((row) => {
-    const rules = ruleMap.get(row.id) ?? [];
+    const access = accessForRow(row);
     return {
       id: row.id,
       tenantId: row.tenant_id,
       employeeId: row.employee_id,
       profile: row.profile,
-      displayProfile: displayProfile(row.profile, rules),
-      tenantStatus: statusMap.get(row.tenant_id) ?? "active",
-      rules,
+      displayProfile: displayProfile(row.profile, access),
+      ...access,
     };
   });
 }
@@ -245,7 +243,7 @@ async function acceptPendingInvitations(user: AuthUser, email: string): Promise<
   try {
     invitationResult = await supabase
       .from("tenant_access_invitations")
-      .select("id, tenant_id, employee_id, email, display_name, profile")
+      .select("id, tenant_id, employee_id, email, display_name, profile, people_access_scope, people_selected_employee_ids, salary_access_level, salary_access_scope, salary_selected_employee_ids, private_documents_scope, private_documents_selected_employee_ids, finance_exports_access, manage_users_access")
       .eq("email", email)
       .eq("active", true)
       .is("accepted_at", null);
@@ -266,6 +264,15 @@ async function acceptPendingInvitations(user: AuthUser, email: string): Promise<
     employee_id: string | null;
     display_name: string;
     profile: AccessProfile;
+    people_access_scope: PeopleAccessScope | null;
+    people_selected_employee_ids: string[] | null;
+    salary_access_level: SalaryAccessLevel | null;
+    salary_access_scope: SalaryAccessScope | null;
+    salary_selected_employee_ids: string[] | null;
+    private_documents_scope: PrivateDocumentsScope | null;
+    private_documents_selected_employee_ids: string[] | null;
+    finance_exports_access: boolean | null;
+    manage_users_access: boolean | null;
   }>) {
     const { data: membership, error: membershipError } = await supabase
       .from("tenant_memberships")
@@ -277,6 +284,15 @@ async function acceptPendingInvitations(user: AuthUser, email: string): Promise<
           email,
           display_name: invitation.display_name || email,
           profile: invitation.profile,
+          people_access_scope: invitation.people_access_scope,
+          people_selected_employee_ids: invitation.people_selected_employee_ids,
+          salary_access_level: invitation.salary_access_level,
+          salary_access_scope: invitation.salary_access_scope,
+          salary_selected_employee_ids: invitation.salary_selected_employee_ids,
+          private_documents_scope: invitation.private_documents_scope,
+          private_documents_selected_employee_ids: invitation.private_documents_selected_employee_ids,
+          finance_exports_access: invitation.finance_exports_access,
+          manage_users_access: invitation.manage_users_access,
           active: true,
           removed_at: null,
         } as never,
@@ -288,48 +304,9 @@ async function acceptPendingInvitations(user: AuthUser, email: string): Promise<
     if (membershipError || !membership) {
       throw new Error(`RBAC: failed to accept invitation (${membershipError?.message ?? "no membership"})`);
     }
-
-    const membershipId = (membership as { id: string }).id;
-    let stagedRulesResult;
-    try {
-      stagedRulesResult = await supabase
-        .from("tenant_access_invitation_rules")
-        .select("capability, effect, scope, department, employee_id")
-        .eq("tenant_id", invitation.tenant_id)
-        .eq("invitation_id", invitation.id);
-    } catch {
-      stagedRulesResult = null;
-    }
-
-    if (stagedRulesResult?.error) {
-      const message = stagedRulesResult.error.message.toLowerCase();
-      if (!message.includes("tenant_access_invitation_rules") && !message.includes("does not exist")) {
-        throw new Error(`RBAC: failed to resolve invitation access rules (${stagedRulesResult.error.message})`);
-      }
-    } else if (stagedRulesResult?.data?.length) {
-      const { error: ruleError } = await supabase.from("membership_access_rules").upsert(
-        (stagedRulesResult.data as Array<{
-          capability: AccessCapability;
-          effect: AccessEffect;
-          scope: AccessScope;
-          department: string | null;
-          employee_id: string | null;
-        }>).map((rule) => ({
-          tenant_id: invitation.tenant_id,
-          membership_id: membershipId,
-          capability: rule.capability,
-          effect: rule.effect,
-          scope: rule.scope,
-          department: rule.department,
-          employee_id: rule.employee_id,
-        })) as never,
-      );
-      if (ruleError) throw new Error(`RBAC: failed to accept invitation access rules (${ruleError.message})`);
-    }
-
     await supabase
       .from("tenant_access_invitations")
-      .update({ accepted_membership_id: membershipId, accepted_at: new Date().toISOString() } as never)
+      .update({ accepted_membership_id: (membership as { id: string }).id, accepted_at: new Date().toISOString() } as never)
       .eq("tenant_id", invitation.tenant_id)
       .eq("id", invitation.id);
   }
@@ -414,30 +391,6 @@ async function markActivatedOnLogin(employee: EmployeeRow | null): Promise<void>
   }
 }
 
-async function isPlatformOwner(user: AuthUser): Promise<boolean> {
-  const supabase = createServiceRoleClient();
-  let result;
-  try {
-    result = await supabase
-      .from("platform_owners")
-      .select("auth_user_id, active, revoked_at")
-      .eq("auth_user_id", user.id)
-      .eq("active", true)
-      .is("revoked_at", null)
-      .maybeSingle();
-  } catch {
-    return false;
-  }
-  const { data, error } = result;
-
-  if (error) {
-    const message = error.message.toLowerCase();
-    if (message.includes("platform_owners") || message.includes("does not exist")) return false;
-    throw new Error(`RBAC: failed to resolve platform owner (${error.message})`);
-  }
-  return Boolean(data);
-}
-
 function selectCurrentMembership(memberships: ResolvedMembership[], preferredTenantId: string | null): ResolvedMembership | null {
   if (memberships.length === 0) return null;
   if (preferredTenantId) {
@@ -458,28 +411,9 @@ export async function resolveIdentity(authUserId: string): Promise<ResolvedIdent
   const user = data.user as AuthUser;
   const email = data.user.email.toLowerCase();
   await acceptPendingInvitations(user, email);
-  const systemOwner = await isPlatformOwner(user);
   const memberships = await listDatabaseMemberships(user);
   const preferredTenantId = preferredTenantFromMetadata(user);
   const selectedMembership = selectCurrentMembership(memberships, preferredTenantId);
-
-  if (systemOwner) {
-    const tenantId = await resolvePlatformTenantId(preferredTenantId);
-    const tenantStatus = await resolveTenantStatus(tenantId);
-    return {
-      authUserId: user.id,
-      email,
-      employeeId: null,
-      tenantId,
-      role: "platform_owner",
-      isPlatformOwner: true,
-      accessProfile: "platform_owner",
-      membershipId: null,
-      memberships,
-      currentMembership: null,
-      tenantStatus,
-    };
-  }
 
   if (selectedMembership) {
     const employee = await resolveLegacyEmployee(user, selectedMembership.tenantId, email);
@@ -494,12 +428,10 @@ export async function resolveIdentity(authUserId: string): Promise<ResolvedIdent
       employeeId: selectedMembership.employeeId ?? employee?.id ?? null,
       tenantId: selectedMembership.tenantId,
       role: compatibilityRole(selectedMembership.profile),
-      isPlatformOwner: false,
       accessProfile: selectedMembership.profile,
       membershipId: selectedMembership.id,
       memberships,
       currentMembership: selectedMembership,
-      tenantStatus: selectedMembership.tenantStatus,
     };
   }
 
@@ -518,11 +450,9 @@ export async function resolveIdentity(authUserId: string): Promise<ResolvedIdent
     employeeId: employee?.id ?? null,
     tenantId: legacyTenantId,
     role: compatibilityRole(legacyProfile),
-    isPlatformOwner: false,
     accessProfile: legacyProfile,
     membershipId: null,
     memberships,
     currentMembership: null,
-    tenantStatus: "active",
   };
 }

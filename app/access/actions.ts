@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireTenantActor } from "@/middleware/rbac";
-import { createAccessRule, deleteAccessRule, setMembershipActive, updateAccessProfile } from "@/services/accessManagementService";
+import { setMembershipActive, updateAccessMatrix, updateAccessProfile } from "@/services/accessManagementService";
 
 const ProfileSchema = z.object({
   membership_id: z.string().uuid(),
@@ -15,24 +15,29 @@ const ActiveSchema = z.object({
   active: z.enum(["true", "false"]),
 });
 
-const RuleSchema = z.object({
+const MatrixSchema = z.object({
   membership_id: z.string().uuid(),
-  capability: z.enum([
-    "people_operations",
-    "compensation_view",
-    "compensation_manage",
-    "private_employee_documents",
-    "finance_payroll_exports",
-    "company_access_settings",
-  ]),
-  effect: z.enum(["allow", "restrict"]),
-  scope: z.enum(["whole_company", "own_team", "department", "selected_people"]),
-  department: z.string().optional().nullable(),
-  employee_id: z.string().optional().nullable(),
+  people_access_scope: z.enum(["none", "all", "direct_reports", "selected_people", "all_except_selected_people"]),
+  people_selected_employee_ids: z.string().optional().nullable(),
+  salary_access_level: z.enum(["none", "view", "manage"]),
+  salary_access_scope: z.enum(["all", "direct_reports", "selected_people", "all_except_selected_people"]),
+  salary_selected_employee_ids: z.string().optional().nullable(),
+  private_documents_scope: z.enum(["none", "all", "selected_people", "all_except_selected_people"]),
+  private_documents_selected_employee_ids: z.string().optional().nullable(),
+  finance_exports_access: z.string().optional(),
+  manage_users_access: z.string().optional(),
 });
 
 function errorCode(error: unknown): string {
   return error instanceof Error ? (error.message.split(":")[0] ?? "UNKNOWN") : "UNKNOWN";
+}
+
+function parseIds(value: string | null | undefined): string[] {
+  if (!value) return [];
+  return value
+    .split(/[,\s]+/)
+    .map((id) => id.trim())
+    .filter(Boolean);
 }
 
 export async function updateAccessProfileAction(formData: FormData): Promise<void> {
@@ -49,6 +54,41 @@ export async function updateAccessProfileAction(formData: FormData): Promise<voi
   redirect("/access?status=updated");
 }
 
+export async function updateAccessMatrixAction(formData: FormData): Promise<void> {
+  try {
+    const actor = await requireTenantActor();
+    const parsed = MatrixSchema.parse({
+      membership_id: formData.get("membership_id"),
+      people_access_scope: formData.get("people_access_scope"),
+      people_selected_employee_ids: formData.get("people_selected_employee_ids"),
+      salary_access_level: formData.get("salary_access_level"),
+      salary_access_scope: formData.get("salary_access_scope"),
+      salary_selected_employee_ids: formData.get("salary_selected_employee_ids"),
+      private_documents_scope: formData.get("private_documents_scope"),
+      private_documents_selected_employee_ids: formData.get("private_documents_selected_employee_ids"),
+      finance_exports_access: formData.get("finance_exports_access") ? "true" : undefined,
+      manage_users_access: formData.get("manage_users_access") ? "true" : undefined,
+    });
+    await updateAccessMatrix(actor, {
+      membershipId: parsed.membership_id,
+      matrix: {
+        peopleAccessScope: parsed.people_access_scope,
+        peopleSelectedEmployeeIds: parseIds(parsed.people_selected_employee_ids),
+        salaryAccessLevel: parsed.salary_access_level,
+        salaryAccessScope: parsed.salary_access_scope,
+        salarySelectedEmployeeIds: parseIds(parsed.salary_selected_employee_ids),
+        privateDocumentsScope: parsed.private_documents_scope,
+        privateDocumentsSelectedEmployeeIds: parseIds(parsed.private_documents_selected_employee_ids),
+        financeExportsAccess: parsed.finance_exports_access === "true",
+        manageUsersAccess: parsed.manage_users_access === "true",
+      },
+    });
+  } catch (error) {
+    redirect(`/access?error=${encodeURIComponent(errorCode(error))}`);
+  }
+  redirect("/access?status=matrix_updated");
+}
+
 export async function setMembershipActiveAction(formData: FormData): Promise<void> {
   try {
     const actor = await requireTenantActor();
@@ -61,40 +101,4 @@ export async function setMembershipActiveAction(formData: FormData): Promise<voi
     redirect(`/access?error=${encodeURIComponent(errorCode(error))}`);
   }
   redirect("/access?status=updated");
-}
-
-export async function createAccessRuleAction(formData: FormData): Promise<void> {
-  try {
-    const actor = await requireTenantActor();
-    const parsed = RuleSchema.parse({
-      membership_id: formData.get("membership_id"),
-      capability: formData.get("capability"),
-      effect: formData.get("effect"),
-      scope: formData.get("scope"),
-      department: formData.get("department"),
-      employee_id: formData.get("employee_id") || null,
-    });
-    await createAccessRule(actor, {
-      membershipId: parsed.membership_id,
-      capability: parsed.capability,
-      effect: parsed.effect,
-      scope: parsed.scope,
-      department: parsed.department,
-      employeeId: parsed.employee_id,
-    });
-  } catch (error) {
-    redirect(`/access?error=${encodeURIComponent(errorCode(error))}`);
-  }
-  redirect("/access?status=rule_added");
-}
-
-export async function deleteAccessRuleAction(formData: FormData): Promise<void> {
-  try {
-    const actor = await requireTenantActor();
-    const ruleId = z.string().uuid().parse(formData.get("rule_id"));
-    await deleteAccessRule(actor, ruleId);
-  } catch (error) {
-    redirect(`/access?error=${encodeURIComponent(errorCode(error))}`);
-  }
-  redirect("/access?status=rule_removed");
 }

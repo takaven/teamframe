@@ -42,9 +42,6 @@ async function signInAdminAction(formData: FormData): Promise<void> {
   }
 
   const identity = await resolveIdentity(data.session.user.id);
-  if (identity.isPlatformOwner) {
-    redirect("/platform");
-  }
   if (data.session.user.app_metadata?.role !== "admin" && identity.role !== "admin") {
     await supabase.auth.signOut();
     redirect("/admin/login?error=access_denied");

@@ -2,7 +2,8 @@ import "server-only";
 import { z } from "zod";
 import type { Actor } from "@/middleware/rbac";
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
-import type { AccessCapability, AccessEffect, AccessProfile, AccessScope } from "@/lib/rbac/roles";
+import type { AccessProfile } from "@/lib/rbac/roles";
+import { hasCapability } from "@/lib/rbac/access";
 
 type ParsedUser = {
   name: string;
@@ -54,10 +55,12 @@ type ParsedHoliday = {
 
 type ParsedAccessException = {
   email: string;
-  capability: AccessCapability;
-  effect: AccessEffect;
-  scope: AccessScope;
-  department: string | null;
+  peopleAccessScope: "none" | "all" | "direct_reports" | "selected_people" | "all_except_selected_people" | null;
+  salaryAccessLevel: "none" | "view" | "manage" | null;
+  salaryAccessScope: "all" | "direct_reports" | "selected_people" | "all_except_selected_people" | null;
+  privateDocumentsScope: "none" | "all" | "selected_people" | "all_except_selected_people" | null;
+  financeExportsAccess: boolean | null;
+  manageUsersAccess: boolean | null;
   employeeEmail: string | null;
 };
 
@@ -96,17 +99,8 @@ const CompanySchema = z.object({
   employeeNumberNext: z.coerce.number().int().min(1),
 });
 
-const CAPABILITIES: readonly AccessCapability[] = [
-  "people_operations",
-  "compensation_view",
-  "compensation_manage",
-  "private_employee_documents",
-  "finance_payroll_exports",
-  "company_access_settings",
-] as const;
-
-function requirePlatformOwner(actor: Actor): void {
-  if (!actor.isPlatformOwner) throw new Error("FORBIDDEN");
+async function requireInstallerActor(actor: Actor): Promise<void> {
+  if (!(await hasCapability(actor, "company_access_settings"))) throw new Error("FORBIDDEN");
 }
 
 function parseCsvRows(input: string): string[][] {
@@ -131,26 +125,46 @@ function parseProfile(value: string): AccessProfile {
   throw new Error(`invalid access profile: ${value}`);
 }
 
-function parseCapability(value: string): AccessCapability {
-  const normalized = value.trim().toLowerCase().replace(/\s+/g, "_");
-  if ((CAPABILITIES as readonly string[]).includes(normalized)) return normalized as AccessCapability;
-  throw new Error(`invalid capability: ${value}`);
+function parsePeopleScope(value: string | undefined): ParsedAccessException["peopleAccessScope"] {
+  const normalized = text(value)?.toLowerCase().replace(/\s+/g, "_") ?? "";
+  if (!normalized) return null;
+  if (["none", "all", "direct_reports", "selected_people", "all_except_selected_people"].includes(normalized)) {
+    return normalized as ParsedAccessException["peopleAccessScope"];
+  }
+  throw new Error(`invalid people scope: ${value}`);
 }
 
-function parseScope(value: string): AccessScope {
-  const normalized = value.trim().toLowerCase().replace(/\s+/g, "_");
-  if (normalized === "whole_company") return "whole_company";
-  if (normalized === "own_team") return "own_team";
-  if (normalized === "department") return "department";
-  if (normalized === "selected_people") return "selected_people";
-  throw new Error(`invalid access scope: ${value}`);
+function parseSalaryLevel(value: string | undefined): ParsedAccessException["salaryAccessLevel"] {
+  const normalized = text(value)?.toLowerCase() ?? "";
+  if (!normalized) return null;
+  if (["none", "view", "manage"].includes(normalized)) return normalized as ParsedAccessException["salaryAccessLevel"];
+  throw new Error(`invalid salary level: ${value}`);
 }
 
-function parseEffect(value: string): AccessEffect {
-  const normalized = value.trim().toLowerCase();
-  if (normalized === "allow" || normalized === "grant") return "allow";
-  if (normalized === "restrict" || normalized === "deny" || normalized === "exclude") return "restrict";
-  throw new Error(`invalid access effect: ${value}`);
+function parseSalaryScope(value: string | undefined): ParsedAccessException["salaryAccessScope"] {
+  const normalized = text(value)?.toLowerCase().replace(/\s+/g, "_") ?? "";
+  if (!normalized) return null;
+  if (["all", "direct_reports", "selected_people", "all_except_selected_people"].includes(normalized)) {
+    return normalized as ParsedAccessException["salaryAccessScope"];
+  }
+  throw new Error(`invalid salary scope: ${value}`);
+}
+
+function parsePrivateDocumentsScope(value: string | undefined): ParsedAccessException["privateDocumentsScope"] {
+  const normalized = text(value)?.toLowerCase().replace(/\s+/g, "_") ?? "";
+  if (!normalized) return null;
+  if (["none", "all", "selected_people", "all_except_selected_people"].includes(normalized)) {
+    return normalized as ParsedAccessException["privateDocumentsScope"];
+  }
+  throw new Error(`invalid private documents scope: ${value}`);
+}
+
+function parseOptionalBoolean(value: string | undefined): boolean | null {
+  const normalized = text(value)?.toLowerCase();
+  if (!normalized) return null;
+  if (["yes", "true", "1"].includes(normalized)) return true;
+  if (["no", "false", "0"].includes(normalized)) return false;
+  throw new Error(`invalid boolean: ${value}`);
 }
 
 function parseBoolean(value: string): boolean {
@@ -324,11 +338,13 @@ export function parseSetupPack(input: {
 
   const accessExceptions = parseCsvRows(input.accessExceptionsCsv ?? "").map((row) => ({
     email: emailKey(row[0] ?? ""),
-    capability: parseCapability(row[1] ?? ""),
-    effect: parseEffect(row[2] ?? ""),
-    scope: parseScope(row[3] ?? "whole_company"),
-    department: text(row[4]),
-    employeeEmail: text(row[5]) ? emailKey(row[5] ?? "") : null,
+    peopleAccessScope: parsePeopleScope(row[1]),
+    salaryAccessLevel: parseSalaryLevel(row[2]),
+    salaryAccessScope: parseSalaryScope(row[3]),
+    privateDocumentsScope: parsePrivateDocumentsScope(row[4]),
+    financeExportsAccess: parseOptionalBoolean(row[5]),
+    manageUsersAccess: parseOptionalBoolean(row[6]),
+    employeeEmail: text(row[7]) ? emailKey(row[7] ?? "") : null,
   }));
 
   const validationErrors: string[] = [];
@@ -381,8 +397,17 @@ export function parseSetupPack(input: {
 
   for (const exception of accessExceptions) {
     if (!userEmails.has(exception.email)) validationErrors.push(`access exception user not staged: ${exception.email}`);
-    if (exception.scope === "department" && !exception.department) validationErrors.push(`department scope missing department: ${exception.email}`);
-    if (exception.scope === "selected_people" && !exception.employeeEmail) validationErrors.push(`selected people scope missing employee: ${exception.email}`);
+    if (
+      (exception.peopleAccessScope === "selected_people" ||
+        exception.peopleAccessScope === "all_except_selected_people" ||
+        exception.salaryAccessScope === "selected_people" ||
+        exception.salaryAccessScope === "all_except_selected_people" ||
+        exception.privateDocumentsScope === "selected_people" ||
+        exception.privateDocumentsScope === "all_except_selected_people") &&
+      !exception.employeeEmail
+    ) {
+      validationErrors.push(`selected people scope missing employee: ${exception.email}`);
+    }
     if (exception.employeeEmail && !employeeEmails.has(exception.employeeEmail)) {
       validationErrors.push(`access exception target employee unknown: ${exception.employeeEmail}`);
     }
@@ -407,7 +432,7 @@ export async function recordSetupPackPreview(
     accessExceptionsCsv?: string;
   },
 ): Promise<{ id: string; preview: SetupPackPreview }> {
-  requirePlatformOwner(actor);
+  await requireInstallerActor(actor);
   const preview = parseSetupPack(input);
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
@@ -427,7 +452,7 @@ export async function recordSetupPackPreview(
 }
 
 export async function commitSetupPack(actor: Actor, batchId: string): Promise<string> {
-  requirePlatformOwner(actor);
+  await requireInstallerActor(actor);
   const supabase = createServiceRoleClient();
   const { data: batch, error: batchError } = await supabase
     .from("setup_import_batches")
@@ -462,11 +487,6 @@ export async function commitSetupPack(actor: Actor, batchId: string): Promise<st
           employee_number_separator: preview.company.employeeNumberSeparator,
           employee_number_digits: preview.company.employeeNumberDigits,
           employee_number_next: preview.company.employeeNumberNext,
-          setup_state: "active",
-          status: "active",
-          intake_completed_at: now,
-          setup_due_at: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
-          activated_at: now,
           setup_completed_at: now,
           setup_completed_by: actor.authUserId,
         } as never)
@@ -488,11 +508,6 @@ export async function commitSetupPack(actor: Actor, batchId: string): Promise<st
           employee_number_separator: preview.company.employeeNumberSeparator,
           employee_number_digits: preview.company.employeeNumberDigits,
           employee_number_next: preview.company.employeeNumberNext,
-          setup_state: "active",
-          status: "active",
-          intake_completed_at: now,
-          setup_due_at: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
-          activated_at: now,
           setup_completed_at: now,
           setup_completed_by: actor.authUserId,
         } as never)
@@ -602,9 +617,10 @@ export async function commitSetupPack(actor: Actor, batchId: string): Promise<st
       if (error) throw new Error(`SETUP_HOLIDAY_FAILED: ${error.message}`);
     }
 
-    const invitationIds = new Map<string, string>();
     for (const user of preview.users) {
       const employeeId = user.employeeLinked ? employeeIds.get(user.email) ?? null : null;
+      const exception = preview.accessExceptions.find((candidate) => candidate.email === user.email);
+      const selectedEmployeeId = exception?.employeeEmail ? employeeIds.get(exception.employeeEmail) ?? null : null;
       const { data: invitation, error } = await supabase
         .from("tenant_access_invitations")
         .upsert(
@@ -614,6 +630,15 @@ export async function commitSetupPack(actor: Actor, batchId: string): Promise<st
             email: user.email,
             display_name: user.name,
             profile: user.profile,
+            people_access_scope: exception?.peopleAccessScope ?? null,
+            people_selected_employee_ids: selectedEmployeeId && exception?.peopleAccessScope?.includes("selected") ? [selectedEmployeeId] : [],
+            salary_access_level: exception?.salaryAccessLevel ?? null,
+            salary_access_scope: exception?.salaryAccessScope ?? null,
+            salary_selected_employee_ids: selectedEmployeeId && exception?.salaryAccessScope?.includes("selected") ? [selectedEmployeeId] : [],
+            private_documents_scope: exception?.privateDocumentsScope ?? null,
+            private_documents_selected_employee_ids: selectedEmployeeId && exception?.privateDocumentsScope?.includes("selected") ? [selectedEmployeeId] : [],
+            finance_exports_access: exception?.financeExportsAccess ?? null,
+            manage_users_access: exception?.manageUsersAccess ?? null,
             active: true,
             invited_by_user_id: actor.authUserId,
           } as never,
@@ -622,24 +647,6 @@ export async function commitSetupPack(actor: Actor, batchId: string): Promise<st
         .select("id")
         .single();
       if (error || !invitation) throw new Error(`SETUP_ACCESS_STAGE_FAILED: ${error?.message ?? user.email}`);
-      invitationIds.set(user.email, (invitation as { id: string }).id);
-    }
-
-    for (const exception of preview.accessExceptions) {
-      const invitationId = invitationIds.get(exception.email);
-      if (!invitationId) throw new Error(`SETUP_ACCESS_EXCEPTION_STAGE_FAILED: ${exception.email}`);
-      const targetEmployeeId = exception.employeeEmail ? employeeIds.get(exception.employeeEmail) ?? null : null;
-      const { error } = await supabase.from("tenant_access_invitation_rules").insert({
-        tenant_id: tenantId,
-        invitation_id: invitationId,
-        capability: exception.capability,
-        effect: exception.effect,
-        scope: exception.scope,
-        department: exception.scope === "department" ? exception.department : null,
-        employee_id: exception.scope === "selected_people" ? targetEmployeeId : null,
-        created_by_user_id: actor.authUserId,
-      } as never);
-      if (error) throw new Error(`SETUP_ACCESS_EXCEPTION_STAGE_FAILED: ${error.message}`);
     }
 
     for (const employee of preview.employees) {

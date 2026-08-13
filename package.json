@@ -24,7 +24,7 @@
     "verify:rls": "node scripts/verify-rls.mjs",
     "verify:install": "node scripts/verify-install.mjs",
     "seed:admin": "node scripts/seed-admin.mjs",
-    "provision:platform-owner": "node scripts/provision-platform-owner.mjs",
+    "access:bootstrap": "node scripts/bootstrap-full-access.mjs",
     "seed:demo": "node scripts/seed-demo.mjs",
     "storage:setup": "node scripts/setup-storage.mjs",
     "smoke:core-loop": "node scripts/smoke-core-loop.mjs",

@@ -66,11 +66,8 @@ const TABLES_BY_MIGRATION = {
   "employment_changes.sql": ["employment_changes"],
   "early_employment.sql": ["employee_join_initializations", "onboarding_check_ins", "probation_reviews"],
   "access_model.sql": [
-    "platform_owners",
-    "platform_owner_transfer_requests",
     "tenant_memberships",
     "tenant_access_invitations",
-    "membership_access_rules",
     "setup_import_batches",
     "leave_opening_adjustments",
   ],

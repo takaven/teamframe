@@ -101,7 +101,7 @@ function requireTenant(actor: Actor): string {
 }
 
 function requireAdmin(actor: Actor): void {
-  if (actor.role !== "admin" && !actor.isPlatformOwner) throw new Error("FORBIDDEN");
+  if (actor.role !== "admin") throw new Error("FORBIDDEN");
 }
 
 function requireLinkedEmployee(actor: Actor): string {
@@ -201,7 +201,7 @@ export async function listLeaveBalancesForEmployee(
   year = new Date().getUTCFullYear(),
 ): Promise<LeaveBalanceSummary[]> {
   const tenantId = requireTenant(actor);
-  if (actor.role !== "admin" && !actor.isPlatformOwner && actor.employeeId !== employeeId) {
+  if (actor.role !== "admin" && actor.employeeId !== employeeId) {
     await assertCurrentDirectManager(actor, employeeId);
   }
   const period = periodForYear(year);
@@ -322,7 +322,7 @@ export async function getLeaveOverviewForEmployee(actor: Actor, employeeId: stri
 
 export async function listLeavesForEmployee(actor: Actor, employeeId: string): Promise<LeaveRecord[]> {
   const tenantId = requireTenant(actor);
-  if (actor.role !== "admin" && !actor.isPlatformOwner && actor.employeeId !== employeeId) {
+  if (actor.role !== "admin" && actor.employeeId !== employeeId) {
     throw new Error("FORBIDDEN");
   }
 

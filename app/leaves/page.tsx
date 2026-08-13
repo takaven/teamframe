@@ -92,7 +92,7 @@ export default async function LeavesPage({
   const successMessage = status ? (STATUS_COPY[status] ?? null) : null;
   const errorMessage = error ? (ERROR_COPY[error] ?? ERROR_COPY.UNKNOWN) : null;
 
-  if (actor.role === "admin" || actor.isPlatformOwner) {
+  if (actor.role === "admin") {
     const [pending, away]: [PendingLeaveWithEmployee[], Awaited<ReturnType<typeof listWhoIsAway>>] =
       await Promise.all([listPendingLeavesWithEmployee(actor), listWhoIsAway(actor)]);
 

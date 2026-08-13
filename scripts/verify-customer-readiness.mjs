@@ -63,8 +63,6 @@ async function main() {
     employee_number_separator: "-",
     employee_number_digits: 4,
     employee_number_next: 2,
-    status: "active",
-    setup_state: "active",
   });
 
   await service.from("company_holidays").insert({
@@ -171,24 +169,15 @@ async function main() {
     email: employee.email,
     display_name: employee.full_name,
     profile: "admin",
+    people_access_scope: "selected_people",
+    people_selected_employee_ids: [employee.id],
+    salary_access_level: "none",
     active: true,
     invited_by_user_id: "00000000-0000-0000-0000-000000000000",
   });
-  await service.from("tenant_access_invitation_rules").insert({
-    tenant_id: tenant.id,
-    invitation_id: invitation.id,
-    capability: "compensation_view",
-    effect: "restrict",
-    scope: "selected_people",
-    employee_id: employee.id,
-    created_by_user_id: "00000000-0000-0000-0000-000000000000",
-  });
-  const stagedRules = await service
-    .from("tenant_access_invitation_rules")
-    .select("id")
-    .eq("tenant_id", tenant.id)
-    .eq("invitation_id", invitation.id);
-  if (stagedRules.error || stagedRules.data.length !== 1) fail("Expected one staged invitation access rule");
+  if (invitation.people_access_scope !== "selected_people" || invitation.salary_access_level !== "none") {
+    fail("Expected invitation to carry effective access exception fields");
+  }
   pass("Setup-pack style access exception can be staged before auth user acceptance");
 
   const anonymous = await anon.from("employee_payment_details").select("employee_id").eq("tenant_id", tenant.id);

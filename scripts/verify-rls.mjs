@@ -1,7 +1,7 @@
 /**
  * TeamFrame — RLS verification harness.
  *
- * Runs against STAGING ONLY (HR5 guard enforced at startup).
+ * Runs against staging or an explicitly authorised disposable Supabase project.
  *
  * Setup (uses service-role — the ONE permitted use):
  *   Seeds tenant_a + tenant_b companies, 3 employees each (1 admin + 2 non-admin),
@@ -32,29 +32,28 @@ import dotenv from "dotenv";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, "..");
 
-dotenv.config({ path: join(repoRoot, ".env.local") });
-dotenv.config({ path: join(repoRoot, ".env.staging") });
+dotenv.config({ path: join(repoRoot, ".env.local"), quiet: true });
+dotenv.config({ path: join(repoRoot, ".env.staging"), quiet: true });
 
-// ─── HR5 Guard ────────────────────────────────────────────────────────────────
-if (!process.env.SUPABASE_URL_STAGING) {
+const DISPOSABLE_MODE = process.env.TEAMFRAME_AUDIT_INTEGRATION === "authorised-disposable";
+const TARGET_URL = DISPOSABLE_MODE ? process.env.AUDIT_SUPABASE_URL : process.env.SUPABASE_URL_STAGING;
+const TARGET_ANON_KEY = DISPOSABLE_MODE ? process.env.AUDIT_SUPABASE_ANON_KEY : process.env.SUPABASE_ANON_KEY_STAGING;
+const TARGET_SERVICE_KEY = DISPOSABLE_MODE ? process.env.AUDIT_SUPABASE_SERVICE_ROLE_KEY : process.env.SUPABASE_SERVICE_ROLE_KEY_STAGING;
+
+if (!DISPOSABLE_MODE && !process.env.SUPABASE_URL_STAGING) {
   console.error("[PARITY_FAIL] SUPABASE_URL_STAGING missing — aborting verify-rls.");
   process.exit(1);
 }
-if (process.env.SUPABASE_URL_STAGING === process.env.NEXT_PUBLIC_SUPABASE_URL) {
+if (!DISPOSABLE_MODE && process.env.SUPABASE_URL_STAGING === process.env.NEXT_PUBLIC_SUPABASE_URL) {
   console.error(
     "[PARITY_FAIL] SUPABASE_URL_STAGING must differ from NEXT_PUBLIC_SUPABASE_URL — aborting.\n" +
     "  verify-rls must run against staging only (HR5)."
   );
   process.exit(1);
 }
-// ─────────────────────────────────────────────────────────────────────────────
 
-const STAGING_URL = process.env.SUPABASE_URL_STAGING;
-const STAGING_ANON_KEY = process.env.SUPABASE_ANON_KEY_STAGING;
-const STAGING_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY_STAGING;
-
-if (!STAGING_ANON_KEY || !STAGING_SERVICE_KEY) {
-  console.error("✗ SUPABASE_ANON_KEY_STAGING and SUPABASE_SERVICE_ROLE_KEY_STAGING required.");
+if (!TARGET_URL || !TARGET_ANON_KEY || !TARGET_SERVICE_KEY) {
+  console.error("✗ RLS verification requires target URL, anon key and service-role key.");
   process.exit(1);
 }
 
@@ -73,7 +72,7 @@ const TEST_USERS = {
 };
 
 // Service-role client — for seeding only. Never used in probes.
-const adminClient = createClient(STAGING_URL, STAGING_SERVICE_KEY, {
+const adminClient = createClient(TARGET_URL, TARGET_SERVICE_KEY, {
   auth: { persistSession: false },
 });
 
@@ -112,7 +111,6 @@ async function cleanup() {
   if (tenantIds.length === 0) return;
 
   for (const table of [
-    "membership_access_rules",
     "tenant_access_invitations",
     "tenant_memberships",
     "leave_opening_adjustments",
@@ -247,7 +245,7 @@ async function seed() {
         employee_id: employee.id,
         email,
         display_name: email,
-        profile: role === "admin" ? "admin" : "employee",
+        profile: role === "admin" ? "full_access" : "employee",
         active: true,
       });
       if (membershipErr) throw new Error(`[SETUP] Membership create failed for ${email}: ${membershipErr.message}`);
@@ -288,7 +286,7 @@ function assert(condition, message) {
 // Create an authenticated Supabase client by signing in with email+password.
 // Returns the client — all queries from it carry the user JWT (not service-role).
 async function signInClient(email) {
-  const client = createClient(STAGING_URL, STAGING_ANON_KEY, {
+  const client = createClient(TARGET_URL, TARGET_ANON_KEY, {
     auth: { persistSession: false },
   });
   const { data, error } = await client.auth.signInWithPassword({ email, password: TEST_PASSWORD });

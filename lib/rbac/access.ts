@@ -1,11 +1,10 @@
 import "server-only";
 import type { Actor } from "@/middleware/rbac";
-import type { AccessCapability, AccessProfile, MembershipAccessRule } from "@/lib/rbac/roles";
+import type { AccessCapability, AccessProfile, PeopleAccessScope, PrivateDocumentsScope, SalaryAccessScope } from "@/lib/rbac/roles";
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 
 export type CapabilityTarget = {
   employeeId?: string | null;
-  department?: string | null;
 };
 
 const PROFILE_CAPABILITIES: Record<AccessProfile, readonly AccessCapability[]> = {
@@ -22,31 +21,10 @@ const PROFILE_CAPABILITIES: Record<AccessProfile, readonly AccessCapability[]> =
   employee: [],
 };
 
-function requireTenant(actor: Actor): string {
-  if (!actor.tenantId) throw new Error("NO_TENANT_CONTEXT");
-  return actor.tenantId;
-}
-
 function effectiveProfile(actor: Actor): AccessProfile {
-  if (actor.accessProfile && actor.accessProfile !== "platform_owner") return actor.accessProfile;
+  if (actor.accessProfile) return actor.accessProfile;
   if (actor.role === "admin") return "full_access";
   return "employee";
-}
-
-async function getTargetDepartment(actor: Actor, target: CapabilityTarget): Promise<string | null> {
-  if (target.department) return target.department;
-  if (!target.employeeId) return null;
-  const tenantId = requireTenant(actor);
-  const supabase = createServiceRoleClient();
-  const { data, error } = await supabase
-    .from("employees")
-    .select("department")
-    .eq("tenant_id", tenantId)
-    .eq("id", target.employeeId)
-    .is("deleted_at", null)
-    .maybeSingle();
-  if (error) throw new Error(`ACCESS_TARGET_LOOKUP_FAILED: ${error.message}`);
-  return (data as { department: string } | null)?.department ?? null;
 }
 
 async function isDirectReport(actor: Actor, employeeId: string | null | undefined): Promise<boolean> {
@@ -64,31 +42,6 @@ async function isDirectReport(actor: Actor, employeeId: string | null | undefine
   return Boolean(data);
 }
 
-async function ruleApplies(actor: Actor, rule: MembershipAccessRule, target: CapabilityTarget): Promise<boolean> {
-  if (rule.scope === "whole_company") return true;
-  if (rule.scope === "selected_people") return Boolean(target.employeeId && rule.employeeId === target.employeeId);
-  if (rule.scope === "own_team") return isDirectReport(actor, target.employeeId);
-  if (rule.scope === "department") {
-    const department = await getTargetDepartment(actor, target);
-    return Boolean(department && rule.department === department);
-  }
-  return false;
-}
-
-async function hasRuleEffect(
-  actor: Actor,
-  capability: AccessCapability,
-  effect: "allow" | "restrict",
-  target: CapabilityTarget,
-): Promise<boolean> {
-  const rules = actor.currentMembership?.rules ?? [];
-  for (const rule of rules) {
-    if (rule.capability !== capability || rule.effect !== effect) continue;
-    if (await ruleApplies(actor, rule, target)) return true;
-  }
-  return false;
-}
-
 async function hasManagerDerivedAccess(
   actor: Actor,
   capability: AccessCapability,
@@ -98,17 +51,57 @@ async function hasManagerDerivedAccess(
   return isDirectReport(actor, target.employeeId);
 }
 
+function profileAllows(actor: Actor, capability: AccessCapability): boolean {
+  if (actor.currentMembership) return false;
+  return PROFILE_CAPABILITIES[effectiveProfile(actor)]?.includes(capability) ?? false;
+}
+
+async function scopedEmployeeAccess(
+  actor: Actor,
+  targetEmployeeId: string | null | undefined,
+  scope: PeopleAccessScope | PrivateDocumentsScope | SalaryAccessScope,
+  selectedEmployeeIds: string[],
+): Promise<boolean> {
+  if (scope === "all") return true;
+  if (scope === "none") return false;
+  if (!targetEmployeeId) return false;
+  if (scope === "direct_reports") return isDirectReport(actor, targetEmployeeId);
+  const selected = selectedEmployeeIds.includes(targetEmployeeId);
+  if (scope === "selected_people") return selected;
+  if (scope === "all_except_selected_people") return !selected;
+  return false;
+}
+
+async function matrixAllows(actor: Actor, capability: AccessCapability, target: CapabilityTarget): Promise<boolean> {
+  const membership = actor.currentMembership;
+  if (!membership) return false;
+  if (capability === "people_operations") {
+    return scopedEmployeeAccess(actor, target.employeeId, membership.peopleAccess, membership.peopleSelectedEmployeeIds);
+  }
+  if (capability === "compensation_view") {
+    if (membership.salaryAccessLevel === "none") return false;
+    return scopedEmployeeAccess(actor, target.employeeId, membership.salaryAccessScope, membership.salarySelectedEmployeeIds);
+  }
+  if (capability === "compensation_manage") {
+    if (membership.salaryAccessLevel !== "manage") return false;
+    return scopedEmployeeAccess(actor, target.employeeId, membership.salaryAccessScope, membership.salarySelectedEmployeeIds);
+  }
+  if (capability === "private_employee_documents") {
+    return scopedEmployeeAccess(actor, target.employeeId, membership.privateDocumentsScope, membership.privateDocumentsSelectedEmployeeIds);
+  }
+  if (capability === "finance_payroll_exports") return membership.financeExportsAccess;
+  if (capability === "company_access_settings") return membership.manageUsersAccess;
+  return false;
+}
+
 export async function hasCapability(
   actor: Actor,
   capability: AccessCapability,
   target: CapabilityTarget = {},
 ): Promise<boolean> {
-  if (actor.isPlatformOwner) return true;
   if (!actor.tenantId) return false;
-  if (actor.tenantStatus && actor.tenantStatus !== "active") return false;
-  if (await hasRuleEffect(actor, capability, "restrict", target)) return false;
-  if (await hasRuleEffect(actor, capability, "allow", target)) return true;
-  if (PROFILE_CAPABILITIES[effectiveProfile(actor)]?.includes(capability)) return true;
+  if (await matrixAllows(actor, capability, target)) return true;
+  if (profileAllows(actor, capability)) return true;
   if (await hasManagerDerivedAccess(actor, capability, target)) return true;
   return false;
 }

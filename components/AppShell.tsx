@@ -11,6 +11,7 @@ const ADMIN_LINKS = [
   { href: "/onboarding", label: "Onboarding" },
   { href: "/leaves", label: "Leave" },
   { href: "/policies", label: "Policies" },
+  { href: "/company", label: "Company" },
 ] as const;
 
 const ACCESS_LINK = { href: "/access", label: "Access" } as const;
@@ -30,8 +31,8 @@ export function AppShell({
   actor: Actor;
   activePath: string;
 }) {
-  const isAdminSurface = actor.role === "admin" || actor.isPlatformOwner;
-  const canManageAccess = actor.accessProfile === "full_access" || actor.isPlatformOwner;
+  const isAdminSurface = actor.role === "admin";
+  const canManageAccess = actor.accessProfile === "full_access";
   const links = isAdminSurface ? (canManageAccess ? [...ADMIN_LINKS, ACCESS_LINK] : ADMIN_LINKS) : EMPLOYEE_LINKS;
 
   return (

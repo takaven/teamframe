@@ -76,7 +76,7 @@ export default async function MePage({
   const successMessage = status ? (STATUS_COPY[status] ?? null) : null;
   const errorMessage = error ? (ERROR_COPY[error] ?? ERROR_COPY.UNKNOWN) : null;
 
-  if (actor.role === "admin" || actor.isPlatformOwner) {
+  if (actor.role === "admin") {
     redirect("/dashboard");
   }
 

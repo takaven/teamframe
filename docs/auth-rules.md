@@ -3,156 +3,103 @@
 ## Auth Model
 
 - **Authentication method**: two-tier Supabase Auth
-  - Admins: email + password at `/admin/login`
+  - Admin/Finance/Full Access operators: email + password at `/admin/login`
   - Employees: Magic Link at `/auth`
 - **No password reset flows** exist
-- **No OAuth providers** allowed (Google / GitHub / Microsoft / etc.)
-- **Platform Owner MFA**: TOTP required for Platform Owner privileged access
+- **No OAuth providers** allowed
+- **No ordinary-user MFA requirement** in V1
 
 User identity is always:
-- a Supabase Auth user, keyed by email
-- the session is resolved **server-side only** via the Supabase SSR cookie
 
-## Login flow
+- a Supabase Auth user, keyed by email;
+- resolved server-side from the Supabase SSR cookie;
+- authorized through local company membership and effective access.
 
-```
-1. Employee enters email on /auth
-2. Server action calls supabase.auth.signInWithOtp({ email })
-3. Employee receives a magic link email
-4. User clicks link → /auth/callback?token_hash=...&type=magiclink → session cookie set
-5. Server resolves the actor:
-     auth.users.id (session)
-     → employees.email match
-     → employees.id
-     → database membership/profile
-6. Redirect to role default
-```
-
-```
-1. Admin enters email + password on /admin/login
-2. Server action calls supabase.auth.signInWithPassword({ email, password })
-3. Server resolves identity and verifies Admin/Full Access/Platform Owner authority
-4. Non-admin sessions are signed out and denied
-5. Admin redirects to /dashboard; Platform Owner redirects to /platform
-```
+## Employee Login Flow
 
 ```text
-1. Platform Owner enters email + password on /admin/login
-2. Server resolves the identity from platform_owners
-3. Platform Owner redirects to /platform
-4. /platform requires an MFA-verified AAL2 session
-5. Platform Owner enrolls/verifies TOTP at /platform/mfa where required
+1. Employee enters email on /auth
+2. Server action calls supabase.auth.signInWithOtp({ email })
+3. Employee receives a magic-link email
+4. User clicks link -> /auth/callback?token_hash=...&type=magiclink
+5. Session cookie is set
+6. Server resolves actor -> employee/membership -> role default
 ```
 
-## Role assignment
+## Operator Login Flow
 
-Roles are **server-controlled** and never derived from client input.
+```text
+1. Operator enters email + password on /admin/login
+2. Server action calls supabase.auth.signInWithPassword({ email, password })
+3. Server resolves identity and verifies authorized customer-local access
+4. Unauthorized sessions are signed out and denied
+5. Authorized operators redirect to /dashboard
+```
+
+## Role Assignment
+
+Roles and access are server-controlled and never derived from client input.
 
 Guided company setup does not itself authorize public/open self-registration. A paid-customer administrator may be provisioned through a controlled onboarding path, after which ordinary company setup must not require developer or direct database intervention.
 
-- Platform Owner is provisioned only by the dedicated Platform Owner mechanism.
-- Customer access is database-backed through company memberships and access rules.
+- Customer access is database-backed through local company memberships and effective access fields.
 - Legacy `admin` role claims migrate to Full Access.
-- The legacy `admin` role is set **only** via:
-  - The Supabase Dashboard, or
-  - The bootstrap script (`npm run seed:admin -- email@company.com`)
-- Employees are created by an admin via the in-product flow. The admin's
-  action triggers `supabase.auth.admin.inviteUserByEmail()` and inserts a
-  row in `employees`. The first magic-link sign-in links the auth user to
-  the employee record by email.
+- The legacy `admin` role is set only through legitimate infrastructure-side bootstrap/recovery tooling.
+- Employees are created by an authorized operator via the in-product flow. The first magic-link sign-in links the auth user to the employee record by email.
 
 **Never** allow:
-- self-role escalation
-- role passed in a request body, cookie, header, or query string
-- role inferred from email domain or any heuristic
+
+- self-role escalation;
+- role passed in a request body, cookie, header or query string;
+- role inferred from email domain or any heuristic;
+- open signup.
 
 ## Currently Forbidden Without Separate Product/Security Approval
 
 - Sign-up form / open registration
 - Password reset or email-change flows
-- "Continue with Google" or any OAuth provider
-- TOTP, WebAuthn, SMS, or any MFA for ordinary tenant users
-- Account-deletion self-service (admins handle this server-side)
+- OAuth providers
+- TOTP, WebAuthn, SMS or MFA for ordinary tenant users
+- Account-deletion self-service
 
-## Supabase project configuration
+## Supabase Project Configuration
 
-In the Supabase Dashboard (or via Management API), the following must be true:
+In Supabase Dashboard or via Management API:
 
 | Setting | Value |
 |---|---|
 | Email provider | enabled |
 | Magic Link | enabled |
-| **Password login** | **enabled** for manually configured admins |
-| **Allow new users to sign up** | **disabled** (admin-invite only) |
+| Password login | enabled for controlled operators |
+| Allow new users to sign up | disabled |
 | Confirm email | disabled for password signups |
 | OAuth providers | all disabled |
-| TOTP MFA | enabled for Platform Owner |
 
-Platform Owner privileged access requires AAL2. This does not impose MFA on normal Admin, Finance, Full Access or Employee accounts during this workstream.
+## Magic-Link Email Template
 
-Two working ways to apply these settings:
-
-1. **Config as code (recommended):** the contract is committed in
-   `supabase/config.toml`. Apply with `npx supabase link --project-ref <ref>`
-   then `npx supabase config push` (prints a diff, asks to confirm; works on
-   the free tier — verified). Re-running when nothing changed reports
-   "Remote Auth config is up to date".
-2. **Dashboard:** Authentication → *Sign In / Providers* (User Signups →
-   disable signups; Auth Providers → Email enabled) and Authentication →
-   *URL Configuration* (Site URL, redirect URLs).
-
-Free-tier caveat (verified): the magic-link email **template** cannot be
-modified while the project uses Supabase's built-in mailer, and that mailer
-only delivers to project team-member addresses. Custom SMTP (Authentication →
-*Emails* → SMTP settings) or a paid plan is required for employee magic-link
-delivery. Admin password login requires no email configuration.
-
-## Magic-link email template
-
-For local development, the Supabase **Magic Link** email template must use the
-`token_hash` callback shape. This avoids PKCE verifier mismatch when the user
-opens the link on a different device or after an older link was generated.
-
-In Supabase Dashboard → Authentication → Emails → Magic Link, set the link URL
-to:
+For local development, the Supabase Magic Link email template must use the `token_hash` callback shape:
 
 ```text
 http://localhost:3030/auth/callback?token_hash={{ .TokenHash }}&type=magiclink
 ```
 
-For production, replace the host with the production `SITE_URL`:
+For production:
 
 ```text
 {{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=magiclink
 ```
 
-Do not use password reset, invite-acceptance, OAuth, or MFA templates as product
-entry points unless the auth model is separately approved and updated.
+Do not use password reset, invite-acceptance, OAuth or MFA templates as product entry points unless the auth model is separately approved and updated.
 
-## Auth regression checklist
+## Auth Regression Checklist
 
-Run this after any change to `app/auth/**`, `middleware.ts`, the Supabase email
-template, or the `SITE_URL` / redirect-allowlist configuration. PKCE-class bugs
-tend to silently reappear during auth refactors.
+Run this after any change to `app/auth/**`, `middleware.ts`, Supabase email templates or redirect configuration.
 
-Manual round-trip — all must pass:
-
-- [ ] Newest magic link works (fresh email → click → land on role default)
-- [ ] Reused link fails gracefully (`/auth?error=callback_failed`, no crash)
-- [ ] Stale/expired link fails gracefully (same error page)
-- [ ] Gmail / webmail click works (no prefetch consumption of the code)
-- [ ] Cross-browser click works (link issued in browser A, opened in browser B)
+- [ ] Newest magic link works
+- [ ] Reused link fails gracefully
+- [ ] Stale/expired link fails gracefully
+- [ ] Webmail click works
+- [ ] Cross-browser click works
 - [ ] No infinite redirect loop after successful login
-- [ ] Logout → login again works in the same browser session
-- [ ] Admin lands on `/dashboard`; employee lands on the current employee self-service default route
-
-Diagnostic signature in dev logs after the `token_hash` switch — a successful
-login must look like:
-
-```text
-[callback] code=none token_hash=abc12345 cookies=[...] code_verifier_present=false
-```
-
-If you ever see `code=...` or `code challenge does not match previously saved
-code verifier` on a successful path, the email template has reverted to
-`{{ .ConfirmationURL }}` or some emails are still using the old template.
+- [ ] Logout -> login again works in the same browser session
+- [ ] Operator lands on `/dashboard`; employee lands on the employee self-service default route

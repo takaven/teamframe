@@ -14,7 +14,7 @@ TeamFrame gives founder-led teams the practical HR administration layer they nee
 - [TEAMFRAME_DEFERRED_SCOPE.md](TEAMFRAME_DEFERRED_SCOPE.md) - deferred and out-of-scope work.
 - [TEAMFRAME_RELEASE_READINESS.md](TEAMFRAME_RELEASE_READINESS.md) - release-readiness record.
 - [TEAMFRAME_PRODUCTION_RUNBOOK.md](TEAMFRAME_PRODUCTION_RUNBOOK.md) - production release and operations runbook.
-- [TEAMFRAME_ACCESS_MODEL.md](TEAMFRAME_ACCESS_MODEL.md) - production Platform Owner, customer access and provisioning model.
+- [TEAMFRAME_ACCESS_MODEL.md](TEAMFRAME_ACCESS_MODEL.md) - independent customer deployment, access and setup model.
 
 Older V1/readiness/finalisation documents are retained as provenance. Where they conflict with the files above, the canonical documents control.
 
@@ -33,7 +33,7 @@ Older V1/readiness/finalisation documents are retained as provenance. Where they
 - Offboarding and former-employee closure.
 - HR Control Centre, durable resolution history and operational exceptions.
 - Finance handoff exports.
-- Deployment-level Platform Owner, flexible customer access and setup-pack provisioning.
+- Independent customer deployment, flexible customer-local access and setup-pack provisioning.
 
 ## Product Operating Model
 
