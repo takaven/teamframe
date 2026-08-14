@@ -16,9 +16,9 @@ Visual readiness:
 
 > **VISUAL GO - READY FOR PRODUCTION**
 
-Final verified pre-release source:
+Final production release source:
 
-`0f72d633dcb9ef436e146e87c1f6b9366c761bda`
+`37bf104b5d72f81f9936a99ac3134c14bd2de7a5`
 
 Production deployment must use an explicitly identified production Vercel project and production Supabase project. Founder-review, staging, CI and disposable projects must not be treated as production.
 
@@ -31,7 +31,7 @@ Production deployment must use an explicitly identified production Vercel projec
 | Authentication | Supabase Auth in the production project |
 | File storage | Supabase Storage private `documents` bucket |
 | Authorization | Server-side RBAC, service-layer authorization, Supabase RLS |
-| Deployment ownership | Platform Owner with MFA/AAL2 |
+| Deployment ownership | Customer installation owner / Full Access operator with infrastructure authority |
 | Background automation | Protected `/api/automation/run` runner invoked by approved scheduler |
 | Observability | Public health, protected deep health, Sentry where configured, deployment logs |
 | Source control | GitHub repository and release tag |
@@ -69,10 +69,6 @@ The local `.vercel/project.json` must be inspected before deployment. If it poin
 | `NEXT_PUBLIC_PILOT_CONTACT_EMAIL` | Landing-page contact CTA | Optional | Client | Product owner |
 | `SUPABASE_ACCESS_TOKEN` | Supabase management/CLI operations | Operator only, not runtime | Local/CI secret | Supabase account token |
 | `SEED_ADMIN_PASSWORD` | One-time bootstrap admin password | Bootstrap only | Local shell/env only | Generated for intended admin |
-| `PLATFORM_OWNER_EMAIL` | Real Platform Owner email | Final provisioning only | Local shell/env only | Product owner supplied |
-| `PLATFORM_OWNER_NAME` | Real Platform Owner name | Final provisioning only | Local shell/env only | Product owner supplied |
-| `PLATFORM_OWNER_PASSWORD` | Initial Platform Owner password | Final provisioning only | Local shell/env only | Generated securely |
-
 Never commit `.env`, `.env.local`, production credential files, screenshots containing tokens or provider dashboards containing secrets.
 
 ## 5. Supabase Setup
@@ -103,21 +99,13 @@ npm run storage:setup
 
 Do not seed synthetic tenants, employees or visual-audit fixtures into production.
 
-## 6. Platform Owner Provisioning
+## 6. Full Access Provisioning / Recovery
 
-Production does not use ordinary open signup.
+Production does not use ordinary open signup, Platform Owner, `/platform` or a central TeamFrame operator runtime.
 
-Platform Owner is provisioned through the dedicated Platform Owner mechanism, not the tenant-admin bootstrap:
+Inside an independent customer installation, `Full Access` is the highest in-product authority. Customer Full Access/Admin users are provisioned through the access/provisioning model or controlled setup flow.
 
-```bash
-PLATFORM_OWNER_EMAIL='<real-email>' PLATFORM_OWNER_NAME='<real-name>' PLATFORM_OWNER_PASSWORD='<initial-password>' npm run provision:platform-owner
-```
-
-Do not invent the email address. If the real Platform Owner identity has not been supplied, stop before real account creation. The production access architecture may still be deployed.
-
-Platform Owner activation is not complete until TOTP enrollment and an AAL2 login to `/platform` are verified.
-
-Customer Full Access/Admin users are provisioned through the access/provisioning model or controlled setup flow. Legacy bootstrap remains available for controlled recovery only:
+A narrow infrastructure-side bootstrap remains available for controlled recovery only when the operator already has legitimate access to the customer's Supabase/Vercel infrastructure:
 
 ```bash
 SEED_ADMIN_PASSWORD='<production-admin-password>' npm run seed:admin -- admin@example.com "Admin Name" "Founder" "Leadership" "UTC"
@@ -292,23 +280,26 @@ Record after successful release:
 | Field | Value |
 | --- | --- |
 | Release date | 2026-08-13 |
-| Release tag | `teamframe-production-v1.0.0` |
-| Deployed application SHA | `3e3daaf517054a561b031057383b2b6f5a9bf143` |
-| Documentation commit SHA | Pending final provenance commit |
+| Latest release date | 2026-08-14 |
+| Release tag | Pending after local/GitHub finalisation |
+| Deployed application SHA | `37bf104b5d72f81f9936a99ac3134c14bd2de7a5` |
+| Documentation commit SHA | Current documentation/provenance commit |
 | Vercel project/domain | `teamframe-production` / `https://teamframe-production.vercel.app` |
-| Vercel deployment identifier | `dpl_9dLb1FCgaC95sb5LofxTkkZRaqjy` |
+| Vercel deployment identifier | `dpl_HBEQtqWHwpNe6Dy7xJouEL4DaSTY` |
 | Supabase project ref | `zylllrvcmockvfcfubkp` |
-| Schema/migration result | PASS |
-| Storage result | PASS |
+| Production backup | PASS — `C:\Users\isuda\Dev\teamframe-production-backups\20260814-052715-zylllrvcmockvfcfubkp-pgdump` |
+| Schema/migration result | PASS — 32 public tables, RLS enabled on all public tables |
+| Storage result | PASS — private `documents` bucket present |
 | Automation schedule status | Active via Vercel Cron, daily `0 6 * * *` on current Hobby plan |
-| Health status | Public health PASS; protected deep health PASS |
-| Smoke-test result | PASS for production-safe smoke checks |
+| Health status | Public health PASS; protected deep health returns 401 without secret |
+| Smoke-test result | PASS for production-safe smoke checks; `/platform` returns 404; `/dashboard` redirects unauthenticated users |
+| Synthetic data status | PASS — release-created `Default Company` seed removed; production company/employee counts are zero |
 
 Do not include secret values.
 
 ## 18. Remaining Repository Merge Step
 
-Production is live from `codex/market-ready-implementation` at `3e3daaf517054a561b031057383b2b6f5a9bf143`.
+Production is live from `codex/market-ready-implementation` at `37bf104b5d72f81f9936a99ac3134c14bd2de7a5`.
 
 GitHub PR:
 
