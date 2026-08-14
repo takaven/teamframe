@@ -64,12 +64,3 @@ create index if not exists company_holidays_tenant_date_idx on company_holidays(
 alter table companies enable row level security;
 
 create unique index if not exists companies_slug_idx on companies(slug);
-
--- Bootstrap a deterministic local tenant so schema upgrades can backfill rows.
-insert into companies (id, name, slug)
-values (
-  '00000000-0000-0000-0000-000000000001',
-  'Default Company',
-  'default-company'
-)
-on conflict (id) do nothing;
