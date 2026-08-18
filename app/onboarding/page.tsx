@@ -4,12 +4,6 @@ import {
   listOnboardingTasksForEmployee,
   type OnboardingTask,
 } from "@/services/onboardingService";
-import {
-  listEarlyEmploymentForAdmin,
-  listMyOnboardingCheckIns,
-  type OnboardingCheckIn,
-  type ProbationReview,
-} from "@/services/earlyEmploymentService";
 import { listEmployeesForAdmin } from "@/services/employeeService";
 import { isTaskOverdue } from "@/services/onboardingService/templates";
 import Link from "next/link";
@@ -21,8 +15,6 @@ import { AssignPackForm } from "./AssignPackForm";
 import {
   assignOnboardingTaskAction,
   completeOnboardingTaskAction,
-  completeProbationReviewAction,
-  submitOnboardingCheckInAction,
 } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -117,19 +109,6 @@ function progressCopy(progress: number): string {
   return "Your checklist will grow as your setup progresses.";
 }
 
-function CheckInStatusBadge({ status }: { status: OnboardingCheckIn["status"] }) {
-  if (status === "submitted") return <StatusPill tone="green">Submitted</StatusPill>;
-  if (status === "scheduled") return <StatusPill tone="info">Scheduled</StatusPill>;
-  return <StatusPill tone="neutral">{status.replace("_", " ")}</StatusPill>;
-}
-
-function ProbationStatusBadge({ review }: { review: ProbationReview }) {
-  if (review.status === "completed") return <StatusPill tone="green">Completed</StatusPill>;
-  const overdue = review.review_due_date < new Date().toISOString().slice(0, 10);
-  if (overdue) return <StatusPill tone="amber">Review due</StatusPill>;
-  return <StatusPill tone="info">Scheduled</StatusPill>;
-}
-
 export default async function OnboardingPage({
   searchParams,
 }: {
@@ -142,18 +121,14 @@ export default async function OnboardingPage({
   const errorMessage = error ? (ERROR_COPY[error] ?? ERROR_COPY.UNKNOWN) : null;
 
   if (actor.role === "admin") {
-    const [tasks, employees, earlyEmployment] = await Promise.all([
+    const [tasks, employees] = await Promise.all([
       listAllOnboardingTasks(actor),
       listEmployeesForAdmin(actor),
-      listEarlyEmploymentForAdmin(actor),
     ]);
 
     const pending = tasks.filter((t) => t.status === "pending");
     const done = tasks.filter((t) => t.status === "completed");
     const employeeMap = new Map(employees.map((e) => [e.id, e.full_name]));
-    const pendingCheckIns = earlyEmployment.checkIns.filter((checkIn) => checkIn.status === "scheduled");
-    const submittedCheckIns = earlyEmployment.checkIns.filter((checkIn) => checkIn.status === "submitted");
-    const openProbationReviews = earlyEmployment.probationReviews.filter((review) => review.status !== "completed");
 
     return (
       <main className="mx-auto max-w-5xl px-6 py-14">
@@ -167,6 +142,9 @@ export default async function OnboardingPage({
               Assign first-week tasks so every employee knows what to do next.
             </p>
           </div>
+          <Link href="/early-employment" className="rounded-full border border-ink-300 px-4 py-2 text-[13px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900">
+            30-day check-ins &amp; probation →
+          </Link>
         </div>
 
         <section className="mt-7 grid gap-4 sm:grid-cols-3">
@@ -183,99 +161,6 @@ export default async function OnboardingPage({
             <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">
               {tasks.length > 0 ? Math.round((done.length / tasks.length) * 100) : 0}%
             </p>
-          </article>
-        </section>
-
-        <section className="mt-6 grid gap-4 lg:grid-cols-2">
-          <article className="rounded-xl border border-ink-300/70 bg-white/80">
-            <div className="border-b border-ink-300/60 px-5 py-4">
-              <h2 className="text-[17px] font-medium tracking-tight">30-day check-ins</h2>
-              <p className="mt-1 text-[13px] text-ink-500">
-                Scheduled from each employee start date. Submitted answers close the reminder obligation.
-              </p>
-            </div>
-            {earlyEmployment.checkIns.length === 0 ? (
-              <p className="px-5 py-4 text-[14px] text-ink-500">No check-ins have been scheduled yet.</p>
-            ) : (
-              <ul className="divide-y divide-ink-300/40">
-                {[...pendingCheckIns, ...submittedCheckIns].slice(0, 6).map((checkIn) => (
-                  <li key={checkIn.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-                    <div className="min-w-0">
-                      <p className="text-[14px] font-medium text-ink-900">
-                        {employeeMap.get(checkIn.employee_id) ?? "Team member"}
-                      </p>
-                      <p className="mt-1 text-[12px] text-ink-500">
-                        Due <span className="font-mono tabular-nums">{formatDueDate(checkIn.due_date)}</span>
-                        {checkIn.flagged_follow_up ? " · Follow-up created" : ""}
-                      </p>
-                    </div>
-                    <CheckInStatusBadge status={checkIn.status} />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </article>
-
-          <article className="rounded-xl border border-ink-300/70 bg-white/80">
-            <div className="border-b border-ink-300/60 px-5 py-4">
-              <h2 className="text-[17px] font-medium tracking-tight">Probation reviews</h2>
-              <p className="mt-1 text-[13px] text-ink-500">
-                Human outcomes only. Reviews are scheduled by the early-employment defaults.
-              </p>
-            </div>
-            {earlyEmployment.probationReviews.length === 0 ? (
-              <p className="px-5 py-4 text-[14px] text-ink-500">No probation reviews have been scheduled yet.</p>
-            ) : (
-              <ul className="divide-y divide-ink-300/40">
-                {[...openProbationReviews, ...earlyEmployment.probationReviews.filter((review) => review.status === "completed")]
-                  .slice(0, 5)
-                  .map((review) => (
-                    <li key={review.id} className="space-y-3 px-5 py-4">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="text-[14px] font-medium text-ink-900">
-                            {employeeMap.get(review.employee_id) ?? "Team member"}
-                          </p>
-                          <p className="mt-1 text-[12px] text-ink-500">
-                            Review due <span className="font-mono tabular-nums">{formatDueDate(review.review_due_date)}</span>
-                            {" "}· Probation ends <span className="font-mono tabular-nums">{formatDueDate(review.probation_end_date)}</span>
-                          </p>
-                        </div>
-                        <ProbationStatusBadge review={review} />
-                      </div>
-                      {review.status !== "completed" ? (
-                        <form action={completeProbationReviewAction} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
-                          <input type="hidden" name="review_id" value={review.id} />
-                          <label className="sr-only" htmlFor={`outcome-${review.id}`}>Outcome</label>
-                          <select
-                            id={`outcome-${review.id}`}
-                            name="outcome"
-                            required
-                            className="rounded-md border border-ink-300 bg-white px-3 py-2 text-[13px]"
-                          >
-                            <option value="confirmed">Confirmed</option>
-                            <option value="extended">Extended</option>
-                            <option value="employment_ending">Employment ending</option>
-                          </select>
-                          <label className="sr-only" htmlFor={`extended-${review.id}`}>Extended until</label>
-                          <input
-                            id={`extended-${review.id}`}
-                            name="extended_until"
-                            type="date"
-                            className="rounded-md border border-ink-300 bg-white px-3 py-2 text-[13px]"
-                            aria-label="Extended probation date, required only when outcome is extended"
-                          />
-                          <PendingSubmitButton
-                            idleLabel="Record"
-                            pendingLabel="Saving..."
-                            className="rounded-lg bg-brand-signal px-4 py-2 text-[13px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:cursor-not-allowed disabled:bg-ink-300"
-                          />
-                        </form>
-                      ) : null}
-                    </li>
-                  ))}
-              </ul>
-            )}
           </article>
         </section>
 
@@ -445,17 +330,14 @@ export default async function OnboardingPage({
     );
   }
 
-  // Employee view
-  const [myTasks, myCheckIns] = actor.employeeId
-    ? await Promise.all([
-        listOnboardingTasksForEmployee(actor, actor.employeeId),
-        listMyOnboardingCheckIns(actor),
-      ])
-    : [[], []];
+  // Employee view. The 30-day check-in now lives on /me (Phase 5C boundary) — onboarding stays
+  // focused on the task checklist, pack/evidence, and completion.
+  const myTasks = actor.employeeId
+    ? await listOnboardingTasksForEmployee(actor, actor.employeeId)
+    : [];
 
   const pending = myTasks.filter((t) => t.status === "pending");
   const done = myTasks.filter((t) => t.status === "completed");
-  const openCheckIn = myCheckIns.find((checkIn) => checkIn.status === "scheduled") ?? null;
   const progress = myTasks.length > 0 ? Math.round((done.length / myTasks.length) * 100) : 0;
 
   return (
@@ -562,73 +444,6 @@ export default async function OnboardingPage({
                   </li>
                 ))}
               </ul>
-            </section>
-          ) : null}
-
-          {openCheckIn ? (
-            <section className="mt-6 rounded-xl border border-ink-300/70 bg-white/80">
-              <div className="border-b border-ink-300/60 px-5 py-4">
-                <h2 className="text-[17px] font-medium tracking-tight">30-day check-in</h2>
-                <p className="mt-1 text-[13px] text-ink-500">
-                  Share factual onboarding feedback so the team can remove blockers.
-                </p>
-              </div>
-              <form action={submitOnboardingCheckInAction} className="grid gap-4 px-5 py-4">
-                <input type="hidden" name="check_in_id" value={openCheckIn.id} />
-                {[
-                  ["role_clarity", "Role and priorities"],
-                  ["manager_team_clarity", "Manager and team clarity"],
-                  ["training_clear", "Training information"],
-                  ["policies_clear", "Policies and processes"],
-                ].map(([name, label]) => (
-                  <label key={name} className="grid gap-1 text-[13px] text-ink-700">
-                    {label}
-                    <select
-                      name={name}
-                      required
-                      defaultValue="mostly_clear"
-                      className="rounded-md border border-ink-300 bg-white px-3 py-2 text-[14px]"
-                    >
-                      <option value="clear">Clear</option>
-                      <option value="mostly_clear">Mostly clear</option>
-                      <option value="unclear">Unclear</option>
-                      <option value="needs_help">I need help</option>
-                    </select>
-                  </label>
-                ))}
-                {[
-                  ["tools_ready", "I have the tools and access I need"],
-                  ["support_available", "I know where to get support"],
-                  ["has_blockers", "Something is blocking my work"],
-                ].map(([name, label]) => (
-                  <label key={name} className="grid gap-1 text-[13px] text-ink-700">
-                    {label}
-                    <select
-                      name={name}
-                      required
-                      defaultValue={name === "has_blockers" ? "no" : "yes"}
-                      className="rounded-md border border-ink-300 bg-white px-3 py-2 text-[14px]"
-                    >
-                      <option value="yes">Yes</option>
-                      <option value="no">No</option>
-                    </select>
-                  </label>
-                ))}
-                <label className="grid gap-1 text-[13px] text-ink-700">
-                  What would improve onboarding?
-                  <textarea
-                    name="improvement_note"
-                    rows={3}
-                    className="rounded-md border border-ink-300 bg-white px-3 py-2 text-[14px]"
-                    placeholder="Optional note"
-                  />
-                </label>
-                <PendingSubmitButton
-                  idleLabel="Submit check-in"
-                  pendingLabel="Submitting..."
-                  className="w-full rounded-lg bg-brand-signal px-4 py-2 text-[14px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:cursor-not-allowed disabled:bg-ink-300 sm:w-fit"
-                />
-              </form>
             </section>
           ) : null}
 

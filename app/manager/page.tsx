@@ -6,6 +6,7 @@ import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { StatusPill } from "@/components/StatusPill";
 import { getManagerDashboard } from "@/services/managerService";
 import { getEmployeeMasterRecord } from "@/services/employeeMasterService";
+import { listDirectReportCheckIns } from "@/services/earlyEmploymentService";
 import {
   completeManagerOffboardingItemAction,
   completeManagerOnboardingTaskAction,
@@ -54,7 +55,10 @@ export default async function ManagerPage({
   const { status, error, employee: employeeParam } = await searchParams;
   const successMessage = status ? (STATUS_COPY[status] ?? null) : null;
   const errorMessage = error ? (ERROR_COPY[error] ?? ERROR_COPY.UNKNOWN) : null;
-  const dashboard = await getManagerDashboard(actor);
+  const [dashboard, reportCheckIns] = await Promise.all([
+    getManagerDashboard(actor),
+    listDirectReportCheckIns(actor),
+  ]);
   // Manager view of a direct report. getEmployeeMasterRecord enforces manager-derived
   // people_operations: a NON-report throws FORBIDDEN, and compensation/payment stay hidden
   // (canView false) for a manager without explicit salary/finance permission.
@@ -342,6 +346,43 @@ export default async function ManagerPage({
               )}
             </article>
           </section>
+
+          {reportCheckIns.length > 0 ? (
+            <section className="mt-7 rounded-xl border border-ink-300/70 bg-white/80">
+              <div className="border-b border-ink-300/60 px-5 py-4">
+                <h2 className="text-[17px] font-medium tracking-tight">30-day check-ins</h2>
+                <p className="mt-1 text-[13px] text-ink-500">Submitted first-month feedback from your direct reports. Read-only.</p>
+              </div>
+              <ul className="divide-y divide-ink-300/40">
+                {reportCheckIns.map((checkIn) => (
+                  <li key={checkIn.id} className="px-5 py-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <p className="text-[14px] font-medium text-ink-900">{checkIn.employee_full_name}</p>
+                      <p className="text-[12px] text-ink-500">Submitted {formatDate(checkIn.submitted_at)}</p>
+                    </div>
+                    {checkIn.responses ? (
+                      <details className="mt-2">
+                        <summary className="cursor-pointer text-[12px] text-ink-500 hover:text-ink-900">View responses</summary>
+                        <dl className="mt-2 grid gap-1 text-[12px]">
+                          {checkIn.questions.map((q) => {
+                            const value = checkIn.responses?.[q.key];
+                            if (value === undefined || value === null || value === "") return null;
+                            const shown = typeof value === "boolean" ? (value ? "Yes" : "No") : String(value).replace(/_/g, " ");
+                            return (
+                              <div key={q.key} className="flex justify-between gap-4 border-b border-ink-100 py-1">
+                                <dt className="text-ink-500">{q.label}</dt>
+                                <dd className="text-right text-ink-800">{shown}</dd>
+                              </div>
+                            );
+                          })}
+                        </dl>
+                      </details>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
 
           <section className="mt-7 rounded-xl border border-ink-300/70 bg-white/80">
             <div className="border-b border-ink-300/60 px-5 py-4">

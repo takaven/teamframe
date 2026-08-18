@@ -4,14 +4,16 @@ import { requireTenantActor } from "@/middleware/rbac";
 import { getEmployeeMasterRecord } from "@/services/employeeMasterService";
 import { listDocumentRequirementsForEmployee } from "@/services/documentService";
 import { listUnacknowledgedForEmployee, type PolicyRecord } from "@/services/policyService";
-import { listMyOnboardingCheckIns } from "@/services/earlyEmploymentService";
+import { getMyCheckInState } from "@/services/earlyEmploymentService";
 import { getManagerDashboard } from "@/services/managerService";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
+import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { AppShell } from "@/components/AppShell";
 import { EmptyState } from "@/components/EmptyState";
 import { EmployeeSelfRecord } from "@/components/EmployeeSelfRecord";
 import { DocumentsChecklist } from "@/components/DocumentsChecklist";
 import { acknowledgePolicyAction } from "@/app/policies/actions";
+import { submitOnboardingCheckInAction } from "@/app/onboarding/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +23,12 @@ const STATUS_COPY: Record<string, string> = {
   profile_updated: "Your details were saved.",
   payment_updated: "Payment details saved.",
   photo_updated: "Profile photo updated.",
+  check_in_submitted: "Thanks — your 30-day check-in was submitted.",
 };
+
+function formatDay(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
 
 const ERROR_COPY: Record<string, string> = {
   FORBIDDEN: "You do not have permission for that action.",
@@ -65,20 +72,19 @@ export default async function MePage({
     );
   }
 
-  const [record, unacknowledgedPolicies, checkIns, documentRequirements, managerDashboard]: [
+  const [record, unacknowledgedPolicies, checkInState, documentRequirements, managerDashboard]: [
     Awaited<ReturnType<typeof getEmployeeMasterRecord>>,
     PolicyRecord[],
-    Awaited<ReturnType<typeof listMyOnboardingCheckIns>>,
+    Awaited<ReturnType<typeof getMyCheckInState>>,
     Awaited<ReturnType<typeof listDocumentRequirementsForEmployee>>,
     Awaited<ReturnType<typeof getOptionalManagerDashboard>>,
   ] = await Promise.all([
     getEmployeeMasterRecord(actor, actor.employeeId),
     listUnacknowledgedForEmployee(actor),
-    listMyOnboardingCheckIns(actor),
+    getMyCheckInState(actor),
     listDocumentRequirementsForEmployee(actor, actor.employeeId),
     getOptionalManagerDashboard(actor),
   ]);
-  const openCheckIn = checkIns.find((checkIn) => checkIn.status === "scheduled");
   const isManager = managerDashboard.directReports.length > 0;
 
   return (
@@ -136,11 +142,67 @@ export default async function MePage({
         </section>
       ) : null}
 
-      {openCheckIn ? (
+      {checkInState.state === "not_yet_due" ? (
         <section className="mt-6 rounded-xl border border-ink-200 bg-white/70 p-5">
           <h2 className="text-[15px] font-bold tracking-tight text-ink-800">30-day check-in</h2>
-          <p className="mt-1 text-[13px] text-ink-500">Your check-in is ready on the onboarding page.</p>
-          <Link href="/onboarding" className="mt-3 inline-flex rounded-lg bg-brand-signal px-4 py-2 text-[13px] font-medium text-ink-800">Complete check-in</Link>
+          <p className="mt-1 text-[13px] text-ink-500">Your check-in opens on <span className="font-mono tabular-nums">{formatDay(checkInState.checkIn.due_date)}</span> — nothing to do yet.</p>
+        </section>
+      ) : null}
+
+      {checkInState.state === "submitted" ? (
+        <section className="mt-6 rounded-xl border border-ink-200 bg-white/70 p-5">
+          <h2 className="text-[15px] font-bold tracking-tight text-ink-800">30-day check-in</h2>
+          <p className="mt-1 text-[13px] text-ink-500">Submitted{checkInState.checkIn.submitted_at ? <> on <span className="font-mono tabular-nums">{formatDay(checkInState.checkIn.submitted_at)}</span></> : null}. Thank you — no further action needed.</p>
+        </section>
+      ) : null}
+
+      {checkInState.state === "available" ? (
+        <section className="mt-6 rounded-xl border border-ink-200 bg-white/70">
+          <div className="border-b border-ink-200 px-5 py-4">
+            <h2 className="text-[15px] font-bold tracking-tight text-ink-800">30-day check-in</h2>
+            <p className="mt-1 text-[13px] text-ink-500">Share factual first-month feedback so the team can remove any blockers.</p>
+          </div>
+          <form action={submitOnboardingCheckInAction} className="grid gap-4 px-5 py-4">
+            <input type="hidden" name="check_in_id" value={checkInState.checkIn.id} />
+            {([
+              ["role_clarity", "Role and priorities"],
+              ["manager_team_clarity", "Manager and team clarity"],
+              ["training_clear", "Onboarding information"],
+              ["policies_clear", "Policies and processes"],
+            ] as const).map(([name, label]) => (
+              <label key={name} className="grid gap-1 text-[13px] text-ink-700">
+                {label}
+                <select name={name} required defaultValue="mostly_clear" className="rounded-md border border-ink-300 bg-white px-3 py-2 text-[14px]">
+                  <option value="clear">Clear</option>
+                  <option value="mostly_clear">Mostly clear</option>
+                  <option value="unclear">Unclear</option>
+                  <option value="needs_help">I need help</option>
+                </select>
+              </label>
+            ))}
+            {([
+              ["tools_ready", "I have the tools and access I need"],
+              ["support_available", "I know where to get support"],
+              ["has_blockers", "Something is blocking my work"],
+            ] as const).map(([name, label]) => (
+              <label key={name} className="grid gap-1 text-[13px] text-ink-700">
+                {label}
+                <select name={name} required defaultValue={name === "has_blockers" ? "no" : "yes"} className="rounded-md border border-ink-300 bg-white px-3 py-2 text-[14px]">
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
+                </select>
+              </label>
+            ))}
+            <label className="grid gap-1 text-[13px] text-ink-700">
+              What would improve onboarding?
+              <textarea name="improvement_note" rows={3} className="rounded-md border border-ink-300 bg-white px-3 py-2 text-[14px]" placeholder="Optional note" />
+            </label>
+            <PendingSubmitButton
+              idleLabel="Submit check-in"
+              pendingLabel="Submitting..."
+              className="w-full rounded-lg bg-brand-signal px-4 py-2 text-[14px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:cursor-not-allowed disabled:bg-ink-300 sm:w-fit"
+            />
+          </form>
         </section>
       ) : null}
 

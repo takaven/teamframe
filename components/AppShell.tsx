@@ -11,6 +11,7 @@ const ADMIN_LINKS = [
   { href: "/org-chart", label: "Org chart" },
   { href: "/employees", label: "Employees" },
   { href: "/onboarding", label: "Onboarding" },
+  { href: "/early-employment", label: "Early employment" },
   { href: "/leaves", label: "Leave" },
   { href: "/policies", label: "Policies" },
 ] as const;

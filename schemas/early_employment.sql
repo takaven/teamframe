@@ -217,6 +217,7 @@ declare
   v_lifecycle employee_lifecycle_state;
   v_inserted_count integer := 0;
   v_base_date date;
+  v_check_in_enabled boolean;
   v_check_in_id uuid;
   v_check_in_item_id uuid;
   v_probation_id uuid;
@@ -312,29 +313,38 @@ begin
       and id = v_manager_task_id;
   end if;
 
-  insert into onboarding_check_ins (tenant_id, employee_id, due_date, questions)
-  values (p_tenant_id, p_employee_id, v_base_date + 30, teamframe_onboarding_check_in_questions())
-  on conflict (tenant_id, employee_id, due_date) do update set updated_at = clock_timestamp()
-  returning id into v_check_in_id;
+  -- 30-day check-in is a COMPANY-CONFIGURED obligation. Respect thirty_day_check_in_enabled:
+  -- when disabled, no check-in (and no reminder) is created, so nothing is ever presented as due.
+  select coalesce(thirty_day_check_in_enabled, true)
+  into v_check_in_enabled
+  from companies
+  where id = p_tenant_id;
 
-  v_check_in_item_id := teamframe_ensure_hr_automation_item(
-    p_tenant_id,
-    'onboarding.check_in.due',
-    'onboarding.check_in:' || p_employee_id::text || ':' || (v_base_date + 30)::text,
-    'onboarding_check_in',
-    v_check_in_id,
-    p_employee_id,
-    ((v_base_date + 30)::text || 'T09:00:00Z')::timestamptz,
-    'routine_reminder',
-    null,
-    jsonb_build_object('employee_id', p_employee_id, 'milestone_days', 30),
-    3
-  );
+  if coalesce(v_check_in_enabled, true) then
+    insert into onboarding_check_ins (tenant_id, employee_id, due_date, questions)
+    values (p_tenant_id, p_employee_id, v_base_date + 30, teamframe_onboarding_check_in_questions())
+    on conflict (tenant_id, employee_id, due_date) do update set updated_at = clock_timestamp()
+    returning id into v_check_in_id;
 
-  update onboarding_check_ins
-  set automation_item_id = v_check_in_item_id
-  where tenant_id = p_tenant_id
-    and id = v_check_in_id;
+    v_check_in_item_id := teamframe_ensure_hr_automation_item(
+      p_tenant_id,
+      'onboarding.check_in.due',
+      'onboarding.check_in:' || p_employee_id::text || ':' || (v_base_date + 30)::text,
+      'onboarding_check_in',
+      v_check_in_id,
+      p_employee_id,
+      ((v_base_date + 30)::text || 'T09:00:00Z')::timestamptz,
+      'routine_reminder',
+      null,
+      jsonb_build_object('employee_id', p_employee_id, 'milestone_days', 30),
+      3
+    );
+
+    update onboarding_check_ins
+    set automation_item_id = v_check_in_item_id
+    where tenant_id = p_tenant_id
+      and id = v_check_in_id;
+  end if;
 
   if v_employee.employment_type <> 'contractor' then
     v_probation_end := v_base_date + 90;
@@ -440,6 +450,11 @@ begin
 
   if not found then
     raise exception 'CHECK_IN_NOT_FOUND';
+  end if;
+
+  -- Not submittable before the 30-day milestone (the employee sees "Not yet due" until then).
+  if v_check_in.due_date > current_date then
+    raise exception 'CHECK_IN_NOT_YET_DUE';
   end if;
 
   v_needs_follow_up :=

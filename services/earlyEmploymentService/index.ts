@@ -139,7 +139,7 @@ function toProbationReview(row: Record<string, unknown>): ProbationReview {
 export async function listEarlyEmploymentForAdmin(actor: Actor): Promise<EarlyEmploymentAdminState> {
   requireAdmin(actor);
   const tenantId = requireTenant(actor);
-  const supabase: any = createServiceRoleClient();
+  const supabase = createServiceRoleClient();
 
   const [checkInsResult, probationResult] = await Promise.all([
     supabase
@@ -166,7 +166,7 @@ export async function listEarlyEmploymentForAdmin(actor: Actor): Promise<EarlyEm
 export async function listMyOnboardingCheckIns(actor: Actor): Promise<OnboardingCheckIn[]> {
   const tenantId = requireTenant(actor);
   const employeeId = requireEmployee(actor);
-  const supabase: any = createServiceRoleClient();
+  const supabase = createServiceRoleClient();
 
   const { data, error } = await supabase
     .from("onboarding_check_ins")
@@ -179,6 +179,74 @@ export async function listMyOnboardingCheckIns(actor: Actor): Promise<Onboarding
   return (data ?? []).map(toCheckIn);
 }
 
+// Whether the tenant currently treats the 30-day check-in as an obligation.
+async function isCheckInEnabledForTenant(tenantId: string): Promise<boolean> {
+  const supabase = createServiceRoleClient();
+  const { data, error } = await supabase
+    .from("companies")
+    .select("thirty_day_check_in_enabled")
+    .eq("id", tenantId)
+    .single();
+  if (error) throw new Error(`COMPANY_SETTING_FETCH_FAILED: ${error.message}`);
+  return (data as unknown as { thirty_day_check_in_enabled?: boolean } | null)?.thirty_day_check_in_enabled ?? true;
+}
+
+export type MyCheckInState =
+  | { state: "none"; checkIn: null }
+  | { state: "not_yet_due" | "available" | "submitted"; checkIn: OnboardingCheckIn };
+
+/**
+ * The employee's own 30-day check-in, reduced to a presentation state. Respects the company
+ * setting: when disabled, nothing is presented as due ("none"). Availability is derived from the
+ * due date (start + 30) — "not_yet_due" before it, "available" on/after it, "submitted" once done.
+ */
+export async function getMyCheckInState(actor: Actor): Promise<MyCheckInState> {
+  const tenantId = requireTenant(actor);
+  requireEmployee(actor);
+
+  if (!(await isCheckInEnabledForTenant(tenantId))) {
+    return { state: "none", checkIn: null };
+  }
+
+  const checkIns = await listMyOnboardingCheckIns(actor);
+  const submitted = checkIns.find((c) => c.status === "submitted");
+  const scheduled = checkIns.find((c) => c.status === "scheduled");
+  if (scheduled) {
+    const today = new Date().toISOString().slice(0, 10);
+    return { state: scheduled.due_date > today ? "not_yet_due" : "available", checkIn: scheduled };
+  }
+  if (submitted) return { state: "submitted", checkIn: submitted };
+  return { state: "none", checkIn: null };
+}
+
+export type DirectReportCheckIn = OnboardingCheckIn & { employee_full_name: string };
+
+/**
+ * Submitted 30-day check-ins for the acting manager's CURRENT direct reports (read-only). Scoped
+ * strictly to direct reports — a manager never sees non-reports. No mutation is exposed.
+ */
+export async function listDirectReportCheckIns(actor: Actor): Promise<DirectReportCheckIn[]> {
+  const tenantId = requireTenant(actor);
+  const directReports = await listCurrentDirectReports(actor);
+  if (directReports.length === 0) return [];
+  const nameById = new Map(directReports.map((e) => [e.id, e.full_name]));
+
+  const supabase = createServiceRoleClient();
+  const { data, error } = await supabase
+    .from("onboarding_check_ins")
+    .select("id, employee_id, due_date, status, questions, responses, flagged_follow_up, follow_up_action_item_id, submitted_at, created_at, updated_at")
+    .eq("tenant_id", tenantId)
+    .in("employee_id", directReports.map((e) => e.id))
+    .eq("status", "submitted")
+    .order("submitted_at", { ascending: false });
+
+  if (error) throw new Error(`DIRECT_REPORT_CHECK_IN_LIST_FAILED: ${error.message}`);
+  return ((data ?? []) as unknown as Array<Record<string, unknown>>).map((row) => ({
+    ...toCheckIn(row),
+    employee_full_name: nameById.get(String(row.employee_id)) ?? "Team member",
+  }));
+}
+
 export async function submitMyOnboardingCheckIn(
   actor: Actor,
   checkInId: string,
@@ -187,7 +255,7 @@ export async function submitMyOnboardingCheckIn(
   const tenantId = requireTenant(actor);
   const employeeId = requireEmployee(actor);
   const parsed = CheckInResponseSchema.parse(input);
-  const supabase: any = createServiceRoleClient();
+  const supabase = createServiceRoleClient();
 
   const { data, error } = await supabase
     .rpc("teamframe_submit_onboarding_check_in", {
@@ -196,12 +264,12 @@ export async function submitMyOnboardingCheckIn(
       p_employee_id: employeeId,
       p_check_in_id: checkInId,
       p_responses: parsed,
-    })
+    } as never)
     .maybeSingle();
 
   if (error) throw new Error(`CHECK_IN_SUBMIT_FAILED: ${error.message}`);
   if (!data) throw new Error("CHECK_IN_NOT_FOUND");
-  return toCheckIn(data);
+  return toCheckIn(data as Record<string, unknown>);
 }
 
 export async function completeProbationReview(
@@ -211,7 +279,7 @@ export async function completeProbationReview(
   requireAdmin(actor);
   const tenantId = requireTenant(actor);
   const parsed = CompleteProbationSchema.parse(input);
-  const supabase: any = createServiceRoleClient();
+  const supabase = createServiceRoleClient();
 
   const { data, error } = await supabase
     .rpc("teamframe_complete_probation_review", {
@@ -221,7 +289,7 @@ export async function completeProbationReview(
       p_outcome: parsed.outcome,
       p_outcome_notes: parsed.outcomeNotes ?? null,
       p_extended_until: parsed.extendedUntil ?? null,
-    })
+    } as never)
     .maybeSingle();
 
   if (error) throw new Error(`PROBATION_REVIEW_COMPLETE_FAILED: ${error.message}`);
@@ -235,7 +303,7 @@ export async function listManagerProbationReviews(actor: Actor): Promise<Probati
   const directReportIds = directReports.map((employee) => employee.id);
   if (directReportIds.length === 0) return [];
 
-  const supabase: any = createServiceRoleClient();
+  const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from("probation_reviews")
     .select("id, employee_id, probation_end_date, review_due_date, status, review_owner_user_id, manager_input, manager_recommended_outcome, manager_input_submitted_at, manager_input_submitted_by_user_id, manager_input_automation_item_id, outcome, outcome_notes, completed_at, created_at, updated_at")
@@ -251,7 +319,7 @@ export async function listManagerProbationReviews(actor: Actor): Promise<Probati
 export async function submitManagerProbationInput(actor: Actor, input: unknown): Promise<ProbationReview> {
   const tenantId = requireTenant(actor);
   const parsed = ManagerProbationInputSchema.parse(input);
-  const supabase: any = createServiceRoleClient();
+  const supabase = createServiceRoleClient();
 
   const { data: reviewData, error: reviewError } = await supabase
     .from("probation_reviews")
@@ -274,7 +342,7 @@ export async function submitManagerProbationInput(actor: Actor, input: unknown):
       manager_recommended_outcome: parsed.recommendedOutcome ?? null,
       manager_input_submitted_at: new Date().toISOString(),
       manager_input_submitted_by_user_id: actor.authUserId,
-    })
+    } as never)
     .eq("tenant_id", tenantId)
     .eq("id", parsed.reviewId)
     .in("status", ["scheduled", "due"])
@@ -303,7 +371,7 @@ export async function submitManagerProbationInput(actor: Actor, input: unknown):
     actor_type: "human",
     action_type: "probation.manager_input_submitted",
     target_id: parsed.reviewId,
-  });
+  } as never);
   if (auditError) throw new Error(`AUDIT_LOG_FAILED: ${auditError.message}`);
 
   return updated;
