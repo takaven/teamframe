@@ -41,6 +41,7 @@ export type ProbationReview = {
   status: ProbationReviewStatus;
   review_owner_user_id: string;
   manager_input: string | null;
+  manager_recommended_outcome: "confirmed" | "unsuccessful" | null;
   manager_input_submitted_at: string | null;
   manager_input_submitted_by_user_id: string | null;
   manager_input_automation_item_id: string | null;
@@ -79,6 +80,9 @@ const CompleteProbationSchema = z.object({
 const ManagerProbationInputSchema = z.object({
   reviewId: z.string().uuid(),
   input: z.string().trim().min(1).max(1200),
+  // Manager RECOMMENDATION only — Confirmed / Unsuccessful. The final probation outcome
+  // remains an authorised Admin/People-Ops action; this never changes employment status.
+  recommendedOutcome: z.enum(["confirmed", "unsuccessful"]).nullable().optional(),
 });
 
 function requireTenant(actor: Actor): string {
@@ -120,6 +124,7 @@ function toProbationReview(row: Record<string, unknown>): ProbationReview {
     status: row.status as ProbationReviewStatus,
     review_owner_user_id: String(row.review_owner_user_id),
     manager_input: (row.manager_input as string | null) ?? null,
+    manager_recommended_outcome: (row.manager_recommended_outcome as "confirmed" | "unsuccessful" | null) ?? null,
     manager_input_submitted_at: (row.manager_input_submitted_at as string | null) ?? null,
     manager_input_submitted_by_user_id: (row.manager_input_submitted_by_user_id as string | null) ?? null,
     manager_input_automation_item_id: (row.manager_input_automation_item_id as string | null) ?? null,
@@ -144,7 +149,7 @@ export async function listEarlyEmploymentForAdmin(actor: Actor): Promise<EarlyEm
       .order("due_date", { ascending: true }),
     supabase
       .from("probation_reviews")
-      .select("id, employee_id, probation_end_date, review_due_date, status, review_owner_user_id, manager_input, manager_input_submitted_at, manager_input_submitted_by_user_id, manager_input_automation_item_id, outcome, outcome_notes, completed_at, created_at, updated_at")
+      .select("id, employee_id, probation_end_date, review_due_date, status, review_owner_user_id, manager_input, manager_recommended_outcome, manager_input_submitted_at, manager_input_submitted_by_user_id, manager_input_automation_item_id, outcome, outcome_notes, completed_at, created_at, updated_at")
       .eq("tenant_id", tenantId)
       .order("review_due_date", { ascending: true }),
   ]);
@@ -233,7 +238,7 @@ export async function listManagerProbationReviews(actor: Actor): Promise<Probati
   const supabase: any = createServiceRoleClient();
   const { data, error } = await supabase
     .from("probation_reviews")
-    .select("id, employee_id, probation_end_date, review_due_date, status, review_owner_user_id, manager_input, manager_input_submitted_at, manager_input_submitted_by_user_id, manager_input_automation_item_id, outcome, outcome_notes, completed_at, created_at, updated_at")
+    .select("id, employee_id, probation_end_date, review_due_date, status, review_owner_user_id, manager_input, manager_recommended_outcome, manager_input_submitted_at, manager_input_submitted_by_user_id, manager_input_automation_item_id, outcome, outcome_notes, completed_at, created_at, updated_at")
     .eq("tenant_id", tenantId)
     .in("employee_id", directReportIds)
     .in("status", ["scheduled", "due"])
@@ -250,7 +255,7 @@ export async function submitManagerProbationInput(actor: Actor, input: unknown):
 
   const { data: reviewData, error: reviewError } = await supabase
     .from("probation_reviews")
-    .select("id, employee_id, probation_end_date, review_due_date, status, review_owner_user_id, manager_input, manager_input_submitted_at, manager_input_submitted_by_user_id, manager_input_automation_item_id, outcome, outcome_notes, completed_at, created_at, updated_at")
+    .select("id, employee_id, probation_end_date, review_due_date, status, review_owner_user_id, manager_input, manager_recommended_outcome, manager_input_submitted_at, manager_input_submitted_by_user_id, manager_input_automation_item_id, outcome, outcome_notes, completed_at, created_at, updated_at")
     .eq("tenant_id", tenantId)
     .eq("id", parsed.reviewId)
     .in("status", ["scheduled", "due"])
@@ -266,13 +271,14 @@ export async function submitManagerProbationInput(actor: Actor, input: unknown):
     .from("probation_reviews")
     .update({
       manager_input: parsed.input,
+      manager_recommended_outcome: parsed.recommendedOutcome ?? null,
       manager_input_submitted_at: new Date().toISOString(),
       manager_input_submitted_by_user_id: actor.authUserId,
     })
     .eq("tenant_id", tenantId)
     .eq("id", parsed.reviewId)
     .in("status", ["scheduled", "due"])
-    .select("id, employee_id, probation_end_date, review_due_date, status, review_owner_user_id, manager_input, manager_input_submitted_at, manager_input_submitted_by_user_id, manager_input_automation_item_id, outcome, outcome_notes, completed_at, created_at, updated_at")
+    .select("id, employee_id, probation_end_date, review_due_date, status, review_owner_user_id, manager_input, manager_recommended_outcome, manager_input_submitted_at, manager_input_submitted_by_user_id, manager_input_automation_item_id, outcome, outcome_notes, completed_at, created_at, updated_at")
     .maybeSingle();
 
   if (error) throw new Error(`MANAGER_PROBATION_INPUT_FAILED: ${error.message}`);

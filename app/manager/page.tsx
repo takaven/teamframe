@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { StatusPill } from "@/components/StatusPill";
 import { getManagerDashboard } from "@/services/managerService";
+import { getEmployeeMasterRecord } from "@/services/employeeMasterService";
 import {
   completeManagerOffboardingItemAction,
   completeManagerOnboardingTaskAction,
@@ -47,14 +48,27 @@ function days(value: number): string {
 export default async function ManagerPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; error?: string }>;
+  searchParams: Promise<{ status?: string; error?: string; employee?: string }>;
 }) {
   const actor = await requireTenantActor();
-  const { status, error } = await searchParams;
+  const { status, error, employee: employeeParam } = await searchParams;
   const successMessage = status ? (STATUS_COPY[status] ?? null) : null;
   const errorMessage = error ? (ERROR_COPY[error] ?? ERROR_COPY.UNKNOWN) : null;
   const dashboard = await getManagerDashboard(actor);
+  // Manager view of a direct report. getEmployeeMasterRecord enforces manager-derived
+  // people_operations: a NON-report throws FORBIDDEN, and compensation/payment stay hidden
+  // (canView false) for a manager without explicit salary/finance permission.
+  let reportRecord: Awaited<ReturnType<typeof getEmployeeMasterRecord>> | null = null;
+  let reportError = false;
+  if (employeeParam) {
+    try {
+      reportRecord = await getEmployeeMasterRecord(actor, employeeParam);
+    } catch {
+      reportError = true;
+    }
+  }
   const employeeMap = new Map(dashboard.directReports.map((employee) => [employee.id, employee]));
+  const probationEmployeeIds = new Set(dashboard.probationReviews.map((review) => review.employee_id));
   const hasManagerWork =
     dashboard.directReports.length > 0 ||
     dashboard.pendingLeaves.length > 0 ||
@@ -67,12 +81,42 @@ export default async function ManagerPage({
       <AppShell actor={actor} activePath="/manager" />
 
       <div className="border-b border-ink-300/60 pb-5">
-        <p className="text-[12px] tracking-[0.14em] text-ink-500">Manager work</p>
-        <h1 className="mt-2 text-[34px] leading-tight tracking-tight">Direct-report decisions</h1>
+        <p className="text-[12px] tracking-[0.14em] text-ink-500">Your direct reports</p>
+        <h1 className="mt-2 text-[34px] leading-tight tracking-tight">My Team</h1>
         <p className="mt-1 max-w-2xl text-[14px] text-ink-500">
-          Limited operational work for employees who currently report to you. Admin HR records, documents, policies and organisation changes remain restricted.
+          Your current direct reports and the work they need from you. Salary, payment details, private documents and organisation changes remain restricted.
         </p>
       </div>
+
+      {employeeParam ? (
+        <section className="mt-7 rounded-xl border border-ink-300/70 bg-white/80 p-5">
+          <Link href="/manager" className="text-[13px] text-ink-600 hover:text-ink-900">← Back to My Team</Link>
+          {reportRecord ? (
+            <div className="mt-3">
+              <h2 className="text-[20px] font-bold text-ink-900">{reportRecord.identity.full_name}</h2>
+              <p className="text-[13px] text-ink-500">Direct-report record. Salary, payment details and private documents are not visible to managers.</p>
+              <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 text-[13px]">
+                <div><dt className="text-ink-500">Role / job title</dt><dd className="text-ink-900">{reportRecord.employment.role_title}</dd></div>
+                <div><dt className="text-ink-500">Department</dt><dd className="text-ink-900">{reportRecord.employment.department}</dd></div>
+                <div><dt className="text-ink-500">Work location</dt><dd className="text-ink-900">{reportRecord.employment.work_location ?? "—"}</dd></div>
+                <div><dt className="text-ink-500">Employment type</dt><dd className="text-ink-900">{reportRecord.employment.employment_type.replace(/_/g, " ")}</dd></div>
+                <div><dt className="text-ink-500">Lifecycle / status</dt><dd className="text-ink-900">{reportRecord.employment.lifecycle_state} · {reportRecord.employment.status}</dd></div>
+                <div><dt className="text-ink-500">Company email</dt><dd className="text-ink-900">{reportRecord.contact.company_email}</dd></div>
+                <div><dt className="text-ink-500">Company phone</dt><dd className="text-ink-900">{reportRecord.contact.company_phone ?? "—"}</dd></div>
+                <div><dt className="text-ink-500">Emergency contact</dt><dd className="text-ink-900">{reportRecord.emergency_contact.name ?? "—"}{reportRecord.emergency_contact.phone ? ` · ${reportRecord.emergency_contact.phone}` : ""}</dd></div>
+              </dl>
+              <div className="mt-4 flex flex-wrap gap-3 text-[12px]">
+                <span className="rounded-lg border border-dashed border-ink-300 bg-ink-50/50 px-3 py-1.5 text-ink-500">Compensation: not visible to managers</span>
+                <span className="rounded-lg border border-dashed border-ink-300 bg-ink-50/50 px-3 py-1.5 text-ink-500">Payment details: not visible to managers</span>
+              </div>
+            </div>
+          ) : (
+            <p className="mt-3 rounded-lg border border-signal-red/30 bg-signal-red/10 px-4 py-3 text-[14px] text-signal-red">
+              {reportError ? "You do not have access to that employee — managers can only open their current direct reports." : "Employee not found."}
+            </p>
+          )}
+        </section>
+      ) : null}
 
       {successMessage ? (
         <p className="mt-7 rounded-lg border border-accent/70 bg-white/80 px-4 py-3 text-[14px] text-accent">
@@ -264,7 +308,19 @@ export default async function ManagerPage({
                       <form action={submitManagerProbationInputAction} className="grid gap-2">
                         <input type="hidden" name="review_id" value={review.id} />
                         <label className="grid gap-1 text-[12px] text-ink-500">
-                          Manager input
+                          Recommendation
+                          <select
+                            name="recommended_outcome"
+                            defaultValue={review.manager_recommended_outcome ?? ""}
+                            className="rounded-md border border-ink-300 bg-white px-3 py-2 text-[14px] text-ink-900"
+                          >
+                            <option value="">— No recommendation yet</option>
+                            <option value="confirmed">Confirmed</option>
+                            <option value="unsuccessful">Unsuccessful</option>
+                          </select>
+                        </label>
+                        <label className="grid gap-1 text-[12px] text-ink-500">
+                          Reason / notes
                           <textarea
                             name="input"
                             rows={3}
@@ -273,6 +329,7 @@ export default async function ManagerPage({
                             className="rounded-md border border-ink-300 bg-white px-3 py-2 text-[14px] text-ink-900"
                           />
                         </label>
+                        <p className="text-[11px] text-ink-500">A recommendation only — the final probation outcome is recorded by an admin.</p>
                         <PendingSubmitButton
                           idleLabel={review.manager_input ? "Update input" : "Submit input"}
                           pendingLabel="Saving..."
@@ -289,18 +346,28 @@ export default async function ManagerPage({
           <section className="mt-7 rounded-xl border border-ink-300/70 bg-white/80">
             <div className="border-b border-ink-300/60 px-5 py-4">
               <h2 className="text-[17px] font-medium tracking-tight">Direct reports</h2>
+              <p className="mt-1 text-[13px] text-ink-500">Your current one-level direct reports.</p>
             </div>
-            <ul className="divide-y divide-ink-300/40">
-              {dashboard.directReports.map((employee) => (
-                <li key={employee.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-                  <div>
-                    <p className="text-[14px] font-medium text-ink-900">{employee.full_name}</p>
-                    <p className="mt-1 text-[12px] text-ink-500">
-                      {employee.role_title} · {employee.department}{employee.country ? ` · ${employee.country}` : ""}
-                    </p>
-                  </div>
-                </li>
-              ))}
+            <ul className="grid gap-3 p-4 sm:grid-cols-2">
+              {dashboard.directReports.map((employee) => {
+                const initials = employee.full_name.trim().split(/\s+/).filter(Boolean).map((p) => p[0]).slice(0, 2).join("").toUpperCase() || "?";
+                const onProbation = probationEmployeeIds.has(employee.id);
+                return (
+                  <li key={employee.id} className="flex items-center gap-3 rounded-xl border border-ink-200 bg-white px-4 py-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink-100 text-[13px] font-bold text-ink-600">{initials}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[14px] font-medium text-ink-900">{employee.full_name}</p>
+                      <p className="truncate text-[12px] text-ink-500">
+                        {employee.role_title} · {employee.department}{employee.country ? ` · ${employee.country}` : ""}
+                      </p>
+                      {onProbation ? (
+                        <span className="mt-1 inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">Probation</span>
+                      ) : null}
+                    </div>
+                    <Link href={`/manager?employee=${employee.id}`} className="shrink-0 rounded-lg border border-ink-300 bg-white px-3 py-1.5 text-[12px] text-ink-700 hover:border-ink-900">View</Link>
+                  </li>
+                );
+              })}
             </ul>
           </section>
         </>

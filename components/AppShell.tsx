@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Actor } from "@/middleware/rbac";
+import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 import { SignOutButton } from "@/components/SignOutButton";
 import { BrandLogo } from "@/components/BrandLogo";
 
@@ -16,15 +17,33 @@ const ADMIN_LINKS = [
 
 const SETUP_LINK = { href: "/setup", label: "Setup" } as const;
 
+// Documents and Policies are sections within /me, not separate destinations.
 const EMPLOYEE_LINKS = [
   { href: "/me", label: "Me" },
   { href: "/onboarding", label: "Onboarding" },
-  { href: "/me#policies", label: "Policies" },
   { href: "/leaves", label: "Leave" },
-  { href: "/me#documents", label: "Documents" },
 ] as const;
 
-export function AppShell({
+const MY_TEAM_LINK = { href: "/manager", label: "My Team" } as const;
+
+// Manager status = the employee currently has at least one direct report.
+async function hasDirectReports(actor: Actor): Promise<boolean> {
+  if (actor.role === "admin" || !actor.employeeId || !actor.tenantId) return false;
+  try {
+    const supabase = createServiceRoleClient();
+    const { count } = await supabase
+      .from("employees")
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", actor.tenantId)
+      .eq("manager_id", actor.employeeId)
+      .is("deleted_at", null);
+    return (count ?? 0) > 0;
+  } catch {
+    return false;
+  }
+}
+
+export async function AppShell({
   actor,
   activePath,
 }: {
@@ -32,7 +51,10 @@ export function AppShell({
   activePath: string;
 }) {
   const isAdminSurface = actor.role === "admin";
-  const links = isAdminSurface ? [...ADMIN_LINKS, SETUP_LINK] : EMPLOYEE_LINKS;
+  const showMyTeam = !isAdminSurface && (await hasDirectReports(actor));
+  const links = isAdminSurface
+    ? [...ADMIN_LINKS, SETUP_LINK]
+    : (showMyTeam ? [...EMPLOYEE_LINKS, MY_TEAM_LINK] : [...EMPLOYEE_LINKS]);
 
   return (
     <>

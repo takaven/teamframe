@@ -23,6 +23,7 @@ const CompleteTaskSchema = z.object({
 const ProbationInputSchema = z.object({
   review_id: z.string().uuid(),
   input: z.string().trim().min(1).max(1200),
+  recommended_outcome: z.enum(["confirmed", "unsuccessful"]).optional(),
 });
 
 function optionalString(value: FormDataEntryValue | null): string | undefined {
@@ -95,10 +96,12 @@ export async function submitManagerProbationInputAction(formData: FormData): Pro
     const parsed = ProbationInputSchema.parse({
       review_id: formData.get("review_id"),
       input: formData.get("input"),
+      recommended_outcome: formData.get("recommended_outcome") || undefined,
     });
     await submitManagerProbationInput(actor, {
       reviewId: parsed.review_id,
       input: parsed.input,
+      recommendedOutcome: parsed.recommended_outcome ?? null,
     });
   } catch (error) {
     redirect(`/manager?error=${encodeURIComponent(getErrorCode(error))}`);

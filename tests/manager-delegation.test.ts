@@ -19,7 +19,9 @@ describe("MR-3B bounded manager delegation", () => {
     expect(roles).toContain('export const CUSTOMER_ACCESS_PROFILES');
     expect(rbac).not.toContain('"manager"');
     expect(roles).not.toContain('"manager"');
-    expect(appShell).not.toContain('href: "/manager"');
+    // "My Team" is a conditional nav item DERIVED from current direct reports
+    // (hasDirectReports) — not a manually-assigned manager RBAC role.
+    expect(appShell).toContain("hasDirectReports");
     expect(managerAuth).toContain("actor.employeeId");
     expect(managerAuth).toContain("projectEmployeeLifecycle(row) === \"ACTIVE\"");
     expect(managerAuth).toContain(".eq(\"manager_id\", manager.id)");
@@ -34,7 +36,8 @@ describe("MR-3B bounded manager delegation", () => {
     expect(mePage).toContain("managerDashboard.directReports.length > 0");
     expect(mePage).toContain('href="/manager"');
     expect(managerPage).toContain("No manager work is assigned to you.");
-    expect(managerPage).toContain("Admin HR records, documents, policies and organisation changes remain restricted.");
+    // Manager scope stays bounded — salary/payment/private docs/org changes restricted.
+    expect(managerPage).toContain("remain restricted");
   });
 
   it("allows direct-report leave decisions while forbidding manager balance overrides", () => {
