@@ -52,6 +52,21 @@ alter table positions add column if not exists created_at timestamptz not null d
 alter table positions add column if not exists updated_at timestamptz not null default now();
 alter table positions add column if not exists deleted_at timestamptz;
 
+-- Phase 2 (additive): reference the Phase-1 company-controlled lists and add a
+-- budgeted flag. The existing free-text `department` column is UNCHANGED for
+-- backward compatibility; `department_id` is the optional additive reference that
+-- new/edited positions validate against active departments at the service layer.
+-- No forced normalisation of historical free-text values. The composite FKs to
+-- departments/work_locations are added later in position_assignments.sql, because
+-- those tables apply after this file in SCHEMA_ORDER.
+alter table positions add column if not exists department_id uuid;
+alter table positions add column if not exists work_location_id uuid;
+-- budgeted: null = unspecified (legacy/not yet set), true = Budgeted, false = Non-budgeted.
+alter table positions add column if not exists budgeted boolean;
+
+create index if not exists positions_department_id_idx on positions(tenant_id, department_id);
+create index if not exists positions_work_location_id_idx on positions(tenant_id, work_location_id);
+
 do $$ begin
   if not exists (
     select 1 from pg_constraint

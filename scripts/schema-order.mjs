@@ -35,4 +35,7 @@ export const SCHEMA_ORDER = [
   "departments.sql",
   "work_locations.sql",
   "leave_definitions.sql",
+  // Phase 2: position occupancy history + positions→config FKs. Applies last so it
+  // can reference departments, work_locations, positions and employees.
+  "position_assignments.sql",
 ];

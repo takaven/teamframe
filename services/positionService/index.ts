@@ -13,6 +13,9 @@ export type PositionRecord = {
   id: string;
   title: string;
   department: string;
+  department_id: string | null;
+  work_location_id: string | null;
+  budgeted: boolean | null;
   parent_position_id: string | null;
   assigned_employee_id: string | null;
   assigned_employee_name: string | null;
@@ -35,6 +38,9 @@ type PositionRow = {
   tenant_id: string;
   title: string;
   department: string;
+  department_id: string | null;
+  work_location_id: string | null;
+  budgeted: boolean | null;
   parent_position_id: string | null;
   assigned_employee_id: string | null;
   note: string | null;
@@ -112,6 +118,9 @@ function toPositionRecord(row: PositionRow, employeesById: Map<string, EmployeeA
     id: row.id,
     title: row.title,
     department: row.department,
+    department_id: row.department_id,
+    work_location_id: row.work_location_id,
+    budgeted: row.budgeted,
     parent_position_id: row.parent_position_id,
     assigned_employee_id: row.assigned_employee_id,
     assigned_employee_name: status === "Filled" ? employee?.full_name ?? null : null,
@@ -188,7 +197,7 @@ export async function listPositions(actor: Actor): Promise<PositionRecord[]> {
 
   const { data: positionData, error: positionError } = await supabase
     .from("positions")
-    .select("id, tenant_id, title, department, parent_position_id, assigned_employee_id, note, jd_storage_bucket, jd_storage_path, jd_original_filename, jd_mime_type, jd_uploaded_at, created_at, updated_at, deleted_at")
+    .select("id, tenant_id, title, department, department_id, work_location_id, budgeted, parent_position_id, assigned_employee_id, note, jd_storage_bucket, jd_storage_path, jd_original_filename, jd_mime_type, jd_uploaded_at, created_at, updated_at, deleted_at")
     .eq("tenant_id", tenantId)
     .is("deleted_at", null)
     .order("title", { ascending: true });
