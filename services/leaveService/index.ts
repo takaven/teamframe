@@ -610,6 +610,53 @@ export async function listWhoIsAway(actor: Actor, input: { from?: string; to?: s
   });
 }
 
+export type AdminCalendarLeave = LeaveRecord & {
+  employee_full_name: string;
+  employee_role_title: string;
+};
+
+/**
+ * Approved leave overlapping [fromIso, toIso] for the admin absence calendar. Approved-only (the
+ * calendar reflects actual absence, not requests); the existing `leaves` table is the single source
+ * of truth — no separate calendar-event store. Admin-only, tenant-scoped — no RBAC broadening.
+ */
+export async function listApprovedLeaveInRange(actor: Actor, fromIso: string, toIso: string): Promise<AdminCalendarLeave[]> {
+  requireAdmin(actor);
+  const tenantId = requireTenant(actor);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fromIso) || !/^\d{4}-\d{2}-\d{2}$/.test(toIso)) throw new Error("INVALID_INPUT");
+
+  const supabase = createServiceRoleClient();
+  const { data, error } = await supabase
+    .from("leaves")
+    .select(LEAVE_COLUMNS)
+    .eq("tenant_id", tenantId)
+    .eq("status", "approved")
+    .lte("start_date", toIso)   // overlaps the window: starts on/before window end …
+    .gte("end_date", fromIso)   // … and ends on/after window start
+    .order("start_date", { ascending: true });
+  if (error) throw new Error(`LEAVE_CALENDAR_FAILED: ${error.message}`);
+
+  const leaves = await attachDefinitionNames(supabase, tenantId, ((data ?? []) as LeaveRow[]).map(rowToRecord));
+  const employeeIds = [...new Set(leaves.map((l) => l.employee_id))];
+  const byId = new Map<string, { full_name: string; role_title: string }>();
+  if (employeeIds.length > 0) {
+    const { data: emps, error: eErr } = await supabase
+      .from("employees")
+      .select("id, full_name, role_title")
+      .eq("tenant_id", tenantId)
+      .in("id", employeeIds);
+    if (eErr) throw new Error(`LEAVE_CALENDAR_EMP_FAILED: ${eErr.message}`);
+    for (const e of (emps ?? []) as Array<{ id: string; full_name: string; role_title: string }>) {
+      byId.set(e.id, { full_name: e.full_name, role_title: e.role_title });
+    }
+  }
+  return leaves.map((l) => ({
+    ...l,
+    employee_full_name: byId.get(l.employee_id)?.full_name ?? "(unknown)",
+    employee_role_title: byId.get(l.employee_id)?.role_title ?? "(unknown)",
+  }));
+}
+
 export async function submitLeaveRequest(
   actor: Actor,
   input: { startDate: string; endDate: string; leaveType?: LeaveType; leaveDefinitionId?: string | null; reason?: string | null; attachment?: File | null },

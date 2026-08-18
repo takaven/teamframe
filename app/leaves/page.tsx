@@ -2,12 +2,14 @@ import { requireTenantActor } from "@/middleware/rbac";
 import {
   getLeaveOverviewForEmployee,
   listActiveLeaveDefinitions,
+  listApprovedLeaveInRange,
   listLeaveDefinitionBalances,
   listPendingLeavesWithEmployee,
   listWhoIsAway,
   type LeaveRecord,
   type PendingLeaveWithEmployee,
 } from "@/services/leaveService";
+import { LeaveCalendar } from "@/components/LeaveCalendar";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { AppShell } from "@/components/AppShell";
@@ -84,19 +86,41 @@ function StatusBadge({ status }: { status: LeaveRecord["status"] }) {
   );
 }
 
+function parseMonth(raw: string | undefined): { year: number; month: number } {
+  if (raw && /^\d{4}-\d{2}$/.test(raw)) {
+    const year = Number(raw.slice(0, 4));
+    const month = Number(raw.slice(5, 7));
+    if (year >= 2000 && year <= 2200 && month >= 1 && month <= 12) return { year, month };
+  }
+  const now = new Date();
+  return { year: now.getUTCFullYear(), month: now.getUTCMonth() + 1 };
+}
+
 export default async function LeavesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; error?: string }>;
+  searchParams: Promise<{ status?: string; error?: string; view?: string; month?: string; leave?: string }>;
 }) {
   const actor = await requireTenantActor();
-  const { status, error } = await searchParams;
+  const { status, error, view: viewParam, month: monthParam, leave: leaveParam } = await searchParams;
   const successMessage = status ? (STATUS_COPY[status] ?? null) : null;
   const errorMessage = error ? (ERROR_COPY[error] ?? ERROR_COPY.UNKNOWN) : null;
 
   if (actor.role === "admin") {
-    const [pending, away]: [PendingLeaveWithEmployee[], Awaited<ReturnType<typeof listWhoIsAway>>] =
-      await Promise.all([listPendingLeavesWithEmployee(actor), listWhoIsAway(actor)]);
+    const view = viewParam === "calendar" ? "calendar" : "requests";
+    const { year, month } = parseMonth(monthParam);
+    const monthFrom = `${year}-${String(month).padStart(2, "0")}-01`;
+    const monthTo = `${year}-${String(month).padStart(2, "0")}-${String(new Date(Date.UTC(year, month, 0)).getUTCDate()).padStart(2, "0")}`;
+
+    const [pending, away, calendarLeaves]: [
+      PendingLeaveWithEmployee[],
+      Awaited<ReturnType<typeof listWhoIsAway>>,
+      Awaited<ReturnType<typeof listApprovedLeaveInRange>>,
+    ] = await Promise.all([
+      listPendingLeavesWithEmployee(actor),
+      listWhoIsAway(actor),
+      view === "calendar" ? listApprovedLeaveInRange(actor, monthFrom, monthTo) : Promise.resolve([]),
+    ]);
 
     return (
       <main className="mx-auto max-w-6xl px-6 py-14">
@@ -134,6 +158,27 @@ export default async function LeavesPage({
           </p>
         ) : null}
 
+        <nav className="mt-8 flex gap-1 border-b border-ink-300/60" aria-label="Leave admin views">
+          <a
+            href="/leaves"
+            aria-current={view === "requests" ? "page" : undefined}
+            className={`-mb-px border-b-2 px-4 py-2 text-[14px] ${view === "requests" ? "border-ink-900 font-medium text-ink-900" : "border-transparent text-ink-500 hover:text-ink-900"}`}
+          >
+            Requests
+          </a>
+          <a
+            href="/leaves?view=calendar"
+            aria-current={view === "calendar" ? "page" : undefined}
+            className={`-mb-px border-b-2 px-4 py-2 text-[14px] ${view === "calendar" ? "border-ink-900 font-medium text-ink-900" : "border-transparent text-ink-500 hover:text-ink-900"}`}
+          >
+            Calendar
+          </a>
+        </nav>
+
+        {view === "calendar" ? (
+          <LeaveCalendar leaves={calendarLeaves} year={year} month={month} selectedLeaveId={leaveParam} basePath="/leaves" />
+        ) : (
+        <>
         <section className="mt-8 rounded-xl border border-ink-300/70 bg-white/80">
           <div className="border-b border-ink-300/60 px-5 py-4">
             <h2 className="text-[17px] font-medium tracking-tight">
@@ -260,6 +305,8 @@ export default async function LeavesPage({
             </ul>
           )}
         </section>
+        </>
+        )}
       </main>
     );
   }
