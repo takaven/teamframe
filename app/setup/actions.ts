@@ -2,92 +2,94 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { requireTenantCapability } from "@/middleware/rbac";
-import { completeGuidedCompanySetup } from "@/services/companySetupService";
-import { logAction } from "@/lib/telemetry/logger";
+import { requireTenantActor } from "@/middleware/rbac";
+import {
+  createDepartment,
+  renameDepartment,
+  setDepartmentActive,
+  createWorkLocation,
+  updateWorkLocation,
+  createLeaveDefinition,
+  updateLeaveDefinition,
+  updateCompanySettings,
+} from "@/services/configurationService";
 import { captureActionError } from "@/lib/telemetry/sentry";
+import { logAction } from "@/lib/telemetry/logger";
 
-const SetupFormSchema = z.object({
-  company_name: z.string().trim().min(1),
-  country: z.string().trim().min(2),
-  location: z.string().trim().optional(),
-  annual_leave_default_days: z.string().trim().min(1),
-  sick_leave_default_days: z.string().trim().min(1),
-  positions: z.string().trim().min(1),
-  employees: z.string().trim().min(1),
-});
-
-function optionalString(value: FormDataEntryValue | null): string | undefined {
-  if (typeof value !== "string") return undefined;
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
-}
-
-function getErrorCode(error: unknown): string {
+function code(error: unknown): string {
   if (error instanceof z.ZodError) return "INVALID_INPUT";
-  if (error instanceof Error) {
-    const match = error.message.match(/^[A-Z_]+/);
-    return match ? match[0] : "UNKNOWN";
-  }
+  if (error instanceof Error) return error.message.match(/^[A-Z_]+/)?.[0] ?? "UNKNOWN";
   return "UNKNOWN";
 }
+function s(v: FormDataEntryValue | null): string { return typeof v === "string" ? v.trim() : ""; }
+function optNum(v: FormDataEntryValue | null): number | null { const t = s(v); return t === "" ? null : Number(t); }
 
-export async function completeGuidedSetupAction(formData: FormData): Promise<void> {
+async function run(action: string, section: string, work: (actor: Awaited<ReturnType<typeof requireTenantActor>>) => Promise<void>): Promise<void> {
   const start = Date.now();
   const requestId = crypto.randomUUID();
-  let actor: Awaited<ReturnType<typeof requireTenantCapability>> | null = null;
-  let caughtError: unknown = null;
-
+  let actor: Awaited<ReturnType<typeof requireTenantActor>> | null = null;
+  let err: unknown = null;
   try {
-    actor = await requireTenantCapability("company_access_settings");
-    const parsed = SetupFormSchema.parse({
-      company_name: formData.get("company_name"),
-      country: formData.get("country"),
-      location: optionalString(formData.get("location")),
-      annual_leave_default_days: formData.get("annual_leave_default_days"),
-      sick_leave_default_days: formData.get("sick_leave_default_days"),
-      positions: formData.get("positions"),
-      employees: formData.get("employees"),
-    });
-
-    await completeGuidedCompanySetup(actor, {
-      companyName: parsed.company_name,
-      country: parsed.country,
-      location: parsed.location,
-      annualLeaveDefaultDays: parsed.annual_leave_default_days,
-      sickLeaveDefaultDays: parsed.sick_leave_default_days,
-      positionsText: parsed.positions,
-      employeesText: parsed.employees,
-    });
+    actor = await requireTenantActor();
+    await work(actor);
   } catch (error) {
-    caughtError = error;
+    err = error;
   }
-
-  const durationMs = Date.now() - start;
-  if (caughtError) {
-    captureActionError("completeGuidedSetup", caughtError, {
-      actor_user_id: actor?.authUserId ?? null,
-      actor_tenant_id: actor?.tenantId ?? null,
-    });
-    logAction({
-      action: "completeGuidedSetup",
-      actorUserId: actor?.authUserId ?? null,
-      actorTenantId: actor?.tenantId ?? null,
-      durationMs,
-      outcome: "fail",
-      error: caughtError,
-      requestId,
-    });
-    redirect(`/setup?error=${encodeURIComponent(getErrorCode(caughtError))}`);
+  logAction({ action, actorUserId: actor?.authUserId ?? null, actorTenantId: actor?.tenantId ?? null, durationMs: Date.now() - start, outcome: err ? "fail" : "ok", error: err ?? undefined, requestId });
+  if (err) {
+    captureActionError(action, err, { actor_user_id: actor?.authUserId ?? null, actor_tenant_id: actor?.tenantId ?? null });
+    redirect(`/setup?section=${section}&error=${encodeURIComponent(code(err))}`);
   }
+  redirect(`/setup?section=${section}&status=saved`);
+}
 
-  logAction({
-    action: "completeGuidedSetup",
-    actorUserId: actor!.authUserId,
-    actorTenantId: actor!.tenantId,
-    durationMs,
-    outcome: "ok",
-    requestId,
+export async function saveCompanySettingsAction(formData: FormData): Promise<void> {
+  await run("saveCompanySettings", "company", async (actor) => {
+    const days = formData.getAll("working_day").map((d) => Number(d)).filter((n) => n >= 1 && n <= 7);
+    await updateCompanySettings(actor, {
+      name: s(formData.get("name")),
+      country: s(formData.get("country")) || undefined,
+      default_timezone: s(formData.get("timezone")),
+      default_working_days: days.length > 0 ? days : [1, 2, 3, 4, 5],
+      thirty_day_check_in_enabled: formData.get("thirty_day_check_in_enabled") === "on",
+    });
   });
-  redirect("/setup?status=completed");
+}
+
+export async function createDepartmentAction(formData: FormData): Promise<void> {
+  await run("createDepartment", "departments", (actor) => createDepartment(actor, s(formData.get("name"))));
+}
+export async function renameDepartmentAction(formData: FormData): Promise<void> {
+  await run("renameDepartment", "departments", (actor) => renameDepartment(actor, s(formData.get("id")), s(formData.get("name"))));
+}
+export async function toggleDepartmentAction(formData: FormData): Promise<void> {
+  await run("toggleDepartment", "departments", (actor) => setDepartmentActive(actor, s(formData.get("id")), formData.get("active") === "true"));
+}
+
+export async function createWorkLocationAction(formData: FormData): Promise<void> {
+  await run("createWorkLocation", "locations", (actor) => createWorkLocation(actor, s(formData.get("name")), s(formData.get("country"))));
+}
+export async function updateWorkLocationAction(formData: FormData): Promise<void> {
+  await run("updateWorkLocation", "locations", (actor) => updateWorkLocation(actor, s(formData.get("id")), s(formData.get("name")), s(formData.get("country")), formData.get("active") === "on"));
+}
+
+export async function createLeaveDefinitionAction(formData: FormData): Promise<void> {
+  await run("createLeaveDefinition", "leave", (actor) => createLeaveDefinition(actor, {
+    display_name: s(formData.get("display_name")),
+    system_leave_type: s(formData.get("system_leave_type")),
+    active: formData.get("active") === "on",
+    default_entitlement_days: optNum(formData.get("default_entitlement_days")),
+    counting_basis: s(formData.get("counting_basis")),
+    attachment_requirement: s(formData.get("attachment_requirement")),
+  }));
+}
+export async function updateLeaveDefinitionAction(formData: FormData): Promise<void> {
+  await run("updateLeaveDefinition", "leave", (actor) => updateLeaveDefinition(actor, s(formData.get("id")), {
+    display_name: s(formData.get("display_name")),
+    system_leave_type: s(formData.get("system_leave_type")),
+    active: formData.get("active") === "on",
+    default_entitlement_days: optNum(formData.get("default_entitlement_days")),
+    counting_basis: s(formData.get("counting_basis")),
+    attachment_requirement: s(formData.get("attachment_requirement")),
+  }));
 }

@@ -138,13 +138,15 @@ describe("Independent customer access and setup architecture", () => {
   });
 
   it("provides a manual company holiday maintenance surface for People Operations", () => {
-    const appShell = read("components/AppShell.tsx");
+    const setupPage = read("app/setup/page.tsx");
     const page = read("app/company/page.tsx");
     const actions = read("app/company/actions.ts");
     const service = read("services/companyHolidayService.ts");
     const schema = read("schemas/access_model.sql");
 
-    expect(appShell).toContain('href: "/company"');
+    // Holiday maintenance is re-homed under Setup / Administration; the surface itself
+    // (the /company holiday page) is unchanged and reached from Setup.
+    expect(setupPage).toContain('href="/company"');
     expect(page).toContain("Holiday calendar");
     expect(page).toContain("TeamFrame does not infer statutory");
     expect(page).toContain("View year");

@@ -97,7 +97,11 @@ describe("guided company setup source contracts", () => {
     expect(companies).toContain("annual_leave_default_days integer");
     expect(companies).toContain("setup_completed_at timestamptz");
     expect(authRules).toContain("Guided company setup does not itself authorize public/open self-registration");
-    expect(setupPage).toContain("already-provisioned admin");
+    // Setup is admin-only configuration (no public/self signup). The pipe-delimited
+    // bootstrap has been replaced by the Setup / Administration hub.
+    expect(setupPage).toContain("admin-only");
+    expect(setupPage).not.toContain("Initial organisation structure");
+    expect(setupPage).not.toContain("First employees");
   });
 
   it("uses one atomic setup RPC for first employees and positions", () => {

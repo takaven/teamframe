@@ -3,18 +3,18 @@ import type { Actor } from "@/middleware/rbac";
 import { SignOutButton } from "@/components/SignOutButton";
 import { BrandLogo } from "@/components/BrandLogo";
 
+// Primary operational modules. Company (holidays) and Access are re-homed under
+// Setup / Administration; Setup sits last as a secondary admin destination.
 const ADMIN_LINKS = [
   { href: "/dashboard", label: "Overview" },
-  { href: "/setup", label: "Setup" },
   { href: "/org-chart", label: "Org chart" },
   { href: "/employees", label: "Employees" },
   { href: "/onboarding", label: "Onboarding" },
   { href: "/leaves", label: "Leave" },
   { href: "/policies", label: "Policies" },
-  { href: "/company", label: "Company" },
 ] as const;
 
-const ACCESS_LINK = { href: "/access", label: "Access" } as const;
+const SETUP_LINK = { href: "/setup", label: "Setup" } as const;
 
 const EMPLOYEE_LINKS = [
   { href: "/me", label: "Me" },
@@ -32,8 +32,7 @@ export function AppShell({
   activePath: string;
 }) {
   const isAdminSurface = actor.role === "admin";
-  const canManageAccess = actor.accessProfile === "full_access";
-  const links = isAdminSurface ? (canManageAccess ? [...ADMIN_LINKS, ACCESS_LINK] : ADMIN_LINKS) : EMPLOYEE_LINKS;
+  const links = isAdminSurface ? [...ADMIN_LINKS, SETUP_LINK] : EMPLOYEE_LINKS;
 
   return (
     <>
