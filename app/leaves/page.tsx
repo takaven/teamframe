@@ -1,6 +1,8 @@
 import { requireTenantActor } from "@/middleware/rbac";
 import {
   getLeaveOverviewForEmployee,
+  listActiveLeaveDefinitions,
+  listLeaveDefinitionBalances,
   listPendingLeavesWithEmployee,
   listWhoIsAway,
   type LeaveRecord,
@@ -11,7 +13,7 @@ import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { AppShell } from "@/components/AppShell";
 import { EmptyState } from "@/components/EmptyState";
 import { StatusPill, type StatusPillTone } from "@/components/StatusPill";
-import { cancelLeaveAction, decideLeaveAction, submitLeaveAction, withdrawLeaveAction } from "./actions";
+import { cancelLeaveAction, decideLeaveAction, downloadLeaveEvidenceAction, submitLeaveAction, withdrawLeaveAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -155,7 +157,7 @@ export default async function LeavesPage({
                         {formatDate(leave.start_date)} to {formatDate(leave.end_date)}
                       </p>
                       <p className="text-[12px] text-ink-500">
-                        {TYPE_LABEL[leave.leave_type]} · {days(leave.requested_days)}
+                        {leave.leave_definition_name ?? TYPE_LABEL[leave.leave_type]} · {days(leave.requested_days)}
                         {annual && leave.leave_type === "annual"
                           ? ` · Available before approval: ${annual.available} days`
                           : ""}
@@ -164,6 +166,13 @@ export default async function LeavesPage({
                         <p className="rounded-md border border-signal-red/30 bg-signal-red/10 px-3 py-2 text-[12px] text-signal-red">
                           Insufficient annual leave by {days(shortfall)}. Approval requires explicit override.
                         </p>
+                      ) : null}
+                      {leave.attachment_document_id ? (
+                        <form action={downloadLeaveEvidenceAction}>
+                          <input type="hidden" name="document_id" value={leave.attachment_document_id} />
+                          <input type="hidden" name="return_to" value="/leaves" />
+                          <button type="submit" className="text-[12px] text-accent underline underline-offset-2">Evidence attached — view</button>
+                        </form>
                       ) : null}
                     </div>
                     <div className="grid gap-2">
@@ -247,7 +256,9 @@ export default async function LeavesPage({
   }
 
   const overview = actor.employeeId ? await getLeaveOverviewForEmployee(actor, actor.employeeId) : null;
-  const annual = overview?.balances.find((balance) => balance.leave_type === "annual");
+  const [activeDefinitions, definitionBalances] = actor.employeeId
+    ? await Promise.all([listActiveLeaveDefinitions(actor), listLeaveDefinitionBalances(actor, actor.employeeId)])
+    : [[], []];
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-14">
@@ -270,31 +281,43 @@ export default async function LeavesPage({
 
       {overview ? (
         <>
-          <section className="mt-8 grid gap-4 sm:grid-cols-3">
-            <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
-              <p className="text-[12px] text-ink-500">Annual allocation</p>
-              <p className="mt-2 font-mono text-[22px] tabular-nums">{annual?.allocation ?? 0}</p>
-            </article>
-            <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
-              <p className="text-[12px] text-ink-500">Pending</p>
-              <p className="mt-2 font-mono text-[22px] tabular-nums">{annual?.pending ?? 0}</p>
-            </article>
-            <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
-              <p className="text-[12px] text-ink-500">Available</p>
-              <p className="mt-2 font-mono text-[22px] tabular-nums">{annual?.available ?? 0}</p>
-            </article>
+          <section className="mt-8 overflow-x-auto rounded-xl border border-ink-300/70 bg-white/80">
+            <table className="min-w-full text-left text-[13px]">
+              <thead className="border-b border-ink-200 text-[11px] uppercase tracking-[0.1em] text-ink-500">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Leave type</th>
+                  <th className="px-4 py-3 font-medium text-right">Entitlement</th>
+                  <th className="px-4 py-3 font-medium text-right">Taken</th>
+                  <th className="px-4 py-3 font-medium text-right">Pending approval</th>
+                  <th className="px-4 py-3 font-medium text-right">Available</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-ink-100">
+                {definitionBalances.map((b) => (
+                  <tr key={b.definition_id}>
+                    <td className="px-4 py-2 font-medium text-ink-900">{b.display_name}</td>
+                    <td className="px-4 py-2 text-right font-mono tabular-nums">{b.entitlement ?? "—"}</td>
+                    <td className="px-4 py-2 text-right font-mono tabular-nums">{b.taken}</td>
+                    <td className="px-4 py-2 text-right font-mono tabular-nums">{b.pending}</td>
+                    <td className="px-4 py-2 text-right font-mono tabular-nums">{b.available ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </section>
 
           <section className="mt-8 rounded-xl border border-ink-300/70 bg-white/80 p-5">
             <h2 className="text-[19px] font-medium tracking-tight">Request leave</h2>
-            <form action={submitLeaveAction} className="mt-4 grid gap-3 sm:grid-cols-2">
-              <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+            <form action={submitLeaveAction} className="mt-4 grid gap-3 sm:grid-cols-2" encType="multipart/form-data">
+              <label className="flex flex-col gap-1 text-[12px] text-ink-500 sm:col-span-2">
                 Leave type
-                <select name="leave_type" required className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900">
-                  <option value="annual">Annual Leave</option>
-                  <option value="sick">Sick Leave</option>
-                  <option value="unpaid">Unpaid Leave</option>
-                  <option value="other">Other</option>
+                <select name="leave_definition_id" required className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900">
+                  {activeDefinitions.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.display_name} ({d.counting_basis === "calendar_days" ? "calendar days" : "working days"}
+                      {d.attachment_requirement === "required" ? ", evidence required" : ""})
+                    </option>
+                  ))}
                 </select>
               </label>
               <label className="flex flex-col gap-1 text-[12px] text-ink-500">
@@ -308,6 +331,10 @@ export default async function LeavesPage({
               <label className="flex flex-col gap-1 text-[12px] text-ink-500 sm:col-span-2">
                 Reason
                 <input name="reason" maxLength={500} className="rounded-md border border-ink-300 px-3 py-2 text-[14px]" />
+              </label>
+              <label className="flex flex-col gap-1 text-[12px] text-ink-500 sm:col-span-2">
+                Supporting evidence <span className="text-ink-400">(attach if your leave type requires it)</span>
+                <input name="attachment" type="file" className="rounded-md border border-ink-300 px-3 py-2 text-[13px]" />
               </label>
               <PendingSubmitButton
                 idleLabel="Submit request"
@@ -331,9 +358,16 @@ export default async function LeavesPage({
                         {formatDate(leave.start_date)} to {formatDate(leave.end_date)}
                       </p>
                       <p className="text-[12px] text-ink-500">
-                        {TYPE_LABEL[leave.leave_type]} · {days(leave.requested_days)} · Submitted {formatDate(leave.created_at)}
+                        {leave.leave_definition_name ?? TYPE_LABEL[leave.leave_type]} · {days(leave.requested_days)} · Submitted {formatDate(leave.created_at)}
                       </p>
                       <p className="text-[12px] text-ink-500">{leaveStatusHelp(leave.status)}</p>
+                      {leave.attachment_document_id ? (
+                        <form action={downloadLeaveEvidenceAction}>
+                          <input type="hidden" name="document_id" value={leave.attachment_document_id} />
+                          <input type="hidden" name="return_to" value="/leaves" />
+                          <button type="submit" className="text-[12px] text-accent underline underline-offset-2">Evidence attached — view</button>
+                        </form>
+                      ) : null}
                     </div>
                     <div className="space-y-2 text-left sm:text-right">
                       <StatusBadge status={leave.status} />

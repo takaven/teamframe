@@ -588,6 +588,10 @@ begin
 end;
 $$;
 
+-- Phase 5A: drop the previous signature before recreating with the added definition +
+-- counting-basis parameters (added params would otherwise create an overload).
+drop function if exists teamframe_submit_leave(uuid, uuid, uuid, date, date, leave_type, text);
+drop function if exists teamframe_submit_leave(uuid, uuid, uuid, date, date, leave_type, text, uuid, text);
 create or replace function teamframe_submit_leave(
   p_tenant_id uuid,
   p_actor_user_id uuid,
@@ -595,7 +599,10 @@ create or replace function teamframe_submit_leave(
   p_start_date date,
   p_end_date date,
   p_leave_type leave_type default 'annual',
-  p_reason text default null
+  p_reason text default null,
+  p_leave_definition_id uuid default null,
+  p_counting_basis text default 'working_days',
+  p_attachment_document_id uuid default null
 )
 returns leaves
 language plpgsql
@@ -653,9 +660,36 @@ begin
     raise exception 'LEAVE_OVERLAP';
   end if;
 
-  v_days := teamframe_calculate_leave_days(p_tenant_id, p_employee_id, p_start_date, p_end_date);
+  -- Counting basis: calendar_days counts every inclusive date; otherwise reuse the
+  -- verified working-day engine (employee override / company default / holidays).
+  if p_counting_basis = 'calendar_days' then
+    v_days := (p_end_date - p_start_date) + 1;
+  else
+    v_days := teamframe_calculate_leave_days(p_tenant_id, p_employee_id, p_start_date, p_end_date);
+  end if;
   if v_days <= 0 then
     raise exception 'INVALID_INPUT';
+  end if;
+
+  -- If a definition is supplied it must belong to this tenant and be active.
+  if p_leave_definition_id is not null then
+    if not exists (
+      select 1 from leave_definitions
+      where tenant_id = p_tenant_id and id = p_leave_definition_id and active and archived_at is null
+    ) then
+      raise exception 'LEAVE_DEFINITION_INVALID';
+    end if;
+  end if;
+
+  -- If evidence is supplied it must be a document belonging to this tenant (defence in depth:
+  -- the service only ever passes a document it just created for this employee).
+  if p_attachment_document_id is not null then
+    if not exists (
+      select 1 from documents
+      where tenant_id = p_tenant_id and id = p_attachment_document_id and deleted_at is null
+    ) then
+      raise exception 'LEAVE_ATTACHMENT_INVALID';
+    end if;
   end if;
 
   insert into leaves (
@@ -664,6 +698,8 @@ begin
     start_date,
     end_date,
     leave_type,
+    leave_definition_id,
+    attachment_document_id,
     requested_days,
     reason,
     status
@@ -674,6 +710,8 @@ begin
     p_start_date,
     p_end_date,
     p_leave_type,
+    p_leave_definition_id,
+    p_attachment_document_id,
     v_days,
     nullif(trim(coalesce(p_reason, '')), ''),
     'pending'
@@ -1148,7 +1186,7 @@ revoke all on function teamframe_complete_guided_company_setup(
 revoke all on function teamframe_update_employee(uuid, uuid, uuid, timestamptz, jsonb) from public, anon, authenticated;
 revoke all on function teamframe_archive_employee(uuid, uuid, uuid, timestamptz) from public, anon, authenticated;
 revoke all on function teamframe_calculate_leave_days(uuid, uuid, date, date) from public, anon, authenticated;
-revoke all on function teamframe_submit_leave(uuid, uuid, uuid, date, date, leave_type, text) from public, anon, authenticated;
+revoke all on function teamframe_submit_leave(uuid, uuid, uuid, date, date, leave_type, text, uuid, text, uuid) from public, anon, authenticated;
 revoke all on function teamframe_decide_leave(uuid, uuid, uuid, leave_status, timestamptz, boolean, text, text) from public, anon, authenticated;
 revoke all on function teamframe_withdraw_leave(uuid, uuid, uuid, uuid, timestamptz, text) from public, anon, authenticated;
 revoke all on function teamframe_cancel_approved_leave(uuid, uuid, uuid, timestamptz, text) from public, anon, authenticated;
@@ -1170,7 +1208,7 @@ grant execute on function teamframe_complete_guided_company_setup(
 grant execute on function teamframe_update_employee(uuid, uuid, uuid, timestamptz, jsonb) to service_role;
 grant execute on function teamframe_archive_employee(uuid, uuid, uuid, timestamptz) to service_role;
 grant execute on function teamframe_calculate_leave_days(uuid, uuid, date, date) to service_role;
-grant execute on function teamframe_submit_leave(uuid, uuid, uuid, date, date, leave_type, text) to service_role;
+grant execute on function teamframe_submit_leave(uuid, uuid, uuid, date, date, leave_type, text, uuid, text, uuid) to service_role;
 grant execute on function teamframe_decide_leave(uuid, uuid, uuid, leave_status, timestamptz, boolean, text, text) to service_role;
 grant execute on function teamframe_withdraw_leave(uuid, uuid, uuid, uuid, timestamptz, text) to service_role;
 grant execute on function teamframe_cancel_approved_leave(uuid, uuid, uuid, timestamptz, text) to service_role;

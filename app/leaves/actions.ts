@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireTenantActor } from "@/middleware/rbac";
 import { cancelApprovedLeave, decideLeaveRequest, submitLeaveRequest, withdrawPendingLeave } from "@/services/leaveService";
+import { getSignedDownloadUrl } from "@/services/documentService";
 import { logAction } from "@/lib/telemetry/logger";
 import { captureActionError } from "@/lib/telemetry/sentry";
 
@@ -11,7 +12,7 @@ const SubmitSchema = z
   .object({
     start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    leave_type: z.enum(["annual", "sick", "unpaid", "other"]),
+    leave_definition_id: z.string().uuid(),
     reason: z.string().trim().max(500).optional(),
   })
   .refine((d) => d.end_date >= d.start_date, { message: "INVALID_INPUT" });
@@ -70,14 +71,16 @@ export async function submitLeaveAction(formData: FormData): Promise<void> {
     const parsed = SubmitSchema.parse({
       start_date: formData.get("start_date"),
       end_date: formData.get("end_date"),
-      leave_type: formData.get("leave_type"),
+      leave_definition_id: formData.get("leave_definition_id"),
       reason: optionalString(formData.get("reason")),
     });
+    const file = formData.get("attachment");
     await submitLeaveRequest(actor, {
       startDate: parsed.start_date,
       endDate: parsed.end_date,
-      leaveType: parsed.leave_type,
+      leaveDefinitionId: parsed.leave_definition_id,
       reason: parsed.reason,
+      attachment: file instanceof File ? file : null,
     });
   } catch (error) {
     failed = true;
@@ -115,6 +118,38 @@ export async function submitLeaveAction(formData: FormData): Promise<void> {
     redirect(`/leaves?error=${encodeURIComponent(errorCode)}`);
   }
   redirect("/me?status=leave_submitted");
+}
+
+const EvidenceSchema = z.object({
+  document_id: z.string().uuid(),
+  return_to: z.string().trim().optional(),
+});
+
+export async function downloadLeaveEvidenceAction(formData: FormData): Promise<void> {
+  let failed = false;
+  let errorCode = "UNKNOWN";
+  let returnTo = "/leaves";
+  let signedUrl = "";
+
+  try {
+    const actor = await requireTenantActor();
+    const parsed = EvidenceSchema.parse({
+      document_id: formData.get("document_id"),
+      return_to: optionalString(formData.get("return_to")),
+    });
+    returnTo = safeReturnPath(parsed.return_to, "/leaves");
+    // getSignedDownloadUrl enforces tenant + canReadEmployeeDocuments (own doc, or admin/manager
+    // with capability) — private-doc security is preserved for leave evidence.
+    signedUrl = await getSignedDownloadUrl(actor, parsed.document_id);
+  } catch (error) {
+    failed = true;
+    errorCode = getErrorCode(error);
+  }
+
+  if (failed) {
+    redirect(`${returnTo}?error=${encodeURIComponent(errorCode)}`);
+  }
+  redirect(signedUrl);
 }
 
 export async function decideLeaveAction(formData: FormData): Promise<void> {

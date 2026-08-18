@@ -76,6 +76,19 @@ alter table leaves add column if not exists cancelled_by_user_id uuid;
 alter table leaves add column if not exists cancelled_at timestamptz;
 alter table leaves add column if not exists cancellation_reason text;
 alter table leaves add column if not exists approval_automation_item_id uuid;
+-- Phase 5A (additive): link a request to the configured leave_definition it was raised
+-- under. Nullable — legacy rows keep leave_type only. FK added in leave_definitions.sql.
+alter table leaves add column if not exists leave_definition_id uuid;
+create index if not exists leaves_definition_idx on leaves(tenant_id, leave_definition_id) where leave_definition_id is not null;
+-- Phase 5A (additive): the private-bucket document holding this request's supporting
+-- evidence (sick note, etc.), stored through the existing document/upload infra. Nullable —
+-- most requests carry no evidence. ON DELETE SET NULL so purging a document never deletes leave.
+alter table leaves add column if not exists attachment_document_id uuid;
+do $$ begin
+  alter table leaves add constraint leaves_attachment_document_fk
+    foreign key (attachment_document_id) references documents(id) on delete set null;
+exception when duplicate_object then null; end $$;
+create index if not exists leaves_attachment_document_idx on leaves(tenant_id, attachment_document_id) where attachment_document_id is not null;
 
 update leaves l
 set tenant_id = e.tenant_id

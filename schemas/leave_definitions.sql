@@ -130,3 +130,18 @@ insert into leave_definitions
 select c.id, 'other', 'Other Leave', 'other', coalesce(c.other_leave_enabled, true), null, 'working_days', 'not_required', true, 40
 from companies c
 on conflict (tenant_id, code) do nothing;
+
+-- Phase 5A: composite key + FK so a leave request can reference the definition it was
+-- raised under (tenant-safe, additive, ON DELETE SET NULL to keep historical rows).
+do $$ begin
+  if not exists (select 1 from pg_constraint where conname = 'leave_definitions_tenant_id_id_key' and conrelid = 'leave_definitions'::regclass) then
+    alter table leave_definitions add constraint leave_definitions_tenant_id_id_key unique (tenant_id, id);
+  end if;
+exception when duplicate_object then null; when duplicate_table then null; end $$;
+
+do $$ begin
+  if not exists (select 1 from pg_constraint where conname = 'leaves_tenant_definition_fk' and conrelid = 'leaves'::regclass) then
+    alter table leaves add constraint leaves_tenant_definition_fk
+      foreign key (tenant_id, leave_definition_id) references leave_definitions(tenant_id, id) on delete set null;
+  end if;
+exception when duplicate_object then null; end $$;

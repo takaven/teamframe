@@ -15,6 +15,7 @@ import { maybeFireActivationCompleted } from "@/services/onboardingService";
 import { isLeaveRequestEligibleEmployee, type LegacyEmployeeLifecycleState } from "@/services/employeeLifecycle";
 import { assertCurrentDirectManager, listCurrentDirectReports } from "@/services/managerAuthorization";
 import { assertLeaveDoesNotExceedActiveOffboardingEndDate } from "@/services/offboardingService";
+import { uploadDocument, softDeleteDocument } from "@/services/documentService";
 
 export type LeaveType = "annual" | "sick" | "unpaid" | "other";
 export type LeaveStatus = "pending" | "approved" | "rejected" | "cancelled";
@@ -22,7 +23,7 @@ export type LeaveStatus = "pending" | "approved" | "rejected" | "cancelled";
 export const LEAVE_TYPES = ["annual", "sick", "unpaid", "other"] as const satisfies readonly LeaveType[];
 
 const LEAVE_COLUMNS =
-  "id, tenant_id, employee_id, start_date, end_date, leave_type, requested_days, reason, status, decided_by_user_id, decided_at, decision_note, override_insufficient_balance, override_reason, cancelled_by_user_id, cancelled_at, cancellation_reason, approval_automation_item_id, created_at, updated_at";
+  "id, tenant_id, employee_id, start_date, end_date, leave_type, leave_definition_id, attachment_document_id, requested_days, reason, status, decided_by_user_id, decided_at, decision_note, override_insufficient_balance, override_reason, cancelled_by_user_id, cancelled_at, cancellation_reason, approval_automation_item_id, created_at, updated_at";
 
 export type LeaveRecord = {
   id: string;
@@ -30,6 +31,13 @@ export type LeaveRecord = {
   start_date: string;
   end_date: string;
   leave_type: LeaveType;
+  leave_definition_id: string | null;
+  // Resolved display name of the configured definition (e.g. "Maternity Leave"), so a custom
+  // type routed through a system category keeps its identity in history/review. Null for legacy
+  // rows raised before definitions existed — callers fall back to the system-type label.
+  leave_definition_name: string | null;
+  // Private-bucket document holding supporting evidence, or null when none was attached.
+  attachment_document_id: string | null;
   requested_days: number;
   reason: string | null;
   status: LeaveStatus;
@@ -46,7 +54,7 @@ export type LeaveRecord = {
   updated_at: string;
 };
 
-type LeaveRow = Omit<LeaveRecord, "requested_days"> & {
+type LeaveRow = Omit<LeaveRecord, "requested_days" | "leave_definition_name"> & {
   tenant_id: string;
   requested_days: string | number;
 };
@@ -75,6 +83,21 @@ export type LeaveBalanceSummary = {
 export type LeaveOverview = {
   balances: LeaveBalanceSummary[];
   requests: LeaveRecord[];
+};
+
+// Per-configured-definition balance. Custom types that route through the same system
+// category (e.g. two 'other' types) stay distinct because aggregation keys on the
+// definition id — legacy rows (no definition link) only fold into the SYSTEM definition.
+export type LeaveDefinitionBalance = {
+  definition_id: string;
+  display_name: string;
+  system_leave_type: LeaveType;
+  counting_basis: string;
+  attachment_requirement: string;
+  entitlement: number | null;
+  taken: number;
+  pending: number;
+  available: number | null;
 };
 
 export type PendingLeaveWithEmployee = LeaveRecord & {
@@ -169,7 +192,37 @@ function rowToRecord(row: LeaveRow): LeaveRecord {
   return {
     ...rest,
     requested_days: Number(requested_days),
+    leave_definition_name: null,
   };
+}
+
+// Enrich a set of records with their configured definition display name (custom-type identity).
+// One query per tenant; legacy rows with no leave_definition_id keep leave_definition_name null.
+async function attachDefinitionNames(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  tenantId: string,
+  records: LeaveRecord[],
+): Promise<LeaveRecord[]> {
+  const ids = Array.from(
+    new Set(records.map((r) => r.leave_definition_id).filter((id): id is string => typeof id === "string")),
+  );
+  if (ids.length === 0) return records;
+
+  const { data, error } = await supabase
+    .from("leave_definitions")
+    .select("id, display_name")
+    .eq("tenant_id", tenantId)
+    .in("id", ids);
+  if (error) throw new Error(`LEAVE_DEFINITION_NAME_FAILED: ${error.message}`);
+
+  const nameById = new Map<string, string>();
+  for (const d of (data ?? []) as Array<{ id: string; display_name: string }>) {
+    nameById.set(d.id, d.display_name);
+  }
+  return records.map((r) => ({
+    ...r,
+    leave_definition_name: r.leave_definition_id ? nameById.get(r.leave_definition_id) ?? null : null,
+  }));
 }
 
 async function getEmployeeForLeave(actor: Actor, employeeId: string): Promise<EmployeeLifecycleRow> {
@@ -314,6 +367,63 @@ export async function listLeaveBalancesForEmployee(
   ];
 }
 
+export type ActiveLeaveDefinition = {
+  id: string; display_name: string; counting_basis: string; attachment_requirement: string; default_entitlement_days: number | null;
+};
+
+/** Active configured leave definitions for the employee's tenant (drives the request dropdown). */
+export async function listActiveLeaveDefinitions(actor: Actor): Promise<ActiveLeaveDefinition[]> {
+  const tenantId = requireTenant(actor);
+  const supabase = createServiceRoleClient();
+  const q = await supabase
+    .from("leave_definitions")
+    .select("id, display_name, counting_basis, attachment_requirement, default_entitlement_days, active, archived_at, sort_order")
+    .eq("tenant_id", tenantId)
+    .eq("active", true)
+    .is("archived_at", null)
+    .order("sort_order", { ascending: true });
+  if (q.error) throw new Error(`LEAVE_DEFINITIONS_LIST_FAILED: ${q.error.message}`);
+  return (q.data ?? []) as unknown as ActiveLeaveDefinition[];
+}
+
+/** Per-configured-definition balances (Entitlement / Taken / Pending approval / Available). */
+export async function listLeaveDefinitionBalances(actor: Actor, employeeId: string): Promise<LeaveDefinitionBalance[]> {
+  const tenantId = requireTenant(actor);
+  if (actor.role !== "admin" && actor.employeeId !== employeeId) throw new Error("FORBIDDEN");
+  const supabase = createServiceRoleClient();
+  const [defsQ, leavesQ, openingQ, employeeQ] = await Promise.all([
+    supabase.from("leave_definitions").select("id, display_name, system_leave_type, counting_basis, attachment_requirement, default_entitlement_days, is_system, active, archived_at, sort_order").eq("tenant_id", tenantId).eq("active", true).is("archived_at", null).order("sort_order", { ascending: true }),
+    supabase.from("leaves").select("leave_type, leave_definition_id, status, requested_days").eq("tenant_id", tenantId).eq("employee_id", employeeId),
+    supabase.from("leave_opening_adjustments").select("leave_type, used_days").eq("tenant_id", tenantId).eq("employee_id", employeeId),
+    supabase.from("employees").select("annual_leave_entitlement_override").eq("tenant_id", tenantId).eq("id", employeeId).maybeSingle(),
+  ]);
+  if (defsQ.error) throw new Error(`LEAVE_DEFINITIONS_LIST_FAILED: ${defsQ.error.message}`);
+  const defs = (defsQ.data ?? []) as unknown as Array<{ id: string; display_name: string; system_leave_type: LeaveType; counting_basis: string; attachment_requirement: string; default_entitlement_days: number | null; is_system: boolean }>;
+  const leaves = (leavesQ.data ?? []) as unknown as Array<{ leave_type: LeaveType; leave_definition_id: string | null; status: string; requested_days: number | string }>;
+  const opening = (openingQ.data ?? []) as unknown as Array<{ leave_type: LeaveType; used_days: number | string }>;
+  const annualOverride = (employeeQ.data as { annual_leave_entitlement_override: string | number | null } | null)?.annual_leave_entitlement_override ?? null;
+
+  return defs.map((d) => {
+    let taken = 0; let pending = 0;
+    for (const l of leaves) {
+      const matches = l.leave_definition_id === d.id || (l.leave_definition_id === null && d.is_system && l.leave_type === d.system_leave_type);
+      if (!matches) continue;
+      const days = Number(l.requested_days);
+      if (l.status === "approved") taken += days;
+      else if (l.status === "pending") pending += days;
+    }
+    // Opening adjustments (prior-consumed days) only apply to the built-in system type.
+    const openingUsed = d.is_system ? opening.filter((o) => o.leave_type === d.system_leave_type).reduce((s, o) => s + Number(o.used_days), 0) : 0;
+    // Entitlement = configured definition default, EXCEPT the built-in Annual type honours the
+    // per-employee override so this table matches the verified balance engine exactly.
+    const entitlement = d.is_system && d.system_leave_type === "annual" && annualOverride !== null
+      ? Number(annualOverride)
+      : d.default_entitlement_days;
+    const available = entitlement === null ? null : Math.round((entitlement - openingUsed - taken - pending) * 100) / 100;
+    return { definition_id: d.id, display_name: d.display_name, system_leave_type: d.system_leave_type, counting_basis: d.counting_basis, attachment_requirement: d.attachment_requirement, entitlement, taken: Math.round((taken + openingUsed) * 100) / 100, pending, available };
+  });
+}
+
 export async function getLeaveOverviewForEmployee(actor: Actor, employeeId: string): Promise<LeaveOverview> {
   const requests = await listLeavesForEmployee(actor, employeeId);
   const balances = await listLeaveBalancesForEmployee(actor, employeeId);
@@ -335,7 +445,7 @@ export async function listLeavesForEmployee(actor: Actor, employeeId: string): P
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(`LEAVE_LIST_FAILED: ${error.message}`);
-  return ((data ?? []) as LeaveRow[]).map(rowToRecord);
+  return attachDefinitionNames(supabase, tenantId, ((data ?? []) as LeaveRow[]).map(rowToRecord));
 }
 
 export async function listPendingLeavesWithEmployee(actor: Actor): Promise<PendingLeaveWithEmployee[]> {
@@ -352,7 +462,7 @@ export async function listPendingLeavesWithEmployee(actor: Actor): Promise<Pendi
 
   if (error) throw new Error(`LEAVE_LIST_PENDING_FAILED: ${error.message}`);
 
-  const leaves = ((data ?? []) as LeaveRow[]).map(rowToRecord);
+  const leaves = await attachDefinitionNames(supabase, tenantId, ((data ?? []) as LeaveRow[]).map(rowToRecord));
   const employeeIds = Array.from(new Set(leaves.map((leave) => leave.employee_id)));
   const employeesById = new Map<string, { full_name: string; role_title: string }>();
 
@@ -406,7 +516,7 @@ export async function listPendingLeavesForManager(actor: Actor): Promise<Pending
 
   if (error) throw new Error(`MANAGER_LEAVE_LIST_FAILED: ${error.message}`);
 
-  const leaves = ((data ?? []) as LeaveRow[]).map(rowToRecord);
+  const leaves = await attachDefinitionNames(supabase, tenantId, ((data ?? []) as LeaveRow[]).map(rowToRecord));
   const employeesById = new Map(directReports.map((employee) => [
     employee.id,
     {
@@ -479,20 +589,56 @@ export async function listWhoIsAway(actor: Actor, input: { from?: string; to?: s
 
 export async function submitLeaveRequest(
   actor: Actor,
-  input: { startDate: string; endDate: string; leaveType?: LeaveType; reason?: string | null },
+  input: { startDate: string; endDate: string; leaveType?: LeaveType; leaveDefinitionId?: string | null; reason?: string | null; attachment?: File | null },
 ): Promise<LeaveRecord> {
   const tenantId = requireTenant(actor);
   const employeeId = requireLinkedEmployee(actor);
   const parsed = SubmitLeaveSchema.safeParse(input);
   if (!parsed.success) throw new Error("INVALID_INPUT");
-  if (parsed.data.leaveType === "annual" && parsed.data.startDate.slice(0, 4) !== parsed.data.endDate.slice(0, 4)) {
+
+  const hasAttachment = input.attachment instanceof File && input.attachment.size > 0;
+  const supabase = createServiceRoleClient();
+
+  // Resolve the configured definition (must be this tenant's + active) → underlying
+  // system category + counting basis. Falls back to legacy leaveType when no definition.
+  let systemType: LeaveType = parsed.data.leaveType;
+  let countingBasis = "working_days";
+  let definitionId: string | null = null;
+  if (input.leaveDefinitionId) {
+    const defQuery = await supabase
+      .from("leave_definitions")
+      .select("id, system_leave_type, counting_basis, attachment_requirement, active, archived_at")
+      .eq("tenant_id", tenantId)
+      .eq("id", input.leaveDefinitionId)
+      .maybeSingle();
+    const def = defQuery.data as unknown as { id: string; system_leave_type: LeaveType; counting_basis: string; attachment_requirement: string; active: boolean; archived_at: string | null } | null;
+    if (defQuery.error || !def || !def.active || def.archived_at) throw new Error("LEAVE_DEFINITION_INVALID");
+    if (def.attachment_requirement === "required" && !hasAttachment) throw new Error("LEAVE_ATTACHMENT_REQUIRED");
+    systemType = def.system_leave_type;
+    countingBasis = def.counting_basis;
+    definitionId = def.id;
+  }
+
+  if (systemType === "annual" && parsed.data.startDate.slice(0, 4) !== parsed.data.endDate.slice(0, 4)) {
     throw new Error("LEAVE_PERIOD_CROSSING");
   }
 
   await assertLeaveEligible(actor, employeeId);
   await assertLeaveDoesNotExceedActiveOffboardingEndDate(actor, employeeId, parsed.data.endDate);
 
-  const supabase = createServiceRoleClient();
+  // Store supporting evidence through the existing private-document infra BEFORE creating the
+  // leave, so a "required" request can never be persisted without its retained evidence. If the
+  // leave insert then fails, the orphaned document is compensated away (soft-deleted).
+  let attachmentDocumentId: string | null = null;
+  if (hasAttachment) {
+    const uploaded = await uploadDocument(
+      actor,
+      { employeeId, type: "leave_evidence", file: input.attachment as File },
+      { allowEmployeeSelfUpload: true, auditActionType: "leave.evidence_uploaded" },
+    );
+    attachmentDocumentId = uploaded.id;
+  }
+
   const { data, error } = await supabase
     .rpc("teamframe_submit_leave", {
       p_tenant_id: tenantId,
@@ -500,12 +646,21 @@ export async function submitLeaveRequest(
       p_employee_id: employeeId,
       p_start_date: parsed.data.startDate,
       p_end_date: parsed.data.endDate,
-      p_leave_type: parsed.data.leaveType,
+      p_leave_type: systemType,
       p_reason: parsed.data.reason ?? null,
+      p_leave_definition_id: definitionId,
+      p_counting_basis: countingBasis,
+      p_attachment_document_id: attachmentDocumentId,
     } as never)
     .single();
 
-  if (error) throw new Error(`LEAVE_SUBMIT_FAILED: ${error.message}`);
+  if (error) {
+    if (attachmentDocumentId) {
+      // Compensating delete: leave was not created, so the evidence document must not linger.
+      try { await softDeleteDocument(actor, attachmentDocumentId); } catch { /* surfaced via logs in documentService */ }
+    }
+    throw new Error(`LEAVE_SUBMIT_FAILED: ${error.message}`);
+  }
 
   const created = data as LeaveRow;
   const countResult = await supabase.from("leaves").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId);
