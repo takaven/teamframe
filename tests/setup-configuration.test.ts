@@ -53,4 +53,27 @@ describe("Phase 3 — Setup / Administration configuration", () => {
     expect(setupPage).toContain('href="/company"');
     expect(setupPage).toContain("Full Access");
   });
+
+  it("Users & Access is presets-first with granular controls behind Customize access", () => {
+    const accessPage = read("app/access/page.tsx");
+    expect(accessPage).toContain("Customize access");
+    expect(accessPage).toContain("updateAccessProfileAction"); // preset apply is the lead action
+    expect(accessPage).toContain("updateAccessMatrixAction"); // granular model preserved
+    expect(accessPage).toContain("setMembershipActiveAction"); // suspend/reactivate preserved
+    expect(accessPage).toContain("derived from current direct reports"); // Manager is derived, not a preset
+    // The granular matrix lives inside the collapsed <details> (hidden by default).
+    expect(accessPage).toMatch(/<details[\s\S]*updateAccessMatrixAction/);
+    // Manager is not a manually-assignable preset option.
+    expect(accessPage).not.toMatch(/value="manager"/);
+  });
+
+  it("Company config exposes editable employee-number settings without touching the running counter", () => {
+    expect(config).toContain("employee_number_prefix");
+    expect(config).toContain("employee_number_separator");
+    expect(config).toContain("employee_number_digits");
+    // The running counter is never rewritten by the settings update (preserves existing numbers).
+    expect(config).toContain("employee_number_next (the running counter) is intentionally NOT touched");
+    expect(setupPage).toContain('name="employee_number_prefix"');
+    expect(setupPage).toContain('name="employee_number_digits"');
+  });
 });

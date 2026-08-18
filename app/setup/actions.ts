@@ -52,6 +52,9 @@ export async function saveCompanySettingsAction(formData: FormData): Promise<voi
       default_timezone: s(formData.get("timezone")),
       default_working_days: days.length > 0 ? days : [1, 2, 3, 4, 5],
       thirty_day_check_in_enabled: formData.get("thirty_day_check_in_enabled") === "on",
+      employee_number_prefix: s(formData.get("employee_number_prefix")),
+      employee_number_separator: typeof formData.get("employee_number_separator") === "string" ? (formData.get("employee_number_separator") as string) : "-",
+      employee_number_digits: Number(s(formData.get("employee_number_digits")) || "4"),
     });
   });
 }

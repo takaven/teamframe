@@ -178,7 +178,8 @@ export async function updateLeaveDefinition(actor: Actor, id: string, input: unk
 export type CompanySettings = {
   id: string; name: string; country: string | null; default_timezone: string;
   default_working_days: number[]; thirty_day_check_in_enabled: boolean;
-  employee_number_prefix: string | null; employee_number_digits: number;
+  employee_number_prefix: string | null; employee_number_separator: string; employee_number_digits: number;
+  employee_number_next: number;
 };
 
 export async function getCompanySettings(actor: Actor): Promise<CompanySettings> {
@@ -187,7 +188,7 @@ export async function getCompanySettings(actor: Actor): Promise<CompanySettings>
   const supabase = createServiceRoleClient();
   const query = await supabase
     .from("companies")
-    .select("id, name, country, default_timezone, default_working_days, thirty_day_check_in_enabled, employee_number_prefix, employee_number_digits")
+    .select("id, name, country, default_timezone, default_working_days, thirty_day_check_in_enabled, employee_number_prefix, employee_number_separator, employee_number_digits, employee_number_next")
     .eq("id", tenantId)
     .single();
   if (query.error) throw new Error(`COMPANY_SETTINGS_FETCH_FAILED: ${query.error.message}`);
@@ -200,6 +201,10 @@ const CompanySettingsInputSchema = z.object({
   default_timezone: z.string().trim().min(1).max(64),
   default_working_days: z.array(z.number().int().min(1).max(7)).min(1).max(7),
   thirty_day_check_in_enabled: z.boolean(),
+  // Employee-number format (existing schema; existing issued numbers are never rewritten).
+  employee_number_prefix: z.string().trim().max(12).optional(),
+  employee_number_separator: z.string().max(3),
+  employee_number_digits: z.number().int().min(1).max(12),
 });
 
 export async function updateCompanySettings(actor: Actor, input: unknown): Promise<void> {
@@ -209,9 +214,14 @@ export async function updateCompanySettings(actor: Actor, input: unknown): Promi
   const iso = parsed.country ? normalizeCountryCode(parsed.country) : null;
   if (parsed.country && !iso) throw new Error("INVALID_COUNTRY");
   const supabase = createServiceRoleClient();
+  // Note: employee_number_next (the running counter) is intentionally NOT touched here —
+  // changing the format never renumbers already-issued employee numbers.
   const { error } = await supabase.from("companies").update({
     name: parsed.name, country: iso, default_timezone: parsed.default_timezone,
     default_working_days: parsed.default_working_days, thirty_day_check_in_enabled: parsed.thirty_day_check_in_enabled,
+    employee_number_prefix: parsed.employee_number_prefix && parsed.employee_number_prefix.length > 0 ? parsed.employee_number_prefix : null,
+    employee_number_separator: parsed.employee_number_separator,
+    employee_number_digits: parsed.employee_number_digits,
   } as never).eq("id", tenantId);
   if (error) throw new Error(`COMPANY_SETTINGS_UPDATE_FAILED: ${error.message}`);
 }

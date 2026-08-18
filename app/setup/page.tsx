@@ -138,6 +138,15 @@ export default async function SetupPage({
                   </div>
                   <p className="mt-1 text-[11px] text-ink-500">Employee-level working-day overrides remain available on the employee record and are unaffected.</p>
                 </fieldset>
+                <fieldset className="text-[13px] text-ink-700 sm:col-span-2">
+                  <legend className="mb-1">Employee number format</legend>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <label className="text-[12px] text-ink-600">Prefix (optional)<input name="employee_number_prefix" defaultValue={company.employee_number_prefix ?? ""} maxLength={12} className={input} placeholder="e.g. NS" /></label>
+                    <label className="text-[12px] text-ink-600">Separator<input name="employee_number_separator" defaultValue={company.employee_number_separator} maxLength={3} className={input} placeholder="-" /></label>
+                    <label className="text-[12px] text-ink-600">Digits<input name="employee_number_digits" type="number" min={1} max={12} defaultValue={company.employee_number_digits} className={input} /></label>
+                  </div>
+                  <p className="mt-1 text-[11px] text-ink-500">Next number: {company.employee_number_next}. Changing the format never renumbers existing employee numbers.</p>
+                </fieldset>
                 <label className="flex items-center gap-2 text-[13px] text-ink-700 sm:col-span-2">
                   <input type="checkbox" name="thirty_day_check_in_enabled" defaultChecked={company.thirty_day_check_in_enabled} />
                   Enable the optional automated 30-day onboarding check-in
