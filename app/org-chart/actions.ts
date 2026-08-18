@@ -20,6 +20,9 @@ const PositionFormSchema = z.object({
   parent_position_id: z.string().uuid().optional(),
   assigned_employee_id: z.string().uuid().optional(),
   note: z.string().trim().max(500).optional(),
+  department_id: z.string().uuid().optional(),
+  work_location_id: z.string().uuid().optional(),
+  budgeted: z.enum(["budgeted", "non_budgeted"]).optional(),
 });
 
 const UpdatePositionFormSchema = PositionFormSchema.extend({
@@ -113,7 +116,16 @@ function parsePositionInput(formData: FormData): z.infer<typeof PositionFormSche
     parent_position_id: optionalString(formData.get("parent_position_id")),
     assigned_employee_id: optionalString(formData.get("assigned_employee_id")),
     note: optionalString(formData.get("note")),
+    department_id: optionalString(formData.get("department_id")),
+    work_location_id: optionalString(formData.get("work_location_id")),
+    budgeted: optionalString(formData.get("budgeted")),
   });
+}
+
+// "budgeted"/"non_budgeted" → boolean; unspecified → undefined (leave unchanged).
+function toBudgeted(value: "budgeted" | "non_budgeted" | undefined): boolean | undefined {
+  if (value === undefined) return undefined;
+  return value === "budgeted";
 }
 
 export async function createPositionAction(formData: FormData): Promise<void> {
@@ -127,6 +139,9 @@ export async function createPositionAction(formData: FormData): Promise<void> {
         parentPositionId: input.parent_position_id ?? null,
         assignedEmployeeId: input.assigned_employee_id ?? null,
         note: input.note ?? null,
+        departmentId: input.department_id,
+        workLocationId: input.work_location_id,
+        budgeted: toBudgeted(input.budgeted),
       });
       const file = getOptionalFile(formData.get("job_description"));
       if (file) {
@@ -155,6 +170,9 @@ export async function updatePositionAction(formData: FormData): Promise<void> {
           parentPositionId: parsed.parent_position_id ?? null,
           assignedEmployeeId: parsed.assigned_employee_id ?? null,
           note: parsed.note ?? null,
+          departmentId: parsed.department_id,
+          workLocationId: parsed.work_location_id,
+          budgeted: toBudgeted(parsed.budgeted),
         },
         parsed.expected_updated_at,
       );

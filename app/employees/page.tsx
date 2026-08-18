@@ -10,6 +10,9 @@ import { listEmploymentChangesForEmployee } from "@/services/employmentChangeSer
 import { getOffboardingLeaveReconciliation, listOffboardingForEmployee } from "@/services/offboardingService";
 import { listPositions } from "@/services/positionService";
 import { listEarlyEmploymentForAdmin } from "@/services/earlyEmploymentService";
+import { getEmployeeMasterRecord, listEmployeePhotoUrls } from "@/services/employeeMasterService";
+import { listAssignmentsForEmployee } from "@/services/positionAssignmentService";
+import { EmployeeMasterSections } from "@/components/EmployeeMasterSections";
 import { CopyInviteEmailButton } from "./CopyInviteEmailButton";
 import {
   createEmployeeAction,
@@ -46,6 +49,7 @@ const STATUS_COPY: Record<string, string> = {
   reinvited: "Invite link sent. The employee should use the newest email only.",
   activation_link_ready: "Activation link generated.",
   document_uploaded: "Document uploaded.",
+  photo_updated: "Profile photo updated.",
   document_deleted: "Document deleted.",
   document_requested: "Document request created.",
   document_reviewed: "Document evidence reviewed.",
@@ -245,6 +249,18 @@ export default async function EmployeesPage({
   const offboardingByEmployee = new Map(offboardingWorkflows.map((item) => [item.employeeId, item.workflow]));
   const offboardingLeaveByEmployee = new Map(offboardingWorkflows.map((item) => [item.employeeId, item.leaveReconciliation]));
   const employeeNameById = new Map(employees.map((employee) => [employee.id, employee.full_name]));
+  // Structured master record (capability-gated compensation/payment) + position history
+  // for the opened employee.
+  const masterRecords = await Promise.all(
+    detailEmployees.map(async (employee) => ({
+      employeeId: employee.id,
+      record: await getEmployeeMasterRecord(actor, employee.id),
+      assignments: await listAssignmentsForEmployee(actor, employee.id),
+    })),
+  );
+  const masterByEmployee = new Map(masterRecords.map((item) => [item.employeeId, item]));
+  const employeePhotos = await listEmployeePhotoUrls(actor);
+  const photoByEmployeeId = new Map(employeePhotos.map((p) => [p.employee_id, p.photo_url]));
   const positionTitleById = new Map(positions.map((position) => [position.id, position.title]));
   const changeLookup = new Map([...employeeNameById, ...positionTitleById]);
   const currentEmployees = employees.filter((e) => e.canonical_lifecycle !== "FORMER");
@@ -537,8 +553,20 @@ export default async function EmployeesPage({
                   ? `Re-send cooldown active: retry in ${resendCooldownSeconds}s.`
                   : "If delivery is delayed, use Re-send invite first, then activation link as fallback.";
 
+                const master = masterByEmployee.get(employee.id);
                 return (
                   <>
+              {master ? (
+                <div className="mb-6">
+                  <EmployeeMasterSections
+                    master={master.record}
+                    photoUrl={photoByEmployeeId.get(employee.id) ?? null}
+                    positionTitle={position?.title ?? null}
+                    managerName={master.record.employment.manager_id ? employeeNameById.get(master.record.employment.manager_id) ?? null : null}
+                    assignments={master.assignments}
+                  />
+                </div>
+              ) : null}
               {status === "reinvited" && employeeParam === employee.id ? (
                 <p className="mb-3 rounded-md border border-signal-green/30 bg-signal-green/10 px-3 py-2 text-[13px] text-signal-green">
                   Invite re-sent to this employee.

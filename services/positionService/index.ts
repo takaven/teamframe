@@ -93,7 +93,28 @@ const PositionInputSchema = z.object({
   parentPositionId: z.string().uuid().nullable().optional(),
   assignedEmployeeId: z.string().uuid().nullable().optional(),
   note: z.string().trim().max(500).nullable().optional(),
+  // Phase-2B additive references to the configured lists + budgeted flag.
+  departmentId: z.string().uuid().nullable().optional(),
+  workLocationId: z.string().uuid().nullable().optional(),
+  budgeted: z.boolean().nullable().optional(),
 });
+
+type PositionConfigInput = Pick<z.infer<typeof PositionInputSchema>, "departmentId" | "workLocationId" | "budgeted">;
+
+async function applyPositionConfigFields(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  tenantId: string,
+  positionId: string,
+  parsed: PositionConfigInput,
+): Promise<void> {
+  const patch: Record<string, unknown> = {};
+  if (parsed.departmentId !== undefined) patch.department_id = parsed.departmentId;
+  if (parsed.workLocationId !== undefined) patch.work_location_id = parsed.workLocationId;
+  if (parsed.budgeted !== undefined) patch.budgeted = parsed.budgeted;
+  if (Object.keys(patch).length === 0) return;
+  const { error } = await supabase.from("positions").update(patch as never).eq("tenant_id", tenantId).eq("id", positionId);
+  if (error) throw new Error(`POSITION_CONFIG_UPDATE_FAILED: ${error.message}`);
+}
 
 function requireTenant(actor: Actor): string {
   if (!actor.tenantId) throw new Error("NO_TENANT_CONTEXT");
@@ -242,7 +263,9 @@ export async function createPosition(actor: Actor, input: unknown): Promise<Posi
     .single();
 
   if (error || !data) throw new Error(`POSITION_CREATE_FAILED: ${error?.message ?? "no row"}`);
-  return (await listPositions(actor)).find((position) => position.id === (data as PositionRow).id)!;
+  const createdId = (data as PositionRow).id;
+  await applyPositionConfigFields(supabase, tenantId, createdId, parsed);
+  return (await listPositions(actor)).find((position) => position.id === createdId)!;
 }
 
 export async function updatePosition(
@@ -273,7 +296,9 @@ export async function updatePosition(
 
   if (error) throw new Error(`POSITION_UPDATE_FAILED: ${error.message}`);
   if (!data) throw new Error("STALE_WRITE");
-  return (await listPositions(actor)).find((position) => position.id === (data as PositionRow).id)!;
+  const updatedId = (data as PositionRow).id;
+  await applyPositionConfigFields(supabase, tenantId, updatedId, parsed);
+  return (await listPositions(actor)).find((position) => position.id === updatedId)!;
 }
 
 export async function deleteVacantPosition(actor: Actor, positionId: string, expectedUpdatedAt: string): Promise<void> {

@@ -99,6 +99,44 @@ export async function vacatePosition(
   if (error) throw new Error(`POSITION_VACATE_FAILED: ${error.message}`);
 }
 
+export type EmployeeAssignmentRecord = {
+  id: string;
+  position_id: string;
+  position_title: string | null;
+  effective_start: string | null;
+  effective_end: string | null;
+  is_snapshot: boolean;
+};
+
+/** An employee's position occupancy history (which positions they held, and when). */
+export async function listAssignmentsForEmployee(
+  actor: Actor,
+  employeeId: string,
+): Promise<EmployeeAssignmentRecord[]> {
+  requireAdmin(actor);
+  const tenantId = requireTenant(actor);
+  const supabase = createServiceRoleClient();
+  const query = await supabase
+    .from("position_assignments")
+    .select("id, position_id, effective_start, effective_end, is_snapshot, positions(title)")
+    .eq("tenant_id", tenantId)
+    .eq("employee_id", employeeId)
+    .order("effective_end", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: true });
+  if (query.error) throw new Error(`EMPLOYEE_ASSIGNMENTS_FETCH_FAILED: ${query.error.message}`);
+  const rows = (query.data ?? []) as unknown as Array<{
+    id: string; position_id: string; effective_start: string | null; effective_end: string | null;
+    is_snapshot: boolean; positions: { title: string } | { title: string }[] | null;
+  }>;
+  return rows.map((row) => {
+    const pos = Array.isArray(row.positions) ? row.positions[0] ?? null : row.positions;
+    return {
+      id: row.id, position_id: row.position_id, position_title: pos?.title ?? null,
+      effective_start: row.effective_start ?? null, effective_end: row.effective_end ?? null, is_snapshot: Boolean(row.is_snapshot),
+    };
+  });
+}
+
 export async function listPositionAssignments(
   actor: Actor,
   positionId: string,

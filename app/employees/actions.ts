@@ -29,6 +29,7 @@ import {
   uploadDocument,
   uploadDocumentForRequirement,
 } from "@/services/documentService";
+import { setEmployeePhoto } from "@/services/employeeMasterService";
 import { logAction } from "@/lib/telemetry/logger";
 import { captureActionError } from "@/lib/telemetry/sentry";
 
@@ -717,6 +718,44 @@ export async function uploadEmployeeDocumentAction(formData: FormData): Promise<
   }
 
   redirect(`${returnTo}?status=document_uploaded&employee=${encodeURIComponent(employeeId)}`);
+}
+
+export async function updateEmployeePhotoAction(formData: FormData): Promise<void> {
+  const start = Date.now();
+  const requestId = crypto.randomUUID();
+  let actor: Awaited<ReturnType<typeof requireTenantActor>> | null = null;
+  let caughtError: unknown = null;
+  let employeeId = "";
+
+  try {
+    actor = await requireTenantActor();
+    employeeId = String(formData.get("employee_id") ?? "");
+    const file = formData.get("photo");
+    if (!(file instanceof File) || file.size === 0) throw new Error("INVALID_INPUT");
+    await setEmployeePhoto(actor, employeeId, file);
+  } catch (error) {
+    caughtError = error;
+  }
+
+  const durationMs = Date.now() - start;
+  logAction({
+    action: "updateEmployeePhoto",
+    actorUserId: actor?.authUserId ?? null,
+    actorTenantId: actor?.tenantId ?? null,
+    durationMs,
+    outcome: caughtError ? "fail" : "ok",
+    error: caughtError ?? undefined,
+    requestId,
+  });
+  if (caughtError) {
+    captureActionError("updateEmployeePhoto", caughtError, {
+      actor_user_id: actor?.authUserId ?? null,
+      actor_tenant_id: actor?.tenantId ?? null,
+      employee_id: employeeId || null,
+    });
+    redirect(`/employees?error=${encodeURIComponent(getErrorCode(caughtError))}&employee=${encodeURIComponent(employeeId)}`);
+  }
+  redirect(`/employees?status=photo_updated&employee=${encodeURIComponent(employeeId)}`);
 }
 
 export async function createDocumentRequirementAction(formData: FormData): Promise<void> {

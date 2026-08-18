@@ -122,6 +122,7 @@ export async function getEmployeeMasterRecord(actor: Actor, employeeId: string):
     .eq("employee_id", employeeId)
     .maybeSingle();
   const profile = profileQuery.data as unknown as { photo_url: string | null } | null;
+  const photoSigned = profile?.photo_url ? (await resolvePhotoUrls([profile.photo_url])).get(profile.photo_url) ?? null : null;
 
   const canComp = await canViewCompensation(actor, employeeId);
   const canPay = (await canReadOwnEmployeeRecord(actor, employeeId)) || (await canRunFinanceExport(actor));
@@ -156,7 +157,7 @@ export async function getEmployeeMasterRecord(actor: Actor, employeeId: string):
   return {
     identity: {
       id: emp.id, employee_number: emp.employee_number, full_name: emp.full_name, preferred_name: emp.preferred_name,
-      photo_url: profile?.photo_url ?? null, date_of_birth: emp.date_of_birth, gender: emp.gender, nationality: emp.nationality,
+      photo_url: photoSigned, date_of_birth: emp.date_of_birth, gender: emp.gender, nationality: emp.nationality,
     },
     contact: {
       personal_email: emp.personal_email, personal_phone: emp.mobile, company_email: emp.email,
@@ -176,6 +177,63 @@ export async function getEmployeeMasterRecord(actor: Actor, employeeId: string):
     compensation: { canView: canComp, ...comp },
     payment_details: { canView: canPay, ...pay },
   };
+}
+
+// Profile photos are stored in the private `documents` bucket at a stable path; the
+// path is the single source of truth persisted on employee_profiles.photo_url, and a
+// short-lived signed URL is resolved at read time for rendering. No second photo store.
+const PHOTO_BUCKET = "documents";
+const PHOTO_MIME = ["image/png", "image/jpeg", "image/webp"];
+const PHOTO_MAX_BYTES = 5 * 1024 * 1024;
+function avatarPath(tenantId: string, employeeId: string): string {
+  return `avatars/${tenantId}/${employeeId}`;
+}
+
+/** Upload/replace an employee's profile photo. Gated (own record or people-operations). */
+export async function setEmployeePhoto(actor: Actor, employeeId: string, file: File): Promise<void> {
+  if (!actor.tenantId) throw new Error("NO_TENANT_CONTEXT");
+  if (!(await canReadEmployeeProfile(actor, employeeId))) throw new Error("FORBIDDEN");
+  if (!PHOTO_MIME.includes(file.type)) throw new Error("PHOTO_UNSUPPORTED_TYPE");
+  if (file.size === 0) throw new Error("PHOTO_EMPTY");
+  if (file.size > PHOTO_MAX_BYTES) throw new Error("PHOTO_TOO_LARGE");
+  const supabase = createServiceRoleClient();
+  const path = avatarPath(actor.tenantId, employeeId);
+  const bytes = Buffer.from(await file.arrayBuffer());
+  const up = await supabase.storage.from(PHOTO_BUCKET).upload(path, bytes, { contentType: file.type, upsert: true });
+  if (up.error) throw new Error(`PHOTO_UPLOAD_FAILED: ${up.error.message}`);
+  const save = await supabase
+    .from("employee_profiles")
+    .upsert({ tenant_id: actor.tenantId, employee_id: employeeId, photo_url: path } as never, { onConflict: "employee_id" });
+  if (save.error) throw new Error(`PHOTO_SAVE_FAILED: ${save.error.message}`);
+}
+
+// Resolve stored photo paths to signed render URLs. Fail-safe: any error → null (a
+// missing photo must never break the page; the UI falls back to initials).
+async function resolvePhotoUrls(paths: string[]): Promise<Map<string, string>> {
+  const result = new Map<string, string>();
+  const unique = [...new Set(paths.filter(Boolean))];
+  if (unique.length === 0) return result;
+  try {
+    const supabase = createServiceRoleClient();
+    const signed = await supabase.storage.from(PHOTO_BUCKET).createSignedUrls(unique, 3600);
+    for (const entry of signed.data ?? []) {
+      if (entry.path && entry.signedUrl) result.set(entry.path, entry.signedUrl);
+    }
+  } catch {
+    // ignore — fall back to initials
+  }
+  return result;
+}
+
+/** Photo render URLs for a tenant's employees (for org-chart / roster avatars). Admin-scoped. */
+export async function listEmployeePhotoUrls(actor: Actor): Promise<Array<{ employee_id: string; photo_url: string | null }>> {
+  if (actor.role !== "admin" || !actor.tenantId) return [];
+  const supabase = createServiceRoleClient();
+  const query = await supabase.from("employee_profiles").select("employee_id, photo_url").eq("tenant_id", actor.tenantId);
+  if (query.error) return [];
+  const rows = (query.data ?? []) as unknown as Array<{ employee_id: string; photo_url: string | null }>;
+  const signedByPath = await resolvePhotoUrls(rows.map((r) => r.photo_url ?? "").filter(Boolean));
+  return rows.map((r) => ({ employee_id: r.employee_id, photo_url: r.photo_url ? signedByPath.get(r.photo_url) ?? null : null }));
 }
 
 /** Presentation helper: single reliable avatar source with initials fallback. */
