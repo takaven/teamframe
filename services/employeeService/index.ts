@@ -47,6 +47,8 @@ export type EmploymentType = "full_time" | "part_time" | "contractor" | "intern"
 export type EmployeeLifecycleState = "preboarding" | "active" | "on_leave" | "offboarding" | "exited";
 
 export type EmployeeFullRecord = OrgChartEmployee & {
+  employee_number: string | null;
+  work_location: string | null;
   email: string;
   timezone: string;
   employment_type: EmploymentType;
@@ -245,9 +247,9 @@ export async function listEmployeesForAdmin(actor: Actor): Promise<EmployeeFullR
   const tenantId = requireTenant(actor);
   const capabilities = await detectEmployeeTelemetryCapabilities();
   const baseSelect =
-    "id, tenant_id, full_name, email, role_title, department, timezone, manager_id, status, employment_type, country, start_date, end_date, lifecycle_state, grade, setup_status, created_at, updated_at";
+    "id, tenant_id, full_name, employee_number, work_location, email, role_title, department, timezone, manager_id, status, employment_type, country, start_date, end_date, lifecycle_state, grade, setup_status, created_at, updated_at";
   const legacyBaseSelect =
-    "id, tenant_id, full_name, email, role_title, department, timezone, manager_id, status, grade, setup_status, created_at, updated_at";
+    "id, tenant_id, full_name, employee_number, work_location, email, role_title, department, timezone, manager_id, status, grade, setup_status, created_at, updated_at";
   const telemetrySelect =
     "invite_attempt_count, invite_last_attempt_at, invite_last_sent_at, invite_last_error, activated_at";
   const selectColumns = capabilities.limitedMode ? baseSelect : `${baseSelect}, ${telemetrySelect}`;
@@ -387,9 +389,12 @@ function toEmployeeFullRecord(row: EmployeeRow): EmployeeFullRecord {
     end_date: maybeProfile.end_date ?? null,
   });
 
+  const maybeExtras = row as EmployeeRow & { employee_number?: string | null; work_location?: string | null };
   return {
     id: row.id,
     full_name: row.full_name,
+    employee_number: maybeExtras.employee_number ?? null,
+    work_location: maybeExtras.work_location ?? null,
     role_title: row.role_title,
     department: row.department,
     manager_id: row.manager_id,

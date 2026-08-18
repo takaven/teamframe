@@ -9,6 +9,7 @@ import { listDocumentRequirementsForEmployee, listDocumentsForEmployee } from "@
 import { listEmploymentChangesForEmployee } from "@/services/employmentChangeService";
 import { getOffboardingLeaveReconciliation, listOffboardingForEmployee } from "@/services/offboardingService";
 import { listPositions } from "@/services/positionService";
+import { listEarlyEmploymentForAdmin } from "@/services/earlyEmploymentService";
 import { CopyInviteEmailButton } from "./CopyInviteEmailButton";
 import {
   createEmployeeAction,
@@ -192,6 +193,14 @@ export default async function EmployeesPage({
   }
 
   const employees = await listEmployeesForAdmin(actor);
+  // Open probation reviews → drives the "Active · Probation" roster tag (probation is a
+  // tag, never an employment status).
+  const earlyEmployment = await listEarlyEmploymentForAdmin(actor);
+  const probationEmployeeIds = new Set(
+    earlyEmployment.probationReviews
+      .filter((review) => review.status === "scheduled" || review.status === "due")
+      .map((review) => review.employee_id),
+  );
   const positions = await listPositions(actor);
   const positionByEmployeeId = new Map(
     positions
@@ -422,11 +431,11 @@ export default async function EmployeesPage({
             <table className="min-w-full text-left text-[13px]">
               <thead className="border-b border-ink-300/60 text-[11px] uppercase tracking-[0.1em] text-ink-500">
                 <tr>
+                  <th className="px-5 py-3 font-medium">Employee No.</th>
                   <th className="px-5 py-3 font-medium">Employee</th>
-                  <th className="px-5 py-3 font-medium">Function</th>
                   <th className="px-5 py-3 font-medium">Position</th>
-                  <th className="px-5 py-3 font-medium">Employee state</th>
-                  <th className="px-5 py-3 font-medium">Account</th>
+                  <th className="px-5 py-3 font-medium">Work Location</th>
+                  <th className="px-5 py-3 font-medium">Employment Status</th>
                   <th className="px-5 py-3 font-medium">Action</th>
                 </tr>
               </thead>
@@ -440,12 +449,13 @@ export default async function EmployeesPage({
                   return (
                     <tr key={employee.id} className="align-top">
                       <td className="px-5 py-3">
-                        <p className="font-medium text-ink-900">{employee.full_name}</p>
-                        <p className="text-[12px] text-ink-500">{employee.email}</p>
+                        <span className="font-mono text-[12px] tabular-nums text-ink-700">
+                          {employee.employee_number ?? "—"}
+                        </span>
                       </td>
-                      <td className="px-5 py-3 text-ink-700">
-                        <p>{employee.role_title}</p>
-                        <p className="text-[12px] text-ink-500">{employee.department}</p>
+                      <td className="px-5 py-3">
+                        <p className="font-medium text-ink-900">{employee.full_name}</p>
+                        <p className="text-[12px] text-ink-500">{employee.role_title}</p>
                       </td>
                       <td className="px-5 py-3 text-ink-700">
                         {position ? (
@@ -459,13 +469,30 @@ export default async function EmployeesPage({
                           <span className="text-[12px] text-ink-500">No assigned position</span>
                         )}
                       </td>
-                      <td className="px-5 py-3">
-                        <StatusPill tone={needsAttention ? "amber" : employee.status === "inactive" ? "neutral" : "green"}>
-                          {needsAttention ? "Needs attention" : employee.status.replace("_", " ")}
-                        </StatusPill>
+                      <td className="px-5 py-3 text-ink-700">
+                        {employee.work_location ? (
+                          <span className="text-[13px] text-ink-800">{employee.work_location}</span>
+                        ) : (
+                          <span className="text-[12px] text-ink-500">—</span>
+                        )}
                       </td>
                       <td className="px-5 py-3">
-                        <StatusPill tone={state.tone}>{state.label}</StatusPill>
+                        <StatusPill
+                          tone={
+                            employee.canonical_lifecycle === "FORMER"
+                              ? "neutral"
+                              : employee.canonical_lifecycle === "OFFBOARDING"
+                                ? "amber"
+                                : "green"
+                          }
+                        >
+                          {employee.canonical_lifecycle_label}
+                          {probationEmployeeIds.has(employee.id) && employee.canonical_lifecycle === "ACTIVE" ? " · Probation" : ""}
+                        </StatusPill>
+                        {/* Account/invite state is secondary to employment status. */}
+                        {needsAttention ? (
+                          <p className="mt-1 text-[11px] text-ink-500">{state.label}</p>
+                        ) : null}
                       </td>
                       <td className="px-5 py-3">
                         <a
