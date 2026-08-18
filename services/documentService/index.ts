@@ -56,6 +56,7 @@ export type DocumentRequirementRecord = {
   employee_upload_allowed: boolean;
   state: DocumentRequirementState;
   current_document_id: string | null;
+  current_expires_at: string | null;
   requested_at: string;
   received_at: string | null;
   reviewed_at: string | null;
@@ -510,7 +511,8 @@ function toRequirementRecord(row: DocumentRequirementRow): DocumentRequirementRe
     review_automation_item_id: _reviewAutomation,
     ...record
   } = row;
-  return record;
+  // current_expires_at is enriched from the current document by the list callers.
+  return { ...record, current_expires_at: null };
 }
 
 function normalizeDocumentType(input: string): DocumentType {
@@ -1007,7 +1009,22 @@ export async function listDocumentRequirementsForEmployee(
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(`DOCUMENT_REQUIREMENT_LIST_FAILED: ${error.message}`);
-  return ((data ?? []) as DocumentRequirementRow[]).map(toRequirementRecord);
+  const records = ((data ?? []) as DocumentRequirementRow[]).map(toRequirementRecord);
+
+  // Enrich with the current document's expiry so the checklist can derive "Expiring soon".
+  const currentDocIds = records.map((r) => r.current_document_id).filter((id): id is string => Boolean(id));
+  if (currentDocIds.length > 0) {
+    const { data: docs } = await supabase
+      .from("documents")
+      .select("id, expires_at")
+      .eq("tenant_id", tenantId)
+      .in("id", currentDocIds);
+    const expiryById = new Map<string, string | null>((docs ?? []).map((d: { id: string; expires_at: string | null }) => [d.id, d.expires_at ?? null]));
+    for (const r of records) {
+      if (r.current_document_id) r.current_expires_at = expiryById.get(r.current_document_id) ?? null;
+    }
+  }
+  return records;
 }
 
 export async function uploadDocumentForRequirement(

@@ -12,7 +12,10 @@ type Requirement = {
   due_date: string | null;
   review_required: boolean;
   employee_upload_allowed: boolean;
+  current_expires_at: string | null;
 };
+
+const EXPIRING_SOON_DAYS = 30;
 
 function fmt(iso: string | null): string {
   if (!iso) return "-";
@@ -20,20 +23,28 @@ function fmt(iso: string | null): string {
   return Number.isNaN(d.getTime()) ? "-" : d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-// Bucket derivation from the requirement state (+ review flag).
+// Bucket derivation from the requirement state (+ review flag + current document expiry).
 function bucketOf(r: Requirement): string {
-  if (r.state === "accepted") return "Accepted";
   if (r.state === "expired") return "Expired · needs attention";
   if (r.state === "rejected") return "Needs re-upload";
-  if (r.state === "received") return r.review_required ? "Awaiting review" : "Accepted";
   if (r.state === "requested") return r.employee_upload_allowed ? "Upload required" : "Required";
+  if (r.state === "accepted" || (r.state === "received" && !r.review_required)) {
+    // Derive Expiring soon / Expired from the accepted document's expiry.
+    if (r.current_expires_at) {
+      const days = Math.floor((new Date(r.current_expires_at).getTime() - new Date().getTime()) / 86_400_000);
+      if (days < 0) return "Expired · needs attention";
+      if (days <= EXPIRING_SOON_DAYS) return "Expiring soon";
+    }
+    return "Accepted";
+  }
+  if (r.state === "received") return "Awaiting review";
   return null as unknown as string; // replaced / cancelled → hidden
 }
 
-const BUCKET_ORDER = ["Upload required", "Required", "Needs re-upload", "Expired · needs attention", "Awaiting review", "Accepted"];
+const BUCKET_ORDER = ["Upload required", "Required", "Needs re-upload", "Expired · needs attention", "Expiring soon", "Awaiting review", "Accepted"];
 const BUCKET_TONE: Record<string, "amber" | "red" | "neutral" | "green"> = {
   "Upload required": "amber", "Required": "amber", "Needs re-upload": "red",
-  "Expired · needs attention": "red", "Awaiting review": "neutral", "Accepted": "green",
+  "Expired · needs attention": "red", "Expiring soon": "amber", "Awaiting review": "neutral", "Accepted": "green",
 };
 
 function UploadForm({ requirement }: { requirement: Requirement }) {
