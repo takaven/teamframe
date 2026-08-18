@@ -29,4 +29,10 @@ export const SCHEMA_ORDER = [
   "tenancy_rls_v2.sql",
   "access_model.sql",
   "offboarding.sql",
+  // Phase 1 config foundations. Applied after the tenancy helper functions
+  // (current_actor_tenant_id / is_current_actor_admin) so their RLS policies resolve.
+  // Each file only FKs to companies, which is applied first.
+  "departments.sql",
+  "work_locations.sql",
+  "leave_definitions.sql",
 ];

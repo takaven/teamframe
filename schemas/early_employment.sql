@@ -121,6 +121,22 @@ alter table probation_reviews add column if not exists manager_input text;
 alter table probation_reviews add column if not exists manager_input_submitted_at timestamptz;
 alter table probation_reviews add column if not exists manager_input_submitted_by_user_id uuid;
 alter table probation_reviews add column if not exists manager_input_automation_item_id uuid;
+-- Manager's simplified probation recommendation (distinct from the admin-owned final
+-- `outcome` enum). Founder-approved values: Confirmed / Unsuccessful. Nullable; the
+-- manager UI that writes it lands in a later phase. Additive only.
+alter table probation_reviews add column if not exists manager_recommended_outcome text;
+
+do $$ begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'probation_reviews_manager_recommended_outcome_check'
+      and conrelid = 'probation_reviews'::regclass
+  ) then
+    alter table probation_reviews
+      add constraint probation_reviews_manager_recommended_outcome_check
+      check (manager_recommended_outcome is null or manager_recommended_outcome in ('confirmed', 'unsuccessful'));
+  end if;
+end $$;
 
 do $$ begin
   if not exists (

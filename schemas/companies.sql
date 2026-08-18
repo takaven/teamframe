@@ -21,6 +21,10 @@ create table if not exists companies (
   employee_number_next integer not null default 1,
   unpaid_leave_enabled boolean not null default true,
   other_leave_enabled boolean not null default true,
+  -- Optional automated 30-day onboarding check-in. Default true preserves current
+  -- behaviour (check-ins are scheduled today); the enable/disable wiring and the
+  -- "not an admin-chasing task" behaviour are implemented in a later phase.
+  thirty_day_check_in_enabled boolean not null default true,
   setup_completed_at timestamptz,
   setup_completed_by uuid,
   check (country is null or char_length(country) between 2 and 100),
@@ -45,6 +49,7 @@ alter table companies add column if not exists employee_number_digits integer no
 alter table companies add column if not exists employee_number_next integer not null default 1;
 alter table companies add column if not exists unpaid_leave_enabled boolean not null default true;
 alter table companies add column if not exists other_leave_enabled boolean not null default true;
+alter table companies add column if not exists thirty_day_check_in_enabled boolean not null default true;
 alter table companies add column if not exists setup_completed_at timestamptz;
 alter table companies add column if not exists setup_completed_by uuid;
 

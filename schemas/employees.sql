@@ -28,7 +28,9 @@ create table if not exists employees (
   residential_address text,
   date_of_birth date,
   nationality text,
+  gender text,
   work_location text,
+  company_phone text,
   role_title      text        not null,
   department      text        not null,
   timezone        text        not null,
@@ -164,6 +166,8 @@ alter table employees add column if not exists emergency_contact_name text;
 alter table employees add column if not exists emergency_contact_relationship text;
 alter table employees add column if not exists emergency_contact_phone text;
 alter table employees add column if not exists emergency_contact_email text;
+alter table employees add column if not exists gender text;
+alter table employees add column if not exists company_phone text;
 
 create index if not exists employees_lifecycle_state_idx on employees(lifecycle_state);
 create index if not exists employees_employment_type_idx on employees(employment_type);
@@ -200,6 +204,32 @@ do $$ begin
     alter table employees
       add constraint employees_annual_leave_entitlement_override_check
       check (annual_leave_entitlement_override is null or annual_leave_entitlement_override between 0 and 365);
+  end if;
+end $$;
+
+-- Gender is optional and normalised to a small vocabulary so it can support future
+-- workforce-composition reporting without free-text drift. Nullable throughout.
+do $$ begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'employees_gender_check'
+      and conrelid = 'employees'::regclass
+  ) then
+    alter table employees
+      add constraint employees_gender_check
+      check (gender is null or gender in ('male', 'female', 'other', 'prefer_not_to_say'));
+  end if;
+end $$;
+
+do $$ begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'employees_company_phone_check'
+      and conrelid = 'employees'::regclass
+  ) then
+    alter table employees
+      add constraint employees_company_phone_check
+      check (company_phone is null or char_length(company_phone) between 3 and 40);
   end if;
 end $$;
 
