@@ -146,7 +146,14 @@ export default async function LeavesPage({
             <ul className="divide-y divide-ink-300/40">
               {pending.map((leave) => {
                 const annual = leave.annual_balance;
-                const shortfall = leave.leave_type === "annual" && annual?.available !== null && annual ? leave.requested_days - annual.available : 0;
+                const annualShortfall = leave.leave_type === "annual" && annual?.available !== null && annual ? leave.requested_days - annual.available : 0;
+                // A non-system entitlement-bearing custom definition is insufficient exactly when its
+                // per-definition available (which already nets this pending request) is negative —
+                // the same condition the approval engine enforces.
+                const defBal = leave.definition_balance;
+                const customShortfall = defBal && defBal.available !== null && defBal.available < 0 ? -defBal.available : 0;
+                const shortfall = Math.max(annualShortfall, customShortfall, 0);
+                const shortfallLabel = customShortfall > 0 ? (leave.leave_definition_name ?? "custom") : "annual";
                 return (
                   <li key={leave.id} className="grid gap-4 px-5 py-4 lg:grid-cols-[1fr_360px]">
                     <div className="min-w-0 space-y-1">
@@ -160,11 +167,13 @@ export default async function LeavesPage({
                         {leave.leave_definition_name ?? TYPE_LABEL[leave.leave_type]} · {days(leave.requested_days)}
                         {annual && leave.leave_type === "annual"
                           ? ` · Available before approval: ${annual.available} days`
-                          : ""}
+                          : defBal
+                            ? ` · Available before approval: ${defBal.available} days`
+                            : ""}
                       </p>
                       {shortfall > 0 ? (
                         <p className="rounded-md border border-signal-red/30 bg-signal-red/10 px-3 py-2 text-[12px] text-signal-red">
-                          Insufficient annual leave by {days(shortfall)}. Approval requires explicit override.
+                          Insufficient {shortfallLabel} leave by {days(shortfall)}. Approval requires explicit override.
                         </p>
                       ) : null}
                       {leave.attachment_document_id ? (

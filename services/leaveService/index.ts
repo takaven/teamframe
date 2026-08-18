@@ -92,6 +92,7 @@ export type LeaveDefinitionBalance = {
   definition_id: string;
   display_name: string;
   system_leave_type: LeaveType;
+  is_system: boolean;
   counting_basis: string;
   attachment_requirement: string;
   entitlement: number | null;
@@ -104,6 +105,10 @@ export type PendingLeaveWithEmployee = LeaveRecord & {
   employee_full_name: string;
   employee_role_title: string;
   annual_balance?: LeaveBalanceSummary;
+  // The per-definition balance for a non-system, entitlement-bearing custom type this request was
+  // raised under. Present only for such custom types so the reviewer can see (and override) an
+  // insufficient custom-definition balance — mirrors the RPC enforcement added in the 5A closure.
+  definition_balance?: LeaveDefinitionBalance;
 };
 
 export type WhoIsAwayEntry = {
@@ -420,7 +425,7 @@ export async function listLeaveDefinitionBalances(actor: Actor, employeeId: stri
       ? Number(annualOverride)
       : d.default_entitlement_days;
     const available = entitlement === null ? null : Math.round((entitlement - openingUsed - taken - pending) * 100) / 100;
-    return { definition_id: d.id, display_name: d.display_name, system_leave_type: d.system_leave_type, counting_basis: d.counting_basis, attachment_requirement: d.attachment_requirement, entitlement, taken: Math.round((taken + openingUsed) * 100) / 100, pending, available };
+    return { definition_id: d.id, display_name: d.display_name, system_leave_type: d.system_leave_type, is_system: d.is_system, counting_basis: d.counting_basis, attachment_requirement: d.attachment_requirement, entitlement, taken: Math.round((taken + openingUsed) * 100) / 100, pending, available };
   });
 }
 
@@ -484,8 +489,10 @@ export async function listPendingLeavesWithEmployee(actor: Actor): Promise<Pendi
   }
 
   const annualBalances = new Map<string, LeaveBalanceSummary>();
+  const definitionBalances = new Map<string, LeaveDefinitionBalance[]>();
   for (const employeeId of employeeIds) {
     annualBalances.set(employeeId, (await listLeaveBalancesForEmployee(actor, employeeId))[0]!);
+    definitionBalances.set(employeeId, await listLeaveDefinitionBalances(actor, employeeId));
   }
 
   return leaves.map((row) => {
@@ -495,8 +502,21 @@ export async function listPendingLeavesWithEmployee(actor: Actor): Promise<Pendi
       employee_full_name: employee?.full_name ?? "(unknown)",
       employee_role_title: employee?.role_title ?? "(unknown)",
       annual_balance: annualBalances.get(row.employee_id),
+      definition_balance: pickCustomDefinitionBalance(definitionBalances.get(row.employee_id), row.leave_definition_id),
     };
   });
+}
+
+// The per-definition balance for a non-system, entitlement-bearing custom type — the only case
+// the approval engine enforces (and therefore the only case the reviewer needs an override for).
+function pickCustomDefinitionBalance(
+  balances: LeaveDefinitionBalance[] | undefined,
+  leaveDefinitionId: string | null,
+): LeaveDefinitionBalance | undefined {
+  if (!balances || !leaveDefinitionId) return undefined;
+  const match = balances.find((b) => b.definition_id === leaveDefinitionId);
+  if (!match || match.is_system || match.entitlement === null) return undefined;
+  return match;
 }
 
 export async function listPendingLeavesForManager(actor: Actor): Promise<PendingLeaveWithEmployee[]> {
@@ -526,8 +546,10 @@ export async function listPendingLeavesForManager(actor: Actor): Promise<Pending
   ]));
 
   const annualBalances = new Map<string, LeaveBalanceSummary>();
+  const definitionBalances = new Map<string, LeaveDefinitionBalance[]>();
   for (const employeeId of directReportIds) {
     annualBalances.set(employeeId, (await listLeaveBalancesForEmployee(actor, employeeId))[0]!);
+    definitionBalances.set(employeeId, await listLeaveDefinitionBalances(actor, employeeId));
   }
 
   return leaves.map((row) => {
@@ -537,6 +559,7 @@ export async function listPendingLeavesForManager(actor: Actor): Promise<Pending
       employee_full_name: employee?.full_name ?? "(unknown)",
       employee_role_title: employee?.role_title ?? "(unknown)",
       annual_balance: annualBalances.get(row.employee_id),
+      definition_balance: pickCustomDefinitionBalance(definitionBalances.get(row.employee_id), row.leave_definition_id),
     };
   });
 }

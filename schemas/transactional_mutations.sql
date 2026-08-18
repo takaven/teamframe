@@ -763,6 +763,7 @@ as $$
 declare
   v_leave leaves;
   v_company companies;
+  v_def leave_definitions;
   v_allocation numeric(8,2);
   v_opening_used numeric(8,2);
   v_pending numeric(8,2);
@@ -854,6 +855,42 @@ begin
       v_available := v_allocation - coalesce(v_opening_used, 0) - v_pending - v_approved;
       if v_leave.requested_days > v_available and not p_override_insufficient_balance then
         raise exception 'LEAVE_INSUFFICIENT_BALANCE';
+      end if;
+    elsif v_leave.leave_definition_id is not null then
+      -- Phase 5A closure: an entitlement-bearing CUSTOM definition (non-system, routed through
+      -- any system category such as 'other') must obey the same insufficient-balance rule, keyed
+      -- on the definition identity so two 'other'-routed types never contaminate each other.
+      -- System types keep their existing behaviour (annual enforced above; sick/unpaid/other not
+      -- balance-blocked) and the parked cross-year semantics are untouched.
+      select * into v_def
+      from leave_definitions
+      where tenant_id = p_tenant_id
+        and id = v_leave.leave_definition_id;
+
+      if found and not v_def.is_system and v_def.default_entitlement_days is not null then
+        v_allocation := v_def.default_entitlement_days;
+
+        select coalesce(sum(l.requested_days), 0)
+        into v_pending
+        from leaves l
+        where l.tenant_id = p_tenant_id
+          and l.employee_id = v_leave.employee_id
+          and l.leave_definition_id = v_leave.leave_definition_id
+          and l.status = 'pending'
+          and l.id <> v_leave.id;
+
+        select coalesce(sum(l.requested_days), 0)
+        into v_approved
+        from leaves l
+        where l.tenant_id = p_tenant_id
+          and l.employee_id = v_leave.employee_id
+          and l.leave_definition_id = v_leave.leave_definition_id
+          and l.status = 'approved';
+
+        v_available := v_allocation - v_pending - v_approved;
+        if v_leave.requested_days > v_available and not p_override_insufficient_balance then
+          raise exception 'LEAVE_INSUFFICIENT_BALANCE';
+        end if;
       end if;
     end if;
   end if;
