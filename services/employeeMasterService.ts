@@ -23,8 +23,8 @@ type EmployeeMasterRow = {
   id: string; employee_number: string | null; full_name: string; preferred_name: string | null;
   email: string; personal_email: string | null; mobile: string | null; company_phone: string | null;
   residential_address: string | null; date_of_birth: string | null; gender: string | null; nationality: string | null;
-  work_location: string | null; work_location_id: string | null; country: string | null; timezone: string;
-  role_title: string; department: string; department_id: string | null; manager_id: string | null;
+  work_location: string | null; country: string | null; timezone: string;
+  role_title: string; department: string; manager_id: string | null;
   employment_type: string; status: string; lifecycle_state: string; start_date: string | null; end_date: string | null;
   grade: string | null; working_days_override: number[] | null; annual_leave_entitlement_override: number | null;
   emergency_contact_name: string | null; emergency_contact_relationship: string | null;
@@ -57,11 +57,9 @@ export type EmployeeMasterRecord = {
   employment: {
     role_title: string;
     department: string;
-    department_id: string | null;
     manager_id: string | null;
     country: string | null;
     work_location: string | null;
-    work_location_id: string | null;
     timezone: string;
     employment_type: string;
     start_date: string | null;
@@ -104,7 +102,7 @@ export async function getEmployeeMasterRecord(actor: Actor, employeeId: string):
   const empQuery = await supabase
     .from("employees")
     .select(
-      "id, tenant_id, employee_number, full_name, preferred_name, email, personal_email, mobile, company_phone, residential_address, date_of_birth, gender, nationality, work_location, work_location_id, country, timezone, role_title, department, department_id, manager_id, employment_type, status, lifecycle_state, start_date, end_date, grade, working_days_override, annual_leave_entitlement_override, emergency_contact_name, emergency_contact_relationship, emergency_contact_phone, emergency_contact_email",
+      "id, tenant_id, employee_number, full_name, preferred_name, email, personal_email, mobile, company_phone, residential_address, date_of_birth, gender, nationality, work_location, country, timezone, role_title, department, manager_id, employment_type, status, lifecycle_state, start_date, end_date, grade, working_days_override, annual_leave_entitlement_override, emergency_contact_name, emergency_contact_relationship, emergency_contact_phone, emergency_contact_email",
     )
     .eq("tenant_id", actor.tenantId)
     .eq("id", employeeId)
@@ -164,8 +162,8 @@ export async function getEmployeeMasterRecord(actor: Actor, employeeId: string):
       company_phone: emp.company_phone, residential_address: emp.residential_address,
     },
     employment: {
-      role_title: emp.role_title, department: emp.department, department_id: emp.department_id, manager_id: emp.manager_id,
-      country: emp.country, work_location: emp.work_location, work_location_id: emp.work_location_id, timezone: emp.timezone,
+      role_title: emp.role_title, department: emp.department, manager_id: emp.manager_id,
+      country: emp.country, work_location: emp.work_location, timezone: emp.timezone,
       employment_type: emp.employment_type, start_date: emp.start_date, end_date: emp.end_date,
       lifecycle_state: emp.lifecycle_state, status: emp.status, grade: emp.grade,
       working_days_override: emp.working_days_override, annual_leave_entitlement_override: emp.annual_leave_entitlement_override,
