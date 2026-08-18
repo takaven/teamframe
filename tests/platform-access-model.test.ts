@@ -63,10 +63,14 @@ describe("Independent customer access and setup architecture", () => {
     expect(access).toContain('admin: ["people_operations"]');
     expect(access).toContain('finance: ["compensation_view", "finance_payroll_exports"]');
     expect(access).toContain('"company_access_settings"');
-    expect(access).toContain('if (capability !== "people_operations" && capability !== "compensation_view") return false');
+    // Manager-derived access grants ONLY people_operations — never compensation_view.
+    expect(access).toContain('if (capability !== "people_operations") return false');
+    expect(access).not.toContain('capability !== "compensation_view"');
     expect(access).toContain(".eq(\"manager_id\", actor.employeeId)");
     expect(schema).toContain("p_scope = 'direct_reports'");
     expect(schema).toContain("e.manager_id = tm.employee_id");
+    // The DB manager-derived branch must not list compensation_view either.
+    expect(schema).not.toContain("p_capability in ('people_operations', 'compensation_view')");
     expect(schema).not.toContain("recursive");
   });
 

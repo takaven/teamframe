@@ -975,12 +975,15 @@ as $$
 declare
   v_position positions;
 begin
+  -- Insert WITHOUT setting assigned_employee_id directly. Assignment is routed through
+  -- the Phase-2 occupancy function so position_assignments history is created. A new
+  -- assignment legitimately starts today (current_date) — this is a real-time event,
+  -- not a fabricated legacy date.
   insert into positions (
     tenant_id,
     title,
     department,
     parent_position_id,
-    assigned_employee_id,
     note
   )
   values (
@@ -988,7 +991,6 @@ begin
     p_title,
     p_department,
     p_parent_position_id,
-    p_assigned_employee_id,
     nullif(p_note, '')
   )
   returning * into v_position;
@@ -1002,6 +1004,8 @@ begin
   end if;
 
   if p_assigned_employee_id is not null then
+    perform teamframe_assign_position_occupant(p_tenant_id, v_position.id, p_assigned_employee_id, current_date, p_actor_user_id);
+    select * into v_position from positions where tenant_id = p_tenant_id and id = v_position.id;
     insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)
     values (p_tenant_id, p_actor_user_id, 'position.employee_assigned', v_position.id);
   end if;
@@ -1046,12 +1050,13 @@ begin
     return null;
   end if;
 
+  -- Do NOT set assigned_employee_id directly here — assignment is routed through the
+  -- Phase-2 occupancy functions below so position_assignments history is preserved.
   update positions
   set
     title = p_title,
     department = p_department,
     parent_position_id = p_parent_position_id,
-    assigned_employee_id = p_assigned_employee_id,
     note = nullif(p_note, '')
   where tenant_id = p_tenant_id
     and id = p_position_id
@@ -1067,6 +1072,13 @@ begin
   end if;
 
   if v_before.assigned_employee_id is distinct from p_assigned_employee_id then
+    if p_assigned_employee_id is null then
+      perform teamframe_vacate_position(p_tenant_id, p_position_id, current_date);
+    else
+      perform teamframe_assign_position_occupant(p_tenant_id, p_position_id, p_assigned_employee_id, current_date, p_actor_user_id);
+    end if;
+    -- Reflect the pointer/updated_at set by the occupancy function in the return value.
+    select * into v_position from positions where tenant_id = p_tenant_id and id = p_position_id;
     insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)
     values (
       p_tenant_id,

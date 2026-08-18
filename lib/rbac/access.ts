@@ -47,7 +47,12 @@ async function hasManagerDerivedAccess(
   capability: AccessCapability,
   target: CapabilityTarget,
 ): Promise<boolean> {
-  if (capability !== "people_operations" && capability !== "compensation_view") return false;
+  // A manager's direct-report relationship confers ONLY people-operations visibility.
+  // It never extends to compensation — salary access comes solely from the explicit
+  // compensation/salary permission scope (mirroring the DB current_actor_has_capability
+  // manager-derived branch, which is likewise limited to people_operations). This
+  // enforces the frozen confidential-access separation.
+  if (capability !== "people_operations") return false;
   return isDirectReport(actor, target.employeeId);
 }
 

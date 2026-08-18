@@ -376,7 +376,10 @@ as $$
           and coalesce(tm.manage_users_access, tm.profile = 'full_access')
         )
         or (
-          p_capability in ('people_operations', 'compensation_view')
+          -- Manager-derived access grants ONLY people-operations visibility of direct
+          -- reports. It never grants compensation_view — salary access comes solely from
+          -- the explicit salary_access scope above. (Matches the TS hasManagerDerivedAccess.)
+          p_capability = 'people_operations'
           and p_employee_id is not null
           and exists (
             select 1
