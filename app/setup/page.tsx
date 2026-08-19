@@ -176,7 +176,7 @@ export default async function SetupPage({
                     <form action={toggleDepartmentAction} className="flex items-center gap-2">
                       <input type="hidden" name="id" value={d.id} />
                       <input type="hidden" name="active" value={(!d.active).toString()} />
-                      <span className={`text-[11px] font-semibold ${d.active ? "text-green-700" : "text-ink-400"}`}>{d.active ? "Active" : "Inactive"}</span>
+                      <span className={`text-[11px] font-semibold ${d.active ? "text-signal-green" : "text-ink-400"}`}>{d.active ? "Active" : "Inactive"}</span>
                       <button type="submit" className={btnGhost}>{d.active ? "Deactivate" : "Reactivate"}</button>
                     </form>
                   </li>

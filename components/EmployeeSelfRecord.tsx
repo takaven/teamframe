@@ -1,5 +1,6 @@
 import type { EmployeeMasterRecord } from "@/services/employeeMasterService";
 import { updateOwnProfileAction, updateOwnPaymentAction, updateOwnPhotoAction } from "@/app/me/actions";
+import { StatusPill } from "@/components/StatusPill";
 
 // Employee self-service record. Editable personal/contact/emergency fields submit as a
 // SINGLE form (the write path whitelist-updates them together). Work fields are
@@ -38,7 +39,7 @@ function EditLabel({ label, filled }: { label: string; filled: boolean }) {
   return (
     <span className="flex items-center gap-2 text-[13px] text-ink-700">
       {label}
-      {!filled ? <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">Add</span> : null}
+      {!filled ? <StatusPill tone="amber">Add</StatusPill> : null}
     </span>
   );
 }
@@ -55,8 +56,8 @@ export function EmployeeSelfRecord({ record }: { record: EmployeeMasterRecord })
   return (
     <div className="space-y-5">
       {missing > 0 ? (
-        <p className="rounded-lg border border-amber-200 bg-amber-50/60 px-4 py-3 text-[13px] text-amber-800">
-          <span className="font-semibold">{missing}</span> personal detail{missing === 1 ? "" : "s"} still to add. Complete the fields marked <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">Add</span> below.
+        <p className="rounded-lg border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 text-[13px] text-signal-amber">
+          <span className="font-semibold">{missing}</span> personal detail{missing === 1 ? "" : "s"} still to add. Complete the fields marked <span className="ml-0.5 mr-0.5 inline-flex"><StatusPill tone="amber">Add</StatusPill></span> below.
         </p>
       ) : null}
 

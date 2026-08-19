@@ -38,39 +38,35 @@ export default async function CompanyPage({
   return (
     <main className="mx-auto max-w-6xl px-6 py-14">
       <AppShell actor={actor} activePath="/company" />
-      <section className="tf-page-header">
-        <div>
-          <p className="tf-section-kicker">Company</p>
-          <h1 className="text-[clamp(2rem,4vw,3.25rem)] font-extrabold tracking-tight text-ink-800">
-            Holiday calendar
-          </h1>
-          <p className="mt-3 max-w-[760px] text-[16px] leading-7 text-ink-600">
-            Maintain the manual company holiday dates used by leave calculations. TeamFrame does not infer statutory
-            holidays from country or external feeds.
-          </p>
-        </div>
-      </section>
+      <div className="border-b border-ink-300/60 pb-5">
+        <p className="text-[12px] tracking-[0.14em] text-ink-500">Company</p>
+        <h1 className="mt-2 text-[34px] leading-tight tracking-tight">Holiday calendar</h1>
+        <p className="mt-2 max-w-[760px] text-[14px] leading-relaxed text-ink-500">
+          Maintain the manual company holiday dates used by leave calculations. TeamFrame does not infer statutory
+          holidays from country or external feeds.
+        </p>
+      </div>
 
       {error ? (
-        <section className="tf-card mb-5 border-red-200 bg-red-50 text-[14px] text-red-900">{error}</section>
+        <p role="alert" className="mt-6 rounded-lg border border-signal-red/30 bg-signal-red/10 px-4 py-3 text-[14px] text-signal-red">{error}</p>
       ) : null}
       {params.status ? (
-        <section className="tf-card mb-5 border-brand-signal/50 bg-white text-[14px] text-ink-800">
+        <p className="mt-6 rounded-lg border border-accent/70 bg-white/80 px-4 py-3 text-[14px] text-accent">
           Holiday calendar updated.
-        </section>
+        </p>
       ) : null}
 
-      <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="tf-card">
+      <section className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="rounded-xl border border-ink-300/70 bg-white/80 p-5">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <p className="tf-section-kicker">Year</p>
-              <h2 className="text-2xl font-extrabold text-ink-800">{year} holidays</h2>
+              <p className="text-[12px] uppercase tracking-[0.14em] text-ink-500">Year</p>
+              <h2 className="mt-1 text-[19px] font-medium tracking-tight text-ink-900">{year} holidays</h2>
             </div>
             <form className="flex items-center gap-2" action="/company">
-              <label className="text-[13px] font-bold text-ink-700">
+              <label className="text-[13px] font-medium text-ink-700">
                 View year
-                <select name="year" defaultValue={year} className="ml-2 rounded-lg border border-ink-200 bg-white px-3 py-2 text-[13px]">
+                <select name="year" defaultValue={year} className="ml-2 rounded-md border border-ink-300 bg-white px-3 py-2 text-[13px]">
                   {years.map((option) => (
                     <option key={option} value={option}>
                       {option}
@@ -78,7 +74,7 @@ export default async function CompanyPage({
                   ))}
                 </select>
               </label>
-              <button type="submit" className="rounded-lg border border-ink-300 bg-white px-3 py-2 text-[13px] font-bold text-ink-800">
+              <button type="submit" className="tf-secondary-action px-3 py-2 text-[13px] font-medium">
                 View
               </button>
             </form>
@@ -99,21 +95,21 @@ export default async function CompanyPage({
                       type="date"
                       defaultValue={holiday.holiday_date}
                       required
-                      className="rounded-lg border border-ink-200 bg-white px-3 py-2 text-[13px] text-ink-800"
+                      className="rounded-md border border-ink-300 bg-white px-3 py-2 text-[13px] text-ink-800"
                     />
                     <input
                       name="name"
                       defaultValue={holiday.name}
                       required
                       maxLength={160}
-                      className="rounded-lg border border-ink-200 bg-white px-3 py-2 text-[13px] text-ink-800"
+                      className="rounded-md border border-ink-300 bg-white px-3 py-2 text-[13px] text-ink-800"
                     />
-                    <PendingSubmitButton idleLabel="Save" pendingLabel="Saving..." className="border border-ink-300 bg-white px-3 py-2 text-[13px] text-ink-800" />
+                    <PendingSubmitButton idleLabel="Save" pendingLabel="Saving..." className="tf-secondary-action px-3 py-2 text-[13px]" />
                   </form>
                   <form action={deleteHolidayAction}>
                     <input type="hidden" name="holiday_id" value={holiday.id} />
                     <input type="hidden" name="year" value={year} />
-                    <PendingSubmitButton idleLabel="Remove" pendingLabel="Removing..." className="border border-red-200 bg-white px-3 py-2 text-[13px] text-red-900" />
+                    <PendingSubmitButton idleLabel="Remove" pendingLabel="Removing..." className="rounded-lg border border-ink-300 bg-white px-3 py-2 text-[13px] text-ink-700 transition hover:border-signal-red hover:text-signal-red" />
                   </form>
                 </article>
               ))
@@ -121,31 +117,31 @@ export default async function CompanyPage({
           </div>
         </div>
 
-        <aside className="tf-card h-fit">
-          <p className="tf-section-kicker">Add holiday</p>
-          <h2 className="text-xl font-extrabold text-ink-800">Manual date</h2>
+        <aside className="h-fit rounded-xl border border-ink-300/70 bg-white/80 p-5">
+          <p className="text-[12px] uppercase tracking-[0.14em] text-ink-500">Add holiday</p>
+          <h2 className="mt-1 text-[17px] font-medium tracking-tight text-ink-900">Manual date</h2>
           <form action={saveHolidayAction} className="mt-5 grid gap-4">
             <input type="hidden" name="year" value={year} />
-            <label className="block text-sm font-semibold text-ink-700">
+            <label className="block text-[13px] font-medium text-ink-700">
               Date
               <input
                 name="holiday_date"
                 type="date"
                 required
-                className="mt-2 w-full rounded-lg border border-ink-200 bg-white px-3 py-2 text-ink-800"
+                className="mt-2 w-full rounded-md border border-ink-300 bg-white px-3 py-2 text-[14px] text-ink-800"
               />
             </label>
-            <label className="block text-sm font-semibold text-ink-700">
+            <label className="block text-[13px] font-medium text-ink-700">
               Name
               <input
                 name="name"
                 required
                 maxLength={160}
                 placeholder="Company holiday"
-                className="mt-2 w-full rounded-lg border border-ink-200 bg-white px-3 py-2 text-ink-800"
+                className="mt-2 w-full rounded-md border border-ink-300 bg-white px-3 py-2 text-[14px] text-ink-800"
               />
             </label>
-            <PendingSubmitButton idleLabel="Add holiday" pendingLabel="Adding..." className="bg-brand-signal px-3 py-2 text-[13px] font-extrabold text-ink-900" />
+            <PendingSubmitButton idleLabel="Add holiday" pendingLabel="Adding..." className="tf-primary-action px-4 py-2 text-[14px] disabled:cursor-not-allowed disabled:bg-ink-300" />
           </form>
         </aside>
       </section>

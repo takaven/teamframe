@@ -228,7 +228,7 @@ function JobDescriptionControls({ position }: { position: PositionRecord }) {
           <ConfirmSubmitButton
             idleLabel="Remove JD"
             pendingLabel="Removing..."
-            className="rounded-lg border border-red-200 bg-white px-3 py-2 text-[13px] text-red-700"
+            className="rounded-lg border border-ink-300 bg-white px-3 py-2 text-[13px] text-ink-700 transition hover:border-signal-red hover:text-signal-red"
             confirmMessage={`Remove the job description from ${position.title}?`}
           />
         </form>
@@ -542,7 +542,7 @@ function PositionDetailPanel({
               <ConfirmSubmitButton
                 idleLabel="Remove vacant position"
                 pendingLabel="Removing..."
-                className="rounded-lg border border-red-200 bg-white px-4 py-2 text-[13px] text-red-700"
+                className="rounded-lg border border-ink-300 bg-white px-4 py-2 text-[13px] text-ink-700 transition hover:border-signal-red hover:text-signal-red"
                 confirmMessage={`Remove the vacant position ${position.title}?`}
               />
             ) : (
@@ -641,7 +641,7 @@ export default async function OrgChartPage({
         </p>
       ) : null}
       {errorMessage ? (
-        <p className="mt-7 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-[14px] text-red-700">
+        <p role="alert" className="mt-7 rounded-lg border border-signal-red/30 bg-signal-red/10 px-4 py-3 text-[14px] text-signal-red">
           {errorMessage}
         </p>
       ) : null}

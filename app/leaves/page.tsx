@@ -390,7 +390,7 @@ export default async function LeavesPage({
               </label>
               <label className="flex flex-col gap-1 text-[12px] text-ink-500 sm:col-span-2">
                 Supporting evidence <span className="text-ink-400">(attach if your leave type requires it)</span>
-                <input name="attachment" type="file" className="rounded-md border border-ink-300 px-3 py-2 text-[13px]" />
+                <input name="attachment" type="file" className="rounded-md border border-ink-300 px-3 py-2 text-[13px] text-ink-600 file:mr-3 file:rounded-md file:border file:border-ink-300 file:bg-white file:px-3 file:py-1 file:text-[12px] file:font-medium file:text-ink-700" />
               </label>
               <PendingSubmitButton
                 idleLabel="Submit request"

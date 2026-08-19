@@ -402,7 +402,7 @@ export default async function ManagerPage({
                         {employee.role_title} · {employee.department}{employee.country ? ` · ${employee.country}` : ""}
                       </p>
                       {onProbation ? (
-                        <span className="mt-1 inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">Probation</span>
+                        <span className="mt-1 inline-block"><StatusPill tone="amber">Probation</StatusPill></span>
                       ) : null}
                     </div>
                     <Link href={`/manager?employee=${employee.id}`} className="shrink-0 rounded-lg border border-ink-300 bg-white px-3 py-1.5 text-[12px] text-ink-700 hover:border-ink-900">View</Link>

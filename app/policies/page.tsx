@@ -174,7 +174,7 @@ export default async function PoliciesPage({
           </div>
           <label className="flex flex-col gap-1 text-[12px] text-ink-500">
             Policy file (PDF, DOC, or DOCX)
-            <input name="file" type="file" required accept=".pdf,.doc,.docx" className="rounded-md border border-ink-300 bg-white px-3 py-2 text-[13px] text-ink-900" />
+            <input name="file" type="file" required accept=".pdf,.doc,.docx" className="rounded-md border border-ink-300 bg-white px-3 py-2 text-[13px] text-ink-600 file:mr-3 file:rounded-md file:border file:border-ink-300 file:bg-white file:px-3 file:py-1 file:text-[12px] file:font-medium file:text-ink-700" />
           </label>
           <label className="flex items-center gap-2 text-[13px] text-ink-700">
             <input type="checkbox" name="publish" defaultChecked className="h-4 w-4 rounded border-ink-300" />
@@ -278,7 +278,7 @@ export default async function PoliciesPage({
                             <input type="hidden" name="policy_id" value={policy.id} />
                             <label className="flex min-w-0 flex-1 flex-col gap-1 text-[11px] text-ink-500">
                               Attach PDF/DOCX
-                              <input name="file" type="file" required className="rounded-md border border-ink-300 bg-white px-2 py-1.5 text-[12px] text-ink-900" />
+                              <input name="file" type="file" required className="rounded-md border border-ink-300 bg-white px-2 py-1.5 text-[12px] text-ink-600 file:mr-2 file:rounded file:border file:border-ink-300 file:bg-white file:px-2 file:py-1 file:text-[12px] file:font-medium file:text-ink-700" />
                             </label>
                             <PendingSubmitButton
                               idleLabel={policy.file_original_name ? "Replace file" : "Attach file"}

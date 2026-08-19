@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
+import { StatusPill } from "@/components/StatusPill";
 import { requireTenantCapability } from "@/middleware/rbac";
 import { listAccessMemberships } from "@/services/accessManagementService";
 import { setMembershipActiveAction, updateAccessMatrixAction, updateAccessProfileAction } from "./actions";
@@ -23,6 +24,13 @@ const PEOPLE_SCOPE_OPTIONS = [
 const SALARY_LEVEL_OPTIONS = [["none", "None"], ["view", "View"], ["manage", "Manage"]] as const;
 const SALARY_SCOPE_OPTIONS = [["all", "All"], ["direct_reports", "Direct Reports"], ["selected_people", "Selected People"], ["all_except_selected_people", "All Except Selected People"]] as const;
 const PRIVATE_DOCUMENT_SCOPE_OPTIONS = [["none", "None"], ["all", "All"], ["selected_people", "Selected People"], ["all_except_selected_people", "All Except Selected People"]] as const;
+
+const ERROR_COPY: Record<string, string> = {
+  FORBIDDEN: "You do not have permission to change access.",
+  INVALID_INPUT: "Check the access settings and try again.",
+  STALE_WRITE: "This membership changed. Refresh and try again.",
+  NO_TENANT_CONTEXT: "Session error — please sign out and back in.",
+};
 
 function idsValue(ids: string[]): string { return ids.join(", "); }
 
@@ -63,7 +71,7 @@ export default async function AccessPage({
       </div>
 
       {params.error ? (
-        <p role="alert" className="mt-6 rounded-lg border border-signal-red/30 bg-signal-red/10 px-4 py-3 text-[14px] text-signal-red">Access change failed: {params.error}</p>
+        <p role="alert" className="mt-6 rounded-lg border border-signal-red/30 bg-signal-red/10 px-4 py-3 text-[14px] text-signal-red">{ERROR_COPY[params.error] ?? "Access change could not be completed."}</p>
       ) : null}
       {params.status ? (
         <p className="mt-6 rounded-lg border border-accent/70 bg-white/80 px-4 py-3 text-[14px] text-accent">Access change recorded.</p>
@@ -94,9 +102,9 @@ export default async function AccessPage({
                 </div>
                 {/* Status */}
                 <div>
-                  <span className={`inline-flex rounded-full px-2.5 py-1 text-[12px] font-semibold ${membership.active ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+                  <StatusPill tone={membership.active ? "green" : "red"}>
                     {membership.active ? "Active" : "Suspended"}
-                  </span>
+                  </StatusPill>
                 </div>
                 {/* Actions */}
                 <div className="flex flex-col items-stretch gap-2 lg:w-[220px]">

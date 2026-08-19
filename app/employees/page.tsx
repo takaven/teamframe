@@ -1129,7 +1129,7 @@ export default async function EmployeesPage({
                       name="file"
                       type="file"
                       required
-                      className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900"
+                      className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-600 file:mr-2 file:rounded file:border file:border-ink-300 file:bg-white file:px-2 file:py-1 file:text-[12px] file:font-medium file:text-ink-700"
                     />
                   </label>
                   <label className="flex flex-col gap-1 text-[11px] text-ink-500">
@@ -1274,7 +1274,7 @@ export default async function EmployeesPage({
                     </label>
                     <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                       Evidence file
-                      <input name="file" type="file" required className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900" />
+                      <input name="file" type="file" required className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-600 file:mr-2 file:rounded file:border file:border-ink-300 file:bg-white file:px-2 file:py-1 file:text-[12px] file:font-medium file:text-ink-700" />
                     </label>
                     <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                       Issue date (optional)

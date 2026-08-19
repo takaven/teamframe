@@ -2,6 +2,8 @@
 // date: a migration snapshot (is_snapshot, no effective_start) shows an explicit
 // "start date not recorded" instead of a guessed date.
 
+import { StatusPill } from "@/components/StatusPill";
+
 export type OccupancyRow = {
   id: string;
   employee_name: string | null;
@@ -45,7 +47,7 @@ export function OccupancyHistory({ assignments }: { assignments: OccupancyRow[] 
         <li key={row.id} className="rounded-lg border border-ink-200 bg-white px-3 py-2">
           <div className="flex items-center justify-between gap-2">
             <span className="text-[13px] font-medium text-ink-900">{row.employee_name ?? "Unknown employee"}</span>
-            <span className="rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-semibold text-green-700">Current</span>
+            <StatusPill tone="green">Current</StatusPill>
           </div>
           <p className="mt-1 text-[12px] text-ink-500">{periodLabel(row)}</p>
         </li>
