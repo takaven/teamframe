@@ -265,7 +265,7 @@ export default async function PoliciesPage({
                             <form action={downloadPolicyFileAction}>
                               <input type="hidden" name="policy_id" value={policy.id} />
                               <input type="hidden" name="return_to" value="/policies" />
-                              <button type="submit" className="text-[12px] text-accent underline underline-offset-2">View / download</button>
+                              <PendingSubmitButton idleLabel="View / download" pendingLabel="Opening…" className="text-[12px] text-accent underline underline-offset-2 disabled:cursor-not-allowed disabled:text-ink-400" />
                             </form>
                           </div>
                         ) : (

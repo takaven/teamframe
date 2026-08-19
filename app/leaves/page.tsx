@@ -225,7 +225,7 @@ export default async function LeavesPage({
                         <form action={downloadLeaveEvidenceAction}>
                           <input type="hidden" name="document_id" value={leave.attachment_document_id} />
                           <input type="hidden" name="return_to" value="/leaves" />
-                          <button type="submit" className="text-[12px] text-accent underline underline-offset-2">Evidence attached — view</button>
+                          <PendingSubmitButton idleLabel="Evidence attached — view" pendingLabel="Opening…" className="text-[12px] text-accent underline underline-offset-2 disabled:cursor-not-allowed disabled:text-ink-400" />
                         </form>
                       ) : null}
                     </div>
@@ -421,7 +421,7 @@ export default async function LeavesPage({
                         <form action={downloadLeaveEvidenceAction}>
                           <input type="hidden" name="document_id" value={leave.attachment_document_id} />
                           <input type="hidden" name="return_to" value="/leaves" />
-                          <button type="submit" className="text-[12px] text-accent underline underline-offset-2">Evidence attached — view</button>
+                          <PendingSubmitButton idleLabel="Evidence attached — view" pendingLabel="Opening…" className="text-[12px] text-accent underline underline-offset-2 disabled:cursor-not-allowed disabled:text-ink-400" />
                         </form>
                       ) : null}
                     </div>

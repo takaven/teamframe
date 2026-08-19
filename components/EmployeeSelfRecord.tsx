@@ -1,6 +1,8 @@
 import type { EmployeeMasterRecord } from "@/services/employeeMasterService";
 import { updateOwnProfileAction, updateOwnPaymentAction, updateOwnPhotoAction } from "@/app/me/actions";
 import { StatusPill } from "@/components/StatusPill";
+import { PendingSubmitButton } from "@/components/PendingSubmitButton";
+import { FileInput } from "@/components/FileInput";
 
 // Employee self-service record. Editable personal/contact/emergency fields submit as a
 // SINGLE form (the write path whitelist-updates them together). Work fields are
@@ -111,7 +113,7 @@ export function EmployeeSelfRecord({ record }: { record: EmployeeMasterRecord })
           </dl>
         </section>
 
-        <button type="submit" className="rounded-lg bg-brand-signal px-5 py-2.5 text-[14px] font-medium text-ink-800">Save my details</button>
+        <PendingSubmitButton idleLabel="Save my details" pendingLabel="Saving…" className="rounded-lg bg-brand-signal px-5 py-2.5 text-[14px] font-medium text-ink-800 disabled:cursor-not-allowed disabled:bg-ink-300" />
       </form>
 
       {/* Work — employer-controlled, read-only */}
@@ -145,7 +147,7 @@ export function EmployeeSelfRecord({ record }: { record: EmployeeMasterRecord })
           <label className="text-[13px] text-ink-700">Branch / routing<input name="routing_sort_branch_code" defaultValue={payment_details.routing_sort_branch_code ?? ""} className={inputCls} /></label>
           <label className="text-[13px] text-ink-700">SWIFT / BIC<input name="swift_bic" defaultValue={payment_details.swift_bic ?? ""} className={inputCls} /></label>
           <label className="text-[13px] text-ink-700">Currency<input name="account_currency" maxLength={3} defaultValue={payment_details.account_currency ?? ""} className={inputCls} placeholder="AED" /></label>
-          <div className="sm:col-span-2 lg:col-span-3"><button type="submit" className="rounded-lg border border-ink-300 bg-white px-4 py-2 text-[13px] text-ink-800 hover:border-ink-900">Save payment details</button></div>
+          <div className="sm:col-span-2 lg:col-span-3"><PendingSubmitButton idleLabel="Save payment details" pendingLabel="Saving…" className="rounded-lg border border-ink-300 bg-white px-4 py-2 text-[13px] text-ink-800 hover:border-ink-900 disabled:cursor-not-allowed disabled:text-ink-300" /></div>
         </form>
       </section>
 
@@ -153,8 +155,8 @@ export function EmployeeSelfRecord({ record }: { record: EmployeeMasterRecord })
       <section className="rounded-xl border border-ink-200 bg-white/70 p-5">
         <h3 className="text-[14px] font-bold text-ink-800">Profile photo</h3>
         <form action={updateOwnPhotoAction} className="mt-3 flex flex-wrap items-center gap-3" encType="multipart/form-data">
-          <input type="file" name="photo" accept="image/png,image/jpeg,image/webp" required className="text-[12px] text-ink-600 file:mr-2 file:rounded file:border file:border-ink-300 file:bg-white file:px-2 file:py-1 file:text-[12px]" />
-          <button type="submit" className="rounded-lg border border-ink-300 bg-white px-3 py-1.5 text-[12px] font-medium text-ink-700 hover:border-ink-900">{identity.photo_url ? "Change photo" : "Add photo"}</button>
+          <FileInput name="photo" accept="image/png,image/jpeg,image/webp" required label={identity.photo_url ? "Change photo" : "Add photo"} />
+          <PendingSubmitButton idleLabel="Save" pendingLabel="Uploading…" className="rounded-lg border border-ink-300 bg-white px-3 py-1.5 text-[12px] font-medium text-ink-700 hover:border-ink-900 disabled:cursor-not-allowed disabled:text-ink-300" />
         </form>
       </section>
     </div>

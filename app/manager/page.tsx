@@ -194,26 +194,28 @@ export default async function ManagerPage({
                           </p>
                         ) : null}
                       </div>
-                      <form action={decideManagerLeaveAction} className="flex items-start gap-2">
-                        <input type="hidden" name="leave_id" value={leave.id} />
-                        <input type="hidden" name="expected_updated_at" value={leave.updated_at} />
-                        <button
-                          type="submit"
-                          name="decision"
-                          value="rejected"
-                          className="rounded-full border border-ink-300 px-3 py-1.5 text-[12px] text-ink-700 transition hover:border-ink-900"
-                        >
-                          Decline
-                        </button>
-                        <button
-                          type="submit"
-                          name="decision"
-                          value="approved"
-                          className="rounded-full bg-brand-signal px-4 py-1.5 text-[12px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:bg-ink-300"
-                        >
-                          Approve
-                        </button>
-                      </form>
+                      <div className="flex items-start gap-2">
+                        <form action={decideManagerLeaveAction}>
+                          <input type="hidden" name="leave_id" value={leave.id} />
+                          <input type="hidden" name="expected_updated_at" value={leave.updated_at} />
+                          <input type="hidden" name="decision" value="rejected" />
+                          <PendingSubmitButton
+                            idleLabel="Decline"
+                            pendingLabel="Declining…"
+                            className="rounded-full border border-ink-300 px-3 py-1.5 text-[12px] text-ink-700 transition hover:border-ink-900 disabled:cursor-not-allowed disabled:text-ink-300"
+                          />
+                        </form>
+                        <form action={decideManagerLeaveAction}>
+                          <input type="hidden" name="leave_id" value={leave.id} />
+                          <input type="hidden" name="expected_updated_at" value={leave.updated_at} />
+                          <input type="hidden" name="decision" value="approved" />
+                          <PendingSubmitButton
+                            idleLabel="Approve"
+                            pendingLabel="Approving…"
+                            className="rounded-full bg-brand-signal px-4 py-1.5 text-[12px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:cursor-not-allowed disabled:bg-ink-300"
+                          />
+                        </form>
+                      </div>
                     </li>
                   );
                 })}

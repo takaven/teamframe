@@ -4,6 +4,7 @@ import { resolveIdentity } from "@/lib/rbac/roles";
 import { AuthForm } from "./AuthForm";
 import { continueCurrentSessionAction, switchAccountAction } from "./actions";
 import { BrandLogo } from "@/components/BrandLogo";
+import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 
 const ERROR_COPY: Record<string, string> = {
   invalid_email: "That doesn't look like a valid email.",
@@ -104,20 +105,18 @@ export default async function AuthPage({
           {showSessionRecoveryActions ? (
             <div className="mt-4 flex flex-col gap-2 sm:flex-row">
               <form action={continueCurrentSessionAction} className="flex-1">
-                <button
-                  type="submit"
-                  className="tf-primary-action h-12 w-full px-4 text-[14px]"
-                >
-                  Continue as current user
-                </button>
+                <PendingSubmitButton
+                  idleLabel="Continue as current user"
+                  pendingLabel="Continuing…"
+                  className="tf-primary-action h-12 w-full px-4 text-[14px] disabled:cursor-not-allowed disabled:bg-ink-300"
+                />
               </form>
               <form action={switchAccountAction} className="flex-1">
-                <button
-                  type="submit"
-                  className="tf-secondary-action h-12 w-full px-4 text-[14px] font-bold"
-                >
-                  Switch account
-                </button>
+                <PendingSubmitButton
+                  idleLabel="Switch account"
+                  pendingLabel="Switching…"
+                  className="tf-secondary-action h-12 w-full px-4 text-[14px] font-bold disabled:cursor-not-allowed disabled:text-ink-300"
+                />
               </form>
             </div>
           ) : null}

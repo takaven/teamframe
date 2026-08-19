@@ -129,7 +129,7 @@ export default async function MePage({
                       <form action={downloadPolicyFileAction}>
                         <input type="hidden" name="policy_id" value={policy.id} />
                         <input type="hidden" name="return_to" value="/me" />
-                        <button type="submit" className="text-[12px] text-accent underline underline-offset-2">Open policy document</button>
+                        <PendingSubmitButton idleLabel="Open policy document" pendingLabel="Opening…" className="text-[12px] text-accent underline underline-offset-2 disabled:cursor-not-allowed disabled:text-ink-400" />
                       </form>
                     ) : null}
                     {policy.body ? (

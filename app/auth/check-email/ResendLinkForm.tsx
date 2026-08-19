@@ -10,9 +10,26 @@
  */
 
 import { useEffect, useState } from "react";
+import { useFormStatus } from "react-dom";
 import { sendMagicLink } from "../actions";
 
 const COOLDOWN_SECONDS = 60;
+
+// In-flight submit affordance (disable + "Sending…") layered on top of the UX cooldown.
+function ResendSubmit({ coolingDown, remaining }: { coolingDown: boolean; remaining: number }) {
+  const { pending } = useFormStatus();
+  const disabled = coolingDown || pending;
+  return (
+    <button
+      type="submit"
+      disabled={disabled}
+      aria-disabled={disabled}
+      className="tf-secondary-action inline-flex h-12 items-center px-5 text-[15px] font-bold disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300"
+    >
+      {pending ? "Sending…" : coolingDown ? `Resend available in ${remaining}s` : "Resend link"}
+    </button>
+  );
+}
 
 export function ResendLinkForm({ email }: { email: string }) {
   const storageKey = `tf_resend_${email}`;
@@ -43,13 +60,7 @@ export function ResendLinkForm({ email }: { email: string }) {
     >
       <input type="hidden" name="email" value={email} />
       <input type="hidden" name="context" value="check_email" />
-      <button
-        type="submit"
-        disabled={coolingDown}
-        className="tf-secondary-action inline-flex h-12 items-center px-5 text-[15px] font-bold disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300"
-      >
-        {coolingDown ? `Resend available in ${remaining}s` : "Resend link"}
-      </button>
+      <ResendSubmit coolingDown={coolingDown} remaining={remaining} />
     </form>
   );
 }

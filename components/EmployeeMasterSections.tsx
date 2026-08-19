@@ -2,6 +2,7 @@ import type { EmployeeMasterRecord } from "@/services/employeeMasterService";
 import type { EmployeeAssignmentRecord } from "@/services/positionAssignmentService";
 import { StatusPill } from "@/components/StatusPill";
 import { FileInput } from "@/components/FileInput";
+import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { updateEmployeePhotoAction } from "@/app/employees/actions";
 
 // Structured, read-oriented employee master record, decomposed into panels the record tabs render.
@@ -97,7 +98,7 @@ export function RecordHeader({
         <form action={updateEmployeePhotoAction} className="flex items-center gap-2" encType="multipart/form-data">
           <input type="hidden" name="employee_id" value={identity.id} />
           <FileInput name="photo" accept="image/png,image/jpeg,image/webp" required label={photoUrl ? "Change photo" : "Add photo"} />
-          <button type="submit" className="tf-secondary-action px-3 py-1.5 text-[12px] font-medium">Save</button>
+          <PendingSubmitButton idleLabel="Save" pendingLabel="Uploading…" className="tf-secondary-action px-3 py-1.5 text-[12px] font-medium disabled:cursor-not-allowed disabled:text-ink-300" />
         </form>
       </div>
     </section>
