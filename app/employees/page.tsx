@@ -19,10 +19,11 @@ import {
   RecordHeader,
   PersonalPanel,
   EmploymentReadPanel,
-  CompensationReadPanel,
   PaymentReadPanel,
   EmergencyReadPanel,
 } from "@/components/EmployeeMasterSections";
+import { CompensationPanel } from "@/components/CompensationPanel";
+import { getEmployeeCompensationDetail } from "@/services/compensationService";
 import { SectionTabs } from "@/components/SectionTabs";
 import { EmployeeAvatar } from "@/components/EmployeeAvatar";
 import { CopyInviteEmailButton } from "./CopyInviteEmailButton";
@@ -69,6 +70,7 @@ const STATUS_COPY: Record<string, string> = {
   due_diligence_pack_exported: "Due diligence pack prepared.",
   employment_change_recorded: "Employment change recorded.",
   employment_change_cancelled: "Employment change cancelled.",
+  compensation_saved: "Compensation updated.",
 };
 
 const ERROR_COPY: Record<string, string> = {
@@ -273,6 +275,11 @@ export default async function EmployeesPage({
     })),
   );
   const masterByEmployee = new Map(masterRecords.map((item) => [item.employeeId, item]));
+  // Configurable compensation detail (capability-gated) for the opened employee's Compensation tab.
+  const compensationRecords = await Promise.all(
+    detailEmployees.map(async (employee) => ({ employeeId: employee.id, detail: await getEmployeeCompensationDetail(actor, employee.id) })),
+  );
+  const compensationByEmployee = new Map(compensationRecords.map((item) => [item.employeeId, item.detail]));
   // Work country (ISO) for the opened employee — gates the UAE country-specific records section.
   const workCountries = await Promise.all(
     detailEmployees.map(async (employee) => ({ employeeId: employee.id, country: await getEmployeeWorkCountry(actor, employee.id) })),
@@ -603,7 +610,9 @@ export default async function EmployeesPage({
                   </div>
                 ) : null}
                 {master ? <div data-tab="personal"><PersonalPanel master={master.record} /></div> : null}
-                {master ? <div data-tab="compensation"><CompensationReadPanel master={master.record} /></div> : null}
+                <div data-tab="compensation">
+                  <CompensationPanel detail={compensationByEmployee.get(employee.id)!} employeeId={employee.id} />
+                </div>
                 {master ? <div data-tab="payment"><PaymentReadPanel master={master.record} /></div> : null}
                 {master ? <div data-tab="emergency"><EmergencyReadPanel master={master.record} /></div> : null}
 

@@ -31,6 +31,7 @@ import {
   uploadDocumentForRequirement,
 } from "@/services/documentService";
 import { setEmployeePhoto } from "@/services/employeeMasterService";
+import { saveEmployeeCompensation } from "@/services/compensationService";
 import { logAction } from "@/lib/telemetry/logger";
 import { captureActionError } from "@/lib/telemetry/sentry";
 
@@ -334,6 +335,59 @@ export async function updateEmployeeAction(formData: FormData): Promise<void> {
   }
 
   redirect("/employees?status=updated");
+}
+
+export async function saveCompensationAction(formData: FormData): Promise<void> {
+  const start = Date.now();
+  const requestId = crypto.randomUUID();
+  let actor: Awaited<ReturnType<typeof requireTenantActor>> | null = null;
+  let caughtError: unknown = null;
+  const employeeId = typeof formData.get("employee_id") === "string" ? (formData.get("employee_id") as string) : "";
+
+  try {
+    actor = await requireTenantActor();
+    const num = (v: FormDataEntryValue | null): number | undefined => {
+      const t = typeof v === "string" ? v.trim() : "";
+      if (t === "") return undefined;
+      const n = Number(t);
+      return Number.isFinite(n) ? n : undefined;
+    };
+    // Dynamic per-component amounts arrive as component_<uuid> fields.
+    const componentAmounts: Record<string, number> = {};
+    for (const [key, value] of formData.entries()) {
+      if (key.startsWith("component_") && typeof value === "string") {
+        const id = key.slice("component_".length);
+        const n = num(value);
+        if (n !== undefined) componentAmounts[id] = n;
+      }
+    }
+    await saveEmployeeCompensation(actor, employeeId, {
+      currency: formData.get("currency"),
+      pay_basis: formData.get("pay_basis"),
+      effective_date: formData.get("effective_date"),
+      note: optionalString(formData.get("note")),
+      total_amount: num(formData.get("total_amount")),
+      component_amounts: Object.keys(componentAmounts).length > 0 ? componentAmounts : undefined,
+    });
+  } catch (error) {
+    caughtError = error;
+  }
+
+  const durationMs = Date.now() - start;
+  logAction({
+    action: "saveCompensation",
+    actorUserId: actor?.authUserId ?? null,
+    actorTenantId: actor?.tenantId ?? null,
+    durationMs,
+    outcome: caughtError ? "fail" : "ok",
+    error: caughtError ?? undefined,
+    requestId,
+  });
+  if (caughtError !== null) {
+    captureActionError("saveCompensation", caughtError, { actor_user_id: actor?.authUserId ?? null, actor_tenant_id: actor?.tenantId ?? null });
+    redirect(`/employees?employee=${employeeId}&error=${encodeURIComponent(getErrorCode(caughtError))}#employee-${employeeId}`);
+  }
+  redirect(`/employees?employee=${employeeId}&status=compensation_saved#employee-${employeeId}`);
 }
 
 export async function archiveEmployeeAction(formData: FormData): Promise<void> {
