@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     default: "TeamFrame",
     template: "%s · TeamFrame",
   },
-  description: "People operations, made ready.",
+  description: "A focused HR system for organisations without a dedicated HR team — employee records, documents, leave, onboarding and policies in one place.",
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },

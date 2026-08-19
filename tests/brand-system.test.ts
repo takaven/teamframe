@@ -37,7 +37,7 @@ describe("TeamFrame brand system", () => {
   it("references only valid app icon assets in metadata", () => {
     const layout = read("app/layout.tsx");
 
-    expect(layout).toContain('description: "People operations, made ready."');
+    expect(layout).toContain('description: "A focused HR system');
     expect(layout).toContain('url: "/favicon.svg"');
     expect(layout).toContain('url: "/icon.svg"');
     expect(layout).toContain('url: "/apple-icon.png"');

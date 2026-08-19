@@ -28,7 +28,7 @@ export function BrandLogo({
   return (
     <Image
       src={src}
-      alt={variant === "mark" ? "TeamFrame" : "TeamFrame - People operations, made ready."}
+      alt="TeamFrame"
       width={size.width}
       height={size.height}
       priority={priority}

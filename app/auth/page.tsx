@@ -78,13 +78,13 @@ export default async function AuthPage({
   return (
     <main className="min-h-screen bg-white md:grid md:grid-cols-[1fr_minmax(520px,620px)]">
       <section className="flex h-[388px] flex-col bg-brand-charcoal px-[22px] pb-[34px] pt-7 text-white md:h-auto md:px-14 md:py-14">
-        <BrandLogo variant="mark" reversed className="h-6 w-6 md:h-6 md:w-6" priority />
+        <BrandLogo variant="lockup" reversed className="h-7 w-auto" priority />
         <div className="mt-auto max-w-[420px]">
           <h1 className="text-[30px] font-extrabold leading-[1.18] tracking-[-0.8px] md:text-[40px] md:tracking-[-1.1px]">
-            People operations, made ready.
+            Welcome to TeamFrame
           </h1>
           <p className="mt-4 max-w-[400px] text-[15.5px] leading-normal text-[#B0B8C2] md:text-[17px]">
-            See what needs attention. Know what comes next.
+            Sign in to access your workspace.
           </p>
         </div>
       </section>

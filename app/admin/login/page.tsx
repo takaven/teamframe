@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createServerClient } from "@/lib/db/supabaseServer";
 import { resolveIdentity } from "@/lib/rbac/roles";
 import { BrandLogo } from "@/components/BrandLogo";
+import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 
 const CredentialsSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
@@ -62,13 +63,13 @@ export default async function AdminLoginPage({
   return (
     <main className="min-h-screen bg-white md:grid md:grid-cols-[1fr_minmax(520px,620px)]">
       <section className="flex h-[388px] flex-col bg-brand-charcoal px-[22px] pb-[34px] pt-7 text-white md:h-auto md:px-14 md:py-14">
-        <BrandLogo variant="mark" reversed className="h-6 w-6" priority />
+        <BrandLogo variant="lockup" reversed className="h-7 w-auto" priority />
         <div className="mt-auto max-w-[420px]">
           <h1 className="text-[30px] font-extrabold leading-[1.18] tracking-[-0.8px] md:text-[40px] md:tracking-[-1.1px]">
-            People operations, made ready.
+            Welcome to TeamFrame
           </h1>
           <p className="mt-4 max-w-[400px] text-[15.5px] leading-normal text-[#B0B8C2] md:text-[17px]">
-            See what needs attention. Know what comes next.
+            Sign in to access your workspace.
           </p>
         </div>
       </section>
@@ -113,12 +114,11 @@ export default async function AdminLoginPage({
             className="h-12 w-full rounded-lg border border-ink-300 bg-white px-[14px] text-[15px] text-ink-800 outline-none transition focus:border-ink-800"
           />
 
-          <button
-            type="submit"
-            className="tf-primary-action h-12 w-full px-5 text-[15px]"
-          >
-            Sign in
-          </button>
+          <PendingSubmitButton
+            idleLabel="Sign in"
+            pendingLabel="Signing you in…"
+            className="tf-primary-action h-12 w-full px-5 text-[15px] disabled:cursor-not-allowed disabled:bg-ink-300"
+          />
 
           {errorMessage ? (
             <p role="alert" className="text-[13px] text-signal-red">

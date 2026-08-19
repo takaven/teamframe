@@ -6,12 +6,14 @@ import { BrandLogo } from "@/components/BrandLogo";
 
 // Primary operational modules. Company (holidays) and Access are re-homed under
 // Setup / Administration; Setup sits last as a secondary admin destination.
+// Lean primary operational navigation. Early-employment (probation outcome + 30-day check-in
+// oversight) is a secondary lifecycle destination reached contextually from Onboarding, not a
+// permanent top-level module. Company/Access/Guided Setup live under Setup.
 const ADMIN_LINKS = [
   { href: "/dashboard", label: "Overview" },
   { href: "/org-chart", label: "Org chart" },
   { href: "/employees", label: "Employees" },
   { href: "/onboarding", label: "Onboarding" },
-  { href: "/early-employment", label: "Early employment" },
   { href: "/leaves", label: "Leave" },
   { href: "/policies", label: "Policies" },
 ] as const;
@@ -89,7 +91,7 @@ export async function AppShell({
 
         <div className="mt-auto px-5">
           <p className="text-[13px] font-semibold text-white">TeamFrame workspace</p>
-          <p className="mt-1 text-[12.5px] text-[#B0B8C2]">People operations, made ready.</p>
+          <p className="mt-1 text-[12.5px] text-[#B0B8C2]">Your team&apos;s HR, in one place.</p>
           <SignOutButton className="mt-4" />
         </div>
       </aside>

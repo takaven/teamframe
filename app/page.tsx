@@ -14,19 +14,19 @@ const PILOT_MAILTO = PILOT_CONTACT_EMAIL
 
 const FEATURES = [
   {
-    kicker: "See",
-    title: "Risk signals dashboard",
-    body: "One screen answers three questions: what is broken right now, what will break next, and what needs action today. Red, amber, and green — nothing else.",
+    kicker: "Organise",
+    title: "Employee records & documents",
+    body: "Every employee's details, contracts, IDs and country-specific records in one private, permissioned place — with expiry tracking built in.",
   },
   {
-    kicker: "Prove",
-    title: "Founder readiness export",
-    body: "Contracts, employment records, policy acknowledgements, and asset-related action evidence exported when a review asks.",
+    kicker: "Run",
+    title: "Leave, onboarding & policies",
+    body: "Approve leave, work through onboarding checklists, and publish policies your team acknowledges by version. The everyday HR admin, handled.",
   },
   {
-    kicker: "Start",
-    title: "Operator-led setup",
-    body: "An experienced people-ops operator configures the agreed readiness scope and hands you a working system with clear next actions.",
+    kicker: "Stay ahead",
+    title: "What needs attention",
+    body: "TeamFrame flags expiring documents, unacknowledged policies and pending approvals — each with a clear next action.",
   },
 ] as const;
 
@@ -42,18 +42,16 @@ export default function Home() {
 
       <section className="mt-14 max-w-3xl space-y-6">
         <p className="text-[12px] uppercase tracking-[0.14em] text-ink-500">
-          Managed People-Ops Readiness for Founder-Led Teams
+          HR software
         </p>
         <h1 className="font-display text-[34px] font-medium leading-[1.12] tracking-tight md:text-[48px]">
-          People operations, made ready.
+          Your team&apos;s HR, in one place.
         </h1>
         <p className="max-w-2xl text-[17px] leading-relaxed text-ink-700">
-          Built for founder-led teams of 5–20 with no HR function yet. TeamFrame
-          checks the records you already keep — contracts, documents, policies,
-          leave requests — and raises a signal when something is missing, expiring,
-          or incomplete. Each signal explains what is wrong, why it matters, and
-          what to do next; resolve it and the dashboard clears. Signal, action,
-          resolution — that is the whole loop.
+          TeamFrame is a focused HR system for growing organisations that don&apos;t
+          have a dedicated HR team. Keep employee records, documents, leave,
+          onboarding and policies in one place — and see what needs attention, with
+          the next action for each, before it becomes a problem.
         </p>
 
         <div className="flex flex-wrap items-center gap-4 pt-2">
@@ -78,19 +76,18 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Real product, real demo data — captured from the seeded risk dashboard. */}
+      {/* Real product, real demo data — captured from the seeded overview. */}
       <section className="mt-14" aria-label="Product preview">
         <figure className="overflow-hidden rounded-2xl border border-ink-300/70 bg-white/80 p-2 shadow-sm md:p-3">
           <Image
             src={dashboardShot}
-            alt="TeamFrame people-ops risk dashboard: urgent signals with what is wrong, why it matters, and the next action for each"
+            alt="TeamFrame overview: what needs attention across the team, with the next action for each item"
             priority
             className="w-full rounded-xl border border-ink-300/50"
             sizes="(max-width: 1024px) 100vw, 976px"
           />
           <figcaption className="px-2 pb-1 pt-3 text-[12px] text-ink-500">
-            The risk dashboard on demo data — every signal explains what is wrong, why it
-            matters, and what to do next.
+            The overview on demo data — what needs attention, and the next action for each.
           </figcaption>
         </figure>
       </section>

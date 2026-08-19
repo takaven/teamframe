@@ -540,7 +540,7 @@ export default async function EmployeesPage({
           null
         ) : detailEmployees.length === 0 ? (
           <EmptyState
-            message="Select an employee to view readiness evidence."
+            message="Select an employee to view their record."
             hint="Open a record from the directory table above to manage documents, invite state, and exports."
           />
         ) : (
