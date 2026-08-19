@@ -430,7 +430,7 @@ export default async function EmployeesPage({
               </select>
               <button
                 type="submit"
-                className="rounded-md bg-brand-signal px-4 py-2 text-[13px] font-medium text-ink-800 transition hover:bg-[#B4DD00]"
+                className="rounded-md bg-brand-signal px-4 py-2 text-[13px] font-medium text-ink-800 transition hover:bg-[#00E51F]"
               >
                 Apply
               </button>

@@ -184,7 +184,7 @@ export default async function PoliciesPage({
             <PendingSubmitButton
               idleLabel={isNewVersion ? "Upload new version" : "Upload policy"}
               pendingLabel="Uploading…"
-              className="rounded-lg bg-brand-signal px-5 py-2 text-[14px] font-medium text-ink-800 transition hover:bg-[#B4DD00] disabled:cursor-not-allowed disabled:bg-ink-300"
+              className="rounded-lg bg-brand-signal px-5 py-2 text-[14px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:cursor-not-allowed disabled:bg-ink-300"
             />
           </div>
         </form>
@@ -350,7 +350,7 @@ export default async function PoliciesPage({
                           <PendingSubmitButton
                             idleLabel="Publish"
                             pendingLabel="Publishing…"
-                            className="w-full rounded-lg bg-brand-signal px-4 py-1.5 text-[13px] font-medium text-ink-800 transition hover:bg-[#B4DD00] disabled:cursor-not-allowed disabled:bg-ink-300 sm:w-auto"
+                            className="w-full rounded-lg bg-brand-signal px-4 py-1.5 text-[13px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:cursor-not-allowed disabled:bg-ink-300 sm:w-auto"
                           />
                         </form>
                       ) : null}

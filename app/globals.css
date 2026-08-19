@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand-signal: #C8F500;
+  --color-brand-signal: #01ff22;
   --color-brand-titanium: #68707d;
   --color-brand-charcoal: #42494d;
   --color-tf-graphite: #42494d;
@@ -47,7 +47,7 @@ body {
 }
 
 :root {
-  --brand-signal: #C8F500;
+  --brand-signal: #01ff22;
   --brand-titanium: #68707d;
   --brand-graphite: #42494d;
   --brand-charcoal: #20242b;
@@ -119,7 +119,7 @@ main:has(> .tf-app-shell[data-active="/org-chart"]) > :not(.tf-app-shell):not(.t
 }
 
 .tf-primary-action:hover {
-  background: #B4DD00;
+  background: #00e51f;
 }
 
 .tf-secondary-action {

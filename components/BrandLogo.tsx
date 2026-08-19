@@ -21,9 +21,12 @@ export function BrandLogo({
       : reversed
         ? "/brand/teamframe-lockup-reversed.svg"
         : "/brand/teamframe-lockup-primary.svg";
+  // Intrinsic dimensions match the official production assets (Symbol 127×127, Primary
+  // horizontal lockup 808×127) so next/image preserves the correct aspect ratio; callers
+  // control the rendered size via className.
   const size = variant === "mark"
-    ? { width: 36, height: 36 }
-    : { width: 208, height: 52 };
+    ? { width: 127, height: 127 }
+    : { width: 808, height: 127 };
 
   return (
     <Image

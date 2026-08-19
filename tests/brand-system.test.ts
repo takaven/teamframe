@@ -47,8 +47,8 @@ describe("TeamFrame brand system", () => {
     const globals = read("app/globals.css");
     const statusPill = read("components/StatusPill.tsx");
 
-    expect(globals).toContain("--color-brand-signal: #C8F500");
-    expect(globals).toContain("--brand-signal: #C8F500");
+    expect(globals).toContain("--color-brand-signal: #01ff22");
+    expect(globals).toContain("--brand-signal: #01ff22");
     expect(globals).toContain("--brand-graphite: #42494d");
     expect(globals).toContain("--text-primary: #2a2f37");
     expect(globals).toContain("--color-deep-charcoal: #20242b");

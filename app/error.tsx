@@ -30,7 +30,7 @@ export default function GlobalError({
             <button
               type="button"
               onClick={() => reset()}
-              className="rounded-lg bg-brand-signal px-5 py-2 text-[14px] font-medium text-ink-800 transition hover:bg-[#B4DD00]"
+              className="rounded-lg bg-brand-signal px-5 py-2 text-[14px] font-medium text-ink-800 transition hover:bg-[#00E51F]"
             >
               Retry
             </button>
