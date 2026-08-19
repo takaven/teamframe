@@ -3,8 +3,10 @@ import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import {
   INVITE_RESEND_COOLDOWN_SECONDS,
+  getEmployeeWorkCountry,
   listEmployeesForAdmin,
 } from "@/services/employeeService";
+import { UAE_COUNTRY, UAE_RECORD_TYPES, isUaeRecordType, uaeRecordLabel } from "@/lib/countryRecords";
 import { listDocumentRequirementsForEmployee, listDocumentsForEmployee } from "@/services/documentService";
 import { listEmploymentChangesForEmployee } from "@/services/employmentChangeService";
 import { getOffboardingLeaveReconciliation, listOffboardingForEmployee } from "@/services/offboardingService";
@@ -32,6 +34,7 @@ import {
   reinviteEmployeeAction,
   reviewDocumentRequirementAction,
   uploadEmployeeDocumentAction,
+  uploadUaeRecordAction,
 } from "./actions";
 import { AppShell } from "@/components/AppShell";
 import { EmptyState } from "@/components/EmptyState";
@@ -259,6 +262,11 @@ export default async function EmployeesPage({
     })),
   );
   const masterByEmployee = new Map(masterRecords.map((item) => [item.employeeId, item]));
+  // Work country (ISO) for the opened employee — gates the UAE country-specific records section.
+  const workCountries = await Promise.all(
+    detailEmployees.map(async (employee) => ({ employeeId: employee.id, country: await getEmployeeWorkCountry(actor, employee.id) })),
+  );
+  const workCountryByEmployee = new Map(workCountries.map((item) => [item.employeeId, item.country]));
   const employeePhotos = await listEmployeePhotoUrls(actor);
   const photoByEmployeeId = new Map(employeePhotos.map((p) => [p.employee_id, p.photo_url]));
   const positionTitleById = new Map(positions.map((position) => [position.id, position.title]));
@@ -1241,6 +1249,103 @@ export default async function EmployeesPage({
                 )}
 
               </section>
+
+              {workCountryByEmployee.get(employee.id) === UAE_COUNTRY ? (
+                <section className="mt-4 border-t border-ink-100 pt-4">
+                  <h4 className="text-[13px] font-medium text-ink-900">Country-specific records — UAE</h4>
+                  <p className="mt-1 text-[12px] text-ink-500">
+                    Factual record-keeping only. Store the document, its reference and dates, and evidence — TeamFrame does not assess legal compliance.
+                  </p>
+
+                  <form action={uploadUaeRecordAction} className="mt-3 grid gap-2 md:grid-cols-3" encType="multipart/form-data">
+                    <input type="hidden" name="employee_id" value={employee.id} />
+                    <input type="hidden" name="return_to" value="/employees" />
+                    <label className="flex flex-col gap-1 text-[11px] text-ink-500">
+                      Record type
+                      <select name="type" defaultValue="emirates_id" className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900 bg-white">
+                        {UAE_RECORD_TYPES.map((t) => (
+                          <option key={t.value} value={t.value}>{t.label}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="flex flex-col gap-1 text-[11px] text-ink-500">
+                      Reference number (optional)
+                      <input name="reference_number" maxLength={120} placeholder="e.g. 784-XXXX-XXXXXXX-X" className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900" />
+                    </label>
+                    <label className="flex flex-col gap-1 text-[11px] text-ink-500">
+                      Evidence file
+                      <input name="file" type="file" required className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900" />
+                    </label>
+                    <label className="flex flex-col gap-1 text-[11px] text-ink-500">
+                      Issue date (optional)
+                      <input name="issued_at" type="date" className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900" />
+                    </label>
+                    <label className="flex flex-col gap-1 text-[11px] text-ink-500">
+                      Expiry date (optional)
+                      <input name="expires_at" type="date" className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900" />
+                    </label>
+                    <div className="flex items-end">
+                      <PendingSubmitButton
+                        idleLabel="Save UAE record"
+                        pendingLabel="Saving…"
+                        className="rounded-md border border-ink-300 px-3 py-1.5 text-[12px] font-medium text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:text-ink-300"
+                      />
+                    </div>
+                  </form>
+
+                  <form action={createDocumentRequirementAction} className="mt-3 flex flex-wrap items-end gap-2">
+                    <input type="hidden" name="employee_id" value={employee.id} />
+                    <input type="hidden" name="return_to" value="/employees" />
+                    <label className="flex flex-col gap-1 text-[11px] text-ink-500">
+                      Request a UAE record
+                      <select name="document_type" defaultValue="emirates_id" className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900 bg-white">
+                        {UAE_RECORD_TYPES.map((t) => (
+                          <option key={t.value} value={t.value}>{t.label}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="flex items-end gap-2 pb-2 text-[11px] text-ink-500">
+                      <input name="expiry_required" type="checkbox" defaultChecked className="h-4 w-4 rounded border-ink-300" />
+                      Expiry monitored
+                    </label>
+                    <PendingSubmitButton
+                      idleLabel="Request record"
+                      pendingLabel="Requesting…"
+                      className="rounded-md border border-ink-300 px-3 py-1.5 text-[12px] font-medium text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:text-ink-300"
+                    />
+                  </form>
+
+                  {documents.filter((d) => isUaeRecordType(d.document_type)).length > 0 ? (
+                    <ul className="mt-3 space-y-2">
+                      {documents.filter((d) => isUaeRecordType(d.document_type)).map((document) => (
+                        <li key={document.id} className="rounded-md border border-ink-300/50 px-3 py-2 text-[12px] text-ink-700">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                              <p className="font-medium text-ink-900">{uaeRecordLabel(document.document_type)}</p>
+                              {document.reference_number ? <p>Reference: <span className="font-mono">{document.reference_number}</span></p> : null}
+                              <p>
+                                Issued: <span className="font-mono tabular-nums">{document.issued_at ? formatDate(document.issued_at) : "-"}</span>
+                                {" · "}Expires: <span className="font-mono tabular-nums">{document.expires_at ? formatDate(document.expires_at) : "-"}</span>
+                              </p>
+                            </div>
+                            <form action={downloadEmployeeDocumentAction}>
+                              <input type="hidden" name="document_id" value={document.id} />
+                              <input type="hidden" name="return_to" value="/employees" />
+                              <PendingSubmitButton
+                                idleLabel="Download"
+                                pendingLabel="Preparing…"
+                                className="rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:text-ink-300"
+                              />
+                            </form>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-3 text-[12px] text-ink-500">No UAE records saved yet.</p>
+                  )}
+                </section>
+              ) : null}
 
               <div className="mt-3 flex flex-wrap items-center gap-2 sm:gap-3">
                 <div className="w-full sm:w-auto">

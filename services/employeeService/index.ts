@@ -15,6 +15,7 @@ import "server-only";
 import { z } from "zod";
 import type { Actor } from "@/middleware/rbac";
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
+import { normalizeIsoCountry } from "@/lib/countryRecords";
 import { env } from "@/lib/db/env";
 import { track } from "@/lib/telemetry/track";
 import { logSchemaCapability } from "@/lib/telemetry/logger";
@@ -861,6 +862,50 @@ export async function getEmployee(
   }
 
   return toEmployeeFullRecord(data as EmployeeRow);
+}
+
+/**
+ * The employee's WORK country as an ISO alpha-2 code (Phase 5E), used to gate country-specific
+ * record options. Resolution order (never nationality): (1) the ISO country of the work location on
+ * the employee's current open position, if configured; (2) the free-text employees.country
+ * normalised. Returns null when neither resolves. Admin-only, tenant-scoped.
+ */
+export async function getEmployeeWorkCountry(actor: Actor, employeeId: string): Promise<string | null> {
+  requireAdmin(actor);
+  const tenantId = requireTenant(actor);
+  const supabase = createServiceRoleClient();
+
+  // (1) structured: current open position → work_location → ISO country.
+  const posQuery = await supabase
+    .from("positions")
+    .select("work_location_id")
+    .eq("tenant_id", tenantId)
+    .eq("assigned_employee_id", employeeId)
+    .is("deleted_at", null)
+    .not("work_location_id", "is", null)
+    .limit(1)
+    .maybeSingle();
+  const workLocationId = (posQuery.data as { work_location_id: string | null } | null)?.work_location_id ?? null;
+  if (workLocationId) {
+    const locQuery = await supabase
+      .from("work_locations")
+      .select("country")
+      .eq("tenant_id", tenantId)
+      .eq("id", workLocationId)
+      .maybeSingle();
+    const isoFromLocation = normalizeIsoCountry((locQuery.data as { country: string | null } | null)?.country ?? null);
+    if (isoFromLocation) return isoFromLocation;
+  }
+
+  // (2) fallback: free-text employment/work country.
+  const empQuery = await supabase
+    .from("employees")
+    .select("country")
+    .eq("tenant_id", tenantId)
+    .eq("id", employeeId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  return normalizeIsoCountry((empQuery.data as { country: string | null } | null)?.country ?? null);
 }
 
 export async function createEmployee(actor: Actor, input: unknown): Promise<EmployeeFullRecord> {

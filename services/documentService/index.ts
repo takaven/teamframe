@@ -40,6 +40,10 @@ export type DocumentRecord = {
   document_type: DocumentType;
   file_url: string;
   signed_at: string | null;
+  // Factual identifying metadata (Phase 5E). issued_at complements expires_at; reference_number is
+  // sensitive PII, returned only through canReadEmployeeDocuments-gated paths (same as the file).
+  issued_at: string | null;
+  reference_number: string | null;
   expires_at: string | null;
   replaced_at: string | null;
   replaced_by_document_id: string | null;
@@ -508,6 +512,8 @@ function toPublicRecord(row: DocumentRow): DocumentRecord {
     document_type: normalizedType,
     file_url: row.file_url,
     signed_at: row.signed_at,
+    issued_at: row.issued_at ?? null,
+    reference_number: row.reference_number ?? null,
     expires_at: row.expires_at,
     replaced_at: row.replaced_at,
     replaced_by_document_id: row.replaced_by_document_id,
@@ -810,7 +816,7 @@ export async function listDocumentsForEmployee(
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from("documents")
-    .select("id, tenant_id, employee_id, type, document_type, file_url, signed_at, expires_at, replaced_at, replaced_by_document_id, subject_person_id, created_at, deleted_at")
+    .select("id, tenant_id, employee_id, type, document_type, file_url, signed_at, issued_at, reference_number, expires_at, replaced_at, replaced_by_document_id, subject_person_id, created_at, deleted_at")
     .eq("tenant_id", tenantId)
     .eq("employee_id", employeeId)
     .is("deleted_at", null)
@@ -832,6 +838,8 @@ export async function uploadDocument(
     subjectPersonId?: string;
     signedAt?: string | null;
     expiresAt?: string | null;
+    issuedAt?: string | null;
+    referenceNumber?: string | null;
   },
   options: { allowEmployeeSelfUpload?: boolean; auditActionType?: string } = {},
 ): Promise<DocumentRecord> {
@@ -852,6 +860,14 @@ export async function uploadDocument(
     assertMetadataLength(input.subjectPersonId, "DOCUMENT_UPLOAD_METADATA_TOO_LONG");
     assertMetadataLength(input.signedAt, "DOCUMENT_UPLOAD_METADATA_TOO_LONG");
     assertMetadataLength(input.expiresAt, "DOCUMENT_UPLOAD_METADATA_TOO_LONG");
+    // Factual validation only (Phase 5E): bounded reference length, and expiry not before issue
+    // when BOTH are supplied. No legal/duration validation.
+    const referenceNumber = input.referenceNumber?.trim() || null;
+    if (referenceNumber && referenceNumber.length > 120) throw new Error("DOCUMENT_REFERENCE_TOO_LONG");
+    const issuedAt = input.issuedAt ?? null;
+    if (issuedAt && input.expiresAt && input.expiresAt < issuedAt) {
+      throw new Error("DOCUMENT_EXPIRY_BEFORE_ISSUE");
+    }
 
     const supabase = createServiceRoleClient();
     await verifyDocumentStorageConfig();
@@ -884,10 +900,12 @@ export async function uploadDocument(
         document_type: normalizedInputType,
         subject_person_id: input.subjectPersonId ?? input.employeeId,
         signed_at: input.signedAt ?? null,
+        issued_at: issuedAt,
+        reference_number: referenceNumber,
         expires_at: input.expiresAt ?? null,
         file_url: path,
       } as never)
-      .select("id, tenant_id, employee_id, type, document_type, file_url, signed_at, expires_at, replaced_at, replaced_by_document_id, subject_person_id, created_at, deleted_at")
+      .select("id, tenant_id, employee_id, type, document_type, file_url, signed_at, issued_at, reference_number, expires_at, replaced_at, replaced_by_document_id, subject_person_id, created_at, deleted_at")
       .single();
 
     if (error) {

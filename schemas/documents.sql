@@ -47,6 +47,16 @@ alter table documents add column if not exists signed_at timestamptz;
 alter table documents add column if not exists subject_person_id uuid;
 alter table documents add column if not exists replaced_at timestamptz;
 alter table documents add column if not exists replaced_by_document_id uuid;
+-- Phase 5E (additive, nullable): factual identifying metadata for country-specific records
+-- (e.g. UAE Visa / Emirates ID / Passport). issued_at complements the existing expires_at;
+-- reference_number is the document/reference number and is SENSITIVE PII — its read path follows
+-- the same private-document capability gate as the file itself (never leaked to rosters/org chart).
+alter table documents add column if not exists issued_at date;
+alter table documents add column if not exists reference_number text;
+do $$ begin
+  alter table documents add constraint documents_reference_number_len
+    check (reference_number is null or char_length(reference_number) between 1 and 120);
+exception when duplicate_object then null; end $$;
 
 update documents
 set document_type = lower(type::text)

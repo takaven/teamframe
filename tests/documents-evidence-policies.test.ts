@@ -192,4 +192,38 @@ describe("MR-5 documents, evidence and policies", () => {
     expect(acknowledgementSchema).toContain("policy_version = p_policy_version");
     expect(acknowledgementSchema).toContain("is_published = true");
   });
+
+  it("Phase 5E: UAE records extend documents (metadata, work-country gating, PII gating)", () => {
+    const documents = read("schemas/documents.sql");
+    const documentService = read("services/documentService/index.ts");
+    const employeeService = read("services/employeeService/index.ts");
+    const employeeMaster = read("services/employeeMasterService.ts");
+    const vocab = read("lib/countryRecords.ts");
+    const employeesActions = read("app/employees/actions.ts");
+
+    // Additive, nullable, backward-compatible metadata on the existing documents model (no
+    // employee_compliance_records table).
+    expect(documents).toContain("add column if not exists issued_at date");
+    expect(documents).toContain("add column if not exists reference_number text");
+    expect(documents).toContain("documents_reference_number_len");
+    expect(documentService).not.toContain("employee_compliance_records");
+
+    // Bounded UAE vocabulary (all seven) + AE work-country gate, never nationality.
+    for (const t of ["visa", "emirates_id", "passport", "medical_fitness", "iloe", "medical_insurance", "employment_contract"]) {
+      expect(vocab).toContain(`"${t}"`);
+    }
+    expect(vocab).toContain("UAE_COUNTRY = \"AE\"");
+    expect(employeeService).toContain("getEmployeeWorkCountry");
+    expect(employeeService).toContain("work_location_id"); // structured work-location path
+    expect(employeesActions).toContain("uploadUaeRecordAction");
+
+    // PII: reference_number is only returned through canReadEmployeeDocuments-gated paths and is
+    // NEVER read by the employee-master service (no leak into rosters/org chart/manager cards).
+    expect(documentService).toContain("reference_number");
+    expect(documentService).toContain("canReadEmployeeDocuments");
+    expect(employeeMaster).not.toContain("reference_number");
+
+    // Factual validation only (no legal/duration rules).
+    expect(documentService).toContain("DOCUMENT_EXPIRY_BEFORE_ISSUE");
+  });
 });

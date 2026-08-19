@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireTenantActor } from "@/middleware/rbac";
+import { UAE_RECORD_TYPE_VALUES } from "@/lib/countryRecords";
 import {
   createEmployee,
   generateEmployeeActivationLink,
@@ -109,6 +110,15 @@ const CreateDocumentRequirementInputSchema = z.object({
   expiry_required: z.enum(["on"]).optional(),
   review_required: z.enum(["on"]).optional(),
   employee_upload_allowed: z.enum(["on"]).optional(),
+  return_to: z.string().trim().optional(),
+});
+
+const UaeRecordUploadSchema = z.object({
+  employee_id: z.string().uuid(),
+  type: z.enum(UAE_RECORD_TYPE_VALUES as [string, ...string[]]),
+  issued_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  expires_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  reference_number: z.string().trim().min(1).max(120).optional(),
   return_to: z.string().trim().optional(),
 });
 
@@ -717,6 +727,62 @@ export async function uploadEmployeeDocumentAction(formData: FormData): Promise<
     redirect(`${returnTo}?error=${encodeURIComponent(errorCode)}&employee=${encodeURIComponent(employeeId)}`);
   }
 
+  redirect(`${returnTo}?status=document_uploaded&employee=${encodeURIComponent(employeeId)}`);
+}
+
+// Phase 5E: upload a country-specific (UAE) record — a specialised document with factual metadata
+// (issue date, expiry, reference number). Reuses uploadDocument; the reference number is stored as
+// employer-controlled PII behind the same private-document gate. Country gating is enforced in the
+// admin UI (the section only appears for AE work-country employees); this action additionally
+// restricts the type to the bounded UAE vocabulary.
+export async function uploadUaeRecordAction(formData: FormData): Promise<void> {
+  let failed = false;
+  let errorCode = "UNKNOWN";
+  let employeeId = "";
+  let returnTo = "/employees";
+  let actor: Awaited<ReturnType<typeof requireTenantActor>> | null = null;
+
+  try {
+    actor = await requireTenantActor();
+    const file = formData.get("file");
+    if (!(file instanceof File) || file.size === 0) throw new Error("INVALID_INPUT");
+
+    const parsed = UaeRecordUploadSchema.parse({
+      employee_id: formData.get("employee_id"),
+      type: formData.get("type"),
+      issued_at: optionalString(formData.get("issued_at")),
+      expires_at: optionalString(formData.get("expires_at")),
+      reference_number: optionalString(formData.get("reference_number")),
+      return_to: optionalString(formData.get("return_to")),
+    });
+    employeeId = parsed.employee_id;
+    returnTo = safeReturnPath(parsed.return_to, "/employees");
+
+    await uploadDocument(
+      actor,
+      {
+        employeeId: parsed.employee_id,
+        type: parsed.type,
+        file,
+        issuedAt: parsed.issued_at ?? null,
+        expiresAt: parsed.expires_at ?? null,
+        referenceNumber: parsed.reference_number ?? null,
+      },
+      { auditActionType: "document.uploaded" },
+    );
+  } catch (error) {
+    failed = true;
+    errorCode = getErrorCode(error);
+    captureActionError("uploadUaeRecord", error, {
+      actor_user_id: actor?.authUserId ?? null,
+      actor_tenant_id: actor?.tenantId ?? null,
+      employee_id: employeeId || null,
+    });
+  }
+
+  if (failed) {
+    redirect(`${returnTo}?error=${encodeURIComponent(errorCode)}&employee=${encodeURIComponent(employeeId)}`);
+  }
   redirect(`${returnTo}?status=document_uploaded&employee=${encodeURIComponent(employeeId)}`);
 }
 
