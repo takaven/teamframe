@@ -1,8 +1,10 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { Actor } from "@/middleware/rbac";
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 import { SignOutButton } from "@/components/SignOutButton";
 import { BrandLogo } from "@/components/BrandLogo";
+import { getCompanyIdentity } from "@/lib/company/identity";
 
 // Primary operational modules. Company (holidays) and Access are re-homed under
 // Setup / Administration; Setup sits last as a secondary admin destination.
@@ -54,20 +56,35 @@ export async function AppShell({
   activePath: string;
 }) {
   const isAdminSurface = actor.role === "admin";
-  const showMyTeam = !isAdminSurface && (await hasDirectReports(actor));
+  const [showMyTeam, identity] = await Promise.all([
+    isAdminSurface ? Promise.resolve(false) : hasDirectReports(actor),
+    getCompanyIdentity(actor.tenantId),
+  ]);
   const links = isAdminSurface
     ? [...ADMIN_LINKS, SETUP_LINK]
     : (showMyTeam ? [...EMPLOYEE_LINKS, MY_TEAM_LINK] : [...EMPLOYEE_LINKS]);
 
+  const workspaceHome = actor.role === "admin" ? "/dashboard" : "/me";
+
   return (
     <>
       <aside className="tf-app-shell flex flex-col px-0 py-[26px]" data-active={activePath} aria-label="Primary">
-        <Link
-          href={actor.role === "admin" ? "/dashboard" : "/me"}
-          className="mx-5 flex items-center gap-2 text-white"
-        >
-          <BrandLogo variant="mark" reversed className="h-5 w-5" priority />
-          <span className="text-[15px] font-extrabold tracking-tight">TeamFrame</span>
+        <Link href={workspaceHome} className="mx-5 flex items-center gap-2.5 text-white" aria-label={`${identity.name} — TeamFrame`}>
+          {identity.logoUrl ? (
+            <Image
+              src={identity.logoUrl}
+              alt={identity.name}
+              width={28}
+              height={28}
+              className="h-7 w-7 rounded-md object-cover"
+              unoptimized
+            />
+          ) : (
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-signal text-[12px] font-extrabold text-ink-900">
+              {identity.monogram}
+            </span>
+          )}
+          <span className="min-w-0 truncate text-[15px] font-extrabold tracking-tight">{identity.name}</span>
         </Link>
 
         <nav className="mt-[30px]" aria-label={actor.role === "admin" ? "Admin" : "Employee"}>
@@ -90,18 +107,26 @@ export async function AppShell({
         </nav>
 
         <div className="mt-auto px-5">
-          <p className="text-[13px] font-semibold text-white">TeamFrame workspace</p>
-          <p className="mt-1 text-[12.5px] text-[#B0B8C2]">Your team&apos;s HR, in one place.</p>
-          <SignOutButton className="mt-4" />
+          <SignOutButton className="mb-5" />
+          <div className="flex items-center gap-2 border-t border-white/10 pt-4">
+            <BrandLogo variant="mark" reversed className="h-4 w-4 opacity-80" />
+            <span className="text-[12px] font-semibold text-[#B0B8C2]">Powered by TeamFrame</span>
+          </div>
         </div>
       </aside>
 
       <header className="tf-mobile-bar bg-brand-charcoal text-white">
         <details className="group">
           <summary className="flex h-14 cursor-pointer list-none items-center justify-between px-[18px] marker:hidden">
-            <span className="flex items-center gap-2">
-              <BrandLogo variant="mark" reversed className="h-[18px] w-[18px]" priority />
-              <span className="text-[14.5px] font-extrabold tracking-tight">TeamFrame</span>
+            <span className="flex min-w-0 items-center gap-2">
+              {identity.logoUrl ? (
+                <Image src={identity.logoUrl} alt={identity.name} width={22} height={22} className="h-[22px] w-[22px] rounded object-cover" unoptimized />
+              ) : (
+                <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded bg-brand-signal text-[11px] font-extrabold text-ink-900">
+                  {identity.monogram}
+                </span>
+              )}
+              <span className="min-w-0 truncate text-[14.5px] font-extrabold tracking-tight">{identity.name}</span>
             </span>
             <span className="flex h-11 w-11 items-center justify-center rounded-lg text-[24px] leading-none group-open:hidden" aria-hidden="true">
               =
