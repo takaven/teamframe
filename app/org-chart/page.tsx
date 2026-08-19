@@ -4,6 +4,7 @@ import { AppShell } from "@/components/AppShell";
 import { EmptyState } from "@/components/EmptyState";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
+import { FileInput } from "@/components/FileInput";
 import { listEmployeesForAdmin } from "@/services/employeeService";
 import { buildPositionTree, listPositions, type PositionRecord, type PositionTreeNode } from "@/services/positionService";
 import { listPositionAssignments } from "@/services/positionAssignmentService";
@@ -133,20 +134,22 @@ function PositionFields({
         <input name="title" required defaultValue={position?.title ?? ""} className={inputClass} />
       </label>
       <label className="text-[13px] text-ink-700">
-        Department label
-        <input name="department" required defaultValue={position?.department ?? ""} className={inputClass} />
-      </label>
-      {departments.length > 0 ? (
-        <label className="text-[13px] text-ink-700">
-          Configured department
-          <select name="department_id" defaultValue={position?.department_id ?? ""} className={inputClass}>
-            <option value="">— Not linked (uses label above)</option>
-            {departments.map((d) => (
-              <option key={d.id} value={d.id}>{d.name}{d.active ? "" : " (inactive)"}</option>
+        Department
+        {departments.length > 0 ? (
+          <select name="department" required defaultValue={position?.department ?? ""} className={inputClass}>
+            <option value="" disabled>— Select department</option>
+            {/* Preserve a legacy free-text value that is no longer in the active list. */}
+            {position?.department && !departments.some((d) => d.name === position.department) ? (
+              <option value={position.department}>{position.department}</option>
+            ) : null}
+            {departments.filter((d) => d.active || d.name === position?.department).map((d) => (
+              <option key={d.id} value={d.name}>{d.name}{d.active ? "" : " (inactive)"}</option>
             ))}
           </select>
-        </label>
-      ) : null}
+        ) : (
+          <input name="department" required defaultValue={position?.department ?? ""} className={inputClass} />
+        )}
+      </label>
       {workLocations.length > 0 ? (
         <label className="text-[13px] text-ink-700">
           Work location
@@ -207,17 +210,16 @@ function JobDescriptionControls({ position }: { position: PositionRecord }) {
       </div>
       <form action={uploadPositionJdAction} className="mt-3 flex flex-wrap items-end gap-3">
         <input type="hidden" name="position_id" value={position.id} />
-        <label className="min-w-0 flex-1 text-[13px] text-ink-700">
-          Replace / attach JD
-          <input
+        <div className="min-w-0 flex-1">
+          <p className="mb-1 text-[13px] text-ink-700">{position.jd_attached ? "Replace job description" : "Attach job description"}</p>
+          <FileInput
             name="job_description"
-            type="file"
             accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.pdf,.docx"
-            className="mt-1 block w-full rounded-lg border border-ink-300 bg-white px-3 py-2 text-[13px]"
+            label="Choose PDF or DOCX"
           />
-        </label>
+        </div>
         <PendingSubmitButton
-          idleLabel="Upload"
+          idleLabel={position.jd_attached ? "Replace" : "Upload"}
           pendingLabel="Uploading..."
           className="tf-primary-action h-10 px-4 text-[13px]"
         />
@@ -408,35 +410,43 @@ function AddPositionPanel({
   workLocations: WorkLocationOption[];
 }) {
   return (
-    <aside id="add-position" className="tf-org-add-panel h-fit rounded-xl border border-ink-300/70 bg-white p-6 shadow-sm">
-      <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-ink-500">Position</p>
-      <h2 className="mt-2 text-[23px] font-extrabold tracking-[-0.5px] text-ink-800">Add position</h2>
+    <div id="add-position" className="tf-drawer">
+      <a href="/org-chart" className="tf-drawer-backdrop" aria-label="Close add position" />
+      <aside className="tf-drawer-panel p-6">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-ink-500">Position</p>
+          <h2 className="mt-2 text-[23px] font-extrabold tracking-[-0.5px] text-ink-800">Add position</h2>
+        </div>
+        <a href="/org-chart" aria-label="Close" className="flex h-8 w-8 items-center justify-center rounded-lg text-[20px] text-ink-500 hover:bg-ink-50 hover:text-ink-800">×</a>
+      </div>
       <p className="mt-2 text-[14px] text-ink-500">
         A position can sit vacant. Assigning an employee is a separate step.
       </p>
       <form action={createPositionAction} className="mt-5 space-y-4">
         <PositionFields positions={positions} employees={employees} departments={departments} workLocations={workLocations} />
-        <label className="block rounded-lg border border-dashed border-ink-300 bg-ink-50 px-4 py-3 text-[13px] text-ink-700">
-          Job description
-          <input
+        <div className="rounded-lg border border-dashed border-ink-300 bg-ink-50 px-4 py-3">
+          <p className="text-[13px] text-ink-700">Job description (optional)</p>
+          <FileInput
             name="job_description"
-            type="file"
             accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.pdf,.docx"
-            className="mt-2 block w-full text-[13px]"
+            label="Choose PDF or DOCX"
+            className="mt-2"
           />
-        </label>
+        </div>
         <div className="flex flex-wrap gap-2">
           <PendingSubmitButton
             idleLabel="Add position"
             pendingLabel="Adding..."
             className="tf-primary-action h-11 px-5 text-[14px]"
           />
-          <Link href="/org-chart" className="tf-secondary-action inline-flex h-11 items-center px-5 text-[14px] font-bold">
+          <a href="/org-chart" className="tf-secondary-action inline-flex h-11 items-center px-5 text-[14px] font-bold">
             Cancel
-          </Link>
+          </a>
         </div>
       </form>
-    </aside>
+      </aside>
+    </div>
   );
 }
 
@@ -464,7 +474,9 @@ function PositionDetailPanel({
   const budgetedLabel = position.budgeted === true ? "Budgeted" : position.budgeted === false ? "Non-budgeted" : "Unspecified";
 
   return (
-    <aside className="tf-org-detail-panel h-fit rounded-xl border border-ink-300/70 bg-white p-6 shadow-sm">
+    <div className="tf-drawer">
+      <a href="/org-chart" className="tf-drawer-backdrop" aria-label="Close position detail" />
+      <aside className="tf-drawer-panel p-6">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-ink-500">Position</p>
@@ -553,7 +565,8 @@ function PositionDetailPanel({
           </form>
         </section>
       </div>
-    </aside>
+      </aside>
+    </div>
   );
 }
 
@@ -661,7 +674,7 @@ export default async function OrgChartPage({
         </article>
       </section>
 
-      <section className="tf-org-layout mt-7" data-selected={selectedPosition ? "true" : undefined}>
+      <section className="tf-org-layout mt-7">
         <div className="rounded-xl border border-ink-300/70 bg-white/70 p-4 sm:p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -690,21 +703,22 @@ export default async function OrgChartPage({
             </>
           )}
         </div>
-
-        {selectedPosition ? (
-          <PositionDetailPanel
-            position={selectedPosition}
-            positions={positions}
-            employees={employees}
-            departments={departments}
-            workLocations={workLocations}
-            display={displayById.get(selectedPosition.id)}
-            assignments={selectedAssignments}
-          />
-        ) : (
-          <AddPositionPanel positions={positions} employees={employees} departments={departments} workLocations={workLocations} />
-        )}
       </section>
+
+      {/* Add position is a slide-over drawer (CSS :target), never a permanent sidebar. */}
+      <AddPositionPanel positions={positions} employees={employees} departments={departments} workLocations={workLocations} />
+      {/* Position detail opens as a drawer when a card is selected. */}
+      {selectedPosition ? (
+        <PositionDetailPanel
+          position={selectedPosition}
+          positions={positions}
+          employees={employees}
+          departments={departments}
+          workLocations={workLocations}
+          display={displayById.get(selectedPosition.id)}
+          assignments={selectedAssignments}
+        />
+      ) : null}
     </main>
   );
 }

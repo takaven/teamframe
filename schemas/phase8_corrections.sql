@@ -65,6 +65,62 @@ where e.department_id is null
   and d.tenant_id = e.tenant_id
   and lower(d.name) = lower(btrim(e.department));
 
+-- Keep employees.department_id resolved from the free-text `department` on every write, so all
+-- paths (create, update, applied employment-change) stay referentially consistent with the
+-- authoritative departments list without each service having to resolve the id itself. No match →
+-- id left null (the text is still stored); departments remain admin-managed (never auto-created).
+create or replace function employees_sync_department_id()
+returns trigger language plpgsql as $$
+begin
+  if new.department is not null and btrim(new.department) <> '' then
+    select d.id into new.department_id
+    from departments d
+    where d.tenant_id = new.tenant_id
+      and lower(d.name) = lower(btrim(new.department))
+    limit 1;
+  else
+    new.department_id := null;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists employees_set_department_id on employees;
+create trigger employees_set_department_id
+before insert or update of department on employees
+for each row execute function employees_sync_department_id();
+
+-- Same resolution for positions.department_id (positions already carry both `department` text and
+-- an optional `department_id`). Keeps the org chart's configured-department link consistent with the
+-- chosen department name on every write.
+create or replace function positions_sync_department_id()
+returns trigger language plpgsql as $$
+begin
+  if new.department is not null and btrim(new.department) <> '' then
+    select d.id into new.department_id
+    from departments d
+    where d.tenant_id = new.tenant_id
+      and lower(d.name) = lower(btrim(new.department))
+    limit 1;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists positions_set_department_id on positions;
+create trigger positions_set_department_id
+before insert or update of department on positions
+for each row execute function positions_sync_department_id();
+
+-- Adopt existing position department labels + backfill ids once more (idempotent) now the trigger
+-- exists for future writes.
+update positions p
+set department_id = d.id
+from departments d
+where (p.department_id is null)
+  and d.tenant_id = p.tenant_id
+  and lower(d.name) = lower(btrim(p.department));
+
 -- 4. Configurable compensation --------------------------------------------------------------
 alter table compensation add column if not exists effective_date date;
 
