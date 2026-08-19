@@ -21,6 +21,7 @@ import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 import { CURRENT_EMPLOYEE_DB_LIFECYCLE_STATES, isPolicyEligibleEmployee } from "@/services/employeeLifecycle";
 import {
   assertPrivateDocumentStorageReady,
+  createPrivateStorageSignedUrl,
   sanitizePrivateFileName,
   uploadPrivateDocumentObject,
   validateDocumentFileBeforeBuffer,
@@ -33,6 +34,7 @@ export type PolicyRecord = {
   body: string;
   version: number;
   is_published: boolean;
+  effective_date: string | null;
   file_storage_path: string | null;
   file_original_name: string | null;
   file_mime_type: string | null;
@@ -69,7 +71,7 @@ type AcknowledgementRow = {
 };
 
 const POLICY_COLUMNS =
-  "id, tenant_id, title, body, version, is_published, file_storage_path, file_original_name, file_mime_type, file_uploaded_at, created_at, updated_at, archived_at";
+  "id, tenant_id, title, body, version, is_published, effective_date, file_storage_path, file_original_name, file_mime_type, file_uploaded_at, created_at, updated_at, archived_at";
 
 function requireTenant(actor: Actor): string {
   if (!actor.tenantId) throw new Error("NO_TENANT_CONTEXT");
@@ -87,8 +89,11 @@ function requireLinkedEmployee(actor: Actor): string {
 
 const CreatePolicySchema = z.object({
   title: z.string().trim().min(1).max(200),
-  body: z.string().trim().min(1).max(20000),
+  // Optional so upload-first policies (file is the substance) need no authored text; text
+  // policies still supply it. Empty string is stored when absent.
+  body: z.string().trim().max(20000).optional(),
   version: z.number().int().min(1).max(1000),
+  effectiveDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
 
 const AcknowledgePolicySchema = z.object({
@@ -103,7 +108,7 @@ function stripTenant(row: PolicyRow): PolicyRecord {
 
 export async function createPolicy(
   actor: Actor,
-  input: { title: string; body: string; version: number },
+  input: { title: string; body?: string; version: number; effectiveDate?: string },
 ): Promise<PolicyRecord> {
   requireAdmin(actor);
   const tenantId = requireTenant(actor);
@@ -118,13 +123,27 @@ export async function createPolicy(
       p_tenant_id: tenantId,
       p_actor_user_id: actor.authUserId,
       p_title: parsed.data.title,
-      p_body: parsed.data.body,
+      p_body: parsed.data.body ?? "",
       p_version: parsed.data.version,
     } as never)
     .single();
 
   if (error || !data) {
     throw new Error(`POLICY_CREATE_FAILED: ${error?.message ?? "no row"}`);
+  }
+
+  // effective_date is additive metadata — set it on the freshly created row (same direct-update
+  // pattern attachPolicyFile uses). Kept out of the RPC signature to avoid an overload/grant change.
+  if (parsed.data.effectiveDate) {
+    const { data: updated, error: updateError } = await supabase
+      .from("policies")
+      .update({ effective_date: parsed.data.effectiveDate } as never)
+      .eq("tenant_id", tenantId)
+      .eq("id", (data as PolicyRow).id)
+      .select(POLICY_COLUMNS)
+      .single();
+    if (updateError) throw new Error(`POLICY_EFFECTIVE_DATE_FAILED: ${updateError.message}`);
+    return stripTenant(updated as PolicyRow);
   }
 
   return stripTenant(data as PolicyRow);
@@ -141,7 +160,7 @@ export async function attachPolicyFile(
     throw new Error("POLICY_FILE_UNSUPPORTED_TYPE");
   }
 
-  const supabase: any = createServiceRoleClient();
+  const supabase = createServiceRoleClient();
   const { data: policyData, error: policyError } = await supabase
     .from("policies")
     .select(POLICY_COLUMNS)
@@ -176,7 +195,7 @@ export async function attachPolicyFile(
       file_mime_type: fileType.mimeTypes[0],
       file_uploaded_at: new Date().toISOString(),
       file_uploaded_by: actor.authUserId,
-    })
+    } as never)
     .eq("tenant_id", tenantId)
     .eq("id", input.policyId)
     .select(POLICY_COLUMNS)
@@ -425,4 +444,41 @@ export async function acknowledgePolicy(
   if (acknowledgeError) {
     throw new Error(`POLICY_ACKNOWLEDGE_FAILED: ${acknowledgeError.message}`);
   }
+}
+
+/**
+ * Authorised short-lived signed URL for a policy version's attached file. Admins may retrieve any
+ * policy file in their tenant; an employee may retrieve only a PUBLISHED, non-archived policy in
+ * their tenant and only while policy-eligible. Never exposes a permanent/public URL.
+ */
+export async function getPolicyFileSignedUrl(actor: Actor, policyId: string): Promise<string> {
+  const tenantId = requireTenant(actor);
+  const supabase = createServiceRoleClient();
+
+  const { data: policyRow, error } = await supabase
+    .from("policies")
+    .select("id, tenant_id, is_published, archived_at, file_storage_path")
+    .eq("tenant_id", tenantId)
+    .eq("id", policyId)
+    .maybeSingle();
+  if (error) throw new Error(`POLICY_FILE_LOOKUP_FAILED: ${error.message}`);
+  if (!policyRow) throw new Error("POLICY_NOT_FOUND");
+  const policy = policyRow as Pick<PolicyRow, "id" | "is_published" | "archived_at" | "file_storage_path">;
+
+  if (actor.role !== "admin") {
+    // Employee path: must be a published, live policy and the actor a policy-eligible employee.
+    const employeeId = requireLinkedEmployee(actor);
+    if (!policy.is_published || policy.archived_at !== null) throw new Error("POLICY_NOT_PUBLISHED");
+    const { data: employeeData, error: employeeError } = await supabase
+      .from("employees")
+      .select("status, setup_status, lifecycle_state, start_date, end_date, deleted_at")
+      .eq("tenant_id", tenantId)
+      .eq("id", employeeId)
+      .maybeSingle();
+    if (employeeError) throw new Error(`POLICY_EMPLOYEE_LOOKUP_FAILED: ${employeeError.message}`);
+    if (!employeeData || !isPolicyEligibleEmployee(employeeData)) throw new Error("FORBIDDEN");
+  }
+
+  if (!policy.file_storage_path) throw new Error("POLICY_FILE_NOT_FOUND");
+  return createPrivateStorageSignedUrl(policy.file_storage_path);
 }

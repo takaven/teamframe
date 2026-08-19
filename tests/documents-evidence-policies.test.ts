@@ -156,4 +156,40 @@ describe("MR-5 documents, evidence and policies", () => {
     expect(signal).toContain("archived_at");
     expect(signal).toContain("is_published");
   });
+
+  it("Phase 5D: upload-first policies with effective date, authorised file retrieval, hardened RPCs", () => {
+    const policies = read("schemas/policies.sql");
+    const acknowledgementSchema = read("schemas/acknowledgements.sql");
+    const policyService = read("services/policyService/index.ts");
+    const documentService = read("services/documentService/index.ts");
+    const actions = read("app/policies/actions.ts");
+    const page = read("app/policies/page.tsx");
+
+    // Additive effective_date column, backward-compatible (nullable).
+    expect(policies).toContain("effective_date date");
+    expect(policies).toContain("add column if not exists effective_date date");
+    expect(policyService).toContain("effective_date");
+
+    // Upload-first + download actions; primary flow is uploadPolicyAction.
+    expect(actions).toContain("uploadPolicyAction");
+    expect(actions).toContain("downloadPolicyFileAction");
+    expect(page).toContain("uploadPolicyAction");
+    expect(page).toContain("Upload policy");
+    expect(page).toContain("Create simple text policy"); // text remains, secondary
+
+    // Authorised private-file retrieval via a signed URL (no public URL).
+    expect(policyService).toContain("getPolicyFileSignedUrl");
+    expect(documentService).toContain("createPrivateStorageSignedUrl");
+    expect(documentService).toContain("createSignedUrl");
+
+    // Security-definer policy RPCs are service-role only (crafted-request hardening).
+    expect(policies).toContain("revoke all on function teamframe_create_policy");
+    expect(policies).toContain("grant execute on function teamframe_publish_policy");
+    expect(acknowledgementSchema).toContain("revoke all on function teamframe_acknowledge_policy(uuid, uuid, uuid, uuid, integer) from public, anon, authenticated");
+    expect(acknowledgementSchema).toContain("grant execute on function teamframe_acknowledge_policy(uuid, uuid, uuid, uuid, integer) to service_role");
+
+    // Version-specific acknowledgement integrity preserved.
+    expect(acknowledgementSchema).toContain("policy_version = p_policy_version");
+    expect(acknowledgementSchema).toContain("is_published = true");
+  });
 });

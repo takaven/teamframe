@@ -141,3 +141,10 @@ begin
   return v_ack_id;
 end;
 $$;
+
+-- Service-role only: this security-definer function bypasses RLS, so it must not be callable by
+-- end users. The service passes the actor's OWN employee id; direct authenticated access (a crafted
+-- request acknowledging on another employee's or tenant's behalf) is blocked here, with the
+-- acknowledgements_insert RLS policy as the second layer for any direct table write.
+revoke all on function teamframe_acknowledge_policy(uuid, uuid, uuid, uuid, integer) from public, anon, authenticated;
+grant execute on function teamframe_acknowledge_policy(uuid, uuid, uuid, uuid, integer) to service_role;

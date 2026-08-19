@@ -12,7 +12,7 @@ import { AppShell } from "@/components/AppShell";
 import { EmptyState } from "@/components/EmptyState";
 import { EmployeeSelfRecord } from "@/components/EmployeeSelfRecord";
 import { DocumentsChecklist } from "@/components/DocumentsChecklist";
-import { acknowledgePolicyAction } from "@/app/policies/actions";
+import { acknowledgePolicyAction, downloadPolicyFileAction } from "@/app/policies/actions";
 import { submitOnboardingCheckInAction } from "@/app/onboarding/actions";
 
 export const dynamic = "force-dynamic";
@@ -124,10 +124,20 @@ export default async function MePage({
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0 flex-1 space-y-1">
                     <p className="text-[15px] font-medium text-ink-900">{policy.title} <span className="font-mono text-[12px] tabular-nums text-ink-500">v{policy.version}</span></p>
-                    <details>
-                      <summary className="cursor-pointer text-[12px] text-ink-500 hover:text-ink-900">Read policy text</summary>
-                      <p className="mt-2 whitespace-pre-wrap rounded-md border border-ink-200 bg-ink-50/60 px-3 py-2 text-[13px] text-ink-700">{policy.body}</p>
-                    </details>
+                    {policy.effective_date ? <p className="text-[12px] text-ink-500">Effective <span className="font-mono tabular-nums">{formatDay(policy.effective_date)}</span></p> : null}
+                    {policy.file_original_name ? (
+                      <form action={downloadPolicyFileAction}>
+                        <input type="hidden" name="policy_id" value={policy.id} />
+                        <input type="hidden" name="return_to" value="/me" />
+                        <button type="submit" className="text-[12px] text-accent underline underline-offset-2">Open policy document</button>
+                      </form>
+                    ) : null}
+                    {policy.body ? (
+                      <details>
+                        <summary className="cursor-pointer text-[12px] text-ink-500 hover:text-ink-900">Read policy text</summary>
+                        <p className="mt-2 whitespace-pre-wrap rounded-md border border-ink-200 bg-ink-50/60 px-3 py-2 text-[13px] text-ink-700">{policy.body}</p>
+                      </details>
+                    ) : null}
                   </div>
                   <form action={acknowledgePolicyAction} className="w-full sm:w-auto">
                     <input type="hidden" name="policy_id" value={policy.id} />

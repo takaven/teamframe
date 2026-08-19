@@ -263,6 +263,21 @@ export async function uploadPrivateDocumentObject(input: {
   await finalizeFileOperation(tenantId, operationId, "succeeded");
 }
 
+/**
+ * Short-lived signed URL for an object in the private document bucket, addressed by its storage
+ * path. For files (like policy documents) that live in the private bucket but are NOT tracked as a
+ * `documents` row. The CALLER must authorise access first — this only mints the URL. Never returns
+ * a permanent/public URL.
+ */
+export async function createPrivateStorageSignedUrl(storagePath: string, expiresSeconds = 600): Promise<string> {
+  const supabase = createServiceRoleClient();
+  const { data, error } = await supabase.storage.from(DOCUMENT_BUCKET).createSignedUrl(storagePath, expiresSeconds);
+  if (error || !data?.signedUrl) {
+    throw new Error(`PRIVATE_SIGNED_URL_FAILED: ${error?.message ?? "missing signed URL"}`);
+  }
+  return data.signedUrl;
+}
+
 function bufferIncludesAscii(bytes: Buffer, needle: string): boolean {
   return bytes.indexOf(Buffer.from(needle, "ascii")) !== -1;
 }

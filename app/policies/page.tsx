@@ -6,12 +6,13 @@ import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { AppShell } from "@/components/AppShell";
 import { EmptyState } from "@/components/EmptyState";
 import { StatusPill, type StatusPillTone } from "@/components/StatusPill";
-import { archivePolicyAction, attachPolicyFileAction, createPolicyAction, publishPolicyAction } from "./actions";
+import { archivePolicyAction, attachPolicyFileAction, createPolicyAction, downloadPolicyFileAction, publishPolicyAction, uploadPolicyAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
 const STATUS_COPY: Record<string, string> = {
-  created: "Policy created as a draft. Publish it when it is ready.",
+  created: "Text policy created as a draft. Publish it when it is ready.",
+  uploaded: "Policy uploaded.",
   file_attached: "Policy file attached.",
   published: "Policy published. Employees will now be asked to acknowledge it.",
   archived: "Policy archived. It no longer generates acknowledgement risks.",
@@ -22,10 +23,12 @@ const ERROR_COPY: Record<string, string> = {
   NO_TENANT_CONTEXT: "Session error — please sign out and back in.",
   STALE_WRITE: "This policy changed. Refresh and try again.",
   MISSING_EXPECTED_UPDATED_AT: "This action is out of date. Refresh and retry.",
-  INVALID_INPUT: "Check the title, body, and version, then try again.",
+  INVALID_INPUT: "Check the title, version, and effective date, then try again.",
   POLICY_CREATE_FAILED: "Could not create the policy.",
+  POLICY_FILE_REQUIRED: "Attach a policy file (PDF, DOC, or DOCX) to upload a policy.",
   POLICY_FILE_ATTACH_FAILED: "Could not attach the policy file.",
   POLICY_FILE_UNSUPPORTED_TYPE: "Policy files must be PDF, DOC, or DOCX.",
+  POLICY_FILE_NOT_FOUND: "No file is attached to that policy version.",
   POLICY_PUBLISH_FAILED: "Could not publish the policy.",
   POLICY_ARCHIVE_FAILED: "Could not archive the policy.",
   POLICY_LIST_FAILED: "Could not load policies.",
@@ -72,10 +75,10 @@ function policyState(policy: PolicyAdminRecord): {
 export default async function PoliciesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; error?: string }>;
+  searchParams: Promise<{ status?: string; error?: string; nv_title?: string; nv_version?: string }>;
 }) {
   const actor = await requireTenantActor();
-  const { status, error } = await searchParams;
+  const { status, error, nv_title: nvTitle, nv_version: nvVersion } = await searchParams;
 
   if (actor.role !== "admin") {
     // Employees acknowledge policies from their self-service hub.
@@ -86,6 +89,9 @@ export default async function PoliciesPage({
   const errorMessage = error ? (ERROR_COPY[error] ?? ERROR_COPY.UNKNOWN) : null;
 
   const policies = await listPolicies(actor);
+  const uploadDefaultTitle = nvTitle ?? "";
+  const uploadDefaultVersion = nvVersion && /^\d+$/.test(nvVersion) ? Number(nvVersion) : 1;
+  const isNewVersion = Boolean(nvTitle);
   const published = policies.filter((p) => p.is_published && !p.archived_at);
   const drafts = policies.filter((p) => !p.is_published && !p.archived_at);
   const awaiting = published.reduce(
@@ -136,24 +142,22 @@ export default async function PoliciesPage({
         </p>
       ) : null}
 
-      <section className="mt-8 rounded-xl border border-ink-300/70 bg-white/80 p-5">
-        <h2 className="text-[19px] font-medium tracking-tight">Create policy</h2>
+      <section id="upload" className="mt-8 rounded-xl border border-ink-300/70 bg-white/80 p-5">
+        <h2 className="text-[19px] font-medium tracking-tight">{isNewVersion ? "Upload new version" : "Upload policy"}</h2>
         <p className="mt-1 text-[13px] text-ink-500">
-          Upload the policy file and version details first. Simple text remains available for lightweight policies.
+          {isNewVersion
+            ? "This creates a new version as its own record. Earlier versions and their acknowledgements are preserved."
+            : "The primary way to add a policy: upload the document, set its version and effective date, then publish."}
         </p>
-        <form action={createPolicyAction} className="mt-4 grid gap-3">
-          <div className="rounded-lg border border-ink-300/60 bg-ink-50/60 px-4 py-3">
-            <p className="text-[12px] font-medium text-ink-900">Policy file</p>
-            <p className="mt-1 text-[12px] text-ink-500">
-              Attach the PDF or DOCX after creating the draft, then publish the exact version employees will acknowledge.
-            </p>
-          </div>
-          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_140px]">
+        <form action={uploadPolicyAction} className="mt-4 grid gap-3" encType="multipart/form-data">
+          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_120px_160px]">
             <label className="flex flex-col gap-1 text-[12px] text-ink-500">
               Title
               <input
                 name="title"
-                placeholder="e.g. Remote work policy"
+                defaultValue={uploadDefaultTitle}
+                readOnly={isNewVersion}
+                placeholder="e.g. Employee Handbook"
                 required
                 maxLength={200}
                 className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
@@ -161,42 +165,59 @@ export default async function PoliciesPage({
             </label>
             <label className="flex flex-col gap-1 text-[12px] text-ink-500">
               Version
-              <input
-                name="version"
-                type="number"
-                min={1}
-                max={1000}
-                step={1}
-                defaultValue={1}
-                required
-                className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
-              />
+              <input name="version" type="number" min={1} max={1000} step={1} defaultValue={uploadDefaultVersion} required className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900" />
+            </label>
+            <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+              Effective date
+              <input name="effective_date" type="date" required className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900" />
             </label>
           </div>
-          <div className="rounded-lg border border-ink-300/50 bg-white">
-            <div className="px-3 py-2 text-[12px] font-medium text-ink-700">
-              Simple text policy
-            </div>
-            <label className="flex flex-col gap-1 border-t border-ink-300/40 px-3 py-3 text-[12px] text-ink-500">
-              Policy text
-              <textarea
-                name="body"
-                placeholder="Write the policy in plain text"
-                required
-                rows={4}
-                maxLength={20000}
-                className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
-              />
-            </label>
-          </div>
+          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+            Policy file (PDF, DOC, or DOCX)
+            <input name="file" type="file" required accept=".pdf,.doc,.docx" className="rounded-md border border-ink-300 bg-white px-3 py-2 text-[13px] text-ink-900" />
+          </label>
+          <label className="flex items-center gap-2 text-[13px] text-ink-700">
+            <input type="checkbox" name="publish" defaultChecked className="h-4 w-4 rounded border-ink-300" />
+            Publish now (employees will be asked to acknowledge this version)
+          </label>
           <div>
             <PendingSubmitButton
-              idleLabel="Create draft"
-              pendingLabel="Creating…"
+              idleLabel={isNewVersion ? "Upload new version" : "Upload policy"}
+              pendingLabel="Uploading…"
               className="rounded-lg bg-brand-signal px-5 py-2 text-[14px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:cursor-not-allowed disabled:bg-ink-300"
             />
           </div>
         </form>
+
+        <details className="mt-4 rounded-lg border border-ink-300/50 bg-white/70">
+          <summary className="cursor-pointer px-4 py-2.5 text-[13px] font-medium text-ink-700 hover:text-ink-900">
+            Create simple text policy instead
+          </summary>
+          <form action={createPolicyAction} className="grid gap-3 border-t border-ink-300/40 px-4 py-4">
+            <p className="text-[12px] text-ink-500">For lightweight policies without a document. Historical text policies keep working.</p>
+            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_120px_160px]">
+              <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+                Title
+                <input name="title" required maxLength={200} className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900" />
+              </label>
+              <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+                Version
+                <input name="version" type="number" min={1} max={1000} step={1} defaultValue={1} required className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900" />
+              </label>
+              <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+                Effective date
+                <input name="effective_date" type="date" className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900" />
+              </label>
+            </div>
+            <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+              Policy text
+              <textarea name="body" required rows={4} maxLength={20000} placeholder="Write the policy in plain text" className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900" />
+            </label>
+            <div>
+              <PendingSubmitButton idleLabel="Create text draft" pendingLabel="Creating…" className="rounded-lg border border-ink-300 px-5 py-2 text-[14px] font-medium text-ink-700 transition hover:border-ink-900 disabled:text-ink-300" />
+            </div>
+          </form>
+        </details>
       </section>
 
       {policies.length === 0 ? (
@@ -228,6 +249,7 @@ export default async function PoliciesPage({
                       </p>
                       <p className="text-[12px] text-ink-500">{state.help}</p>
                       <p className="text-[12px] text-ink-500">
+                        {policy.effective_date ? <>Effective <span className="font-mono tabular-nums">{formatDate(policy.effective_date)}</span> · </> : null}
                         Created <span className="font-mono tabular-nums">{formatDate(policy.created_at)}</span> · Updated{" "}
                         <span className="font-mono tabular-nums">{formatDate(policy.updated_at)}</span>
                       </p>
@@ -236,9 +258,16 @@ export default async function PoliciesPage({
                           Policy file: {policy.file_original_name ?? "No file attached"}
                         </p>
                         {policy.file_uploaded_at ? (
-                          <p className="mt-1 text-[12px] text-ink-500">
-                            Uploaded <span className="font-mono tabular-nums">{formatDate(policy.file_uploaded_at)}</span>
-                          </p>
+                          <div className="mt-1 flex flex-wrap items-center gap-3">
+                            <p className="text-[12px] text-ink-500">
+                              Uploaded <span className="font-mono tabular-nums">{formatDate(policy.file_uploaded_at)}</span>
+                            </p>
+                            <form action={downloadPolicyFileAction}>
+                              <input type="hidden" name="policy_id" value={policy.id} />
+                              <input type="hidden" name="return_to" value="/policies" />
+                              <button type="submit" className="text-[12px] text-accent underline underline-offset-2">View / download</button>
+                            </form>
+                          </div>
                         ) : (
                           <p className="mt-1 text-[12px] text-ink-500">
                             PDF or DOCX upload is the normal policy content path; plain text remains available for simple policies.
@@ -306,6 +335,14 @@ export default async function PoliciesPage({
                       </details>
                     </div>
                     <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:flex-nowrap">
+                      {!policy.archived_at ? (
+                        <a
+                          href={`/policies?nv_title=${encodeURIComponent(policy.title)}&nv_version=${policy.version + 1}#upload`}
+                          className="w-full rounded-full border border-ink-300 px-4 py-1.5 text-center text-[13px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 sm:w-auto"
+                        >
+                          New version
+                        </a>
+                      ) : null}
                       {!policy.is_published && !policy.archived_at ? (
                         <form action={publishPolicyAction} className="w-full sm:w-auto">
                           <input type="hidden" name="policy_id" value={policy.id} />

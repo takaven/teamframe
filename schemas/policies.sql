@@ -8,6 +8,7 @@ create table if not exists policies (
   body        text        not null,
   version     integer     not null default 1,
   is_published boolean    not null default false,
+  effective_date date,
   file_storage_path text,
   file_original_name text,
   file_mime_type text,
@@ -23,6 +24,9 @@ alter table policies add column if not exists tenant_id uuid;
 alter table policies add column if not exists version integer not null default 1;
 alter table policies add column if not exists is_published boolean not null default false;
 alter table policies add column if not exists updated_at timestamptz not null default now();
+-- Phase 5D (additive): the date the policy version takes effect. Nullable so legacy rows and
+-- text policies without one remain valid; upload-first creation captures it as metadata.
+alter table policies add column if not exists effective_date date;
 alter table policies add column if not exists file_storage_path text;
 alter table policies add column if not exists file_original_name text;
 alter table policies add column if not exists file_mime_type text;
@@ -169,3 +173,14 @@ begin
   return v_policy;
 end;
 $$;
+
+-- Security-definer policy mutations must never be directly callable by end users: the service
+-- (service-role) is the only authorised caller, passing actor-derived identity. Without these
+-- revokes the functions default to EXECUTE for PUBLIC (incl. authenticated), which would let a
+-- crafted request bypass RLS and the service-layer ownership/tenant checks.
+revoke all on function teamframe_create_policy(uuid, uuid, text, text, integer) from public, anon, authenticated;
+revoke all on function teamframe_publish_policy(uuid, uuid, uuid, timestamptz) from public, anon, authenticated;
+revoke all on function teamframe_archive_policy(uuid, uuid, uuid, timestamptz) from public, anon, authenticated;
+grant execute on function teamframe_create_policy(uuid, uuid, text, text, integer) to service_role;
+grant execute on function teamframe_publish_policy(uuid, uuid, uuid, timestamptz) to service_role;
+grant execute on function teamframe_archive_policy(uuid, uuid, uuid, timestamptz) to service_role;
