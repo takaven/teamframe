@@ -14,7 +14,17 @@ import { listPositions } from "@/services/positionService";
 import { listEarlyEmploymentForAdmin } from "@/services/earlyEmploymentService";
 import { getEmployeeMasterRecord, listEmployeePhotoUrls } from "@/services/employeeMasterService";
 import { listAssignmentsForEmployee } from "@/services/positionAssignmentService";
-import { EmployeeMasterSections } from "@/components/EmployeeMasterSections";
+import { listDepartments } from "@/services/configurationService";
+import {
+  RecordHeader,
+  PersonalPanel,
+  EmploymentReadPanel,
+  CompensationReadPanel,
+  PaymentReadPanel,
+  EmergencyReadPanel,
+} from "@/components/EmployeeMasterSections";
+import { SectionTabs } from "@/components/SectionTabs";
+import { EmployeeAvatar } from "@/components/EmployeeAvatar";
 import { CopyInviteEmailButton } from "./CopyInviteEmailButton";
 import {
   createEmployeeAction,
@@ -209,6 +219,7 @@ export default async function EmployeesPage({
       .map((review) => review.employee_id),
   );
   const positions = await listPositions(actor);
+  const departmentOptions = (await listDepartments(actor)).filter((d) => d.active);
   const positionByEmployeeId = new Map(
     positions
       .filter((position) => position.assigned_employee_id)
@@ -359,15 +370,13 @@ export default async function EmployeesPage({
     <main className="mx-auto max-w-6xl px-6 py-14">
       <AppShell actor={actor} activePath="/employees" />
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink-300/60 pb-5">
-        <div className="space-y-2">
-          <p className="text-[12px] tracking-[0.14em] text-ink-500">Admin queue</p>
-          <h1 className="text-[34px] leading-tight tracking-tight">Team roster</h1>
+        <div>
+          <h1 className="text-[32px] font-extrabold leading-tight tracking-tight text-ink-800">Employees</h1>
+          <p className="mt-1.5 text-[14px] text-ink-500">
+            Your people, their records and onboarding progress — in one place.
+          </p>
         </div>
       </div>
-
-      <p className="mt-7 max-w-2xl text-[15px] text-ink-700">
-        Add teammates, track invite progress, and keep onboarding moving from one place.
-      </p>
 
       <section className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
@@ -451,56 +460,39 @@ export default async function EmployeesPage({
             className="m-5"
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-[13px]">
-              <thead className="border-b border-ink-300/60 text-[11px] uppercase tracking-[0.1em] text-ink-500">
-                <tr>
-                  <th className="px-5 py-3 font-medium">Employee No.</th>
-                  <th className="px-5 py-3 font-medium">Employee</th>
-                  <th className="px-5 py-3 font-medium">Position</th>
-                  <th className="px-5 py-3 font-medium">Work Location</th>
-                  <th className="px-5 py-3 font-medium">Employment Status</th>
-                  <th className="px-5 py-3 font-medium">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-ink-300/40">
-                {filteredEmployees.map((employee) => {
-                  const state = inviteState(employee);
-                  const position = positionByEmployeeId.get(employee.id);
-                  const needsAttention =
-                    employee.status !== "inactive" &&
-                    (employee.setup_status !== "active" || Boolean(employee.invite_last_error));
-                  return (
-                    <tr key={employee.id} className="align-top">
-                      <td className="px-5 py-3">
-                        <span className="font-mono text-[12px] tabular-nums text-ink-700">
-                          {employee.employee_number ?? "—"}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3">
-                        <p className="font-medium text-ink-900">{employee.full_name}</p>
-                        <p className="text-[12px] text-ink-500">{employee.role_title}</p>
-                      </td>
-                      <td className="px-5 py-3 text-ink-700">
-                        {position ? (
-                          <a
-                            href="/org-chart"
-                            className="text-[12px] font-medium text-ink-900 underline decoration-ink-300 underline-offset-4 hover:decoration-ink-900"
-                          >
-                            {position.title}
-                          </a>
-                        ) : (
-                          <span className="text-[12px] text-ink-500">No assigned position</span>
-                        )}
-                      </td>
-                      <td className="px-5 py-3 text-ink-700">
-                        {employee.work_location ? (
-                          <span className="text-[13px] text-ink-800">{employee.work_location}</span>
-                        ) : (
-                          <span className="text-[12px] text-ink-500">—</span>
-                        )}
-                      </td>
-                      <td className="px-5 py-3">
+          <ul className="divide-y divide-ink-300/40">
+            {filteredEmployees.map((employee) => {
+              const state = inviteState(employee);
+              const position = positionByEmployeeId.get(employee.id);
+              const positionTitle = position?.title ?? null;
+              const roleDiverges =
+                !!positionTitle && employee.role_title.trim().toLowerCase() !== positionTitle.trim().toLowerCase();
+              const primaryRole = positionTitle ?? employee.role_title;
+              const needsAttention =
+                employee.status !== "inactive" &&
+                (employee.setup_status !== "active" || Boolean(employee.invite_last_error));
+              return (
+                <li key={employee.id}>
+                  <a
+                    href={`/employees?employee=${employee.id}#employee-${employee.id}`}
+                    className="group grid grid-cols-[1fr_auto] items-center gap-4 px-5 py-3.5 transition hover:bg-ink-50/70 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <EmployeeAvatar name={employee.full_name} photoUrl={photoByEmployeeId.get(employee.id) ?? null} />
+                      <div className="min-w-0">
+                        <p className="truncate text-[14px] font-semibold text-ink-900">{employee.full_name}</p>
+                        <p className="truncate text-[12.5px] text-ink-500">
+                          {primaryRole}
+                          {roleDiverges ? <span className="text-ink-400"> · Title: {employee.role_title}</span> : null}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="hidden min-w-0 md:block">
+                      <p className="truncate text-[13px] text-ink-700">{employee.department || "—"}</p>
+                      <p className="truncate text-[12px] text-ink-500">{employee.work_location || "No work location"}</p>
+                    </div>
+                    <div className="flex items-center gap-3 justify-self-end">
+                      <div className="text-right">
                         <StatusPill
                           tone={
                             employee.canonical_lifecycle === "FORMER"
@@ -513,25 +505,15 @@ export default async function EmployeesPage({
                           {employee.canonical_lifecycle_label}
                           {probationEmployeeIds.has(employee.id) && employee.canonical_lifecycle === "ACTIVE" ? " · Probation" : ""}
                         </StatusPill>
-                        {/* Account/invite state is secondary to employment status. */}
-                        {needsAttention ? (
-                          <p className="mt-1 text-[11px] text-ink-500">{state.label}</p>
-                        ) : null}
-                      </td>
-                      <td className="px-5 py-3">
-                        <a
-                          href={`/employees?employee=${employee.id}#employee-${employee.id}`}
-                          className="text-[12px] font-medium text-ink-900 underline decoration-ink-300 underline-offset-4 hover:decoration-ink-900"
-                        >
-                          Open record
-                        </a>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        {needsAttention ? <p className="mt-1 text-[11px] text-ink-500">{state.label}</p> : null}
+                      </div>
+                      <span className="text-[13px] font-medium text-ink-300 transition group-hover:text-ink-900" aria-hidden>→</span>
+                    </div>
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </section>
 
@@ -555,8 +537,6 @@ export default async function EmployeesPage({
                 const offboarding = offboardingByEmployee.get(employee.id) ?? null;
                 const offboardingLeave = offboardingLeaveByEmployee.get(employee.id) ?? null;
                 const position = positionByEmployeeId.get(employee.id);
-                const state = inviteState(employee);
-                const detailOpen = employeeParam === employee.id;
                 const resendGuidance = resendBlocked
                   ? `Re-send cooldown active: retry in ${resendCooldownSeconds}s.`
                   : "If delivery is delayed, use Re-send invite first, then activation link as fallback.";
@@ -565,15 +545,12 @@ export default async function EmployeesPage({
                 return (
                   <>
               {master ? (
-                <div className="mb-6">
-                  <EmployeeMasterSections
-                    master={master.record}
-                    photoUrl={photoByEmployeeId.get(employee.id) ?? null}
-                    positionTitle={position?.title ?? null}
-                    managerName={master.record.employment.manager_id ? employeeNameById.get(master.record.employment.manager_id) ?? null : null}
-                    assignments={master.assignments}
-                  />
-                </div>
+                <RecordHeader
+                  master={master.record}
+                  photoUrl={photoByEmployeeId.get(employee.id) ?? null}
+                  positionTitle={position?.title ?? null}
+                  managerName={master.record.employment.manager_id ? employeeNameById.get(master.record.employment.manager_id) ?? null : null}
+                />
               ) : null}
               {status === "reinvited" && employeeParam === employee.id ? (
                 <p className="mb-3 rounded-md border border-signal-green/30 bg-signal-green/10 px-3 py-2 text-[13px] text-signal-green">
@@ -601,80 +578,36 @@ export default async function EmployeesPage({
                   </div>
                 </div>
               ) : null}
-              <details open={detailOpen} className="group">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 [&::-webkit-details-marker]:hidden">
-                  <div>
-                    <h3 className="text-[19px] font-medium tracking-tight">{employee.full_name}</h3>
-                    <p className="text-[13px] text-ink-500">{employee.email}</p>
-                    <p className="mt-2">
-                      <StatusPill tone={state.tone} className="uppercase tracking-[0.08em]">
-                        {state.label}
-                      </StatusPill>
-                    </p>
+              <div className="mt-6">
+              <SectionTabs
+                ariaLabel="Employee record sections"
+                initialId="employment"
+                tabs={[
+                  { id: "employment", label: "Employment" },
+                  { id: "personal", label: "Personal" },
+                  { id: "compensation", label: "Compensation" },
+                  { id: "payment", label: "Bank & payment" },
+                  { id: "emergency", label: "Emergency contact" },
+                  { id: "documents", label: "Documents", badge: documents.length },
+                  { id: "account", label: "Account & lifecycle" },
+                ]}
+              >
+                {master ? (
+                  <div data-tab="employment" className="space-y-4">
+                    <EmploymentReadPanel
+                      master={master.record}
+                      positionTitle={position?.title ?? null}
+                      managerName={master.record.employment.manager_id ? employeeNameById.get(master.record.employment.manager_id) ?? null : null}
+                      assignments={master.assignments}
+                    />
                   </div>
-                  <div className="flex shrink-0 flex-col items-end gap-2">
-                    <span className="text-[12px] capitalize tracking-[0.12em] text-ink-500">
-                      {employee.status.replace("_", " ")}
-                    </span>
-                    <span className="text-[12px] text-ink-700 underline decoration-ink-300 underline-offset-4 group-open:hidden">
-                      View details
-                    </span>
-                    <span className="hidden text-[12px] text-ink-700 underline decoration-ink-300 underline-offset-4 group-open:inline">
-                      Hide details
-                    </span>
-                  </div>
-                </summary>
+                ) : null}
+                {master ? <div data-tab="personal"><PersonalPanel master={master.record} /></div> : null}
+                {master ? <div data-tab="compensation"><CompensationReadPanel master={master.record} /></div> : null}
+                {master ? <div data-tab="payment"><PaymentReadPanel master={master.record} /></div> : null}
+                {master ? <div data-tab="emergency"><EmergencyReadPanel master={master.record} /></div> : null}
 
-                <p className="mt-2 text-[12px] text-ink-500">{state.help}</p>
-
-                <dl className="mt-4 grid gap-x-6 gap-y-3 rounded-md border border-ink-300/50 bg-white px-4 py-3 text-[13px] sm:grid-cols-2 lg:grid-cols-4">
-                  <div className="min-w-0">
-                    <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Email</dt>
-                    <dd className="mt-0.5 break-words text-ink-900">{employee.email}</dd>
-                  </div>
-                  <div className="min-w-0">
-                    <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Role title</dt>
-                    <dd className="mt-0.5 break-words text-ink-900">{employee.role_title}</dd>
-                  </div>
-                  <div className="min-w-0">
-                    <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Position</dt>
-                    <dd className="mt-0.5 break-words text-ink-900">
-                      {position ? (
-                        <a href="/org-chart" className="underline decoration-ink-300 underline-offset-4">
-                          {position.title}
-                        </a>
-                      ) : (
-                        "No assigned position"
-                      )}
-                    </dd>
-                  </div>
-                  <div className="min-w-0">
-                    <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Department</dt>
-                    <dd className="mt-0.5 break-words text-ink-900">{employee.department}</dd>
-                  </div>
-                  <div className="min-w-0">
-                    <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Timezone</dt>
-                    <dd className="mt-0.5 break-words text-ink-900">{employee.timezone}</dd>
-                  </div>
-                  <div className="min-w-0">
-                    <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Country</dt>
-                    <dd className="mt-0.5 break-words text-ink-900">{employee.country ?? "-"}</dd>
-                  </div>
-                  <div className="min-w-0">
-                    <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Lifecycle state</dt>
-                    <dd className="mt-0.5 break-words text-ink-900">{employee.canonical_lifecycle_label}</dd>
-                  </div>
-                  <div className="min-w-0">
-                    <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Invite state</dt>
-                    <dd className="mt-0.5 break-words text-ink-900">{state.label}</dd>
-                  </div>
-                  <div className="min-w-0">
-                    <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Employment</dt>
-                    <dd className="mt-0.5 break-words capitalize text-ink-900">{employee.employment_type.replace("_", " ")}</dd>
-                  </div>
-                </dl>
-
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-y border-ink-100 py-3">
+                <div data-tab="account" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-ink-200 bg-white/70 p-5">
                   <div>
                     <p className="text-[13px] font-medium text-ink-900">Due diligence pack</p>
                     <p className="text-[12px] text-ink-500">
@@ -687,12 +620,13 @@ export default async function EmployeesPage({
                     <PendingSubmitButton
                       idleLabel="Export due diligence pack"
                       pendingLabel="Preparing pack…"
-                      className="rounded-md border border-ink-300 bg-white px-4 py-2 text-[13px] font-medium text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:text-ink-300"
+                      className="tf-secondary-action px-4 py-2 text-[13px] disabled:cursor-not-allowed disabled:text-ink-300"
                     />
                   </form>
                 </div>
 
-              <form action={updateEmployeeAction} className="mt-4 grid gap-3 md:grid-cols-4">
+              <form action={updateEmployeeAction} data-tab="employment" className="grid gap-3 rounded-xl border border-ink-200 bg-white/70 p-5 md:grid-cols-4">
+                <p className="text-[13px] font-bold text-ink-800 md:col-span-4">Edit employment</p>
                 <input type="hidden" name="employee_id" value={employee.id} />
                 <input type="hidden" name="expected_updated_at" value={employee.updated_at} />
                 <label className="flex flex-col gap-1 text-[12px] text-ink-500">
@@ -705,11 +639,18 @@ export default async function EmployeesPage({
                 </label>
                 <label className="flex flex-col gap-1 text-[12px] text-ink-500">
                   Department
-                  <input
+                  <select
                     name="department"
                     defaultValue={employee.department}
-                    className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
-                  />
+                    className="rounded-md border border-ink-300 bg-white px-3 py-2 text-[14px] text-ink-900"
+                  >
+                    {departmentOptions.some((d) => d.name === employee.department) ? null : (
+                      <option value={employee.department}>{employee.department || "— Select department"}</option>
+                    )}
+                    {departmentOptions.map((d) => (
+                      <option key={d.id} value={d.name}>{d.name}</option>
+                    ))}
+                  </select>
                 </label>
                 <label className="flex flex-col gap-1 text-[12px] text-ink-500">
                   Employment type
@@ -771,7 +712,7 @@ export default async function EmployeesPage({
                 </div>
               </form>
 
-              <section className="mt-4 border-t border-ink-100 pt-4">
+              <section data-tab="account" className="rounded-xl border border-ink-200 bg-white/70 p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h4 className="text-[13px] font-medium text-ink-900">Offboarding</h4>
@@ -858,7 +799,7 @@ export default async function EmployeesPage({
                 )}
               </section>
 
-              <section className="mt-4 border-t border-ink-100 pt-4">
+              <section data-tab="employment" className="rounded-xl border border-ink-200 bg-white/70 p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h4 className="text-[13px] font-medium text-ink-900">Employment changes</h4>
@@ -894,11 +835,16 @@ export default async function EmployeesPage({
                   </label>
                   <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                     New department
-                    <input
+                    <select
                       name="department"
-                      placeholder={employee.department}
-                      className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900"
-                    />
+                      defaultValue=""
+                      className="rounded-md border border-ink-300 bg-white px-2 py-1.5 text-[12px] text-ink-900"
+                    >
+                      <option value="">No change</option>
+                      {departmentOptions.map((d) => (
+                        <option key={d.id} value={d.name}>{d.name}</option>
+                      ))}
+                    </select>
                   </label>
                   <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                     Employment type
@@ -1039,7 +985,8 @@ export default async function EmployeesPage({
                 )}
               </section>
 
-              <dl className="mt-3 grid gap-x-6 gap-y-2 border-y border-ink-100 bg-ink-50/40 py-3 text-[12px] sm:grid-cols-2 lg:grid-cols-4">
+              <dl data-tab="account" className="grid gap-x-6 gap-y-2 rounded-xl border border-ink-200 bg-white/70 p-5 text-[12px] sm:grid-cols-2 lg:grid-cols-4">
+                <p className="text-[13px] font-bold text-ink-800 sm:col-span-2 lg:col-span-4">Invite diagnostics</p>
                 <div>
                   <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Invite attempts</dt>
                   <dd className="mt-0.5 font-mono tabular-nums text-ink-700">{employee.invite_attempt_count}</dd>
@@ -1058,7 +1005,7 @@ export default async function EmployeesPage({
                 </div>
               </dl>
 
-              <section className="mt-4 border-t border-ink-100 pt-4">
+              <section data-tab="documents" className="rounded-xl border border-ink-200 bg-white/70 p-5">
                 <h4 className="text-[13px] font-medium text-ink-900">Documents</h4>
 
                 <form action={createDocumentRequirementAction} className="mt-3 grid gap-2 md:grid-cols-5">
@@ -1251,7 +1198,7 @@ export default async function EmployeesPage({
               </section>
 
               {workCountryByEmployee.get(employee.id) === UAE_COUNTRY ? (
-                <section className="mt-4 border-t border-ink-100 pt-4">
+                <section data-tab="documents" className="rounded-xl border border-ink-200 bg-white/70 p-5">
                   <h4 className="text-[13px] font-medium text-ink-900">Country-specific records — UAE</h4>
                   <p className="mt-1 text-[12px] text-ink-500">
                     Factual record-keeping only. Store the document, its reference and dates, and evidence — TeamFrame does not assess legal compliance.
@@ -1347,7 +1294,9 @@ export default async function EmployeesPage({
                 </section>
               ) : null}
 
-              <div className="mt-3 flex flex-wrap items-center gap-2 sm:gap-3">
+              <div data-tab="account" className="rounded-xl border border-ink-200 bg-white/70 p-5">
+                <p className="mb-3 text-[13px] font-bold text-ink-800">Account actions</p>
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 <div className="w-full sm:w-auto">
                   <CopyInviteEmailButton email={employee.email} />
                 </div>
@@ -1386,11 +1335,13 @@ export default async function EmployeesPage({
                     className="w-full rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300 sm:w-auto"
                   />
                 </form>
+                </div>
+                {employee.setup_status !== "active" && employee.status !== "inactive" ? (
+                  <p className="mt-3 text-[12px] text-ink-500">{resendGuidance}</p>
+                ) : null}
               </div>
-              {employee.setup_status !== "active" && employee.status !== "inactive" ? (
-                <p className="mt-2 text-[12px] text-ink-500">{resendGuidance}</p>
-              ) : null}
-              </details>
+              </SectionTabs>
+              </div>
                   </>
                 );
               })()}
@@ -1431,12 +1382,26 @@ export default async function EmployeesPage({
           </label>
           <label className="flex flex-col gap-1 text-[12px] text-ink-500">
             Department
-            <input
-              name="department"
-              placeholder="e.g. Engineering"
-              required
-              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
-            />
+            {departmentOptions.length > 0 ? (
+              <select
+                name="department"
+                required
+                defaultValue=""
+                className="rounded-md border border-ink-300 bg-white px-3 py-2 text-[14px] text-ink-900"
+              >
+                <option value="" disabled>— Select department</option>
+                {departmentOptions.map((d) => (
+                  <option key={d.id} value={d.name}>{d.name}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                name="department"
+                placeholder="e.g. Engineering"
+                required
+                className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+              />
+            )}
           </label>
           <label className="flex flex-col gap-1 text-[12px] text-ink-500">
             Timezone
