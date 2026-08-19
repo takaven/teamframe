@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { BrandLogo } from "@/components/BrandLogo";
+import { TakavenEndorsement } from "@/components/TakavenEndorsement";
+import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { createServerClient } from "@/lib/db/supabaseServer";
 import { resolveIdentity, type Role } from "@/lib/rbac/roles";
 
@@ -80,25 +82,24 @@ export default async function FounderReviewLoginPage({
     <main className="min-h-screen bg-white md:grid md:grid-cols-[1fr_minmax(520px,620px)]">
       <section className="flex h-[388px] flex-col bg-brand-charcoal px-[22px] pb-[34px] pt-7 text-white md:h-auto md:px-14 md:py-14">
         <BrandLogo variant="lockup" reversed className="h-7 w-auto" priority />
-        <div className="mt-auto max-w-[420px]">
-          <p className="text-[12px] uppercase tracking-[0.18em] text-[#B0B8C2]">Review environment</p>
-          <h1 className="mt-3 text-[30px] font-extrabold leading-[1.18] tracking-[-0.8px] md:text-[40px] md:tracking-[-1.1px]">
+        <div className="mt-auto max-w-[440px]">
+          <h1 className="text-[30px] font-extrabold leading-[1.18] tracking-[-0.8px] md:text-[40px] md:tracking-[-1.1px]">
             Welcome to TeamFrame
           </h1>
           <p className="mt-4 max-w-[400px] text-[15.5px] leading-normal text-[#B0B8C2] md:text-[17px]">
-            Synthetic, non-production review access.
+            A focused HR workspace for your people, roles and records.
           </p>
         </div>
+        <TakavenEndorsement reversed className="mt-10" />
       </section>
 
       <section className="-mt-[14px] rounded-t-[14px] bg-white px-[22px] pb-6 pt-7 md:mt-0 md:flex md:flex-col md:justify-center md:rounded-none md:px-16">
         <div>
-          <p className="text-[12px] uppercase tracking-[0.18em] text-ink-500">
-            {requestedRole === "admin" ? "Admin review access" : "Employee review access"}
-          </p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-ink-500">Review environment</p>
           <h2 className="mt-3 text-[28px] font-extrabold leading-tight tracking-[-0.7px] text-ink-800">Sign in</h2>
           <p className="mt-2 text-[15.5px] text-ink-500">
-            Use the synthetic review credentials supplied for this non-production environment.
+            Use your review credentials to access TeamFrame
+            {requestedRole === "admin" ? " as an administrator." : "."}
           </p>
         </div>
 
@@ -132,13 +133,13 @@ export default async function FounderReviewLoginPage({
             className="h-12 w-full rounded-lg border border-ink-300 bg-white px-[14px] text-[15px] text-ink-800 outline-none transition focus:border-ink-800"
           />
 
-          <button
-            type="submit"
+          <PendingSubmitButton
+            idleLabel="Sign in"
+            pendingLabel="Signing in…"
             disabled={!enabled}
+            disabledLabel="Sign in"
             className="tf-primary-action h-12 w-full px-5 text-[15px] disabled:cursor-not-allowed disabled:bg-ink-300"
-          >
-            Sign in
-          </button>
+          />
 
           {errorMessage || !enabled ? (
             <p role="alert" className="text-[13px] text-signal-red">

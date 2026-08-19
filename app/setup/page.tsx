@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireTenantActor } from "@/middleware/rbac";
 import { AppShell } from "@/components/AppShell";
+import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { ISO_COUNTRIES } from "@/lib/geo/countries";
 import {
   getCompanySettings,
@@ -151,7 +152,7 @@ export default async function SetupPage({
                   <input type="checkbox" name="thirty_day_check_in_enabled" defaultChecked={company.thirty_day_check_in_enabled} />
                   Enable the optional automated 30-day onboarding check-in
                 </label>
-                <div className="sm:col-span-2"><button type="submit" className={btn}>Save company settings</button></div>
+                <div className="sm:col-span-2"><PendingSubmitButton idleLabel="Save company settings" pendingLabel="Saving…" className={btn} /></div>
               </form>
             </section>
           ) : null}
@@ -162,7 +163,7 @@ export default async function SetupPage({
               <p className="mt-1 text-[13px] text-ink-500">Company-controlled department list. Deactivate rather than delete — legacy free-text labels stay valid.</p>
               <form action={createDepartmentAction} className="mt-4 flex flex-wrap items-end gap-2">
                 <label className="flex-1 text-[13px] text-ink-700">New department<input name="name" required className={input} /></label>
-                <button type="submit" className={btn}>Add</button>
+                <PendingSubmitButton idleLabel="Add" pendingLabel="Adding…" className={btn} />
               </form>
               <ul className="mt-4 divide-y divide-ink-100 rounded-lg border border-ink-200">
                 {departments.length === 0 ? <li className="px-3 py-3 text-[13px] text-ink-500">No departments configured yet.</li> : null}
@@ -171,13 +172,13 @@ export default async function SetupPage({
                     <form action={renameDepartmentAction} className="flex items-center gap-2">
                       <input type="hidden" name="id" value={d.id} />
                       <input name="name" defaultValue={d.name} className="rounded-lg border border-ink-300 px-2 py-1 text-[13px]" />
-                      <button type="submit" className={btnGhost}>Rename</button>
+                      <PendingSubmitButton idleLabel="Rename" pendingLabel="Saving…" className={btnGhost} />
                     </form>
                     <form action={toggleDepartmentAction} className="flex items-center gap-2">
                       <input type="hidden" name="id" value={d.id} />
                       <input type="hidden" name="active" value={(!d.active).toString()} />
                       <span className={`text-[11px] font-semibold ${d.active ? "text-signal-green" : "text-ink-400"}`}>{d.active ? "Active" : "Inactive"}</span>
-                      <button type="submit" className={btnGhost}>{d.active ? "Deactivate" : "Reactivate"}</button>
+                      <PendingSubmitButton idleLabel={d.active ? "Deactivate" : "Reactivate"} pendingLabel="Saving…" className={btnGhost} />
                     </form>
                   </li>
                 ))}
@@ -192,7 +193,7 @@ export default async function SetupPage({
               <form action={createWorkLocationAction} className="mt-4 grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
                 <label className="text-[13px] text-ink-700">Name<input name="name" required className={input} /></label>
                 <label className="text-[13px] text-ink-700">Country<CountrySelect name="country" /></label>
-                <button type="submit" className={btn}>Add</button>
+                <PendingSubmitButton idleLabel="Add" pendingLabel="Adding…" className={btn} />
               </form>
               <ul className="mt-4 divide-y divide-ink-100 rounded-lg border border-ink-200">
                 {workLocations.length === 0 ? <li className="px-3 py-3 text-[13px] text-ink-500">No work locations configured yet.</li> : null}
@@ -203,7 +204,7 @@ export default async function SetupPage({
                       <input name="name" defaultValue={l.name} className="rounded-lg border border-ink-300 px-2 py-1 text-[13px]" />
                       <CountrySelect name="country" value={l.country} />
                       <label className="flex items-center gap-1.5 text-[12px] text-ink-600"><input type="checkbox" name="active" defaultChecked={l.active} /> Active</label>
-                      <button type="submit" className={btnGhost}>Save</button>
+                      <PendingSubmitButton idleLabel="Save" pendingLabel="Saving…" className={btnGhost} />
                     </form>
                   </li>
                 ))}
@@ -232,7 +233,7 @@ export default async function SetupPage({
                   <label className="text-[13px] text-ink-700">Counting basis<select name="counting_basis" defaultValue="working_days" className={input}><option value="working_days">Working days</option><option value="calendar_days">Calendar days</option></select></label>
                   <label className="text-[13px] text-ink-700">Attachment<select name="attachment_requirement" defaultValue="not_required" className={input}><option value="not_required">Not required</option><option value="optional">Optional</option><option value="required">Required</option></select></label>
                   <label className="flex items-center gap-2 text-[13px] text-ink-700"><input type="checkbox" name="active" defaultChecked /> Active</label>
-                  <div className="sm:col-span-2"><button type="submit" className={btn}>Add leave type</button></div>
+                  <div className="sm:col-span-2"><PendingSubmitButton idleLabel="Add leave type" pendingLabel="Adding…" className={btn} /></div>
                 </form>
               </details>
               <ul className="mt-4 space-y-2">
@@ -246,7 +247,7 @@ export default async function SetupPage({
                       <label className="text-[12px] text-ink-600">Basis<select name="counting_basis" defaultValue={d.counting_basis} className="mt-1 w-full rounded-lg border border-ink-300 px-2 py-1 text-[13px]"><option value="working_days">Working days</option><option value="calendar_days">Calendar days</option></select></label>
                       <label className="text-[12px] text-ink-600">Attachment<select name="attachment_requirement" defaultValue={d.attachment_requirement} className="mt-1 w-full rounded-lg border border-ink-300 px-2 py-1 text-[13px]"><option value="not_required">Not required</option><option value="optional">Optional</option><option value="required">Required</option></select></label>
                       <label className="flex items-center gap-1.5 text-[12px] text-ink-600"><input type="checkbox" name="active" defaultChecked={d.active} /> Active</label>
-                      <button type="submit" className={btnGhost}>Save</button>
+                      <PendingSubmitButton idleLabel="Save" pendingLabel="Saving…" className={btnGhost} />
                     </form>
                   </li>
                 ))}

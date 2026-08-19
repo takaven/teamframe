@@ -38,4 +38,9 @@ export const SCHEMA_ORDER = [
   // Phase 2: position occupancy history + positions→config FKs. Applies last so it
   // can reference departments, work_locations, positions and employees.
   "position_assignments.sql",
+  // Phase 8 consolidated founder-correction pass: company logo + compensation mode,
+  // department data-integrity (adopt labels + employees.department_id), and configurable
+  // compensation (components/amounts/history). Applies last — references every table above
+  // and the access-model capability helpers.
+  "phase8_corrections.sql",
 ];
