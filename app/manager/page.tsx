@@ -209,7 +209,7 @@ export default async function ManagerPage({
                           type="submit"
                           name="decision"
                           value="approved"
-                          className="rounded-full bg-brand-signal px-4 py-1.5 text-[12px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:bg-ink-300"
+                          className="rounded-full bg-brand-signal px-4 py-1.5 text-[12px] font-medium text-ink-800 transition hover:bg-[#B4DD00] disabled:bg-ink-300"
                         >
                           Approve
                         </button>
@@ -337,7 +337,7 @@ export default async function ManagerPage({
                         <PendingSubmitButton
                           idleLabel={review.manager_input ? "Update input" : "Submit input"}
                           pendingLabel="Saving..."
-                          className="w-fit rounded-lg bg-brand-signal px-4 py-2 text-[13px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:bg-ink-300"
+                          className="w-fit rounded-lg bg-brand-signal px-4 py-2 text-[13px] font-medium text-ink-800 transition hover:bg-[#B4DD00] disabled:bg-ink-300"
                         />
                       </form>
                     </li>

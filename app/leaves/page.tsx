@@ -251,7 +251,7 @@ export default async function LeavesPage({
                         <PendingSubmitButton
                           idleLabel="Approve"
                           pendingLabel="Approving..."
-                          className="rounded-lg bg-brand-signal px-4 py-2 text-[13px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:bg-ink-300"
+                          className="rounded-lg bg-brand-signal px-4 py-2 text-[13px] font-medium text-ink-800 transition hover:bg-[#B4DD00] disabled:bg-ink-300"
                         />
                       </form>
                       <form action={decideLeaveAction} className="flex gap-2">
@@ -395,7 +395,7 @@ export default async function LeavesPage({
               <PendingSubmitButton
                 idleLabel="Submit request"
                 pendingLabel="Submitting..."
-                className="rounded-lg bg-brand-signal px-5 py-2 text-[14px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:bg-ink-300 sm:w-fit"
+                className="rounded-lg bg-brand-signal px-5 py-2 text-[14px] font-medium text-ink-800 transition hover:bg-[#B4DD00] disabled:bg-ink-300 sm:w-fit"
               />
             </form>
           </section>

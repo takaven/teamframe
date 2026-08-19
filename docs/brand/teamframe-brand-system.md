@@ -44,7 +44,7 @@ Next.js App Router icon assets live in `app/icon.svg`, `app/favicon.svg`, and `a
 
 | Token | Value | Use |
 | --- | --- | --- |
-| Electric Signal Green | `#01FF22` | Primary CTA fill, active marker, focus ring, current work progression |
+| Electric Signal Green | `#C8F500` | Primary CTA fill, active marker, focus ring, current work progression |
 | Titanium Grey | `#68707D` | Secondary text, supporting UI |
 | Soft Graphite | `#42494D` | Large dark surfaces: navigation rail, mobile top bar, authentication brand panel |
 | Body ink | `#2A2F37` | Primary text on light surfaces and neutral Org chart selection |

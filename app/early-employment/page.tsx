@@ -145,7 +145,7 @@ export default async function EarlyEmploymentPage({
                       </select>
                       <label className="sr-only" htmlFor={`extended-${review.id}`}>Extended until</label>
                       <input id={`extended-${review.id}`} name="extended_until" type="date" className="rounded-md border border-ink-300 bg-white px-3 py-2 text-[13px]" aria-label="Extended probation date, required only when outcome is extended" />
-                      <PendingSubmitButton idleLabel="Record" pendingLabel="Saving..." className="rounded-lg bg-brand-signal px-4 py-2 text-[13px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:cursor-not-allowed disabled:bg-ink-300" />
+                      <PendingSubmitButton idleLabel="Record" pendingLabel="Saving..." className="rounded-lg bg-brand-signal px-4 py-2 text-[13px] font-medium text-ink-800 transition hover:bg-[#B4DD00] disabled:cursor-not-allowed disabled:bg-ink-300" />
                     </form>
                   ) : (
                     <p className="text-[12px] text-ink-500">Outcome: <span className="font-medium capitalize">{review.outcome?.replace("_", " ")}</span>{review.outcome_notes ? <> — {review.outcome_notes}</> : null}</p>

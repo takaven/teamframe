@@ -17,7 +17,7 @@ export default function LeavesError({
         <button
           type="button"
           onClick={() => reset()}
-          className="mt-5 rounded-lg bg-brand-signal px-5 py-2 text-[14px] font-medium text-ink-800 transition hover:bg-[#00E51F]"
+          className="mt-5 rounded-lg bg-brand-signal px-5 py-2 text-[14px] font-medium text-ink-800 transition hover:bg-[#B4DD00]"
         >
           Try again
         </button>

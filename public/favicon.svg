@@ -1,6 +1,6 @@
 <svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title">
   <title>TeamFrame favicon</title>
   <rect width="64" height="64" rx="14" fill="#0F1115"/>
-  <path d="M12 13h30v10H31v29H21V23h-9V13z" fill="#01FF22"/>
+  <path d="M12 13h30v10H31v29H21V23h-9V13z" fill="#C8F500"/>
   <path d="M35 13h18v10H35V13zM35 27h16v9h-7v16h-9V27z" fill="#E9EDF1"/>
 </svg>

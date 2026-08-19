@@ -210,7 +210,7 @@ export default async function MePage({
             <PendingSubmitButton
               idleLabel="Submit check-in"
               pendingLabel="Submitting..."
-              className="w-full rounded-lg bg-brand-signal px-4 py-2 text-[14px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:cursor-not-allowed disabled:bg-ink-300 sm:w-fit"
+              className="w-full rounded-lg bg-brand-signal px-4 py-2 text-[14px] font-medium text-ink-800 transition hover:bg-[#B4DD00] disabled:cursor-not-allowed disabled:bg-ink-300 sm:w-fit"
             />
           </form>
         </section>

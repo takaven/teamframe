@@ -2,6 +2,6 @@
   <title id="title">TeamFrame TF mark</title>
   <desc id="desc">Interlocking T and F mark using Electric Signal Green and Titanium Grey.</desc>
   <rect width="96" height="96" rx="20" fill="#FFFFFF"/>
-  <path d="M18 18h42v15H45v45H30V33H18V18z" fill="#01FF22"/>
+  <path d="M18 18h42v15H45v45H30V33H18V18z" fill="#C8F500"/>
   <path d="M50 18h28v15H50V18zM50 38h25v14H64v26H50V38z" fill="#68707D"/>
 </svg>
