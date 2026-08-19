@@ -225,3 +225,106 @@ export async function updateCompanySettings(actor: Actor, input: unknown): Promi
   } as never).eq("id", tenantId);
   if (error) throw new Error(`COMPANY_SETTINGS_UPDATE_FAILED: ${error.message}`);
 }
+
+// ── Company logo ─────────────────────────────────────────────────────────────
+// Stored in the private documents bucket under `<tenant>/branding/logo`; a signed URL is resolved
+// at render (see lib/company/identity). Single stable object path (upsert) so old logos are not
+// orphaned. Image only, ≤ 2 MB.
+const LOGO_MIME = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"];
+const LOGO_MAX_BYTES = 2 * 1024 * 1024;
+
+export async function updateCompanyLogo(actor: Actor, file: File): Promise<void> {
+  requireAdmin(actor);
+  const tenantId = requireTenant(actor);
+  if (!file || file.size === 0) throw new Error("LOGO_EMPTY_FILE");
+  if (file.size > LOGO_MAX_BYTES) throw new Error("LOGO_TOO_LARGE");
+  if (!LOGO_MIME.includes(file.type)) throw new Error("LOGO_UNSUPPORTED_TYPE");
+  const bytes = Buffer.from(await file.arrayBuffer());
+  const storagePath = `${tenantId}/branding/logo`;
+  const supabase = createServiceRoleClient();
+  const { error: uploadError } = await supabase.storage
+    .from("documents")
+    .upload(storagePath, bytes, { contentType: file.type, upsert: true });
+  if (uploadError) throw new Error(`LOGO_UPLOAD_FAILED: ${uploadError.message}`);
+  const { error } = await supabase.from("companies").update({ logo_path: storagePath } as never).eq("id", tenantId);
+  if (error) throw new Error(`LOGO_SAVE_FAILED: ${error.message}`);
+}
+
+export async function removeCompanyLogo(actor: Actor): Promise<void> {
+  requireAdmin(actor);
+  const tenantId = requireTenant(actor);
+  const supabase = createServiceRoleClient();
+  await supabase.storage.from("documents").remove([`${tenantId}/branding/logo`]);
+  const { error } = await supabase.from("companies").update({ logo_path: null } as never).eq("id", tenantId);
+  if (error) throw new Error(`LOGO_REMOVE_FAILED: ${error.message}`);
+}
+
+export async function getCompanyLogoPath(actor: Actor): Promise<string | null> {
+  requireAdmin(actor);
+  const tenantId = requireTenant(actor);
+  const supabase = createServiceRoleClient();
+  const { data } = await supabase.from("companies").select("logo_path").eq("id", tenantId).maybeSingle();
+  return (data as unknown as { logo_path: string | null } | null)?.logo_path ?? null;
+}
+
+// ── Compensation configuration ───────────────────────────────────────────────
+// Company-level: choose Total-only vs Component breakdown, and manage the named components used in
+// breakdown mode. Configuration only — NO payroll, tax, payslips, WPS or benchmarking. Values live
+// on the employee record under the compensation capability; this is company setup, admin-gated.
+export type CompensationMode = "total" | "components";
+export type CompensationComponentOption = { id: string; name: string; sort_order: number; active: boolean };
+export type CompensationConfig = { mode: CompensationMode; components: CompensationComponentOption[] };
+
+export async function getCompensationConfig(actor: Actor): Promise<CompensationConfig> {
+  requireAdmin(actor);
+  const tenantId = requireTenant(actor);
+  const supabase = createServiceRoleClient();
+  const [companyRes, componentsRes] = await Promise.all([
+    supabase.from("companies").select("compensation_mode").eq("id", tenantId).maybeSingle(),
+    supabase.from("compensation_components").select("id, name, sort_order, active").eq("tenant_id", tenantId).order("sort_order").order("name"),
+  ]);
+  const mode = ((companyRes.data as unknown as { compensation_mode: string } | null)?.compensation_mode ?? "total") as CompensationMode;
+  const components = (componentsRes.data ?? []) as unknown as CompensationComponentOption[];
+  return { mode: mode === "components" ? "components" : "total", components };
+}
+
+export async function setCompensationMode(actor: Actor, mode: string): Promise<void> {
+  requireAdmin(actor);
+  const tenantId = requireTenant(actor);
+  const value = mode === "components" ? "components" : "total";
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase.from("companies").update({ compensation_mode: value } as never).eq("id", tenantId);
+  if (error) throw new Error(`COMPENSATION_MODE_UPDATE_FAILED: ${error.message}`);
+}
+
+const ComponentNameSchema = z.string().trim().min(1).max(80);
+
+export async function createCompensationComponent(actor: Actor, name: string): Promise<void> {
+  requireAdmin(actor);
+  const tenantId = requireTenant(actor);
+  const parsed = ComponentNameSchema.parse(name);
+  const supabase = createServiceRoleClient();
+  // Append to the end by sort_order.
+  const { data: maxRow } = await supabase
+    .from("compensation_components").select("sort_order").eq("tenant_id", tenantId).order("sort_order", { ascending: false }).limit(1).maybeSingle();
+  const nextOrder = ((maxRow as unknown as { sort_order: number } | null)?.sort_order ?? 0) + 1;
+  const { error } = await supabase.from("compensation_components").insert({ tenant_id: tenantId, name: parsed, sort_order: nextOrder } as never);
+  if (error) throw new Error(error.message.includes("unique") || error.message.includes("duplicate") ? "COMPENSATION_COMPONENT_DUPLICATE" : `COMPENSATION_COMPONENT_CREATE_FAILED: ${error.message}`);
+}
+
+export async function renameCompensationComponent(actor: Actor, id: string, name: string): Promise<void> {
+  requireAdmin(actor);
+  const tenantId = requireTenant(actor);
+  const parsed = ComponentNameSchema.parse(name);
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase.from("compensation_components").update({ name: parsed } as never).eq("tenant_id", tenantId).eq("id", id);
+  if (error) throw new Error(error.message.includes("unique") || error.message.includes("duplicate") ? "COMPENSATION_COMPONENT_DUPLICATE" : `COMPENSATION_COMPONENT_RENAME_FAILED: ${error.message}`);
+}
+
+export async function setCompensationComponentActive(actor: Actor, id: string, active: boolean): Promise<void> {
+  requireAdmin(actor);
+  const tenantId = requireTenant(actor);
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase.from("compensation_components").update({ active } as never).eq("tenant_id", tenantId).eq("id", id);
+  if (error) throw new Error(`COMPENSATION_COMPONENT_UPDATE_FAILED: ${error.message}`);
+}

@@ -2,15 +2,21 @@ import Link from "next/link";
 import { requireTenantActor } from "@/middleware/rbac";
 import { AppShell } from "@/components/AppShell";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
+import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
+import { FileInput } from "@/components/FileInput";
 import { ISO_COUNTRIES } from "@/lib/geo/countries";
 import {
   getCompanySettings,
   listDepartments,
   listWorkLocations,
   listLeaveDefinitions,
+  getCompensationConfig,
 } from "@/services/configurationService";
+import { getCompanyIdentity } from "@/lib/company/identity";
 import {
   saveCompanySettingsAction,
+  saveCompanyLogoAction,
+  removeCompanyLogoAction,
   createDepartmentAction,
   renameDepartmentAction,
   toggleDepartmentAction,
@@ -18,6 +24,10 @@ import {
   updateWorkLocationAction,
   createLeaveDefinitionAction,
   updateLeaveDefinitionAction,
+  setCompensationModeAction,
+  createCompensationComponentAction,
+  renameCompensationComponentAction,
+  toggleCompensationComponentAction,
 } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +39,7 @@ const SECTIONS = [
   { key: "workingdays", label: "Working days" },
   { key: "holidays", label: "Holidays" },
   { key: "leave", label: "Leave" },
+  { key: "compensation", label: "Compensation" },
   { key: "checkin", label: "30-day check-in" },
   { key: "access", label: "Users & Access" },
 ] as const;
@@ -38,6 +49,11 @@ const ERROR_COPY: Record<string, string> = {
   INVALID_COUNTRY: "Choose a valid country.",
   DEPARTMENT_DUPLICATE: "A department with that name already exists.",
   WORK_LOCATION_DUPLICATE: "A work location with that name already exists.",
+  COMPENSATION_COMPONENT_DUPLICATE: "A component with that name already exists.",
+  LOGO_EMPTY_FILE: "Choose a logo image to upload.",
+  LOGO_TOO_LARGE: "The logo must be 2 MB or smaller.",
+  LOGO_UNSUPPORTED_TYPE: "Use a PNG, JPG, WEBP or SVG image.",
+  LOGO_UPLOAD_FAILED: "The logo could not be uploaded. Try again.",
   FORBIDDEN: "You do not have permission for that action.",
   UNKNOWN: "Something went wrong. Try again.",
 };
@@ -81,11 +97,13 @@ export default async function SetupPage({
     );
   }
 
-  const [company, departments, workLocations, leaveDefinitions] = await Promise.all([
+  const [company, departments, workLocations, leaveDefinitions, compConfig, identity] = await Promise.all([
     getCompanySettings(actor),
     listDepartments(actor),
     listWorkLocations(actor),
     listLeaveDefinitions(actor),
+    getCompensationConfig(actor),
+    getCompanyIdentity(actor.tenantId),
   ]);
 
   return (
@@ -154,6 +172,28 @@ export default async function SetupPage({
                 </label>
                 <div className="sm:col-span-2"><PendingSubmitButton idleLabel="Save company settings" pendingLabel="Saving…" className={btn} /></div>
               </form>
+
+              <div className="mt-6 border-t border-ink-200 pt-5">
+                <h3 className="text-[14px] font-bold text-ink-800">Company logo</h3>
+                <p className="mt-1 text-[13px] text-ink-500">Shown in the app workspace header. PNG, JPG, WEBP or SVG, up to 2&nbsp;MB. Falls back to a monogram.</p>
+                <div className="mt-4 flex flex-wrap items-center gap-4">
+                  {identity.logoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={identity.logoUrl} alt="Current company logo" className="h-12 w-12 rounded-md border border-ink-200 object-cover" />
+                  ) : (
+                    <span className="flex h-12 w-12 items-center justify-center rounded-md bg-brand-signal text-[15px] font-extrabold text-ink-900">{identity.monogram}</span>
+                  )}
+                  <form action={saveCompanyLogoAction} encType="multipart/form-data" className="flex flex-wrap items-center gap-3">
+                    <FileInput name="logo" accept="image/png,image/jpeg,image/webp,image/svg+xml" label="Choose logo" />
+                    <PendingSubmitButton idleLabel="Upload logo" pendingLabel="Uploading…" className={btn} />
+                  </form>
+                  {identity.logoUrl ? (
+                    <form action={removeCompanyLogoAction}>
+                      <ConfirmSubmitButton idleLabel="Remove" pendingLabel="Removing…" confirmMessage="Remove the company logo?" className={btnGhost} />
+                    </form>
+                  ) : null}
+                </div>
+              </div>
             </section>
           ) : null}
 
@@ -252,6 +292,60 @@ export default async function SetupPage({
                   </li>
                 ))}
               </ul>
+            </section>
+          ) : null}
+
+          {section === "compensation" ? (
+            <section className="rounded-xl border border-ink-300/70 bg-white/70 p-6">
+              <h2 className="text-[16px] font-bold text-ink-800">Compensation</h2>
+              <p className="mt-1 text-[13px] text-ink-500">
+                Choose how compensation is recorded on the employee record. Storage only — TeamFrame does not run payroll, tax, payslips or WPS.
+              </p>
+
+              <form action={setCompensationModeAction} className="mt-4 grid gap-3 sm:max-w-xl">
+                <label className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 ${compConfig.mode === "total" ? "border-ink-900 bg-ink-50/60" : "border-ink-200"}`}>
+                  <input type="radio" name="mode" value="total" defaultChecked={compConfig.mode === "total"} className="mt-1" />
+                  <span>
+                    <span className="block text-[14px] font-semibold text-ink-800">Total only</span>
+                    <span className="block text-[12.5px] text-ink-500">A single figure per employee (currency, pay basis, effective date).</span>
+                  </span>
+                </label>
+                <label className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 ${compConfig.mode === "components" ? "border-ink-900 bg-ink-50/60" : "border-ink-200"}`}>
+                  <input type="radio" name="mode" value="components" defaultChecked={compConfig.mode === "components"} className="mt-1" />
+                  <span>
+                    <span className="block text-[14px] font-semibold text-ink-800">Component breakdown</span>
+                    <span className="block text-[12.5px] text-ink-500">Named components (e.g. Basic, Housing, Transport); the total is derived from their sum.</span>
+                  </span>
+                </label>
+                <div><PendingSubmitButton idleLabel="Save compensation mode" pendingLabel="Saving…" className={btn} /></div>
+              </form>
+
+              <div className="mt-6 border-t border-ink-200 pt-5">
+                <h3 className="text-[14px] font-bold text-ink-800">Salary components</h3>
+                <p className="mt-1 text-[13px] text-ink-500">Used when component breakdown is enabled. Deactivate rather than delete to keep historical records intact.</p>
+                <form action={createCompensationComponentAction} className="mt-4 flex flex-wrap items-end gap-2">
+                  <label className="flex-1 text-[13px] text-ink-700">New component<input name="name" required maxLength={80} placeholder="e.g. Housing allowance" className={input} /></label>
+                  <PendingSubmitButton idleLabel="Add" pendingLabel="Adding…" className={btn} />
+                </form>
+                <ul className="mt-4 divide-y divide-ink-100 rounded-lg border border-ink-200">
+                  {compConfig.components.length === 0 ? <li className="px-3 py-3 text-[13px] text-ink-500">No components configured yet.</li> : null}
+                  {compConfig.components.map((c) => (
+                    <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+                      <form action={renameCompensationComponentAction} className="flex items-center gap-2">
+                        <input type="hidden" name="id" value={c.id} />
+                        <input name="name" defaultValue={c.name} maxLength={80} className="rounded-lg border border-ink-300 px-2 py-1 text-[13px]" />
+                        <PendingSubmitButton idleLabel="Rename" pendingLabel="Saving…" className={btnGhost} />
+                      </form>
+                      <form action={toggleCompensationComponentAction} className="flex items-center gap-2">
+                        <input type="hidden" name="id" value={c.id} />
+                        <input type="hidden" name="active" value={(!c.active).toString()} />
+                        <span className={`text-[11px] font-semibold ${c.active ? "text-signal-green" : "text-ink-400"}`}>{c.active ? "Active" : "Inactive"}</span>
+                        <PendingSubmitButton idleLabel={c.active ? "Deactivate" : "Reactivate"} pendingLabel="Saving…" className={btnGhost} />
+                      </form>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </section>
           ) : null}
 

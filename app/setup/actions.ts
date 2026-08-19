@@ -12,6 +12,12 @@ import {
   createLeaveDefinition,
   updateLeaveDefinition,
   updateCompanySettings,
+  updateCompanyLogo,
+  removeCompanyLogo,
+  setCompensationMode,
+  createCompensationComponent,
+  renameCompensationComponent,
+  setCompensationComponentActive,
 } from "@/services/configurationService";
 import { captureActionError } from "@/lib/telemetry/sentry";
 import { logAction } from "@/lib/telemetry/logger";
@@ -57,6 +63,30 @@ export async function saveCompanySettingsAction(formData: FormData): Promise<voi
       employee_number_digits: Number(s(formData.get("employee_number_digits")) || "4"),
     });
   });
+}
+
+export async function saveCompanyLogoAction(formData: FormData): Promise<void> {
+  await run("saveCompanyLogo", "company", async (actor) => {
+    const file = formData.get("logo");
+    if (!(file instanceof File)) throw new Error("LOGO_EMPTY_FILE");
+    await updateCompanyLogo(actor, file);
+  });
+}
+export async function removeCompanyLogoAction(): Promise<void> {
+  await run("removeCompanyLogo", "company", (actor) => removeCompanyLogo(actor));
+}
+
+export async function setCompensationModeAction(formData: FormData): Promise<void> {
+  await run("setCompensationMode", "compensation", (actor) => setCompensationMode(actor, s(formData.get("mode"))));
+}
+export async function createCompensationComponentAction(formData: FormData): Promise<void> {
+  await run("createCompensationComponent", "compensation", (actor) => createCompensationComponent(actor, s(formData.get("name"))));
+}
+export async function renameCompensationComponentAction(formData: FormData): Promise<void> {
+  await run("renameCompensationComponent", "compensation", (actor) => renameCompensationComponent(actor, s(formData.get("id")), s(formData.get("name"))));
+}
+export async function toggleCompensationComponentAction(formData: FormData): Promise<void> {
+  await run("toggleCompensationComponent", "compensation", (actor) => setCompensationComponentActive(actor, s(formData.get("id")), formData.get("active") === "true"));
 }
 
 export async function createDepartmentAction(formData: FormData): Promise<void> {
