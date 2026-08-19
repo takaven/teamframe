@@ -26,6 +26,7 @@ import { CompensationPanel } from "@/components/CompensationPanel";
 import { getEmployeeCompensationDetail } from "@/services/compensationService";
 import { SectionTabs } from "@/components/SectionTabs";
 import { EmployeeAvatar } from "@/components/EmployeeAvatar";
+import { FileInput } from "@/components/FileInput";
 import { CopyInviteEmailButton } from "./CopyInviteEmailButton";
 import {
   createEmployeeAction,
@@ -1079,15 +1080,10 @@ export default async function EmployeesPage({
                       <option value="photo">Photo</option>
                     </select>
                   </label>
-                  <label className="flex flex-col gap-1 text-[11px] text-ink-500">
+                  <div className="flex flex-col gap-1 text-[11px] text-ink-500">
                     File
-                    <input
-                      name="file"
-                      type="file"
-                      required
-                      className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-600 file:mr-2 file:rounded file:border file:border-ink-300 file:bg-white file:px-2 file:py-1 file:text-[12px] file:font-medium file:text-ink-700"
-                    />
-                  </label>
+                    <FileInput name="file" required label="Choose file" className="mt-0.5" />
+                  </div>
                   <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                     Signed on (optional)
                     <input
@@ -1228,10 +1224,10 @@ export default async function EmployeesPage({
                       Reference number (optional)
                       <input name="reference_number" maxLength={120} placeholder="e.g. 784-XXXX-XXXXXXX-X" className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900" />
                     </label>
-                    <label className="flex flex-col gap-1 text-[11px] text-ink-500">
+                    <div className="flex flex-col gap-1 text-[11px] text-ink-500">
                       Evidence file
-                      <input name="file" type="file" required className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-600 file:mr-2 file:rounded file:border file:border-ink-300 file:bg-white file:px-2 file:py-1 file:text-[12px] file:font-medium file:text-ink-700" />
-                    </label>
+                      <FileInput name="file" required label="Choose evidence file" className="mt-0.5" />
+                    </div>
                     <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                       Issue date (optional)
                       <input name="issued_at" type="date" className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900" />

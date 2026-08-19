@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import dashboardShot from "@/public/marketing/dashboard-risk-signals.png";
 import { BrandLogo } from "@/components/BrandLogo";
+import { TakavenEndorsement } from "@/components/TakavenEndorsement";
 
 // Pilot-request contact address. Set NEXT_PUBLIC_PILOT_CONTACT_EMAIL in the
 // environment (see .env.example). The founder owns this value; keep the
@@ -112,8 +113,9 @@ export default function Home() {
         </p>
       </section>
 
-      <footer className="mt-16 border-t border-ink-300/60 pt-5 text-[12px] text-ink-500">
-        TeamFrame &middot; <span className="font-mono tabular-nums">{new Date().getFullYear()}</span>
+      <footer className="mt-16 flex flex-wrap items-center justify-between gap-4 border-t border-ink-300/60 pt-5 text-[12px] text-ink-500">
+        <span>TeamFrame &middot; <span className="font-mono tabular-nums">{new Date().getFullYear()}</span></span>
+        <TakavenEndorsement />
       </footer>
     </main>
   );

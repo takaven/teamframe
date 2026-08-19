@@ -135,11 +135,10 @@ export default async function OnboardingPage({
         <AppShell actor={actor} activePath="/onboarding" />
 
         <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink-300/60 pb-5">
-          <div className="space-y-2">
-            <p className="text-[12px] tracking-[0.14em] text-ink-500">Admin queue</p>
-            <h1 className="text-[34px] leading-tight tracking-tight">Onboarding tasks</h1>
-            <p className="text-[14px] text-ink-500">
-              Assign first-week tasks so every employee knows what to do next.
+          <div>
+            <h1 className="text-[32px] font-extrabold leading-tight tracking-tight text-ink-800">Onboarding</h1>
+            <p className="mt-1.5 text-[14px] text-ink-500">
+              Assign first-week tasks so every new joiner knows what to do next.
             </p>
           </div>
           <Link href="/early-employment" className="rounded-full border border-ink-300 px-4 py-2 text-[13px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900">

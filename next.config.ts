@@ -46,6 +46,15 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    // Friendly aliases → canonical routes. "Overview" is served at /dashboard; the sign-in
+    // page lives at /auth. These keep older links and typed URLs working.
+    return [
+      { source: "/overview", destination: "/dashboard", permanent: false },
+      { source: "/login", destination: "/auth", permanent: false },
+      { source: "/sign-in", destination: "/auth", permanent: false },
+    ];
+  },
 };
 
 /**

@@ -3,6 +3,7 @@ import { requireTenantActor } from "@/middleware/rbac";
 import { listPolicies, type PolicyAdminRecord } from "@/services/policyService";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
+import { FileInput } from "@/components/FileInput";
 import { AppShell } from "@/components/AppShell";
 import { EmptyState } from "@/components/EmptyState";
 import { StatusPill, type StatusPillTone } from "@/components/StatusPill";
@@ -104,10 +105,9 @@ export default async function PoliciesPage({
       <AppShell actor={actor} activePath="/policies" />
 
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink-300/60 pb-5">
-        <div className="space-y-2">
-          <p className="text-[12px] tracking-[0.14em] text-ink-500">Admin queue</p>
-          <h1 className="text-[34px] leading-tight tracking-tight">Policies</h1>
-          <p className="text-[14px] text-ink-500">
+        <div>
+          <h1 className="text-[32px] font-extrabold leading-tight tracking-tight text-ink-800">Policies</h1>
+          <p className="mt-1.5 text-[14px] text-ink-500">
             Publish the rules your team works by and collect acknowledgement records.
           </p>
         </div>
@@ -172,10 +172,10 @@ export default async function PoliciesPage({
               <input name="effective_date" type="date" required className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900" />
             </label>
           </div>
-          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+          <div className="flex flex-col gap-1 text-[12px] text-ink-500">
             Policy file (PDF, DOC, or DOCX)
-            <input name="file" type="file" required accept=".pdf,.doc,.docx" className="rounded-md border border-ink-300 bg-white px-3 py-2 text-[13px] text-ink-600 file:mr-3 file:rounded-md file:border file:border-ink-300 file:bg-white file:px-3 file:py-1 file:text-[12px] file:font-medium file:text-ink-700" />
-          </label>
+            <FileInput name="file" accept=".pdf,.doc,.docx" required label="Choose PDF or DOCX" className="mt-1" />
+          </div>
           <label className="flex items-center gap-2 text-[13px] text-ink-700">
             <input type="checkbox" name="publish" defaultChecked className="h-4 w-4 rounded border-ink-300" />
             Publish now (employees will be asked to acknowledge this version)
