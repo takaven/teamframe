@@ -134,6 +134,123 @@ main:has(> .tf-app-shell[data-active="/org-chart"]) > :not(.tf-app-shell):not(.t
   border-color: var(--brand-charcoal);
 }
 
+/* ============================================================================
+   WAVE 1 — Global visual system (premium redesign)
+   Structure comes from typography, spacing, alignment and ONE restrained
+   elevation — not nested 1px boxes. Signal Green is reserved for primary
+   action / genuine progress / completion; never ambient "active" chrome.
+   ============================================================================ */
+
+:root {
+  /* One restrained elevation token + a hairline. */
+  --tf-shadow: 0 1px 2px rgba(15, 17, 21, 0.04), 0 8px 24px -18px rgba(15, 17, 21, 0.22);
+  --tf-shadow-sm: 0 1px 2px rgba(15, 17, 21, 0.05);
+  --tf-hairline: #e9edf1;
+  --tf-hairline-strong: #dfe4ea;
+  /* Institutional radius scale. */
+  --tf-radius-panel: 10px;
+  --tf-radius-control: 8px;
+  --tf-radius-tag: 6px;
+  --tf-canvas: #f6f8fa;
+}
+
+body { background: var(--tf-canvas); }
+
+/* ---- Typography scale ---------------------------------------------------- */
+.tf-h1 { font-family: var(--font-sans); font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: -0.01em; color: var(--color-ink-900); }
+.tf-h2 { font-size: 16px; line-height: 22px; font-weight: 600; letter-spacing: -0.005em; color: var(--color-ink-800); }
+.tf-h3 { font-size: 13px; line-height: 18px; font-weight: 700; color: var(--color-ink-800); }
+.tf-value { font-size: 14px; line-height: 22px; color: var(--color-ink-900); }
+.tf-body { font-size: 14px; line-height: 22px; color: var(--color-ink-700); }
+.tf-label { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--color-ink-500); }
+.tf-meta { font-size: 12.5px; line-height: 18px; color: var(--color-ink-500); }
+.tf-num { font-variant-numeric: tabular-nums; }
+
+/* ---- Surfaces ------------------------------------------------------------ */
+/* One deliberate content surface. Prefer setting content over boxing it; when a
+   surface is warranted, use this (radius 10, hairline, restrained shadow). */
+.tf-surface {
+  background: var(--surface-elevated);
+  border: 1px solid var(--tf-hairline);
+  border-radius: var(--tf-radius-panel);
+  box-shadow: var(--tf-shadow);
+}
+.tf-surface-flat {
+  background: var(--surface-elevated);
+  border: 1px solid var(--tf-hairline);
+  border-radius: var(--tf-radius-panel);
+}
+.tf-divide > * + * { border-top: 1px solid var(--tf-hairline); }
+
+/* ---- Compact summary bar (replaces oversized KPI card rows) --------------- */
+.tf-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  background: var(--surface-elevated);
+  border: 1px solid var(--tf-hairline);
+  border-radius: var(--tf-radius-panel);
+  box-shadow: var(--tf-shadow-sm);
+  overflow: hidden;
+}
+.tf-summary > * {
+  padding: 12px 20px;
+  border-left: 1px solid var(--tf-hairline);
+}
+.tf-summary > *:first-child { border-left: 0; }
+.tf-summary-label { font-size: 12px; color: var(--color-ink-500); }
+.tf-summary-value { margin-top: 2px; font-size: 18px; font-weight: 600; color: var(--color-ink-900); font-variant-numeric: tabular-nums; }
+
+/* ---- Styled native form controls (behaviour preserved) ------------------- */
+/* Scoped to the authenticated app + auth surfaces so raw browser chrome is
+   replaced with coherent primitives everywhere without per-field edits. */
+.tf-app-scope select,
+main:has(> .tf-app-shell) select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2368707d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 34px;
+}
+main:has(> .tf-app-shell) input[type="checkbox"],
+main:has(> .tf-app-shell) input[type="radio"] {
+  accent-color: var(--brand-charcoal);
+  width: 16px;
+  height: 16px;
+}
+main:has(> .tf-app-shell) input[type="date"] {
+  color-scheme: light;
+}
+main:has(> .tf-app-shell) input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0.55;
+  cursor: pointer;
+}
+/* Native file inputs are replaced by the FileInput component; any stragglers get
+   a restrained treatment rather than the default OS button. */
+main:has(> .tf-app-shell) input[type="file"]::file-selector-button {
+  margin-right: 10px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--tf-radius-control);
+  background: #ffffff;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+/* ---- Neutral status dot (Active reads calm, not green chrome) ------------- */
+.tf-dot { width: 7px; height: 7px; border-radius: 9999px; display: inline-block; }
+.tf-dot-neutral { background: var(--color-ink-400); }
+.tf-dot-green { background: var(--color-signal-green); }
+.tf-dot-amber { background: var(--color-signal-amber); }
+.tf-dot-red { background: var(--color-signal-red); }
+
+/* ---- Saved confirmation (subtle, inline) --------------------------------- */
+.tf-saved { color: var(--color-signal-green); font-size: 13px; font-weight: 600; }
+
 .tf-org-layout {
   display: block;
 }

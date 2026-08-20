@@ -66,52 +66,74 @@ export async function AppShell({
 
   const workspaceHome = actor.role === "admin" ? "/dashboard" : "/me";
 
+  const primaryLinks = isAdminSurface ? ADMIN_LINKS : (showMyTeam ? [...EMPLOYEE_LINKS, MY_TEAM_LINK] : [...EMPLOYEE_LINKS]);
+  const isActive = (href: string) => href === activePath || (href.startsWith(`${activePath}#`) && activePath === "/me");
+
   return (
     <>
-      <aside className="tf-app-shell flex flex-col px-0 py-[26px]" data-active={activePath} aria-label="Primary">
-        <Link href={workspaceHome} className="mx-5 flex items-center gap-2.5 text-white" aria-label={`${identity.name} — TeamFrame`}>
+      <aside className="tf-app-shell flex flex-col py-6" data-active={activePath} aria-label="Primary">
+        {/* Product identity — TeamFrame stays visible after login. */}
+        <Link href={workspaceHome} className="mx-5 flex items-center gap-2 text-white" aria-label="TeamFrame">
+          <BrandLogo variant="mark" reversed className="h-6 w-6" priority />
+          <span className="text-[16px] font-extrabold tracking-tight">TeamFrame</span>
+        </Link>
+
+        {/* Customer workspace context (not replacement branding). */}
+        <div className="mx-3 mt-4 flex items-center gap-2.5 rounded-lg bg-white/[0.06] px-3 py-2.5">
           {identity.logoUrl ? (
-            <Image
-              src={identity.logoUrl}
-              alt={identity.name}
-              width={28}
-              height={28}
-              className="h-7 w-7 rounded-md object-cover"
-              unoptimized
-            />
+            <Image src={identity.logoUrl} alt="" width={26} height={26} className="h-[26px] w-[26px] shrink-0 rounded-md object-cover" unoptimized />
           ) : (
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-signal text-[12px] font-extrabold text-ink-900">
+            <span className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-md bg-brand-signal text-[11px] font-extrabold text-ink-900">
               {identity.monogram}
             </span>
           )}
-          <span className="min-w-0 truncate text-[15px] font-extrabold tracking-tight">{identity.name}</span>
-        </Link>
+          <span className="min-w-0">
+            <span className="block text-[9.5px] font-semibold uppercase tracking-[0.16em] text-white/40">Workspace</span>
+            <span className="block min-w-0 truncate text-[13px] font-semibold text-white">{identity.name}</span>
+          </span>
+        </div>
 
-        <nav className="mt-[30px]" aria-label={actor.role === "admin" ? "Admin" : "Employee"}>
-          {links.map((link) => {
-            const active = link.href === activePath || (link.href.startsWith(`${activePath}#`) && activePath === "/me");
+        <nav className="mt-6 flex-1" aria-label={actor.role === "admin" ? "Admin" : "Employee"}>
+          {primaryLinks.map((link) => {
+            const active = isActive(link.href);
             return (
               <Link
                 key={link.href}
                 href={link.href}
                 aria-current={active ? "page" : undefined}
                 className={[
-                  "relative block px-5 py-[11px] text-[14px] transition",
-                  active ? "font-bold text-white before:absolute before:left-0 before:top-[9px] before:bottom-[9px] before:w-[2px] before:bg-brand-signal" : "font-semibold text-ink-400 hover:text-white",
+                  "relative mx-3 flex items-center rounded-lg px-3 py-2 text-[14px] transition",
+                  active ? "bg-white/[0.08] font-semibold text-white before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[2.5px] before:rounded-full before:bg-brand-signal" : "font-medium text-ink-400 hover:bg-white/[0.04] hover:text-white",
                 ].join(" ")}
               >
                 {link.label}
               </Link>
             );
           })}
+
+          {isAdminSurface ? (
+            <>
+              <div className="mx-5 my-3 border-t border-white/10" />
+              <Link
+                href={SETUP_LINK.href}
+                aria-current={isActive(SETUP_LINK.href) ? "page" : undefined}
+                className={[
+                  "relative mx-3 flex items-center rounded-lg px-3 py-2 text-[13.5px] transition",
+                  isActive(SETUP_LINK.href) ? "bg-white/[0.08] font-semibold text-white before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[2.5px] before:rounded-full before:bg-brand-signal" : "font-medium text-ink-500 hover:bg-white/[0.04] hover:text-white",
+                ].join(" ")}
+              >
+                {SETUP_LINK.label}
+              </Link>
+            </>
+          ) : null}
         </nav>
 
+        {/* Account + quiet parent-company endorsement. */}
         <div className="mt-auto px-5">
-          <SignOutButton className="mb-5" />
-          <div className="flex items-center gap-2 border-t border-white/10 pt-4">
-            <BrandLogo variant="mark" reversed className="h-4 w-4 opacity-80" />
-            <span className="text-[12px] font-semibold text-[#B0B8C2]">Powered by TeamFrame</span>
-          </div>
+          <SignOutButton className="mb-4" />
+          <p className="border-t border-white/10 pt-4 text-[10.5px] font-medium uppercase tracking-[0.14em] text-white/35">
+            Conceptualised by <span className="text-white/55">TAKAVEN</span>
+          </p>
         </div>
       </aside>
 
@@ -119,14 +141,9 @@ export async function AppShell({
         <details className="group">
           <summary className="flex h-14 cursor-pointer list-none items-center justify-between px-[18px] marker:hidden">
             <span className="flex min-w-0 items-center gap-2">
-              {identity.logoUrl ? (
-                <Image src={identity.logoUrl} alt={identity.name} width={22} height={22} className="h-[22px] w-[22px] rounded object-cover" unoptimized />
-              ) : (
-                <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded bg-brand-signal text-[11px] font-extrabold text-ink-900">
-                  {identity.monogram}
-                </span>
-              )}
-              <span className="min-w-0 truncate text-[14.5px] font-extrabold tracking-tight">{identity.name}</span>
+              <BrandLogo variant="mark" reversed className="h-[20px] w-[20px]" priority />
+              <span className="text-[14.5px] font-extrabold tracking-tight">TeamFrame</span>
+              <span className="ml-1 min-w-0 truncate border-l border-white/20 pl-2 text-[12.5px] font-medium text-white/60">{identity.name}</span>
             </span>
             <span className="flex h-11 w-11 items-center justify-center rounded-lg text-[24px] leading-none group-open:hidden" aria-hidden="true">
               =
