@@ -109,25 +109,23 @@ export default async function SetupPage({
   return (
     <main className="mx-auto max-w-6xl px-6 py-14">
       <AppShell actor={actor} activePath="/setup" />
-      <div className="border-b border-ink-300/60 pb-5">
-        <p className="text-[12px] tracking-[0.14em] text-ink-500">Administration</p>
-        <h1 className="mt-2 text-[34px] leading-tight tracking-tight">Setup &amp; administration</h1>
-        <p className="mt-1 max-w-2xl text-[14px] text-ink-500">
-          Infrequent configuration for your TeamFrame installation. Everyday work happens in the operational modules.
-        </p>
+      <div className="pb-5">
+        <h1 className="tf-h1">Setup</h1>
+        <p className="tf-meta mt-1">Configure your TeamFrame workspace.</p>
       </div>
 
-      {status ? <p className="mt-6 rounded-lg border border-accent/70 bg-white/80 px-4 py-3 text-[14px] text-accent">Saved.</p> : null}
-      {errorMessage ? <p role="alert" className="mt-6 rounded-lg border border-signal-red/30 bg-signal-red/10 px-4 py-3 text-[14px] text-signal-red">{errorMessage}</p> : null}
+      {status ? <p className="mb-5 rounded-lg border border-signal-green/25 bg-signal-green/5 px-4 py-2.5 text-[13.5px] text-signal-green">Saved.</p> : null}
+      {errorMessage ? <p role="alert" className="mb-5 rounded-lg border border-signal-red/25 bg-signal-red/5 px-4 py-2.5 text-[13.5px] text-signal-red">{errorMessage}</p> : null}
 
-      <div className="mt-7 grid gap-8 lg:grid-cols-[220px_minmax(0,1fr)]">
-        <nav aria-label="Setup sections" className="h-fit rounded-xl border border-ink-300/70 bg-white/70 p-2">
-          <ul className="space-y-1">
+      <div className="grid gap-8 lg:grid-cols-[196px_minmax(0,1fr)]">
+        <nav aria-label="Setup sections" className="h-fit lg:sticky lg:top-10">
+          <ul className="flex gap-1 overflow-x-auto lg:flex-col lg:gap-0.5">
             {SECTIONS.map((s) => (
               <li key={s.key}>
                 <Link
                   href={`/setup?section=${s.key}`}
-                  className={`block rounded-lg px-3 py-2 text-[13px] ${section === s.key ? "bg-ink-100 font-semibold text-ink-900" : "text-ink-600 hover:bg-ink-50"}`}
+                  aria-current={section === s.key ? "page" : undefined}
+                  className={`block whitespace-nowrap rounded-lg px-3 py-2 text-[13.5px] transition ${section === s.key ? "bg-ink-100 font-semibold text-ink-900" : "text-ink-600 hover:bg-ink-50 hover:text-ink-900"}`}
                 >
                   {s.label}
                 </Link>
@@ -138,8 +136,8 @@ export default async function SetupPage({
 
         <div className="min-w-0 space-y-5">
           {section === "company" || section === "workingdays" || section === "checkin" ? (
-            <section className="rounded-xl border border-ink-300/70 bg-white/70 p-6">
-              <h2 className="text-[16px] font-bold text-ink-800">Company</h2>
+            <section className="tf-surface-flat p-6">
+              <h2 className="tf-h2">Company</h2>
               <p className="mt-1 text-[13px] text-ink-500">Identity, country, timezone, working-day defaults and the 30-day check-in.</p>
               <form action={saveCompanySettingsAction} className="mt-5 grid gap-4 sm:grid-cols-2">
                 <label className="text-[13px] text-ink-700">Company name<input name="name" required defaultValue={company.name} className={input} /></label>
@@ -198,8 +196,8 @@ export default async function SetupPage({
           ) : null}
 
           {section === "departments" ? (
-            <section className="rounded-xl border border-ink-300/70 bg-white/70 p-6">
-              <h2 className="text-[16px] font-bold text-ink-800">Departments</h2>
+            <section className="tf-surface-flat p-6">
+              <h2 className="tf-h2">Departments</h2>
               <p className="mt-1 text-[13px] text-ink-500">Company-controlled department list. Deactivate rather than delete — legacy free-text labels stay valid.</p>
               <form action={createDepartmentAction} className="mt-4 flex flex-wrap items-end gap-2">
                 <label className="flex-1 text-[13px] text-ink-700">New department<input name="name" required className={input} /></label>
@@ -227,8 +225,8 @@ export default async function SetupPage({
           ) : null}
 
           {section === "locations" ? (
-            <section className="rounded-xl border border-ink-300/70 bg-white/70 p-6">
-              <h2 className="text-[16px] font-bold text-ink-800">Work locations</h2>
+            <section className="tf-surface-flat p-6">
+              <h2 className="tf-h2">Work locations</h2>
               <p className="mt-1 text-[13px] text-ink-500">Company-defined work locations, each linked to a country.</p>
               <form action={createWorkLocationAction} className="mt-4 grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
                 <label className="text-[13px] text-ink-700">Name<input name="name" required className={input} /></label>
@@ -253,16 +251,16 @@ export default async function SetupPage({
           ) : null}
 
           {section === "holidays" ? (
-            <section className="rounded-xl border border-ink-300/70 bg-white/70 p-6">
-              <h2 className="text-[16px] font-bold text-ink-800">Holidays</h2>
+            <section className="tf-surface-flat p-6">
+              <h2 className="tf-h2">Holidays</h2>
               <p className="mt-1 text-[13px] text-ink-500">The company holiday calendar feeds working-day leave calculations. Managed here under Setup.</p>
               <Link href="/company" className={`mt-4 inline-flex ${btn}`}>Open holiday calendar</Link>
             </section>
           ) : null}
 
           {section === "leave" ? (
-            <section className="rounded-xl border border-ink-300/70 bg-white/70 p-6">
-              <h2 className="text-[16px] font-bold text-ink-800">Leave definitions</h2>
+            <section className="tf-surface-flat p-6">
+              <h2 className="tf-h2">Leave definitions</h2>
               <p className="mt-1 text-[13px] text-ink-500">Configure the leave types offered. These drive the employee leave dropdown (a later phase). The underlying leave engine is unchanged.</p>
               <details className="mt-4 rounded-lg border border-ink-200 bg-ink-50/40 p-4">
                 <summary className="cursor-pointer text-[13px] font-medium text-ink-800">Add custom leave type (e.g. Maternity, Study)</summary>
@@ -296,8 +294,8 @@ export default async function SetupPage({
           ) : null}
 
           {section === "compensation" ? (
-            <section className="rounded-xl border border-ink-300/70 bg-white/70 p-6">
-              <h2 className="text-[16px] font-bold text-ink-800">Compensation</h2>
+            <section className="tf-surface-flat p-6">
+              <h2 className="tf-h2">Compensation</h2>
               <p className="mt-1 text-[13px] text-ink-500">
                 Choose how compensation is recorded on the employee record. Storage only — TeamFrame does not run payroll, tax, payslips or WPS.
               </p>
@@ -350,8 +348,8 @@ export default async function SetupPage({
           ) : null}
 
           {section === "access" ? (
-            <section className="rounded-xl border border-ink-300/70 bg-white/70 p-6">
-              <h2 className="text-[16px] font-bold text-ink-800">Users &amp; Access</h2>
+            <section className="tf-surface-flat p-6">
+              <h2 className="tf-h2">Users &amp; Access</h2>
               <p className="mt-1 text-[13px] text-ink-500">
                 Access starts from clear presets — <strong>Full Access</strong>, <strong>Admin</strong>, <strong>Finance</strong>, <strong>Employee</strong>. Manager access is derived from reporting lines. Fine-grained custom access remains available for exceptions.
               </p>

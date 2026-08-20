@@ -205,8 +205,8 @@ export default async function LeavesPage({
                       <p className="text-[13px] font-medium text-ink-900">
                         {leave.employee_full_name} <span className="text-[12px] font-normal text-ink-500">({leave.employee_role_title})</span>
                       </p>
-                      <p className="font-mono text-[15px] tabular-nums text-ink-900">
-                        {formatDate(leave.start_date)} to {formatDate(leave.end_date)}
+                      <p className="text-[14px] font-medium tabular-nums text-ink-900">
+                        {formatDate(leave.start_date)} – {formatDate(leave.end_date)}
                       </p>
                       <p className="text-[12px] text-ink-500">
                         {leave.leave_definition_name ?? TYPE_LABEL[leave.leave_type]} · {days(leave.requested_days)}
@@ -229,42 +229,47 @@ export default async function LeavesPage({
                         </form>
                       ) : null}
                     </div>
-                    <div className="grid gap-2">
-                      <form action={decideLeaveAction} className="grid gap-2 rounded-lg border border-ink-300/50 p-3">
-                        <input type="hidden" name="leave_id" value={leave.id} />
-                        <input type="hidden" name="expected_updated_at" value={leave.updated_at} />
-                        <input type="hidden" name="decision" value="approved" />
-                        {shortfall > 0 ? (
-                          <>
-                            <label className="flex items-center gap-2 text-[12px] text-ink-700">
-                              <input type="checkbox" name="override_insufficient_balance" required />
-                              Override insufficient balance
-                            </label>
-                            <input
-                              name="override_reason"
-                              required
-                              placeholder="Override reason"
-                              className="rounded-md border border-ink-300 px-3 py-2 text-[13px]"
-                            />
-                          </>
-                        ) : null}
-                        <PendingSubmitButton
-                          idleLabel="Approve"
-                          pendingLabel="Approving..."
-                          className="rounded-lg bg-brand-signal px-4 py-2 text-[13px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:bg-ink-300"
-                        />
-                      </form>
-                      <form action={decideLeaveAction} className="flex gap-2">
-                        <input type="hidden" name="leave_id" value={leave.id} />
-                        <input type="hidden" name="expected_updated_at" value={leave.updated_at} />
-                        <input type="hidden" name="decision" value="rejected" />
-                        <ConfirmSubmitButton
-                          idleLabel="Decline"
-                          pendingLabel="Declining..."
-                          confirmMessage={`Decline leave request from ${leave.employee_full_name}?`}
-                          className="w-full rounded-full border border-ink-300 px-4 py-1.5 text-[13px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:border-ink-300/50 disabled:text-ink-300"
-                        />
-                      </form>
+                    <div className="lg:justify-self-end">
+                      {shortfall > 0 ? (
+                        <p className="mb-2 text-[11.5px] text-signal-amber">Approval requires an override below.</p>
+                      ) : null}
+                      <div className="flex items-start gap-2">
+                        <form action={decideLeaveAction} className={shortfall > 0 ? "grid gap-2 rounded-lg border border-signal-amber/30 bg-signal-amber/5 p-3" : ""}>
+                          <input type="hidden" name="leave_id" value={leave.id} />
+                          <input type="hidden" name="expected_updated_at" value={leave.updated_at} />
+                          <input type="hidden" name="decision" value="approved" />
+                          {shortfall > 0 ? (
+                            <>
+                              <label className="flex items-center gap-2 text-[12px] text-ink-700">
+                                <input type="checkbox" name="override_insufficient_balance" required />
+                                Override insufficient balance
+                              </label>
+                              <input
+                                name="override_reason"
+                                required
+                                placeholder="Override reason"
+                                className="rounded-md border border-ink-300 px-3 py-2 text-[13px]"
+                              />
+                            </>
+                          ) : null}
+                          <PendingSubmitButton
+                            idleLabel="Approve"
+                            pendingLabel="Approving…"
+                            className="tf-primary-action h-9 px-4 text-[13px] disabled:cursor-not-allowed disabled:bg-ink-300"
+                          />
+                        </form>
+                        <form action={decideLeaveAction}>
+                          <input type="hidden" name="leave_id" value={leave.id} />
+                          <input type="hidden" name="expected_updated_at" value={leave.updated_at} />
+                          <input type="hidden" name="decision" value="rejected" />
+                          <ConfirmSubmitButton
+                            idleLabel="Decline"
+                            pendingLabel="Declining…"
+                            confirmMessage={`Decline leave request from ${leave.employee_full_name}?`}
+                            className="tf-secondary-action h-9 px-4 text-[13px] disabled:cursor-not-allowed disabled:text-ink-300"
+                          />
+                        </form>
+                      </div>
                     </div>
                   </li>
                 );
@@ -410,8 +415,8 @@ export default async function LeavesPage({
                 {overview.requests.map((leave) => (
                   <li key={leave.id} className="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
                     <div className="min-w-0 flex-1 space-y-1">
-                      <p className="font-mono text-[15px] tabular-nums text-ink-900">
-                        {formatDate(leave.start_date)} to {formatDate(leave.end_date)}
+                      <p className="text-[14px] font-medium tabular-nums text-ink-900">
+                        {formatDate(leave.start_date)} – {formatDate(leave.end_date)}
                       </p>
                       <p className="text-[12px] text-ink-500">
                         {leave.leave_definition_name ?? TYPE_LABEL[leave.leave_type]} · {days(leave.requested_days)} · Submitted {formatDate(leave.created_at)}
