@@ -1,4 +1,5 @@
 import { requireTenantActor } from "@/middleware/rbac";
+import { DateField } from "@/components/DateField";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import {
@@ -645,21 +646,11 @@ export default async function EmployeesPage({
                 </label>
                 <label className="flex flex-col gap-1 text-[12px] text-ink-500">
                   Start date
-                  <input
-                    name="start_date"
-                    type="date"
-                    defaultValue={employee.start_date ?? ""}
-                    className="tf-input"
-                  />
+                  <DateField name="start_date" defaultValue={employee.start_date ?? ""} />
                 </label>
                 <label className="flex flex-col gap-1 text-[12px] text-ink-500">
                   End date
-                  <input
-                    name="end_date"
-                    type="date"
-                    defaultValue={employee.end_date ?? ""}
-                    className="tf-input"
-                  />
+                  <DateField name="end_date" defaultValue={employee.end_date ?? ""} />
                 </label>
                 <label className="flex flex-col gap-1 text-[12px] text-ink-500">
                   Status
@@ -751,13 +742,7 @@ export default async function EmployeesPage({
                     <input type="hidden" name="return_to" value="/employees" />
                     <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                       Effective end date
-                      <input
-                        name="effective_end_date"
-                        type="date"
-                        required
-                        defaultValue={employee.end_date ?? ""}
-                        className="tf-input-sm"
-                      />
+                      <DateField name="effective_end_date" defaultValue={employee.end_date ?? ""} required dense />
                     </label>
                     <ConfirmSubmitButton
                       idleLabel="Start offboarding"
@@ -787,13 +772,7 @@ export default async function EmployeesPage({
                   <input type="hidden" name="return_to" value="/employees" />
                   <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                     Effective date
-                    <input
-                      name="effective_date"
-                      type="date"
-                      required
-                      defaultValue={new Date().toISOString().slice(0, 10)}
-                      className="tf-input-sm"
-                    />
+                    <DateField name="effective_date" defaultValue={new Date().toISOString().slice(0, 10)} required dense />
                   </label>
                   <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                     New role title
@@ -1002,7 +981,7 @@ export default async function EmployeesPage({
                   </label>
                   <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                     Due date
-                    <input name="due_date" type="date" className="tf-date-sm" />
+                    <DateField name="due_date" dense />
                   </label>
                   <label className="flex items-end gap-2 pb-2 text-[11px] text-ink-500">
                     <input name="expiry_required" type="checkbox" className="h-4 w-4 rounded border-ink-300" />
@@ -1043,11 +1022,11 @@ export default async function EmployeesPage({
                   </div>
                   <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                     Signed on (optional)
-                    <input name="signed_at" type="date" className="tf-date-sm" />
+                    <DateField name="signed_at" dense />
                   </label>
                   <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                     Expires on (optional)
-                    <input name="expires_at" type="date" className="tf-date-sm" />
+                    <DateField name="expires_at" dense />
                   </label>
                   <PendingSubmitButton
                     idleLabel="Upload document"
@@ -1182,11 +1161,11 @@ export default async function EmployeesPage({
                     </div>
                     <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                       Issue date (optional)
-                      <input name="issued_at" type="date" className="tf-input-sm" />
+                      <DateField name="issued_at" dense />
                     </label>
                     <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                       Expiry date (optional)
-                      <input name="expires_at" type="date" className="tf-input-sm" />
+                      <DateField name="expires_at" dense />
                     </label>
                     <div className="flex items-end">
                       <PendingSubmitButton
@@ -1395,20 +1374,11 @@ export default async function EmployeesPage({
           </label>
           <label className="flex flex-col gap-1 text-[12px] text-ink-500">
             Start date
-            <input
-              name="start_date"
-              type="date"
-              required
-              className="tf-input"
-            />
+            <DateField name="start_date" required />
           </label>
           <label className="flex flex-col gap-1 text-[12px] text-ink-500">
             End date (optional)
-            <input
-              name="end_date"
-              type="date"
-              className="tf-input"
-            />
+            <DateField name="end_date" />
           </label>
           <div className="flex flex-col justify-end">
             <PendingSubmitButton

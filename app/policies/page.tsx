@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { DateField } from "@/components/DateField";
 import { requireTenantActor } from "@/middleware/rbac";
 import { listPolicies, type PolicyAdminRecord } from "@/services/policyService";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
@@ -157,7 +158,7 @@ export default async function PoliciesPage({
             </label>
             <label className="flex flex-col gap-1 text-[12px] text-ink-500">
               Effective date
-              <input name="effective_date" type="date" required className="tf-input" />
+              <DateField name="effective_date" required />
             </label>
           </div>
           <div className="flex flex-col gap-1 text-[12px] text-ink-500">
@@ -194,7 +195,7 @@ export default async function PoliciesPage({
               </label>
               <label className="flex flex-col gap-1 text-[12px] text-ink-500">
                 Effective date
-                <input name="effective_date" type="date" className="tf-input" />
+                <DateField name="effective_date" />
               </label>
             </div>
             <label className="flex flex-col gap-1 text-[12px] text-ink-500">

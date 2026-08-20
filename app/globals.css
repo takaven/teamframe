@@ -81,15 +81,19 @@ main:has(> .tf-app-shell) {
   padding: 40px 56px 32px 280px !important;
 }
 
-/* No authenticated surface may produce a page-level horizontal scrollbar. Grid/flex form
-   children get min-width:0 so long fields wrap instead of pushing the layout wide. */
-html, body { overflow-x: hidden; }
+/* No authenticated surface may produce a page-level horizontal scrollbar. Grid/flex form children
+   get min-width:0 so long fields shrink/wrap instead of forcing the layout wide (a real layout fix,
+   not an overflow:hidden mask). */
 main:has(> .tf-app-shell) form,
 main:has(> .tf-app-shell) fieldset,
-main:has(> .tf-app-shell) label { min-width: 0; }
+main:has(> .tf-app-shell) label,
+main:has(> .tf-app-shell) .tf-summary > *,
+main:has(> .tf-app-shell) [class*="grid-cols"] > * { min-width: 0; }
 main:has(> .tf-app-shell) input,
 main:has(> .tf-app-shell) select,
-main:has(> .tf-app-shell) textarea { max-width: 100%; }
+main:has(> .tf-app-shell) textarea,
+main:has(> .tf-app-shell) .tf-input,
+main:has(> .tf-app-shell) .tf-select { max-width: 100%; box-sizing: border-box; }
 
 main:has(> .tf-app-shell) > :not(.tf-app-shell):not(.tf-mobile-bar) {
   max-width: 872px;

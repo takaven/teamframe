@@ -1,4 +1,5 @@
 import type { EmployeeCompensationDetail } from "@/services/compensationService";
+import { DateField } from "@/components/DateField";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { saveCompensationAction } from "@/app/employees/actions";
 
@@ -104,7 +105,7 @@ export function CompensationPanel({
             </label>
             <label className="text-[13px] text-ink-700">
               Effective date
-              <input name="effective_date" type="date" defaultValue={detail.effective_date ?? today} required className={input} />
+              <DateField name="effective_date" defaultValue={detail.effective_date ?? today} required />
             </label>
             <label className="text-[13px] text-ink-700">
               Note (optional)

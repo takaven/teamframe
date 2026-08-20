@@ -1,4 +1,5 @@
 import { uploadRequirementDocumentAction } from "@/app/employees/actions";
+import { DateField } from "@/components/DateField";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { FileInput } from "@/components/FileInput";
 import { StatusPill } from "@/components/StatusPill";
@@ -57,7 +58,7 @@ function UploadForm({ requirement }: { requirement: Requirement }) {
       <input type="hidden" name="requirement_id" value={requirement.id} />
       <input type="hidden" name="return_to" value="/me" />
       <FileInput name="file" required label="Choose a file" />
-      <input name="expires_at" type="date" className="tf-date-sm" />
+      <DateField name="expires_at" dense />
       <PendingSubmitButton idleLabel={label} pendingLabel="Uploading…" className="rounded-md bg-brand-signal px-3 py-1.5 text-[12px] font-medium text-ink-800 disabled:bg-ink-300" />
     </form>
   );

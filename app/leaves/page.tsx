@@ -1,4 +1,5 @@
 import { requireTenantActor } from "@/middleware/rbac";
+import { DateField } from "@/components/DateField";
 import {
   getLeaveOverviewForEmployee,
   listActiveLeaveDefinitions,
@@ -373,11 +374,11 @@ export default async function LeavesPage({
               </label>
               <label className="flex flex-col gap-1 text-[12px] text-ink-500">
                 From
-                <input name="start_date" type="date" required className="rounded-md border border-ink-300 px-3 py-2 text-[14px]" />
+                <DateField name="start_date" required />
               </label>
               <label className="flex flex-col gap-1 text-[12px] text-ink-500">
                 To
-                <input name="end_date" type="date" required className="rounded-md border border-ink-300 px-3 py-2 text-[14px]" />
+                <DateField name="end_date" required />
               </label>
               <label className="flex flex-col gap-1 text-[12px] text-ink-500 sm:col-span-2">
                 Reason

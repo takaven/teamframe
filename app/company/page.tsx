@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/AppShell";
+import { DateField } from "@/components/DateField";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { requireTenantCapability } from "@/middleware/rbac";
 import { listCompanyHolidays } from "@/services/companyHolidayService";
@@ -90,13 +91,7 @@ export default async function CompanyPage({
                   <form action={saveHolidayAction} className="grid gap-2 sm:grid-cols-[150px_minmax(0,1fr)_auto]">
                     <input type="hidden" name="holiday_id" value={holiday.id} />
                     <input type="hidden" name="year" value={year} />
-                    <input
-                      name="holiday_date"
-                      type="date"
-                      defaultValue={holiday.holiday_date}
-                      required
-                      className="rounded-md border border-ink-300 bg-white px-3 py-2 text-[13px] text-ink-800"
-                    />
+                    <DateField name="holiday_date" defaultValue={holiday.holiday_date} required dense />
                     <input
                       name="name"
                       defaultValue={holiday.name}
@@ -124,12 +119,7 @@ export default async function CompanyPage({
             <input type="hidden" name="year" value={year} />
             <label className="block text-[13px] font-medium text-ink-700">
               Date
-              <input
-                name="holiday_date"
-                type="date"
-                required
-                className="mt-2 w-full rounded-md border border-ink-300 bg-white px-3 py-2 text-[14px] text-ink-800"
-              />
+              <DateField name="holiday_date" required />
             </label>
             <label className="block text-[13px] font-medium text-ink-700">
               Name

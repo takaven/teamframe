@@ -1,4 +1,5 @@
 import type { EmployeeMasterRecord } from "@/services/employeeMasterService";
+import { DateField } from "@/components/DateField";
 import { updateOwnProfileAction, updateOwnPaymentAction, updateOwnPhotoAction } from "@/app/me/actions";
 import { StatusPill } from "@/components/StatusPill";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
@@ -82,7 +83,7 @@ export function EmployeeSelfRecord({ record }: { record: EmployeeMasterRecord })
             <ReadField label="Employee number" value={identity.employee_number} />
             <ReadField label="Full / legal name" value={identity.full_name} />
             <label>{<EditLabel label="Preferred name" filled={!!identity.preferred_name} />}<input name="preferred_name" defaultValue={identity.preferred_name ?? ""} className={inputCls} /></label>
-            <label>{<EditLabel label="Date of birth" filled={!!identity.date_of_birth} />}<input name="date_of_birth" type="date" defaultValue={identity.date_of_birth ?? ""} className={inputCls} /></label>
+            <label>{<EditLabel label="Date of birth" filled={!!identity.date_of_birth} />}<DateField name="date_of_birth" defaultValue={identity.date_of_birth ?? ""} /></label>
             <label>{<EditLabel label="Gender" filled={!!identity.gender} />}
               <select name="gender" defaultValue={identity.gender ?? ""} className={inputCls}>
                 <option value="">—</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option><option value="prefer_not_to_say">Prefer not to say</option>

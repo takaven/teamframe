@@ -4,6 +4,7 @@ import { AppShell } from "@/components/AppShell";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { FileInput } from "@/components/FileInput";
+import { SelectField } from "@/components/SelectField";
 import { ISO_COUNTRIES } from "@/lib/geo/countries";
 import {
   getCompanySettings,
@@ -69,14 +70,11 @@ const btn = "tf-primary-action px-4 py-2 text-[13px]";
 const btnGhost = "tf-secondary-action px-3 py-1.5 text-[12px]";
 
 function CountrySelect({ name, value }: { name: string; value?: string | null }) {
-  return (
-    <select name={name} defaultValue={value ?? ""} className={selectCls}>
-      <option value="">— Select country</option>
-      {ISO_COUNTRIES.map((c) => (
-        <option key={c.code} value={c.code}>{c.name}</option>
-      ))}
-    </select>
-  );
+  const options = [
+    { value: "", label: "— Select country" },
+    ...ISO_COUNTRIES.map((c) => ({ value: c.code, label: c.name })),
+  ];
+  return <SelectField name={name} options={options} defaultValue={value ?? ""} searchable placeholder="Select country" className="mt-1" />;
 }
 
 export default async function SetupPage({
