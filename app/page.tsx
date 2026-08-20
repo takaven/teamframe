@@ -114,7 +114,7 @@ export default function Home() {
       </section>
 
       <footer className="mt-16 flex flex-wrap items-center justify-between gap-4 border-t border-ink-300/60 pt-5 text-[12px] text-ink-500">
-        <span>TeamFrame &middot; <span className="font-mono tabular-nums">{new Date().getFullYear()}</span></span>
+        <span>TeamFrame &middot; <span className="tabular-nums">{new Date().getFullYear()}</span></span>
         <TakavenEndorsement />
       </footer>
     </main>

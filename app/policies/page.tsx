@@ -113,37 +113,25 @@ export default async function PoliciesPage({
         </div>
       </div>
 
-      <section className="mt-7 grid gap-4 sm:grid-cols-3">
-        <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
-          <p className="text-[12px] text-ink-500">Published</p>
-          <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{published.length}</p>
-        </article>
-        <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
-          <p className="text-[12px] text-ink-500">Drafts</p>
-          <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{drafts.length}</p>
-        </article>
-        <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
-          <p className="text-[12px] text-ink-500">Acknowledgements outstanding</p>
-          <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{awaiting}</p>
-        </article>
-      </section>
+      <div className="tf-summary mt-6 max-w-xl">
+        <div><div className="tf-summary-label">Published</div><div className="tf-summary-value">{published.length}</div></div>
+        <div><div className="tf-summary-label">Drafts</div><div className="tf-summary-value">{drafts.length}</div></div>
+        <div><div className="tf-summary-label">Ack. outstanding</div><div className="tf-summary-value">{awaiting}</div></div>
+      </div>
 
       {successMessage ? (
-        <p className="mt-7 rounded-lg border border-accent/70 bg-white/80 px-4 py-3 text-[14px] text-accent">
+        <p className="mt-6 rounded-lg border border-signal-green/25 bg-signal-green/5 px-4 py-2.5 text-[13.5px] text-signal-green">
           {successMessage}
         </p>
       ) : null}
       {errorMessage ? (
-        <p
-          role="alert"
-          className="mt-7 rounded-lg border border-signal-red/30 bg-signal-red/10 px-4 py-3 text-[14px] text-signal-red"
-        >
+        <p role="alert" className="mt-6 rounded-lg border border-signal-red/25 bg-signal-red/5 px-4 py-2.5 text-[13.5px] text-signal-red">
           {errorMessage}
         </p>
       ) : null}
 
-      <section id="upload" className="mt-8 rounded-xl border border-ink-300/70 bg-white/80 p-5">
-        <h2 className="text-[19px] font-medium tracking-tight">{isNewVersion ? "Upload new version" : "Upload policy"}</h2>
+      <section id="upload" className="mt-8 tf-surface-flat p-5">
+        <h2 className="tf-h2">{isNewVersion ? "Upload new version" : "Upload policy"}</h2>
         <p className="mt-1 text-[13px] text-ink-500">
           {isNewVersion
             ? "This creates a new version as its own record. Earlier versions and their acknowledgements are preserved."
@@ -227,10 +215,10 @@ export default async function PoliciesPage({
           hint="Create your first policy above, then publish it to start collecting acknowledgements."
         />
       ) : (
-        <section className="mt-8 rounded-xl border border-ink-300/70 bg-white/80">
+        <section className="mt-8 tf-surface-flat">
           <div className="border-b border-ink-300/60 px-5 py-4">
-            <h2 className="text-[17px] font-medium tracking-tight">
-              All policies — <span className="font-mono tabular-nums">{policies.length}</span>
+            <h2 className="tf-h2">
+              All policies — <span className="tabular-nums">{policies.length}</span>
             </h2>
           </div>
           <ul className="divide-y divide-ink-300/40">
@@ -242,16 +230,16 @@ export default async function PoliciesPage({
                     <div className="min-w-0 flex-1 space-y-1">
                       <p className="text-[15px] text-ink-900 font-medium">
                         {policy.title}{" "}
-                        <span className="font-mono text-[12px] tabular-nums text-ink-500 font-normal">v{policy.version}</span>
+                        <span className="text-[12px] tabular-nums text-ink-500 font-normal">v{policy.version}</span>
                       </p>
                       <p>
                         <StatusPill tone={state.tone}>{state.label}</StatusPill>
                       </p>
                       <p className="text-[12px] text-ink-500">{state.help}</p>
                       <p className="text-[12px] text-ink-500">
-                        {policy.effective_date ? <>Effective <span className="font-mono tabular-nums">{formatDate(policy.effective_date)}</span> · </> : null}
-                        Created <span className="font-mono tabular-nums">{formatDate(policy.created_at)}</span> · Updated{" "}
-                        <span className="font-mono tabular-nums">{formatDate(policy.updated_at)}</span>
+                        {policy.effective_date ? <>Effective <span className="tabular-nums">{formatDate(policy.effective_date)}</span> · </> : null}
+                        Created <span className="tabular-nums">{formatDate(policy.created_at)}</span> · Updated{" "}
+                        <span className="tabular-nums">{formatDate(policy.updated_at)}</span>
                       </p>
                       <div className="mt-2 rounded-md border border-ink-300/50 bg-ink-100/30 px-3 py-2">
                         <p className="text-[12px] font-medium text-ink-900">
@@ -260,7 +248,7 @@ export default async function PoliciesPage({
                         {policy.file_uploaded_at ? (
                           <div className="mt-1 flex flex-wrap items-center gap-3">
                             <p className="text-[12px] text-ink-500">
-                              Uploaded <span className="font-mono tabular-nums">{formatDate(policy.file_uploaded_at)}</span>
+                              Uploaded <span className="tabular-nums">{formatDate(policy.file_uploaded_at)}</span>
                             </p>
                             <form action={downloadPolicyFileAction}>
                               <input type="hidden" name="policy_id" value={policy.id} />
@@ -292,7 +280,7 @@ export default async function PoliciesPage({
                         <details className="mt-3 rounded-md border border-ink-300/50 bg-white">
                           <summary className="cursor-pointer px-3 py-2 text-[12px] font-medium text-ink-800 hover:text-ink-900">
                             Acknowledgement evidence ·{" "}
-                            <span className="font-mono tabular-nums">
+                            <span className="tabular-nums">
                               {policy.acknowledged_count}/{policy.active_employee_count}
                             </span>
                           </summary>
@@ -311,7 +299,7 @@ export default async function PoliciesPage({
                                   <StatusPill tone={entry.status === "acknowledged" ? "green" : "amber"}>
                                     {entry.status === "acknowledged" ? "Acknowledged" : "Outstanding"}
                                   </StatusPill>
-                                  <p className="font-mono tabular-nums text-ink-500">
+                                  <p className="tabular-nums text-ink-500">
                                     {entry.acknowledged_at ? formatDate(entry.acknowledged_at) : "-"}
                                   </p>
                                 </li>

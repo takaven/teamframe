@@ -182,7 +182,7 @@ export default async function LeavesPage({
         <section className="mt-8 rounded-xl border border-ink-300/70 bg-white/80">
           <div className="border-b border-ink-300/60 px-5 py-4">
             <h2 className="text-[17px] font-medium tracking-tight">
-              Pending decisions — <span className="font-mono tabular-nums">{pending.length}</span>
+              Pending decisions — <span className="tabular-nums">{pending.length}</span>
             </h2>
           </div>
           {pending.length === 0 ? (
@@ -357,10 +357,10 @@ export default async function LeavesPage({
                 {definitionBalances.map((b) => (
                   <tr key={b.definition_id}>
                     <td className="px-4 py-2 font-medium text-ink-900">{b.display_name}</td>
-                    <td className="px-4 py-2 text-right font-mono tabular-nums">{b.entitlement ?? "—"}</td>
-                    <td className="px-4 py-2 text-right font-mono tabular-nums">{b.taken}</td>
-                    <td className="px-4 py-2 text-right font-mono tabular-nums">{b.pending}</td>
-                    <td className="px-4 py-2 text-right font-mono tabular-nums">{b.available ?? "—"}</td>
+                    <td className="px-4 py-2 text-right tabular-nums">{b.entitlement ?? "—"}</td>
+                    <td className="px-4 py-2 text-right tabular-nums">{b.taken}</td>
+                    <td className="px-4 py-2 text-right tabular-nums">{b.pending}</td>
+                    <td className="px-4 py-2 text-right tabular-nums">{b.available ?? "—"}</td>
                   </tr>
                 ))}
               </tbody>

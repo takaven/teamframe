@@ -82,9 +82,9 @@ export default async function EarlyEmploymentPage({
       {errorMessage ? <p role="alert" className="mt-7 rounded-lg border border-signal-red/30 bg-signal-red/10 px-4 py-3 text-[14px] text-signal-red">{errorMessage}</p> : null}
 
       <section className="mt-6 grid gap-4 lg:grid-cols-2">
-        <article className="rounded-xl border border-ink-300/70 bg-white/80">
+        <article className="tf-surface-flat">
           <div className="border-b border-ink-300/60 px-5 py-4">
-            <h2 className="text-[17px] font-medium tracking-tight">30-day check-ins</h2>
+            <h2 className="tf-h2">30-day check-ins</h2>
             <p className="mt-1 text-[13px] text-ink-500">Scheduled from each start date. Submitted answers close the reminder — non-completion never raises an alert.</p>
           </div>
           {early.checkIns.length === 0 ? (
@@ -96,7 +96,7 @@ export default async function EarlyEmploymentPage({
                   <div className="min-w-0">
                     <p className="text-[14px] font-medium text-ink-900">{employeeMap.get(checkIn.employee_id) ?? "Team member"}</p>
                     <p className="mt-1 text-[12px] text-ink-500">
-                      Due <span className="font-mono tabular-nums">{formatDueDate(checkIn.due_date)}</span>
+                      Due <span className="tabular-nums">{formatDueDate(checkIn.due_date)}</span>
                       {checkIn.flagged_follow_up ? " · Follow-up created" : ""}
                     </p>
                   </div>
@@ -107,9 +107,9 @@ export default async function EarlyEmploymentPage({
           )}
         </article>
 
-        <article className="rounded-xl border border-ink-300/70 bg-white/80">
+        <article className="tf-surface-flat">
           <div className="border-b border-ink-300/60 px-5 py-4">
-            <h2 className="text-[17px] font-medium tracking-tight">Probation reviews</h2>
+            <h2 className="tf-h2">Probation reviews</h2>
             <p className="mt-1 text-[13px] text-ink-500">Final outcome is an authorised Admin decision. The manager recommendation (from My Team) is shown for context.</p>
           </div>
           {early.probationReviews.length === 0 ? (
@@ -122,8 +122,8 @@ export default async function EarlyEmploymentPage({
                     <div className="min-w-0">
                       <p className="text-[14px] font-medium text-ink-900">{employeeMap.get(review.employee_id) ?? "Team member"}</p>
                       <p className="mt-1 text-[12px] text-ink-500">
-                        Review due <span className="font-mono tabular-nums">{formatDueDate(review.review_due_date)}</span>
-                        {" "}· Probation ends <span className="font-mono tabular-nums">{formatDueDate(review.probation_end_date)}</span>
+                        Review due <span className="tabular-nums">{formatDueDate(review.review_due_date)}</span>
+                        {" "}· Probation ends <span className="tabular-nums">{formatDueDate(review.probation_end_date)}</span>
                       </p>
                     </div>
                     <ProbationStatusBadge review={review} />

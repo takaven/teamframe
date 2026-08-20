@@ -93,7 +93,7 @@ export default async function ManagerPage({
       </div>
 
       {employeeParam ? (
-        <section className="mt-7 rounded-xl border border-ink-300/70 bg-white/80 p-5">
+        <section className="mt-7 tf-surface-flat p-5">
           <Link href="/manager" className="text-[13px] text-ink-600 hover:text-ink-900">← Back to My Team</Link>
           {reportRecord ? (
             <div className="mt-3">
@@ -141,32 +141,17 @@ export default async function ManagerPage({
         />
       ) : (
         <>
-          <section className="mt-7 grid gap-4 sm:grid-cols-5">
-            <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
-              <p className="text-[12px] text-ink-500">Direct reports</p>
-              <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{dashboard.directReports.length}</p>
-            </article>
-            <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
-              <p className="text-[12px] text-ink-500">Leave decisions</p>
-              <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{dashboard.pendingLeaves.length}</p>
-            </article>
-            <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
-              <p className="text-[12px] text-ink-500">Onboarding tasks</p>
-              <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{dashboard.onboardingTasks.length}</p>
-            </article>
-            <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
-              <p className="text-[12px] text-ink-500">Probation input</p>
-              <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{dashboard.probationReviews.length}</p>
-            </article>
-            <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
-              <p className="text-[12px] text-ink-500">Handover</p>
-              <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{dashboard.offboardingItems.length}</p>
-            </article>
-          </section>
+          <div className="tf-summary mt-6">
+            <div><div className="tf-summary-label">Reports</div><div className="tf-summary-value">{dashboard.directReports.length}</div></div>
+            <div><div className="tf-summary-label">Leave</div><div className="tf-summary-value">{dashboard.pendingLeaves.length}</div></div>
+            <div><div className="tf-summary-label">Onboarding</div><div className="tf-summary-value">{dashboard.onboardingTasks.length}</div></div>
+            <div><div className="tf-summary-label">Probation</div><div className="tf-summary-value">{dashboard.probationReviews.length}</div></div>
+            <div><div className="tf-summary-label">Handover</div><div className="tf-summary-value">{dashboard.offboardingItems.length}</div></div>
+          </div>
 
-          <section className="mt-7 rounded-xl border border-ink-300/70 bg-white/80">
+          <section className="mt-7 tf-surface-flat">
             <div className="border-b border-ink-300/60 px-5 py-4">
-              <h2 className="text-[17px] font-medium tracking-tight">Pending leave</h2>
+              <h2 className="tf-h2">Pending leave</h2>
               <p className="mt-1 text-[13px] text-ink-500">Approval uses the same TeamFrame leave balance and overlap rules. Manager override is not available.</p>
             </div>
             {dashboard.pendingLeaves.length === 0 ? (
@@ -185,7 +170,7 @@ export default async function ManagerPage({
                         </p>
                         {annual && leave.leave_type === "annual" ? (
                           <p className="mt-1 text-[12px] text-ink-500">
-                            Annual available: <span className="font-mono tabular-nums">{days(annual.available ?? 0)}</span>
+                            Annual available: <span className="tabular-nums">{days(annual.available ?? 0)}</span>
                           </p>
                         ) : null}
                         {shortfall > 0 ? (
@@ -224,9 +209,9 @@ export default async function ManagerPage({
           </section>
 
           <section className="mt-7 grid gap-5 lg:grid-cols-2">
-            <article className="rounded-xl border border-ink-300/70 bg-white/80">
+            <article className="tf-surface-flat">
               <div className="border-b border-ink-300/60 px-5 py-4">
-                <h2 className="text-[17px] font-medium tracking-tight">Manager-owned onboarding</h2>
+                <h2 className="tf-h2">Manager-owned onboarding</h2>
               </div>
               {dashboard.onboardingTasks.length === 0 ? (
                 <p className="px-5 py-4 text-[14px] text-ink-500">No manager-owned onboarding tasks are open.</p>
@@ -255,9 +240,9 @@ export default async function ManagerPage({
               )}
             </article>
 
-            <article className="rounded-xl border border-ink-300/70 bg-white/80">
+            <article className="tf-surface-flat">
               <div className="border-b border-ink-300/60 px-5 py-4">
-                <h2 className="text-[17px] font-medium tracking-tight">Offboarding handover</h2>
+                <h2 className="tf-h2">Offboarding handover</h2>
                 <p className="mt-1 text-[13px] text-ink-500">Only manager-owned handover tasks for current direct reports appear here.</p>
               </div>
               {dashboard.offboardingItems.length === 0 ? (
@@ -287,9 +272,9 @@ export default async function ManagerPage({
               )}
             </article>
 
-            <article className="rounded-xl border border-ink-300/70 bg-white/80">
+            <article className="tf-surface-flat">
               <div className="border-b border-ink-300/60 px-5 py-4">
-                <h2 className="text-[17px] font-medium tracking-tight">Probation input</h2>
+                <h2 className="tf-h2">Probation input</h2>
                 <p className="mt-1 text-[13px] text-ink-500">Input only. Admin records the final probation outcome.</p>
               </div>
               {dashboard.probationReviews.length === 0 ? (
@@ -350,9 +335,9 @@ export default async function ManagerPage({
           </section>
 
           {reportCheckIns.length > 0 ? (
-            <section className="mt-7 rounded-xl border border-ink-300/70 bg-white/80">
+            <section className="mt-7 tf-surface-flat">
               <div className="border-b border-ink-300/60 px-5 py-4">
-                <h2 className="text-[17px] font-medium tracking-tight">30-day check-ins</h2>
+                <h2 className="tf-h2">30-day check-ins</h2>
                 <p className="mt-1 text-[13px] text-ink-500">Submitted first-month feedback from your direct reports. Read-only.</p>
               </div>
               <ul className="divide-y divide-ink-300/40">
@@ -386,9 +371,9 @@ export default async function ManagerPage({
             </section>
           ) : null}
 
-          <section className="mt-7 rounded-xl border border-ink-300/70 bg-white/80">
+          <section className="mt-7 tf-surface-flat">
             <div className="border-b border-ink-300/60 px-5 py-4">
-              <h2 className="text-[17px] font-medium tracking-tight">Direct reports</h2>
+              <h2 className="tf-h2">Direct reports</h2>
               <p className="mt-1 text-[13px] text-ink-500">Your current one-level direct reports.</p>
             </div>
             <ul className="grid gap-3 p-4 sm:grid-cols-2">

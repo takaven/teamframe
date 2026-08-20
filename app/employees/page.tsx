@@ -377,82 +377,50 @@ export default async function EmployeesPage({
   return (
     <main className="mx-auto max-w-6xl px-6 py-14">
       <AppShell actor={actor} activePath="/employees" />
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink-300/60 pb-5">
+      <div className="flex flex-wrap items-center justify-between gap-4 pb-5">
         <div>
-          <h1 className="text-[32px] font-extrabold leading-tight tracking-tight text-ink-800">Employees</h1>
-          <p className="mt-1.5 text-[14px] text-ink-500">
-            Your people, their records and onboarding progress — in one place.
+          <h1 className="tf-h1">Employees</h1>
+          <p className="tf-meta mt-1 tf-num">
+            {inviteActivated} active · {invitePending + inviteSent} awaiting sign-in{archived > 0 ? ` · ${archived} archived` : ""}
           </p>
         </div>
+        <form className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+          <input
+            name="q"
+            defaultValue={q ?? ""}
+            placeholder="Search name, role, department"
+            className="h-9 min-w-0 flex-1 rounded-lg border border-ink-300 bg-white px-3 text-[13px] text-ink-900 sm:w-60"
+          />
+          <select
+            name="filter"
+            defaultValue={activeFilter}
+            className="h-9 rounded-lg border border-ink-300 bg-white px-3 text-[13px] text-ink-900"
+          >
+            <option value="all">All</option>
+            <option value="attention">Needs attention</option>
+            <option value="active">Active</option>
+            <option value="archived">Archived</option>
+          </select>
+          <button type="submit" className="tf-secondary-action h-9 px-4 text-[13px] font-medium">Search</button>
+        </form>
       </div>
 
-      <section className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
-          <p className="text-[12px] text-ink-500">Invite pending</p>
-          <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{invitePending}</p>
-        </article>
-        <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
-          <p className="text-[12px] text-ink-500">Invite sent</p>
-          <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{inviteSent}</p>
-        </article>
-        <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
-          <p className="text-[12px] text-ink-500">Signed in and active</p>
-          <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{inviteActivated}</p>
-        </article>
-        <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
-          <p className="text-[12px] text-ink-500">Archived profiles</p>
-          <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{archived}</p>
-        </article>
-      </section>
-
       {successMessage ? (
-        <p className="mt-7 rounded-lg border border-accent/70 bg-white/80 px-4 py-3 text-[14px] text-accent">
+        <p className="mb-5 rounded-lg border border-signal-green/25 bg-signal-green/5 px-4 py-2.5 text-[13.5px] text-signal-green">
           {successMessage}
         </p>
       ) : null}
       {errorMessage ? (
-        <p
-          role="alert"
-          className="mt-7 rounded-lg border border-signal-red/30 bg-signal-red/10 px-4 py-3 text-[14px] text-signal-red"
-        >
+        <p role="alert" className="mb-5 rounded-lg border border-signal-red/25 bg-signal-red/5 px-4 py-2.5 text-[13.5px] text-signal-red">
           {errorMessage}
         </p>
       ) : null}
 
-      <section className="mt-8 rounded-xl border border-ink-300/70 bg-white/80">
-        <div className="border-b border-ink-300/60 px-5 py-4">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h2 className="text-[17px] font-medium tracking-tight">Directory</h2>
-              <p className="mt-1 text-[13px] text-ink-500">
-                Search the team and open one record for documents, exports, and account actions.
-              </p>
-            </div>
-            <form className="flex w-full flex-wrap gap-2 lg:w-auto">
-              <input
-                name="q"
-                defaultValue={q ?? ""}
-                placeholder="Search name, role, department"
-                className="min-w-0 flex-1 rounded-md border border-ink-300 px-3 py-2 text-[13px] text-ink-900 lg:w-64"
-              />
-              <select
-                name="filter"
-                defaultValue={activeFilter}
-                className="rounded-md border border-ink-300 bg-white px-3 py-2 text-[13px] text-ink-900"
-              >
-                <option value="all">All</option>
-                <option value="attention">Needs attention</option>
-                <option value="active">Active</option>
-                <option value="archived">Archived</option>
-              </select>
-              <button
-                type="submit"
-                className="rounded-md bg-brand-signal px-4 py-2 text-[13px] font-medium text-ink-800 transition hover:bg-[#00E51F]"
-              >
-                Apply
-              </button>
-            </form>
-          </div>
+      <section className="tf-surface overflow-hidden">
+        <div className="hidden grid-cols-[minmax(0,2fr)_minmax(0,1fr)_140px] items-center gap-4 border-b border-ink-100 bg-ink-50/50 px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-500 md:grid">
+          <span>Employee</span>
+          <span>Department</span>
+          <span className="text-right">Status</span>
         </div>
 
         {employees.length === 0 ? (
@@ -468,7 +436,7 @@ export default async function EmployeesPage({
             className="m-5"
           />
         ) : (
-          <ul className="divide-y divide-ink-300/40">
+          <ul className="tf-divide">
             {filteredEmployees.map((employee) => {
               const state = inviteState(employee);
               const position = positionByEmployeeId.get(employee.id);
@@ -483,15 +451,16 @@ export default async function EmployeesPage({
                 <li key={employee.id}>
                   <a
                     href={`/employees?employee=${employee.id}#employee-${employee.id}`}
-                    className="group grid grid-cols-[1fr_auto] items-center gap-4 px-5 py-3.5 transition hover:bg-ink-50/70 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]"
+                    className="group grid min-h-[68px] grid-cols-[1fr_auto] items-center gap-4 px-5 py-3 transition hover:bg-ink-50/70 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_140px]"
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <EmployeeAvatar name={employee.full_name} photoUrl={photoByEmployeeId.get(employee.id) ?? null} />
+                      <EmployeeAvatar name={employee.full_name} photoUrl={photoByEmployeeId.get(employee.id) ?? null} size={40} />
                       <div className="min-w-0">
                         <p className="truncate text-[14px] font-semibold text-ink-900">{employee.full_name}</p>
                         <p className="truncate text-[12.5px] text-ink-500">
                           {primaryRole}
-                          {roleDiverges ? <span className="text-ink-400"> · Title: {employee.role_title}</span> : null}
+                          {roleDiverges ? <span className="text-ink-400"> ({employee.role_title})</span> : null}
+                          {employee.employee_number ? <span className="text-ink-400"> · <span className="tabular-nums">{employee.employee_number}</span></span> : null}
                         </p>
                       </div>
                     </div>
@@ -499,23 +468,14 @@ export default async function EmployeesPage({
                       <p className="truncate text-[13px] text-ink-700">{employee.department || "—"}</p>
                       <p className="truncate text-[12px] text-ink-500">{employee.work_location || "No work location"}</p>
                     </div>
-                    <div className="flex items-center gap-3 justify-self-end">
-                      <div className="text-right">
-                        <StatusPill
-                          tone={
-                            employee.canonical_lifecycle === "FORMER"
-                              ? "neutral"
-                              : employee.canonical_lifecycle === "OFFBOARDING"
-                                ? "amber"
-                                : "green"
-                          }
-                        >
-                          {employee.canonical_lifecycle_label}
-                          {probationEmployeeIds.has(employee.id) && employee.canonical_lifecycle === "ACTIVE" ? " · Probation" : ""}
-                        </StatusPill>
-                        {needsAttention ? <p className="mt-1 text-[11px] text-ink-500">{state.label}</p> : null}
-                      </div>
-                      <span className="text-[13px] font-medium text-ink-300 transition group-hover:text-ink-900" aria-hidden>→</span>
+                    <div className="flex items-center justify-end gap-2.5">
+                      <span className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-ink-600">
+                        <span className={`tf-dot ${employee.canonical_lifecycle === "FORMER" ? "tf-dot-neutral" : employee.canonical_lifecycle === "OFFBOARDING" ? "tf-dot-amber" : "tf-dot-green"}`} aria-hidden />
+                        {employee.canonical_lifecycle_label}
+                        {probationEmployeeIds.has(employee.id) && employee.canonical_lifecycle === "ACTIVE" ? " · Probation" : ""}
+                      </span>
+                      {needsAttention ? <span className="h-1.5 w-1.5 rounded-full bg-signal-amber" title={state.label} aria-label={state.label} /> : null}
+                      <span className="text-[13px] font-medium text-ink-300 transition group-hover:text-ink-700" aria-hidden>›</span>
                     </div>
                   </a>
                 </li>
@@ -999,19 +959,19 @@ export default async function EmployeesPage({
                 <p className="text-[13px] font-bold text-ink-800 sm:col-span-2 lg:col-span-4">Invite diagnostics</p>
                 <div>
                   <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Invite attempts</dt>
-                  <dd className="mt-0.5 font-mono tabular-nums text-ink-700">{employee.invite_attempt_count}</dd>
+                  <dd className="mt-0.5 tabular-nums text-ink-700">{employee.invite_attempt_count}</dd>
                 </div>
                 <div>
                   <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Last attempted</dt>
-                  <dd className="mt-0.5 font-mono tabular-nums text-ink-700">{formatDateTime(employee.invite_last_attempt_at)}</dd>
+                  <dd className="mt-0.5 tabular-nums text-ink-700">{formatDateTime(employee.invite_last_attempt_at)}</dd>
                 </div>
                 <div>
                   <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Last delivered</dt>
-                  <dd className="mt-0.5 font-mono tabular-nums text-ink-700">{formatDateTime(employee.invite_last_sent_at)}</dd>
+                  <dd className="mt-0.5 tabular-nums text-ink-700">{formatDateTime(employee.invite_last_sent_at)}</dd>
                 </div>
                 <div>
                   <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Activated</dt>
-                  <dd className="mt-0.5 font-mono tabular-nums text-ink-700">{formatDateTime(employee.activated_at)}</dd>
+                  <dd className="mt-0.5 tabular-nums text-ink-700">{formatDateTime(employee.activated_at)}</dd>
                 </div>
               </dl>
 
@@ -1168,9 +1128,9 @@ export default async function EmployeesPage({
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="text-[12px] text-ink-700">
                             <p className="font-medium text-ink-900">{document.type.toUpperCase()}</p>
-                            <p>Uploaded <span className="font-mono tabular-nums">{formatDateTime(document.created_at)}</span></p>
-                            <p>Signed: <span className="font-mono tabular-nums">{document.signed_at ? formatDateTime(document.signed_at) : "-"}</span></p>
-                            <p>Expires: <span className="font-mono tabular-nums">{document.expires_at ? formatDateTime(document.expires_at) : "-"}</span></p>
+                            <p>Uploaded <span className="tabular-nums">{formatDateTime(document.created_at)}</span></p>
+                            <p>Signed: <span className="tabular-nums">{document.signed_at ? formatDateTime(document.signed_at) : "-"}</span></p>
+                            <p>Expires: <span className="tabular-nums">{document.expires_at ? formatDateTime(document.expires_at) : "-"}</span></p>
                           </div>
                           <div className="flex flex-wrap items-center gap-2">
                             <form action={downloadEmployeeDocumentAction}>
@@ -1276,8 +1236,8 @@ export default async function EmployeesPage({
                               <p className="font-medium text-ink-900">{uaeRecordLabel(document.document_type)}</p>
                               {document.reference_number ? <p>Reference: <span className="font-mono">{document.reference_number}</span></p> : null}
                               <p>
-                                Issued: <span className="font-mono tabular-nums">{document.issued_at ? formatDate(document.issued_at) : "-"}</span>
-                                {" · "}Expires: <span className="font-mono tabular-nums">{document.expires_at ? formatDate(document.expires_at) : "-"}</span>
+                                Issued: <span className="tabular-nums">{document.issued_at ? formatDate(document.issued_at) : "-"}</span>
+                                {" · "}Expires: <span className="tabular-nums">{document.expires_at ? formatDate(document.expires_at) : "-"}</span>
                               </p>
                             </div>
                             <form action={downloadEmployeeDocumentAction}>

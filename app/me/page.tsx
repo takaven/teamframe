@@ -104,7 +104,7 @@ export default async function MePage({
         <EmployeeSelfRecord record={record} />
       </div>
 
-      <section id="documents" className="mt-6 rounded-xl border border-ink-300/70 bg-white/80 p-5">
+      <section id="documents" className="mt-6 tf-surface-flat p-5">
         <h2 className="text-[15px] font-bold tracking-tight text-ink-800">Documents</h2>
         <p className="mt-1 text-[13px] text-ink-500">Upload requested evidence here. TeamFrame records receipt and closes matching obligations where evidence is configured.</p>
         <div className="mt-4">
@@ -113,9 +113,9 @@ export default async function MePage({
       </section>
 
       {unacknowledgedPolicies.length > 0 ? (
-        <section id="policies" className="mt-6 rounded-xl border border-ink-300/70 bg-white/80">
+        <section id="policies" className="mt-6 tf-surface-flat">
           <div className="border-b border-ink-200 px-5 py-4">
-            <h2 className="text-[15px] font-bold tracking-tight text-ink-800">Policies to acknowledge — <span className="font-mono tabular-nums">{unacknowledgedPolicies.length}</span></h2>
+            <h2 className="text-[15px] font-bold tracking-tight text-ink-800">Policies to acknowledge — <span className="tabular-nums">{unacknowledgedPolicies.length}</span></h2>
             <p className="mt-1 text-[13px] text-ink-500">Read each policy, then confirm you have understood it. Your acknowledgement is recorded.</p>
           </div>
           <ul className="divide-y divide-ink-100">
@@ -123,8 +123,8 @@ export default async function MePage({
               <li key={policy.id} className="px-5 py-4">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0 flex-1 space-y-1">
-                    <p className="text-[15px] font-medium text-ink-900">{policy.title} <span className="font-mono text-[12px] tabular-nums text-ink-500">v{policy.version}</span></p>
-                    {policy.effective_date ? <p className="text-[12px] text-ink-500">Effective <span className="font-mono tabular-nums">{formatDay(policy.effective_date)}</span></p> : null}
+                    <p className="text-[15px] font-medium text-ink-900">{policy.title} <span className="text-[12px] tabular-nums text-ink-500">v{policy.version}</span></p>
+                    {policy.effective_date ? <p className="text-[12px] text-ink-500">Effective <span className="tabular-nums">{formatDay(policy.effective_date)}</span></p> : null}
                     {policy.file_original_name ? (
                       <form action={downloadPolicyFileAction}>
                         <input type="hidden" name="policy_id" value={policy.id} />
@@ -153,21 +153,21 @@ export default async function MePage({
       ) : null}
 
       {checkInState.state === "not_yet_due" ? (
-        <section className="mt-6 rounded-xl border border-ink-300/70 bg-white/80 p-5">
+        <section className="mt-6 tf-surface-flat p-5">
           <h2 className="text-[15px] font-bold tracking-tight text-ink-800">30-day check-in</h2>
-          <p className="mt-1 text-[13px] text-ink-500">Your check-in opens on <span className="font-mono tabular-nums">{formatDay(checkInState.checkIn.due_date)}</span> — nothing to do yet.</p>
+          <p className="mt-1 text-[13px] text-ink-500">Your check-in opens on <span className="tabular-nums">{formatDay(checkInState.checkIn.due_date)}</span> — nothing to do yet.</p>
         </section>
       ) : null}
 
       {checkInState.state === "submitted" ? (
-        <section className="mt-6 rounded-xl border border-ink-300/70 bg-white/80 p-5">
+        <section className="mt-6 tf-surface-flat p-5">
           <h2 className="text-[15px] font-bold tracking-tight text-ink-800">30-day check-in</h2>
-          <p className="mt-1 text-[13px] text-ink-500">Submitted{checkInState.checkIn.submitted_at ? <> on <span className="font-mono tabular-nums">{formatDay(checkInState.checkIn.submitted_at)}</span></> : null}. Thank you — no further action needed.</p>
+          <p className="mt-1 text-[13px] text-ink-500">Submitted{checkInState.checkIn.submitted_at ? <> on <span className="tabular-nums">{formatDay(checkInState.checkIn.submitted_at)}</span></> : null}. Thank you — no further action needed.</p>
         </section>
       ) : null}
 
       {checkInState.state === "available" ? (
-        <section className="mt-6 rounded-xl border border-ink-300/70 bg-white/80">
+        <section className="mt-6 tf-surface-flat">
           <div className="border-b border-ink-200 px-5 py-4">
             <h2 className="text-[15px] font-bold tracking-tight text-ink-800">30-day check-in</h2>
             <p className="mt-1 text-[13px] text-ink-500">Share factual first-month feedback so the team can remove any blockers.</p>
@@ -217,7 +217,7 @@ export default async function MePage({
       ) : null}
 
       {isManager ? (
-        <section className="mt-6 rounded-xl border border-ink-300/70 bg-white/80 p-5">
+        <section className="mt-6 tf-surface-flat p-5">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <h2 className="text-[15px] font-bold tracking-tight text-ink-800">My Team</h2>

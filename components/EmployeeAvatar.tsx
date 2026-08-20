@@ -8,6 +8,20 @@ function initialsOf(name: string): string {
   return (a + b).toUpperCase() || "?";
 }
 
+// Restrained, muted tints (deterministic per name) — quiet variation, never loud.
+const TINTS = [
+  "bg-[#eef1f4] text-[#4a5462]",
+  "bg-[#eef2ee] text-[#4a5a4e]",
+  "bg-[#f1eef2] text-[#57505e]",
+  "bg-[#eef1f3] text-[#495663]",
+  "bg-[#f2f0ec] text-[#5c554a]",
+];
+function tintOf(name: string): string {
+  let h = 0;
+  for (let i = 0; i < name.length; i += 1) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return TINTS[h % TINTS.length] ?? TINTS[0]!;
+}
+
 export function EmployeeAvatar({
   name,
   photoUrl,
@@ -26,8 +40,8 @@ export function EmployeeAvatar({
   }
   return (
     <span
-      style={{ width: dim, height: dim }}
-      className="flex shrink-0 items-center justify-center rounded-full bg-ink-100 text-[12px] font-bold text-ink-600"
+      style={{ width: dim, height: dim, fontSize: Math.round(size * 0.34) }}
+      className={`flex shrink-0 items-center justify-center rounded-full font-semibold ${tintOf(name)}`}
     >
       {initialsOf(name)}
     </span>

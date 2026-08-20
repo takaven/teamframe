@@ -158,7 +158,8 @@ describe("Org Chart schema and UI contracts", () => {
 
     expect(appShell).toContain('{ href: "/org-chart", label: "Org chart" }');
     expect(page).toContain("Design your team structure.");
-    expect(page).toContain("JD attached");
+    // Redesign: JD count now shown inline in the compact header summary ("N with JD").
+    expect(page).toContain("with JD");
     expect(page).toContain("Open employee");
   });
 });

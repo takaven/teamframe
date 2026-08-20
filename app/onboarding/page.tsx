@@ -70,12 +70,12 @@ function DueDateBadge({ task }: { task: Pick<OnboardingTask, "due_date" | "statu
   return isTaskOverdue(task.due_date, task.status) ? (
     <p>
       <StatusPill tone="amber">
-        Overdue — was due <span className="ml-1 font-mono tabular-nums">{formatDueDate(task.due_date)}</span>
+        Overdue — was due <span className="ml-1 tabular-nums">{formatDueDate(task.due_date)}</span>
       </StatusPill>
     </p>
   ) : (
     <p className="text-[12px] text-ink-500">
-      Due <span className="font-mono tabular-nums">{formatDueDate(task.due_date)}</span>
+      Due <span className="tabular-nums">{formatDueDate(task.due_date)}</span>
     </p>
   );
 }
@@ -146,36 +146,25 @@ export default async function OnboardingPage({
           </Link>
         </div>
 
-        <section className="mt-7 grid gap-4 sm:grid-cols-3">
-          <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
-            <p className="text-[12px] text-ink-500">Needs attention</p>
-            <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{pending.length}</p>
-          </article>
-          <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
-            <p className="text-[12px] text-ink-500">Completed</p>
-            <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{done.length}</p>
-          </article>
-          <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
-            <p className="text-[12px] text-ink-500">Completion rate</p>
-            <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">
-              {tasks.length > 0 ? Math.round((done.length / tasks.length) * 100) : 0}%
-            </p>
-          </article>
-        </section>
+        <div className="tf-summary mt-6 max-w-md">
+          <div><div className="tf-summary-label">Open</div><div className="tf-summary-value">{pending.length}</div></div>
+          <div><div className="tf-summary-label">Completed</div><div className="tf-summary-value">{done.length}</div></div>
+          <div><div className="tf-summary-label">Progress</div><div className="tf-summary-value">{tasks.length > 0 ? Math.round((done.length / tasks.length) * 100) : 0}%</div></div>
+        </div>
 
         {successMessage ? (
-          <p className="mt-7 rounded-lg border border-accent/70 bg-white/80 px-4 py-3 text-[14px] text-accent">
+          <p className="mt-6 rounded-lg border border-signal-green/25 bg-signal-green/5 px-4 py-2.5 text-[13.5px] text-signal-green">
             {successMessage}
           </p>
         ) : null}
         {errorMessage ? (
-          <p role="alert" className="mt-7 rounded-lg border border-signal-red/30 bg-signal-red/10 px-4 py-3 text-[14px] text-signal-red">
+          <p role="alert" className="mt-6 rounded-lg border border-signal-red/25 bg-signal-red/5 px-4 py-2.5 text-[13.5px] text-signal-red">
             {errorMessage}
           </p>
         ) : null}
 
-        <section className="mt-8 rounded-xl border border-ink-300/70 bg-white/80 p-5">
-          <h2 className="text-[19px] font-medium tracking-tight">Assign a template pack</h2>
+        <section className="mt-8 tf-surface-flat p-5">
+          <h2 className="tf-h2">Assign a template pack</h2>
           <p className="mt-1 text-[14px] text-ink-500">
             Pre-fill a first-two-weeks checklist. Remove any task before assigning; due dates come from the employee&apos;s start date.
           </p>
@@ -197,8 +186,8 @@ export default async function OnboardingPage({
           )}
         </section>
 
-        <section className="mt-5 rounded-xl border border-ink-300/70 bg-white/80 p-5">
-          <h2 className="text-[19px] font-medium tracking-tight">Assign a single task</h2>
+        <section className="mt-5 tf-surface-flat p-5">
+          <h2 className="tf-h2">Assign a single task</h2>
           {employees.length === 0 ? (
             <p className="mt-3 text-[14px] text-ink-500">
               You do not have employees to assign yet.{" "}
@@ -255,10 +244,10 @@ export default async function OnboardingPage({
         </section>
 
         {pending.length > 0 ? (
-          <section className="mt-6 rounded-xl border border-ink-300/70 bg-white/80">
+          <section className="mt-6 tf-surface-flat">
             <div className="border-b border-ink-300/60 px-5 py-4">
-              <h2 className="text-[17px] font-medium tracking-tight">
-                Pending — <span className="font-mono tabular-nums">{pending.length}</span>
+              <h2 className="tf-h2">
+                Pending — <span className="tabular-nums">{pending.length}</span>
               </h2>
             </div>
             <ul className="divide-y divide-ink-300/40">
@@ -268,7 +257,7 @@ export default async function OnboardingPage({
                     <p className="text-[15px] text-ink-900">{task.title}</p>
                     <p className="text-[12px] text-ink-500">
                       {employeeMap.get(task.employee_id) ?? task.employee_id} · Assigned{" "}
-                      <span className="font-mono tabular-nums">{formatDate(task.created_at)}</span>
+                      <span className="tabular-nums">{formatDate(task.created_at)}</span>
                     </p>
                     <DueDateBadge task={task} />
                   </div>
@@ -303,10 +292,10 @@ export default async function OnboardingPage({
         )}
 
         {done.length > 0 ? (
-          <section className="mt-6 rounded-xl border border-ink-300/70 bg-white/80">
+          <section className="mt-6 tf-surface-flat">
             <div className="border-b border-ink-300/60 px-5 py-4">
-              <h2 className="text-[17px] font-medium tracking-tight text-ink-500">
-                Completed — <span className="font-mono tabular-nums">{done.length}</span>
+              <h2 className="tf-h2 text-ink-500">
+                Completed — <span className="tabular-nums">{done.length}</span>
               </h2>
             </div>
             <ul className="divide-y divide-ink-300/40">
@@ -316,7 +305,7 @@ export default async function OnboardingPage({
                     <p className="text-[15px] text-ink-900 line-through">{task.title}</p>
                     <p className="text-[12px] text-ink-500">
                       {employeeMap.get(task.employee_id) ?? task.employee_id} · Done{" "}
-                      <span className="font-mono tabular-nums">{task.completed_at ? formatDate(task.completed_at) : "—"}</span>
+                      <span className="tabular-nums">{task.completed_at ? formatDate(task.completed_at) : "—"}</span>
                     </p>
                   </div>
                   <TaskStatusBadge status={task.status} />
@@ -376,10 +365,10 @@ export default async function OnboardingPage({
         />
       ) : (
         <>
-          <section className="mt-7 rounded-xl border border-ink-300/70 bg-white/80 p-5">
+          <section className="mt-7 tf-surface-flat p-5">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
-                <h2 className="text-[19px] font-medium tracking-tight">Your progress</h2>
+                <h2 className="tf-h2">Your progress</h2>
                 <p className="mt-1 text-[14px] text-ink-500">{progressCopy(progress)}</p>
               </div>
               <TaskStatusBadge status={pending.length > 0 ? "pending" : "completed"} />
@@ -393,25 +382,25 @@ export default async function OnboardingPage({
           </section>
 
           <section className="mt-4 grid gap-4 sm:grid-cols-3">
-            <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
+            <article className="tf-surface-flat p-4">
               <p className="text-[12px] text-ink-500">To do</p>
               <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{pending.length}</p>
             </article>
-            <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
+            <article className="tf-surface-flat p-4">
               <p className="text-[12px] text-ink-500">Completed</p>
               <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{done.length}</p>
             </article>
-            <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
+            <article className="tf-surface-flat p-4">
               <p className="text-[12px] text-ink-500">Progress</p>
               <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{progress}%</p>
             </article>
           </section>
 
           {pending.length > 0 ? (
-            <section className="mt-8 rounded-xl border border-ink-300/70 bg-white/80">
+            <section className="mt-8 tf-surface-flat">
               <div className="border-b border-ink-300/60 px-5 py-4">
-                <h2 className="text-[17px] font-medium tracking-tight">
-                  To do — <span className="font-mono tabular-nums">{pending.length}</span>
+                <h2 className="tf-h2">
+                  To do — <span className="tabular-nums">{pending.length}</span>
                 </h2>
               </div>
               <ul className="divide-y divide-ink-300/40">
@@ -420,7 +409,7 @@ export default async function OnboardingPage({
                     <div className="min-w-0 flex-1 space-y-1">
                       <p className="text-[15px] text-ink-900">{task.title}</p>
                       <p className="text-[12px] text-ink-500">
-                        Added <span className="font-mono tabular-nums">{formatDate(task.created_at)}</span>
+                        Added <span className="tabular-nums">{formatDate(task.created_at)}</span>
                       </p>
                       <DueDateBadge task={task} />
                       <p className="text-[12px] text-ink-500">Complete this once the step is finished.</p>
@@ -447,10 +436,10 @@ export default async function OnboardingPage({
           ) : null}
 
           {done.length > 0 ? (
-            <section className="mt-6 rounded-xl border border-ink-300/70 bg-white/80">
+            <section className="mt-6 tf-surface-flat">
               <div className="border-b border-ink-300/60 px-5 py-4">
-                <h2 className="text-[17px] font-medium tracking-tight text-ink-500">
-                  Completed — <span className="font-mono tabular-nums">{done.length}</span>
+                <h2 className="tf-h2 text-ink-500">
+                  Completed — <span className="tabular-nums">{done.length}</span>
                 </h2>
               </div>
               <ul className="divide-y divide-ink-300/40">
@@ -459,7 +448,7 @@ export default async function OnboardingPage({
                     <div className="min-w-0 flex-1 space-y-1">
                       <p className="text-[15px] text-ink-900 line-through">{task.title}</p>
                       <p className="text-[12px] text-ink-500">
-                        Done <span className="font-mono tabular-nums">{task.completed_at ? formatDate(task.completed_at) : "—"}</span>
+                        Done <span className="tabular-nums">{task.completed_at ? formatDate(task.completed_at) : "—"}</span>
                       </p>
                     </div>
                     <TaskStatusBadge status={task.status} />

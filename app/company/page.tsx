@@ -57,11 +57,11 @@ export default async function CompanyPage({
       ) : null}
 
       <section className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="rounded-xl border border-ink-300/70 bg-white/80 p-5">
+        <div className="tf-surface-flat p-5">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="text-[12px] uppercase tracking-[0.14em] text-ink-500">Year</p>
-              <h2 className="mt-1 text-[19px] font-medium tracking-tight text-ink-900">{year} holidays</h2>
+              <h2 className="mt-1 tf-h2 text-ink-900">{year} holidays</h2>
             </div>
             <form className="flex items-center gap-2" action="/company">
               <label className="text-[13px] font-medium text-ink-700">
@@ -117,9 +117,9 @@ export default async function CompanyPage({
           </div>
         </div>
 
-        <aside className="h-fit rounded-xl border border-ink-300/70 bg-white/80 p-5">
+        <aside className="h-fit tf-surface-flat p-5">
           <p className="text-[12px] uppercase tracking-[0.14em] text-ink-500">Add holiday</p>
-          <h2 className="mt-1 text-[17px] font-medium tracking-tight text-ink-900">Manual date</h2>
+          <h2 className="mt-1 tf-h2 text-ink-900">Manual date</h2>
           <form action={saveHolidayAction} className="mt-5 grid gap-4">
             <input type="hidden" name="year" value={year} />
             <label className="block text-[13px] font-medium text-ink-700">

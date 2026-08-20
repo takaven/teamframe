@@ -77,7 +77,7 @@ export default async function AccessPage({
         <p className="mt-6 rounded-lg border border-accent/70 bg-white/80 px-4 py-3 text-[14px] text-accent">Access change recorded.</p>
       ) : null}
 
-      <div className="mt-7 overflow-hidden rounded-xl border border-ink-300/70 bg-white/70">
+      <div className="mt-7 overflow-hidden tf-surface-flat">
         <div className="hidden grid-cols-[1.4fr_1fr_0.8fr_auto] gap-3 border-b border-ink-200 bg-ink-50/60 px-5 py-3 text-[11px] font-bold uppercase tracking-[0.1em] text-ink-500 lg:grid">
           <span>User</span><span>Access level</span><span>Status</span><span>Actions</span>
         </div>

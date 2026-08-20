@@ -68,7 +68,10 @@ describe("Phase 8 — consolidated founder correction pass", () => {
     expect(shell).toContain("getCompanyIdentity");
     expect(shell).toContain("identity.name");
     expect(shell).not.toContain("TeamFrame workspace");
-    expect(shell).toContain("Powered by TeamFrame");
+    // Redesign brand hierarchy: TeamFrame product identity at top, customer workspace context,
+    // quiet TAKAVEN endorsement at the bottom.
+    expect(shell).toContain("Workspace");
+    expect(shell).toContain("Conceptualised by");
   });
 
   it("keeps the developer-narration 'Admin queue' eyebrow out of customer pages", () => {
