@@ -33,7 +33,7 @@ export function SectionTabs({
 
   return (
     <div>
-      <div role="tablist" aria-label={ariaLabel} className="flex flex-wrap gap-1 overflow-x-auto border-b border-ink-300/60">
+      <div role="tablist" aria-label={ariaLabel} className="flex flex-nowrap gap-1 overflow-x-auto border-b border-ink-200 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {tabs.map((t) => {
           const isActive = t.id === active;
           return (
@@ -44,7 +44,7 @@ export function SectionTabs({
               aria-selected={isActive}
               onClick={() => setActive(t.id)}
               className={[
-                "relative -mb-px inline-flex shrink-0 items-center gap-1.5 rounded-t-lg px-3.5 py-2.5 text-[13.5px] font-medium transition",
+                "relative -mb-px inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3.5 py-2.5 text-[13.5px] font-medium transition",
                 isActive ? "border-b-2 border-ink-900 text-ink-900" : "border-b-2 border-transparent text-ink-500 hover:text-ink-800",
               ].join(" ")}
             >

@@ -52,21 +52,17 @@ export default async function DashboardPage() {
     <main className="mx-auto max-w-5xl px-6 py-12">
       <AppShell actor={actor} activePath="/dashboard" />
 
-      <header className="border-b border-ink-300/60 pb-6">
-        <p className="text-[13px] text-ink-500">
-          {identity.name} · {dateLabel}
-        </p>
-        <h1 className="mt-1.5 font-display text-[32px] font-extrabold leading-tight text-ink-800">{hello}</h1>
-        <p className="mt-3 text-[19px] text-ink-700">
-          {summary.total === 0 ? (
-            <>Nothing needs your attention right now.</>
-          ) : (
-            <>
-              <span className="font-bold text-ink-900">{summary.total}</span> item{summary.total === 1 ? "" : "s"} need
-              your attention.
-            </>
+      <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 pb-5">
+        <div>
+          <h1 className="tf-h1">{hello}</h1>
+          <p className="tf-meta mt-1">{identity.name} · {dateLabel}</p>
+        </div>
+        <p className="tf-meta">
+          {summary.total === 0 ? "All clear" : (
+            <><span className="font-semibold text-ink-900 tf-num">{summary.total}</span> {summary.total === 1 ? "item needs" : "items need"} attention</>
           )}
-          <span className="ml-2 text-[15px] text-ink-500">{activeEmployeeCount} active {activeEmployeeCount === 1 ? "person" : "people"}.</span>
+          <span className="mx-2 text-ink-300">·</span>
+          <span className="tf-num">{activeEmployeeCount}</span> active
         </p>
       </header>
 
@@ -90,9 +86,9 @@ export default async function DashboardPage() {
       </section>
 
       {resolvedItems.length > 0 ? (
-        <section className="mt-10">
-          <details className="group rounded-xl border border-ink-300/70 bg-white/70 p-5">
-            <summary className="flex cursor-pointer list-none items-center justify-between text-[14px] font-semibold text-ink-700 marker:hidden">
+        <section className="mt-8">
+          <details className="group tf-surface-flat px-5 py-4">
+            <summary className="flex cursor-pointer list-none items-center justify-between text-[13.5px] font-semibold text-ink-700 marker:hidden">
               <span>Recently resolved</span>
               <span className="text-[12px] font-normal text-ink-500 group-open:hidden">{resolvedItems.length} · show</span>
               <span className="hidden text-[12px] font-normal text-ink-500 group-open:inline">hide</span>

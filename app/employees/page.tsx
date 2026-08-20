@@ -535,7 +535,7 @@ export default async function EmployeesPage({
           />
         ) : (
           detailEmployees.map((employee) => (
-            <article id={`employee-${employee.id}`} key={employee.id} className="rounded-xl border border-ink-300/70 bg-white/80 p-5">
+            <article id={`employee-${employee.id}`} key={employee.id} className="space-y-4">
               {(() => {
                 const resendCooldownSeconds = getResendCooldownSeconds(employee.invite_last_attempt_at);
                 const resendBlocked = resendCooldownSeconds > 0;

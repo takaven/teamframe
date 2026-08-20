@@ -1,6 +1,5 @@
 import type { EmployeeMasterRecord } from "@/services/employeeMasterService";
 import type { EmployeeAssignmentRecord } from "@/services/positionAssignmentService";
-import { StatusPill } from "@/components/StatusPill";
 import { FileInput } from "@/components/FileInput";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { updateEmployeePhotoAction } from "@/app/employees/actions";
@@ -41,11 +40,21 @@ function Grid({ children }: { children: React.ReactNode }) {
   return <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{children}</dl>;
 }
 
+function humaneStatus(lifecycle: string, status: string): string {
+  const s = (status || lifecycle || "").replace(/_/g, " ");
+  if (!s) return "Active";
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function statusTone(status: string): "green" | "amber" | "neutral" {
+  return status === "active" ? "green" : status === "on_leave" ? "amber" : "neutral";
+}
+
 function PanelCard({ title, note, children }: { title: string; note?: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-xl border border-ink-200 bg-white/70 p-5">
+    <section className="tf-surface-flat p-5">
       <div className="flex items-baseline justify-between gap-3">
-        <h3 className="text-[14px] font-bold tracking-tight text-ink-800">{title}</h3>
+        <h3 className="tf-h3">{title}</h3>
         {note ? <span className="text-[11px] text-ink-500">{note}</span> : null}
       </div>
       <div className="mt-4">{children}</div>
@@ -68,38 +77,46 @@ export function RecordHeader({
   const { identity, employment } = master;
   const roleDiverges = positionTitle !== null && employment.role_title.trim().toLowerCase() !== positionTitle.trim().toLowerCase();
   const displayRole = positionTitle ?? employment.role_title;
+  const tone = statusTone(employment.status);
   return (
-    <section className="rounded-xl border border-ink-200 bg-white/80 p-5">
+    <section className="tf-surface p-5 sm:p-6">
       <div className="flex flex-wrap items-start gap-4">
-        {photoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={photoUrl} alt="" width={60} height={60} className="h-[60px] w-[60px] rounded-full object-cover" />
-        ) : (
-          <span className="flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-full bg-ink-100 text-[18px] font-bold text-ink-600">
-            {initialsOf(identity.full_name)}
-          </span>
-        )}
+        <div className="relative shrink-0">
+          {photoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={photoUrl} alt="" width={64} height={64} className="h-16 w-16 rounded-full object-cover ring-1 ring-ink-100" />
+          ) : (
+            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-ink-100 text-[19px] font-bold text-ink-600">
+              {initialsOf(identity.full_name)}
+            </span>
+          )}
+        </div>
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-[20px] font-extrabold tracking-tight text-ink-900">{identity.full_name}</h2>
-            <StatusPill tone={employment.status === "active" ? "green" : employment.status === "on_leave" ? "amber" : "neutral"}>
-              {employment.lifecycle_state} · {employment.status.replace(/_/g, " ")}
-            </StatusPill>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h2 className="text-[20px] font-semibold tracking-tight text-ink-900">{identity.full_name}</h2>
+            <span className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-ink-600">
+              <span className={`tf-dot tf-dot-${tone}`} aria-hidden /> {humaneStatus(employment.lifecycle_state, employment.status)}
+            </span>
           </div>
           <p className="mt-1 text-[13.5px] text-ink-600">
             {displayRole} · {employment.department}
             {managerName ? <> · reports to {managerName}</> : null}
           </p>
           <p className="mt-0.5 text-[12px] text-ink-500">
-            {identity.employee_number ? <>No. {identity.employee_number}</> : "No employee number"}
+            {identity.employee_number ? <>No. <span className="tabular-nums">{identity.employee_number}</span></> : "No employee number"}
             {roleDiverges ? <> · Title: {employment.role_title}</> : null}
           </p>
         </div>
-        <form action={updateEmployeePhotoAction} className="flex items-center gap-2" encType="multipart/form-data">
-          <input type="hidden" name="employee_id" value={identity.id} />
-          <FileInput name="photo" accept="image/png,image/jpeg,image/webp" required label={photoUrl ? "Change photo" : "Add photo"} />
-          <PendingSubmitButton idleLabel="Save" pendingLabel="Uploading…" className="tf-secondary-action px-3 py-1.5 text-[12px] font-medium disabled:cursor-not-allowed disabled:text-ink-300" />
-        </form>
+        <details className="group shrink-0">
+          <summary className="tf-secondary-action inline-flex cursor-pointer list-none items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium marker:hidden">
+            <span aria-hidden>◦</span> {photoUrl ? "Edit photo" : "Add photo"}
+          </summary>
+          <form action={updateEmployeePhotoAction} className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-ink-100 bg-ink-50/50 p-3" encType="multipart/form-data">
+            <input type="hidden" name="employee_id" value={identity.id} />
+            <FileInput name="photo" accept="image/png,image/jpeg,image/webp" required label="Choose image" />
+            <PendingSubmitButton idleLabel="Save" pendingLabel="Uploading…" className="tf-primary-action px-3 py-1.5 text-[12px] disabled:cursor-not-allowed disabled:bg-ink-300" />
+          </form>
+        </details>
       </div>
     </section>
   );
@@ -147,8 +164,8 @@ export function EmploymentReadPanel({
     <div className="space-y-4">
       <PanelCard title="Employment" note={roleDiverges ? "Role title differs from position title" : undefined}>
         <Grid>
-          <Field label="Position (slot)" value={positionTitle ?? <span className="text-ink-400">Not assigned</span>} />
-          <Field label="Role / job title" value={employment.role_title} />
+          <Field label="Position" value={positionTitle ?? <span className="text-ink-400">Not assigned</span>} />
+          <Field label="Job title" value={employment.role_title} />
           <Field label="Department" value={employment.department} />
           <Field label="Manager" value={managerName} />
           <Field label="Country" value={employment.country} />

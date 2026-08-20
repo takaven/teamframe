@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { StatusPill, type StatusPillTone } from "@/components/StatusPill";
 
 export type OverviewQueueItem = {
   id: string;
@@ -19,20 +18,22 @@ type Filter = "all" | "decision" | "overdue" | "due" | "exception";
 
 const FILTERS: { key: Filter; label: string }[] = [
   { key: "all", label: "All" },
-  { key: "decision", label: "Decisions" },
   { key: "overdue", label: "Overdue" },
+  { key: "decision", label: "Decisions" },
   { key: "due", label: "Due" },
   { key: "exception", label: "Exceptions" },
 ];
 
-function classLabel(v: OverviewQueueItem["class"]): string {
-  return v === "decision" ? "Decision" : v === "overdue" ? "Overdue" : v === "exception" ? "Exception" : "Due";
-}
-function classTone(v: OverviewQueueItem["class"]): StatusPillTone {
-  return v === "exception" ? "red" : v === "decision" || v === "overdue" ? "amber" : "neutral";
-}
-function classSpine(v: OverviewQueueItem["class"]): string {
-  return v === "exception" ? "border-l-signal-red" : v === "decision" || v === "overdue" ? "border-l-signal-amber" : "border-l-ink-300";
+// Group render order — most urgent first.
+const GROUPS: { key: Exclude<Filter, "all">; label: string }[] = [
+  { key: "overdue", label: "Overdue" },
+  { key: "decision", label: "Decisions" },
+  { key: "due", label: "Due" },
+  { key: "exception", label: "Exceptions" },
+];
+
+function dotClass(v: OverviewQueueItem["class"]): string {
+  return v === "exception" || v === "overdue" ? "tf-dot-red" : v === "decision" ? "tf-dot-amber" : "tf-dot-neutral";
 }
 function sourceLabel(source: string): string {
   if (source.startsWith("policy")) return "Policies";
@@ -44,8 +45,25 @@ function sourceLabel(source: string): string {
   return "People";
 }
 function formatDue(iso: string | null): string {
-  if (!iso) return "No due date";
+  if (!iso) return "—";
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
+function Row({ item }: { item: OverviewQueueItem }) {
+  return (
+    <Link
+      href={item.href}
+      className="group flex h-12 items-center gap-3 px-4 transition hover:bg-ink-50/70"
+    >
+      <span className={`tf-dot ${dotClass(item.class)} shrink-0`} aria-hidden />
+      <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium text-ink-800">{item.title}</span>
+      <span className="hidden max-w-[260px] shrink-0 truncate text-[12.5px] text-ink-500 md:block">
+        {item.subjectName} · {sourceLabel(item.source)}
+      </span>
+      <span className="w-[62px] shrink-0 text-right text-[12.5px] tabular-nums text-ink-500">{formatDue(item.dueAt)}</span>
+      <span className="w-4 shrink-0 text-right text-[13px] text-ink-300 transition group-hover:text-ink-700" aria-hidden>›</span>
+    </Link>
+  );
 }
 
 export function OverviewQueue({
@@ -56,11 +74,11 @@ export function OverviewQueue({
   counts: { all: number; decision: number; overdue: number; due: number; exception: number };
 }) {
   const [filter, setFilter] = useState<Filter>("all");
-  const shown = filter === "all" ? items : items.filter((i) => i.class === filter);
+  const scoped = filter === "all" ? items : items.filter((i) => i.class === filter);
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Filter attention items">
+    <div>
+      <div className="mb-4 flex flex-wrap gap-1.5" role="tablist" aria-label="Filter attention items">
         {FILTERS.map((f) => {
           const active = filter === f.key;
           const count = counts[f.key];
@@ -72,49 +90,43 @@ export function OverviewQueue({
               aria-selected={active}
               onClick={() => setFilter(f.key)}
               className={[
-                "inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition",
-                active
-                  ? "border-ink-900 bg-ink-900 text-white"
-                  : "border-ink-300 bg-white text-ink-600 hover:border-ink-900 hover:text-ink-900",
+                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium transition",
+                active ? "bg-ink-900 text-white" : "text-ink-600 hover:bg-ink-100",
               ].join(" ")}
             >
               {f.label}
-              <span className={`text-[11px] tabular-nums ${active ? "text-white/70" : "text-ink-400"}`}>{count}</span>
+              <span className={`tabular-nums text-[11px] ${active ? "text-white/60" : "text-ink-400"}`}>{count}</span>
             </button>
           );
         })}
       </div>
 
-      {shown.length === 0 ? (
-        <article className="rounded-xl border border-ink-300/70 bg-white p-6 text-[14px] text-ink-600">
-          {filter === "all" ? "Nothing needs attention right now." : `No ${classLabel(filter as OverviewQueueItem["class"]).toLowerCase()} items right now.`}
-        </article>
+      {scoped.length === 0 ? (
+        <div className="tf-surface-flat px-4 py-8 text-center text-[13.5px] text-ink-500">
+          {filter === "all" ? "Nothing needs attention right now." : "No items in this view."}
+        </div>
+      ) : filter === "all" ? (
+        <div className="tf-surface overflow-hidden">
+          {GROUPS.map((g) => {
+            const rows = items.filter((i) => i.class === g.key);
+            if (rows.length === 0) return null;
+            return (
+              <section key={g.key} className="border-t border-ink-100 first:border-t-0">
+                <div className="flex items-center justify-between bg-ink-50/50 px-4 py-1.5">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-500">{g.label}</span>
+                  <span className="text-[11px] tabular-nums text-ink-400">{rows.length}</span>
+                </div>
+                <div className="tf-divide">
+                  {rows.map((item) => <Row key={item.id} item={item} />)}
+                </div>
+              </section>
+            );
+          })}
+        </div>
       ) : (
-        <ul className="space-y-2.5">
-          {shown.map((item) => (
-            <li key={item.id}>
-              <Link
-                href={item.href}
-                className={`group flex items-start justify-between gap-4 rounded-xl border border-ink-300/70 border-l-[3px] bg-white p-4 transition hover:border-ink-400 hover:shadow-[0_10px_30px_-24px_rgba(15,17,21,.5)] ${classSpine(item.class)}`}
-              >
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2 text-[12px] text-ink-500">
-                    <StatusPill tone={classTone(item.class)}>{classLabel(item.class)}</StatusPill>
-                    <span>{sourceLabel(item.source)}</span>
-                    <span aria-hidden>·</span>
-                    <span className="truncate">{item.subjectName}</span>
-                  </div>
-                  <h3 className="mt-1.5 text-[15.5px] font-semibold leading-snug text-ink-800">{item.title}</h3>
-                  <p className="mt-1 text-[13px] text-ink-600">{item.detail}</p>
-                </div>
-                <div className="flex shrink-0 flex-col items-end gap-1">
-                  <span className="text-[12px] tabular-nums text-ink-500">{formatDue(item.dueAt)}</span>
-                  <span className="text-[13px] font-medium text-ink-400 transition group-hover:text-ink-900">Open →</span>
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <div className="tf-surface tf-divide overflow-hidden">
+          {scoped.map((item) => <Row key={item.id} item={item} />)}
+        </div>
       )}
     </div>
   );

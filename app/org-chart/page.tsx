@@ -273,19 +273,19 @@ function PositionNode({
       data-selected={selected ? "true" : undefined}
       data-vacant={vacant ? "true" : undefined}
     >
-      <span className="block text-[13px] font-bold tracking-[-0.1px] text-ink-800">{position.title}</span>
-      <span className="mt-2 flex items-center gap-2">
-        {vacant ? (
-          <span className="text-[12px] font-semibold text-signal-amber">Vacant</span>
-        ) : (
-          <>
-            <Avatar photoUrl={display?.photoUrl ?? null} initials={display?.initials ?? "?"} size={22} />
-            <span className="text-[12px] text-ink-700">{position.assigned_employee_name}</span>
-          </>
-        )}
+      {vacant ? (
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-dashed border-ink-400 text-[11px] text-ink-400" aria-hidden>+</span>
+      ) : (
+        <Avatar photoUrl={display?.photoUrl ?? null} initials={display?.initials ?? "?"} size={32} />
+      )}
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[13.5px] font-semibold text-ink-800">{position.title}</span>
+        <span className="block truncate text-[12px] text-ink-500">
+          {vacant ? <span className="font-medium text-signal-amber">Vacant</span> : position.assigned_employee_name}
+        </span>
       </span>
-      <span className="mt-2 block text-[11px] text-ink-500">
-        {deptName}{display?.locName ? ` · ${display.locName}` : ""}
+      <span className="hidden shrink-0 items-center gap-1.5 rounded-md bg-ink-50 px-2 py-1 text-[11px] font-medium text-ink-600 sm:inline-flex">
+        {deptName}
       </span>
     </Link>
   );
@@ -295,22 +295,18 @@ function PositionBranch({
   node,
   selectedId,
   displayById,
-  depth = 2,
 }: {
   node: PositionTreeNode;
   selectedId: string | null;
   displayById: Map<string, PositionDisplay>;
-  depth?: number;
 }) {
-  const nested = depth >= 3;
-
   return (
     <li className="tf-org-branch">
       <PositionNode position={node} selected={node.id === selectedId} display={displayById.get(node.id)} />
       {node.children.length > 0 ? (
-        <ul className={nested ? "tf-org-nested space-y-3" : "tf-org-children"}>
+        <ul className="tf-org-children">
           {node.children.map((child) => (
-            <PositionBranch key={child.id} node={child} selectedId={selectedId} displayById={displayById} depth={depth + 1} />
+            <PositionBranch key={child.id} node={child} selectedId={selectedId} displayById={displayById} />
           ))}
         </ul>
       ) : null}
@@ -318,56 +314,6 @@ function PositionBranch({
   );
 }
 
-function findPositionPath(
-  nodes: PositionTreeNode[],
-  selectedId: string,
-  path: PositionTreeNode[] = [],
-): PositionTreeNode[] | null {
-  for (const node of nodes) {
-    const nextPath = [...path, node];
-    if (node.id === selectedId) {
-      return nextPath;
-    }
-    const childPath = findPositionPath(node.children, selectedId, nextPath);
-    if (childPath) {
-      return childPath;
-    }
-  }
-  return null;
-}
-
-function cloneFocusPath(path: PositionTreeNode[]): PositionTreeNode {
-  const selected = path.at(-1);
-  if (!selected) {
-    throw new Error("Cannot focus an empty position path.");
-  }
-
-  const parent = path[path.length - 2];
-  let focused: PositionTreeNode =
-    parent && parent.id !== selected.id ? { ...parent, children: parent.children } : { ...selected };
-
-  for (let index = path.length - 3; index >= 0; index -= 1) {
-    const ancestor = path[index];
-    if (ancestor) {
-      focused = { ...ancestor, children: [focused] };
-    }
-  }
-
-  return focused;
-}
-
-function focusTreeForSelection(tree: PositionTreeNode[], selectedId: string | null): PositionTreeNode[] {
-  if (!selectedId) {
-    return tree;
-  }
-
-  const path = findPositionPath(tree, selectedId);
-  if (!path) {
-    return tree;
-  }
-
-  return [cloneFocusPath(path)];
-}
 
 function OrgTree({
   tree,
@@ -607,7 +553,6 @@ export default async function OrgChartPage({
   const vacantCount = positions.filter((position) => position.status === "Vacant").length;
   const jdCount = positions.filter((position) => position.jd_attached).length;
   const selectedPosition = positions.find((position) => position.id === selectedPositionId) ?? null;
-  const displayTree = focusTreeForSelection(tree, selectedPosition?.id ?? null);
 
   // Resolve per-position display data (names from configured lists, occupant avatar).
   const deptNameById = new Map(departments.map((d) => [d.id, d.name]));
@@ -635,74 +580,43 @@ export default async function OrgChartPage({
   return (
     <main className="mx-auto max-w-7xl px-6 py-14">
       <AppShell actor={actor} activePath="/org-chart" />
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink-300/60 pb-5">
-        <div className="space-y-2">
-          <p className="text-[12px] tracking-[0.14em] text-ink-500">Design the team</p>
-          <h1 className="text-[34px] leading-tight tracking-tight">Org chart</h1>
-          <p className="max-w-2xl text-[15px] text-ink-700">
-            Define positions, reporting relationships and vacancies before assigning employees into the structure.
+      <div className="flex flex-wrap items-center justify-between gap-4 pb-5">
+        <div>
+          <h1 className="tf-h1">Org chart</h1>
+          <p className="tf-meta mt-1 tf-num">
+            {positions.length} position{positions.length === 1 ? "" : "s"} · {filledCount} filled · {vacantCount} vacant{jdCount > 0 ? ` · ${jdCount} with JD` : ""}
           </p>
         </div>
-        <Link href="/org-chart#add-position" className="tf-primary-action inline-flex h-11 items-center px-5 text-[14px]">
+        <Link href="/org-chart#add-position" className="tf-primary-action inline-flex h-9 items-center px-4 text-[13.5px]">
           Add position
         </Link>
       </div>
 
       {successMessage ? (
-        <p className="mt-7 rounded-lg border border-accent/70 bg-white/80 px-4 py-3 text-[14px] text-accent">
+        <p className="mb-5 rounded-lg border border-signal-green/25 bg-signal-green/5 px-4 py-2.5 text-[13.5px] text-signal-green">
           {successMessage}
         </p>
       ) : null}
       {errorMessage ? (
-        <p role="alert" className="mt-7 rounded-lg border border-signal-red/30 bg-signal-red/10 px-4 py-3 text-[14px] text-signal-red">
+        <p role="alert" className="mb-5 rounded-lg border border-signal-red/25 bg-signal-red/5 px-4 py-2.5 text-[13.5px] text-signal-red">
           {errorMessage}
         </p>
       ) : null}
 
-      <section className="mt-7 grid gap-4 sm:grid-cols-3">
-        <article className="rounded-xl border border-ink-300/70 bg-white/80 p-4">
-          <p className="text-[12px] text-ink-500">Positions</p>
-          <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{positions.length}</p>
-        </article>
-        <article className="rounded-xl border border-ink-300/70 bg-white/80 p-4">
-          <p className="text-[12px] text-ink-500">Filled / vacant</p>
-          <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{filledCount} / {vacantCount}</p>
-        </article>
-        <article className="rounded-xl border border-ink-300/70 bg-white/80 p-4">
-          <p className="text-[12px] text-ink-500">JD attached</p>
-          <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{jdCount}</p>
-        </article>
-      </section>
-
-      <section className="tf-org-layout mt-7">
-        <div className="rounded-xl border border-ink-300/70 bg-white/70 p-4 sm:p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-[22px] font-extrabold tracking-[-0.3px] text-ink-800">Reporting structure</h2>
-              <p className="mt-1 text-[14px] text-ink-500">
-                Positions report to positions. Employees appear only when a role is currently filled.
-              </p>
-            </div>
-          </div>
-          {positions.length === 0 ? (
+      <section className="tf-org-layout">
+        {positions.length === 0 ? (
+          <div className="tf-surface-flat">
             <EmptyState
               message="Design your team structure."
               hint="Add the positions your organisation needs, define who reports to whom, then assign employees as roles are filled."
               cta={{ label: "Add first position", href: "#add-position" }}
             />
-          ) : (
-            <>
-              <div className="mt-6">
-                <OrgTree tree={displayTree} selectedId={selectedPosition?.id ?? null} displayById={displayById} />
-              </div>
-              {selectedPosition ? (
-                <p className="mt-4 text-[13px] text-ink-500">
-                  Showing this reporting line. Close the panel to return to the full chart.
-                </p>
-              ) : null}
-            </>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="tf-surface px-4 py-5 sm:px-6">
+            <OrgTree tree={tree} selectedId={selectedPosition?.id ?? null} displayById={displayById} />
+          </div>
+        )}
       </section>
 
       {/* Add position is a slide-over drawer (CSS :target), never a permanent sidebar. */}
