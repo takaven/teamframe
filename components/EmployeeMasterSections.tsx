@@ -28,10 +28,11 @@ function maskIban(v: string | null): string {
 }
 
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
+  const empty = value === null || value === undefined || value === "";
   return (
     <div>
       <dt className="text-[12px] text-ink-500">{label}</dt>
-      <dd className="mt-0.5 text-[14px] text-ink-900">{value === null || value === "" ? <span className="text-ink-400">—</span> : value}</dd>
+      <dd className="mt-0.5 text-[14px] text-ink-900">{empty ? <span className="text-ink-400">Not set</span> : value}</dd>
     </div>
   );
 }

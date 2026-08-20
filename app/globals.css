@@ -81,6 +81,16 @@ main:has(> .tf-app-shell) {
   padding: 40px 56px 32px 280px !important;
 }
 
+/* No authenticated surface may produce a page-level horizontal scrollbar. Grid/flex form
+   children get min-width:0 so long fields wrap instead of pushing the layout wide. */
+html, body { overflow-x: hidden; }
+main:has(> .tf-app-shell) form,
+main:has(> .tf-app-shell) fieldset,
+main:has(> .tf-app-shell) label { min-width: 0; }
+main:has(> .tf-app-shell) input,
+main:has(> .tf-app-shell) select,
+main:has(> .tf-app-shell) textarea { max-width: 100%; }
+
 main:has(> .tf-app-shell) > :not(.tf-app-shell):not(.tf-mobile-bar) {
   max-width: 872px;
 }
@@ -241,7 +251,48 @@ main:has(> .tf-app-shell) input[type="file"]::file-selector-button {
   cursor: pointer;
 }
 
-/* ---- Neutral status dot (Active reads calm, not green chrome) ------------- */
+/* ---- Explicit styled form primitives (apply directly; not :has()-dependent) ---- */
+.tf-input,
+.tf-select,
+.tf-date,
+.tf-textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--border-default);
+  border-radius: var(--tf-radius-control);
+  background: #ffffff;
+  padding: 0 12px;
+  height: 38px;
+  font-size: 14px;
+  color: var(--color-ink-900);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.tf-textarea { height: auto; padding: 9px 12px; line-height: 1.5; }
+.tf-input:focus,
+.tf-select:focus,
+.tf-date:focus,
+.tf-textarea:focus {
+  outline: none;
+  border-color: var(--brand-charcoal);
+  box-shadow: 0 0 0 3px rgba(66, 73, 77, 0.1);
+}
+.tf-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 34px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2368707d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+.tf-date { color-scheme: light; }
+.tf-date::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: pointer; }
+/* Smaller dense variant for inline table/grid forms. */
+.tf-input-sm,
+.tf-select-sm,
+.tf-date-sm { height: 32px; font-size: 12.5px; padding-left: 10px; padding-right: 10px; }
+.tf-select-sm { padding-right: 30px; background-position: right 8px center; }
+
+/* Neutral status dot (Active reads calm, not green chrome) ------------------ */
 .tf-dot { width: 7px; height: 7px; border-radius: 9999px; display: inline-block; }
 .tf-dot-neutral { background: var(--color-ink-400); }
 .tf-dot-green { background: var(--color-signal-green); }
@@ -361,7 +412,7 @@ main:has(> .tf-app-shell) input[type="file"]::file-selector-button {
   }
 }
 
-@media (max-width: 1365px) and (min-width: 900px) {
+@media (max-width: 1365px) and (min-width: 768px) {
   main:has(> .tf-app-shell) {
     padding-left: 264px !important;
     padding-right: 40px !important;
@@ -401,7 +452,7 @@ main:has(> .tf-app-shell) input[type="file"]::file-selector-button {
   }
 }
 
-@media (max-width: 1151px) and (min-width: 900px) {
+@media (max-width: 1151px) and (min-width: 768px) {
   main:has(> .tf-app-shell) {
     padding-left: 240px !important;
   }
@@ -417,7 +468,7 @@ main:has(> .tf-app-shell) input[type="file"]::file-selector-button {
   }
 }
 
-@media (max-height: 768px) and (min-width: 900px) {
+@media (max-height: 768px) and (min-width: 768px) {
   .tf-org-tree {
     --tf-org-stub: 18px;
   }
@@ -427,7 +478,7 @@ main:has(> .tf-app-shell) input[type="file"]::file-selector-button {
   }
 }
 
-@media (max-width: 899px) {
+@media (max-width: 767px) {
   main:has(> .tf-app-shell) {
     padding: 78px 18px 18px !important;
   }

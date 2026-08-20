@@ -604,7 +604,7 @@ export default async function EmployeesPage({
                   <input
                     name="role_title"
                     defaultValue={employee.role_title}
-                    className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+                    className="tf-input"
                   />
                 </label>
                 <label className="flex flex-col gap-1 text-[12px] text-ink-500">
@@ -627,7 +627,7 @@ export default async function EmployeesPage({
                   <select
                     name="employment_type"
                     defaultValue={employee.employment_type}
-                    className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900 bg-white"
+                    className="tf-select"
                   >
                     <option value="full_time">Full time</option>
                     <option value="part_time">Part time</option>
@@ -640,7 +640,7 @@ export default async function EmployeesPage({
                   <input
                     name="country"
                     defaultValue={employee.country ?? ""}
-                    className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+                    className="tf-input"
                   />
                 </label>
                 <label className="flex flex-col gap-1 text-[12px] text-ink-500">
@@ -649,7 +649,7 @@ export default async function EmployeesPage({
                     name="start_date"
                     type="date"
                     defaultValue={employee.start_date ?? ""}
-                    className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+                    className="tf-input"
                   />
                 </label>
                 <label className="flex flex-col gap-1 text-[12px] text-ink-500">
@@ -658,7 +658,7 @@ export default async function EmployeesPage({
                     name="end_date"
                     type="date"
                     defaultValue={employee.end_date ?? ""}
-                    className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+                    className="tf-input"
                   />
                 </label>
                 <label className="flex flex-col gap-1 text-[12px] text-ink-500">
@@ -666,7 +666,7 @@ export default async function EmployeesPage({
                   <select
                     name="status"
                     defaultValue={employee.status}
-                    className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900 bg-white"
+                    className="tf-select"
                   >
                     <option value="active">Active</option>
                     <option value="on_leave">On leave</option>
@@ -756,7 +756,7 @@ export default async function EmployeesPage({
                         type="date"
                         required
                         defaultValue={employee.end_date ?? ""}
-                        className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900"
+                        className="tf-input-sm"
                       />
                     </label>
                     <ConfirmSubmitButton
@@ -792,7 +792,7 @@ export default async function EmployeesPage({
                       type="date"
                       required
                       defaultValue={new Date().toISOString().slice(0, 10)}
-                      className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900"
+                      className="tf-input-sm"
                     />
                   </label>
                   <label className="flex flex-col gap-1 text-[11px] text-ink-500">
@@ -800,7 +800,7 @@ export default async function EmployeesPage({
                     <input
                       name="role_title"
                       placeholder={employee.role_title}
-                      className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900"
+                      className="tf-input-sm"
                     />
                   </label>
                   <label className="flex flex-col gap-1 text-[11px] text-ink-500">
@@ -821,7 +821,7 @@ export default async function EmployeesPage({
                     <select
                       name="employment_type"
                       defaultValue=""
-                      className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900 bg-white"
+                      className="tf-select-sm"
                     >
                       <option value="">No change</option>
                       <option value="full_time">Full time</option>
@@ -835,7 +835,7 @@ export default async function EmployeesPage({
                     <input
                       name="country"
                       placeholder={employee.country ?? "No change"}
-                      className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900"
+                      className="tf-input-sm"
                     />
                   </label>
                   <label className="flex flex-col gap-1 text-[11px] text-ink-500">
@@ -843,7 +843,7 @@ export default async function EmployeesPage({
                     <select
                       name="manager_id"
                       defaultValue=""
-                      className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900 bg-white"
+                      className="tf-select-sm"
                     >
                       <option value="">No change</option>
                       {employees
@@ -860,7 +860,7 @@ export default async function EmployeesPage({
                     <select
                       name="position_id"
                       defaultValue=""
-                      className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900 bg-white"
+                      className="tf-select-sm"
                     >
                       <option value="">No change</option>
                       {positions
@@ -975,19 +975,24 @@ export default async function EmployeesPage({
                 </div>
               </dl>
 
-              <section data-tab="documents" className="rounded-xl border border-ink-200 bg-white/70 p-5">
-                <h4 className="text-[13px] font-medium text-ink-900">Documents</h4>
+              <section data-tab="documents" className="tf-surface-flat flex flex-col p-5">
+                <div className="flex items-center justify-between">
+                  <h4 className="tf-h3">Documents</h4>
+                  <span className="text-[12px] text-ink-500 tabular-nums">{documents.length} on file · {documentRequirements.length} requested</span>
+                </div>
 
-                <form action={createDocumentRequirementAction} className="mt-3 grid gap-2 md:grid-cols-5">
+                <details className="order-last mt-4 rounded-lg border border-ink-100 bg-ink-50/40 p-4">
+                  <summary className="flex cursor-pointer list-none items-center justify-between text-[13px] font-semibold text-ink-800 marker:hidden">
+                    <span>Request or upload a document</span>
+                    <span className="tf-secondary-action px-2.5 py-1 text-[11.5px]">Open</span>
+                  </summary>
+                  <div className="mt-4 space-y-4">
+                <form action={createDocumentRequirementAction} className="grid gap-2 md:grid-cols-5">
                   <input type="hidden" name="employee_id" value={employee.id} />
                   <input type="hidden" name="return_to" value="/employees" />
                   <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                     Request type
-                    <select
-                      name="document_type"
-                      defaultValue="contract"
-                      className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900 bg-white"
-                    >
+                    <select name="document_type" defaultValue="contract" className="tf-select-sm">
                       <option value="contract">Contract</option>
                       <option value="right_to_work">Right to work</option>
                       <option value="passport">Passport</option>
@@ -997,11 +1002,7 @@ export default async function EmployeesPage({
                   </label>
                   <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                     Due date
-                    <input
-                      name="due_date"
-                      type="date"
-                      className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900"
-                    />
+                    <input name="due_date" type="date" className="tf-date-sm" />
                   </label>
                   <label className="flex items-end gap-2 pb-2 text-[11px] text-ink-500">
                     <input name="expiry_required" type="checkbox" className="h-4 w-4 rounded border-ink-300" />
@@ -1019,21 +1020,17 @@ export default async function EmployeesPage({
                     <PendingSubmitButton
                       idleLabel="Request evidence"
                       pendingLabel="Requesting…"
-                      className="rounded-md border border-ink-300 px-3 py-1.5 text-[12px] font-medium text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:text-ink-300"
+                      className="tf-secondary-action px-3 py-1.5 text-[12px] font-medium disabled:cursor-not-allowed disabled:text-ink-300"
                     />
                   </div>
                 </form>
 
-                <form action={uploadEmployeeDocumentAction} className="mt-3 grid gap-2 md:grid-cols-4" encType="multipart/form-data">
+                <form action={uploadEmployeeDocumentAction} className="grid gap-2 border-t border-ink-100 pt-4 md:grid-cols-4" encType="multipart/form-data">
                   <input type="hidden" name="employee_id" value={employee.id} />
                   <input type="hidden" name="return_to" value="/employees" />
                   <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                     Document type
-                    <select
-                      name="type"
-                      defaultValue="contract"
-                      className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900 bg-white"
-                    >
+                    <select name="type" defaultValue="contract" className="tf-select-sm">
                       <option value="contract">Contract</option>
                       <option value="cv">CV</option>
                       <option value="jd">Job description</option>
@@ -1042,30 +1039,24 @@ export default async function EmployeesPage({
                   </label>
                   <div className="flex flex-col gap-1 text-[11px] text-ink-500">
                     File
-                    <FileInput name="file" required label="Choose file" className="mt-0.5" />
+                    <FileInput name="file" required label="Choose a file" className="mt-0.5" />
                   </div>
                   <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                     Signed on (optional)
-                    <input
-                      name="signed_at"
-                      type="date"
-                      className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900"
-                    />
+                    <input name="signed_at" type="date" className="tf-date-sm" />
                   </label>
                   <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                     Expires on (optional)
-                    <input
-                      name="expires_at"
-                      type="date"
-                      className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900"
-                    />
+                    <input name="expires_at" type="date" className="tf-date-sm" />
                   </label>
                   <PendingSubmitButton
                     idleLabel="Upload document"
                     pendingLabel="Uploading…"
-                    className="rounded-md border border-ink-300 px-3 py-1.5 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300"
+                    className="tf-primary-action px-3 py-1.5 text-[12px] disabled:cursor-not-allowed disabled:bg-ink-300"
                   />
                 </form>
+                  </div>
+                </details>
 
                 {documentRequirements.length > 0 ? (
                   <div className="mt-3 rounded-md border border-ink-300/50 bg-ink-100/30">
@@ -1118,7 +1109,8 @@ export default async function EmployeesPage({
 
                 {documents.length === 0 ? (
                   <EmptyState
-                    message="No documents uploaded yet. Add a contract or ID with the upload form above."
+                    message="No documents on file yet."
+                    hint="Use “Request or upload a document” to add a contract, ID or other record."
                     className="mt-3 px-3 py-4"
                   />
                 ) : (
@@ -1174,7 +1166,7 @@ export default async function EmployeesPage({
                     <input type="hidden" name="return_to" value="/employees" />
                     <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                       Record type
-                      <select name="type" defaultValue="emirates_id" className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900 bg-white">
+                      <select name="type" defaultValue="emirates_id" className="tf-select-sm">
                         {UAE_RECORD_TYPES.map((t) => (
                           <option key={t.value} value={t.value}>{t.label}</option>
                         ))}
@@ -1182,7 +1174,7 @@ export default async function EmployeesPage({
                     </label>
                     <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                       Reference number (optional)
-                      <input name="reference_number" maxLength={120} placeholder="e.g. 784-XXXX-XXXXXXX-X" className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900" />
+                      <input name="reference_number" maxLength={120} placeholder="e.g. 784-XXXX-XXXXXXX-X" className="tf-input-sm" />
                     </label>
                     <div className="flex flex-col gap-1 text-[11px] text-ink-500">
                       Evidence file
@@ -1190,11 +1182,11 @@ export default async function EmployeesPage({
                     </div>
                     <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                       Issue date (optional)
-                      <input name="issued_at" type="date" className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900" />
+                      <input name="issued_at" type="date" className="tf-input-sm" />
                     </label>
                     <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                       Expiry date (optional)
-                      <input name="expires_at" type="date" className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900" />
+                      <input name="expires_at" type="date" className="tf-input-sm" />
                     </label>
                     <div className="flex items-end">
                       <PendingSubmitButton
@@ -1210,7 +1202,7 @@ export default async function EmployeesPage({
                     <input type="hidden" name="return_to" value="/employees" />
                     <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                       Request a UAE record
-                      <select name="document_type" defaultValue="emirates_id" className="rounded-md border border-ink-300 px-2 py-1.5 text-[12px] text-ink-900 bg-white">
+                      <select name="document_type" defaultValue="emirates_id" className="tf-select-sm">
                         {UAE_RECORD_TYPES.map((t) => (
                           <option key={t.value} value={t.value}>{t.label}</option>
                         ))}
@@ -1323,7 +1315,7 @@ export default async function EmployeesPage({
               name="full_name"
               placeholder="e.g. Amina Rahman"
               required
-              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+              className="tf-input"
             />
           </label>
           <label className="flex flex-col gap-1 text-[12px] text-ink-500">
@@ -1333,7 +1325,7 @@ export default async function EmployeesPage({
               type="email"
               placeholder="work@company.com"
               required
-              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+              className="tf-input"
             />
           </label>
           <label className="flex flex-col gap-1 text-[12px] text-ink-500">
@@ -1342,7 +1334,7 @@ export default async function EmployeesPage({
               name="role_title"
               placeholder="e.g. Software Engineer"
               required
-              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+              className="tf-input"
             />
           </label>
           <label className="flex flex-col gap-1 text-[12px] text-ink-500">
@@ -1364,7 +1356,7 @@ export default async function EmployeesPage({
                 name="department"
                 placeholder="e.g. Engineering"
                 required
-                className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+                className="tf-input"
               />
             )}
           </label>
@@ -1375,7 +1367,7 @@ export default async function EmployeesPage({
               placeholder="e.g. UTC"
               defaultValue="UTC"
               required
-              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+              className="tf-input"
             />
           </label>
           <label className="flex flex-col gap-1 text-[12px] text-ink-500">
@@ -1384,7 +1376,7 @@ export default async function EmployeesPage({
               name="employment_type"
               defaultValue="full_time"
               required
-              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900 bg-white"
+              className="tf-select"
             >
               <option value="full_time">Full time</option>
               <option value="part_time">Part time</option>
@@ -1398,7 +1390,7 @@ export default async function EmployeesPage({
               name="country"
               placeholder="e.g. UAE"
               required
-              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+              className="tf-input"
             />
           </label>
           <label className="flex flex-col gap-1 text-[12px] text-ink-500">
@@ -1407,7 +1399,7 @@ export default async function EmployeesPage({
               name="start_date"
               type="date"
               required
-              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+              className="tf-input"
             />
           </label>
           <label className="flex flex-col gap-1 text-[12px] text-ink-500">
@@ -1415,7 +1407,7 @@ export default async function EmployeesPage({
             <input
               name="end_date"
               type="date"
-              className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+              className="tf-input"
             />
           </label>
           <div className="flex flex-col justify-end">

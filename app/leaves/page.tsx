@@ -11,6 +11,7 @@ import {
 } from "@/services/leaveService";
 import { LeaveCalendar } from "@/components/LeaveCalendar";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
+import { FileInput } from "@/components/FileInput";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { AppShell } from "@/components/AppShell";
 import { EmptyState } from "@/components/EmptyState";
@@ -134,24 +135,13 @@ export default async function LeavesPage({
           </div>
         </div>
 
-        <section className="mt-7 grid gap-4 sm:grid-cols-3">
-          <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
-            <p className="text-[12px] text-ink-500">Needs decision</p>
-            <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{pending.length}</p>
-          </article>
-          <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
-            <p className="text-[12px] text-ink-500">Away in next 30 days</p>
-            <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">{away.length}</p>
-          </article>
-          <article className="rounded-xl border border-ink-300/70 bg-white/75 p-4">
-            <p className="text-[12px] text-ink-500">Oldest request age</p>
-            <p className="mt-2 font-mono text-[24px] tabular-nums tracking-tight">
-              {pending[0] ? `${Math.max(1, Math.ceil((Date.now() - new Date(pending[0].created_at).getTime()) / 86_400_000))}d` : "0d"}
-            </p>
-          </article>
-        </section>
+        <div className="tf-summary mt-6 max-w-xl">
+          <div><div className="tf-summary-label">Needs decision</div><div className="tf-summary-value">{pending.length}</div></div>
+          <div><div className="tf-summary-label">Away in 30 days</div><div className="tf-summary-value">{away.length}</div></div>
+          <div><div className="tf-summary-label">Oldest request</div><div className="tf-summary-value">{pending[0] ? `${Math.max(1, Math.ceil((Date.now() - new Date(pending[0].created_at).getTime()) / 86_400_000))}d` : "0d"}</div></div>
+        </div>
 
-        {successMessage ? <p className="mt-7 rounded-lg border border-accent/70 bg-white/80 px-4 py-3 text-[14px] text-accent">{successMessage}</p> : null}
+        {successMessage ? <p className="mt-6 rounded-lg border border-signal-green/25 bg-signal-green/5 px-4 py-2.5 text-[13.5px] text-signal-green">{successMessage}</p> : null}
         {errorMessage ? (
           <p role="alert" className="mt-7 rounded-lg border border-signal-red/30 bg-signal-red/10 px-4 py-3 text-[14px] text-signal-red">
             {errorMessage}
@@ -393,10 +383,10 @@ export default async function LeavesPage({
                 Reason
                 <input name="reason" maxLength={500} className="rounded-md border border-ink-300 px-3 py-2 text-[14px]" />
               </label>
-              <label className="flex flex-col gap-1 text-[12px] text-ink-500 sm:col-span-2">
+              <div className="flex flex-col gap-1 text-[12px] text-ink-500 sm:col-span-2">
                 Supporting evidence <span className="text-ink-400">(attach if your leave type requires it)</span>
-                <input name="attachment" type="file" className="rounded-md border border-ink-300 px-3 py-2 text-[13px] text-ink-600 file:mr-3 file:rounded-md file:border file:border-ink-300 file:bg-white file:px-3 file:py-1 file:text-[12px] file:font-medium file:text-ink-700" />
-              </label>
+                <FileInput name="attachment" label="Choose a file" className="mt-0.5" />
+              </div>
               <PendingSubmitButton
                 idleLabel="Submit request"
                 pendingLabel="Submitting..."

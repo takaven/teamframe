@@ -148,16 +148,16 @@ export default async function PoliciesPage({
                 placeholder="e.g. Employee Handbook"
                 required
                 maxLength={200}
-                className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900"
+                className="tf-input"
               />
             </label>
             <label className="flex flex-col gap-1 text-[12px] text-ink-500">
               Version
-              <input name="version" type="number" min={1} max={1000} step={1} defaultValue={uploadDefaultVersion} required className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900" />
+              <input name="version" type="number" min={1} max={1000} step={1} defaultValue={uploadDefaultVersion} required className="tf-input" />
             </label>
             <label className="flex flex-col gap-1 text-[12px] text-ink-500">
               Effective date
-              <input name="effective_date" type="date" required className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900" />
+              <input name="effective_date" type="date" required className="tf-input" />
             </label>
           </div>
           <div className="flex flex-col gap-1 text-[12px] text-ink-500">
@@ -186,20 +186,20 @@ export default async function PoliciesPage({
             <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_120px_160px]">
               <label className="flex flex-col gap-1 text-[12px] text-ink-500">
                 Title
-                <input name="title" required maxLength={200} className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900" />
+                <input name="title" required maxLength={200} className="tf-input" />
               </label>
               <label className="flex flex-col gap-1 text-[12px] text-ink-500">
                 Version
-                <input name="version" type="number" min={1} max={1000} step={1} defaultValue={1} required className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900" />
+                <input name="version" type="number" min={1} max={1000} step={1} defaultValue={1} required className="tf-input" />
               </label>
               <label className="flex flex-col gap-1 text-[12px] text-ink-500">
                 Effective date
-                <input name="effective_date" type="date" className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900" />
+                <input name="effective_date" type="date" className="tf-input" />
               </label>
             </div>
             <label className="flex flex-col gap-1 text-[12px] text-ink-500">
               Policy text
-              <textarea name="body" required rows={4} maxLength={20000} placeholder="Write the policy in plain text" className="rounded-md border border-ink-300 px-3 py-2 text-[14px] text-ink-900" />
+              <textarea name="body" required rows={4} maxLength={20000} placeholder="Write the policy in plain text" className="tf-input" />
             </label>
             <div>
               <PendingSubmitButton idleLabel="Create text draft" pendingLabel="Creating…" className="rounded-lg border border-ink-300 px-5 py-2 text-[14px] font-medium text-ink-700 transition hover:border-ink-900 disabled:text-ink-300" />
@@ -264,10 +264,10 @@ export default async function PoliciesPage({
                         {!policy.archived_at ? (
                           <form action={attachPolicyFileAction} className="mt-2 flex flex-wrap items-end gap-2" encType="multipart/form-data">
                             <input type="hidden" name="policy_id" value={policy.id} />
-                            <label className="flex min-w-0 flex-1 flex-col gap-1 text-[11px] text-ink-500">
+                            <div className="flex min-w-0 flex-1 flex-col gap-1 text-[11px] text-ink-500">
                               Attach PDF/DOCX
-                              <input name="file" type="file" required className="rounded-md border border-ink-300 bg-white px-2 py-1.5 text-[12px] text-ink-600 file:mr-2 file:rounded file:border file:border-ink-300 file:bg-white file:px-2 file:py-1 file:text-[12px] file:font-medium file:text-ink-700" />
-                            </label>
+                              <FileInput name="file" accept=".pdf,.doc,.docx" required label="Choose PDF or DOCX" className="mt-0.5" />
+                            </div>
                             <PendingSubmitButton
                               idleLabel={policy.file_original_name ? "Replace file" : "Attach file"}
                               pendingLabel="Uploading…"

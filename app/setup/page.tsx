@@ -63,13 +63,14 @@ const DAYS = [
   { n: 5, label: "Fri" }, { n: 6, label: "Sat" }, { n: 7, label: "Sun" },
 ];
 
-const input = "mt-1 w-full rounded-lg border border-ink-300 bg-white px-3 py-2 text-[14px]";
-const btn = "rounded-lg bg-brand-signal px-4 py-2 text-[13px] font-medium text-ink-800";
-const btnGhost = "rounded-lg border border-ink-300 bg-white px-3 py-1.5 text-[12px] text-ink-700 hover:border-ink-900";
+const input = "tf-input mt-1";
+const selectCls = "tf-select mt-1";
+const btn = "tf-primary-action px-4 py-2 text-[13px]";
+const btnGhost = "tf-secondary-action px-3 py-1.5 text-[12px]";
 
 function CountrySelect({ name, value }: { name: string; value?: string | null }) {
   return (
-    <select name={name} defaultValue={value ?? ""} className={input}>
+    <select name={name} defaultValue={value ?? ""} className={selectCls}>
       <option value="">— Select country</option>
       {ISO_COUNTRIES.map((c) => (
         <option key={c.code} value={c.code}>{c.name}</option>
@@ -266,10 +267,10 @@ export default async function SetupPage({
                 <summary className="cursor-pointer text-[13px] font-medium text-ink-800">Add custom leave type (e.g. Maternity, Study)</summary>
                 <form action={createLeaveDefinitionAction} className="mt-3 grid gap-3 sm:grid-cols-2">
                   <label className="text-[13px] text-ink-700">Display name<input name="display_name" required className={input} placeholder="Maternity Leave" /></label>
-                  <label className="text-[13px] text-ink-700">Underlying category<select name="system_leave_type" defaultValue="other" className={input}><option value="annual">annual</option><option value="sick">sick</option><option value="unpaid">unpaid</option><option value="other">other</option></select></label>
+                  <label className="text-[13px] text-ink-700">Underlying category<select name="system_leave_type" defaultValue="other" className={selectCls}><option value="annual">annual</option><option value="sick">sick</option><option value="unpaid">unpaid</option><option value="other">other</option></select></label>
                   <label className="text-[13px] text-ink-700">Default entitlement (days, optional)<input name="default_entitlement_days" type="number" min="0" max="365" className={input} /></label>
-                  <label className="text-[13px] text-ink-700">Counting basis<select name="counting_basis" defaultValue="working_days" className={input}><option value="working_days">Working days</option><option value="calendar_days">Calendar days</option></select></label>
-                  <label className="text-[13px] text-ink-700">Attachment<select name="attachment_requirement" defaultValue="not_required" className={input}><option value="not_required">Not required</option><option value="optional">Optional</option><option value="required">Required</option></select></label>
+                  <label className="text-[13px] text-ink-700">Counting basis<select name="counting_basis" defaultValue="working_days" className={selectCls}><option value="working_days">Working days</option><option value="calendar_days">Calendar days</option></select></label>
+                  <label className="text-[13px] text-ink-700">Attachment<select name="attachment_requirement" defaultValue="not_required" className={selectCls}><option value="not_required">Not required</option><option value="optional">Optional</option><option value="required">Required</option></select></label>
                   <label className="flex items-center gap-2 text-[13px] text-ink-700"><input type="checkbox" name="active" defaultChecked /> Active</label>
                   <div className="sm:col-span-2"><PendingSubmitButton idleLabel="Add leave type" pendingLabel="Adding…" className={btn} /></div>
                 </form>
@@ -280,10 +281,10 @@ export default async function SetupPage({
                     <form action={updateLeaveDefinitionAction} className="grid gap-2 sm:grid-cols-[1.4fr_1fr_1fr_1fr_auto_auto] sm:items-end">
                       <input type="hidden" name="id" value={d.id} />
                       <input type="hidden" name="system_leave_type" value={d.system_leave_type} />
-                      <label className="text-[12px] text-ink-600">Name{d.is_system ? " (system)" : ""}<input name="display_name" defaultValue={d.display_name} className="mt-1 w-full rounded-lg border border-ink-300 px-2 py-1 text-[13px]" /></label>
-                      <label className="text-[12px] text-ink-600">Entitlement<input name="default_entitlement_days" type="number" min="0" max="365" defaultValue={d.default_entitlement_days ?? ""} className="mt-1 w-full rounded-lg border border-ink-300 px-2 py-1 text-[13px]" /></label>
-                      <label className="text-[12px] text-ink-600">Basis<select name="counting_basis" defaultValue={d.counting_basis} className="mt-1 w-full rounded-lg border border-ink-300 px-2 py-1 text-[13px]"><option value="working_days">Working days</option><option value="calendar_days">Calendar days</option></select></label>
-                      <label className="text-[12px] text-ink-600">Attachment<select name="attachment_requirement" defaultValue={d.attachment_requirement} className="mt-1 w-full rounded-lg border border-ink-300 px-2 py-1 text-[13px]"><option value="not_required">Not required</option><option value="optional">Optional</option><option value="required">Required</option></select></label>
+                      <label className="text-[12px] text-ink-600">Name{d.is_system ? " (system)" : ""}<input name="display_name" defaultValue={d.display_name} className="tf-select-sm mt-1 w-full" /></label>
+                      <label className="text-[12px] text-ink-600">Entitlement<input name="default_entitlement_days" type="number" min="0" max="365" defaultValue={d.default_entitlement_days ?? ""} className="tf-select-sm mt-1 w-full" /></label>
+                      <label className="text-[12px] text-ink-600">Basis<select name="counting_basis" defaultValue={d.counting_basis} className="tf-select-sm mt-1 w-full"><option value="working_days">Working days</option><option value="calendar_days">Calendar days</option></select></label>
+                      <label className="text-[12px] text-ink-600">Attachment<select name="attachment_requirement" defaultValue={d.attachment_requirement} className="tf-select-sm mt-1 w-full"><option value="not_required">Not required</option><option value="optional">Optional</option><option value="required">Required</option></select></label>
                       <label className="flex items-center gap-1.5 text-[12px] text-ink-600"><input type="checkbox" name="active" defaultChecked={d.active} /> Active</label>
                       <PendingSubmitButton idleLabel="Save" pendingLabel="Saving…" className={btnGhost} />
                     </form>

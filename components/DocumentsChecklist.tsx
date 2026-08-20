@@ -1,5 +1,6 @@
 import { uploadRequirementDocumentAction } from "@/app/employees/actions";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
+import { FileInput } from "@/components/FileInput";
 import { StatusPill } from "@/components/StatusPill";
 
 // Groups the EXISTING document_requirements states into a useful employee checklist.
@@ -55,8 +56,8 @@ function UploadForm({ requirement }: { requirement: Requirement }) {
     <form action={uploadRequirementDocumentAction} className="mt-2 grid gap-2 sm:grid-cols-[1fr_150px_auto]" encType="multipart/form-data">
       <input type="hidden" name="requirement_id" value={requirement.id} />
       <input type="hidden" name="return_to" value="/me" />
-      <input name="file" type="file" required className="rounded-md border border-ink-300 bg-white px-2 py-1.5 text-[12px] text-ink-600 file:mr-2 file:rounded file:border file:border-ink-300 file:bg-white file:px-2 file:py-1 file:text-[12px] file:font-medium file:text-ink-700" />
-      <input name="expires_at" type="date" className="rounded-md border border-ink-300 bg-white px-2 py-1.5 text-[12px] text-ink-900" />
+      <FileInput name="file" required label="Choose a file" />
+      <input name="expires_at" type="date" className="tf-date-sm" />
       <PendingSubmitButton idleLabel={label} pendingLabel="Uploading…" className="rounded-md bg-brand-signal px-3 py-1.5 text-[12px] font-medium text-ink-800 disabled:bg-ink-300" />
     </form>
   );
