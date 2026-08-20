@@ -104,7 +104,7 @@ export default async function ManagerPage({
                 <div><dt className="text-ink-500">Department</dt><dd className="text-ink-900">{reportRecord.employment.department}</dd></div>
                 <div><dt className="text-ink-500">Work location</dt><dd className="text-ink-900">{reportRecord.employment.work_location ?? "—"}</dd></div>
                 <div><dt className="text-ink-500">Employment type</dt><dd className="text-ink-900">{reportRecord.employment.employment_type.replace(/_/g, " ")}</dd></div>
-                <div><dt className="text-ink-500">Lifecycle / status</dt><dd className="text-ink-900">{reportRecord.employment.lifecycle_state} · {reportRecord.employment.status}</dd></div>
+                <div><dt className="text-ink-500">Status</dt><dd className="capitalize text-ink-900">{(reportRecord.employment.status || reportRecord.employment.lifecycle_state).replace(/_/g, " ")}</dd></div>
                 <div><dt className="text-ink-500">Company email</dt><dd className="text-ink-900">{reportRecord.contact.company_email}</dd></div>
                 <div><dt className="text-ink-500">Company phone</dt><dd className="text-ink-900">{reportRecord.contact.company_phone ?? "—"}</dd></div>
                 <div><dt className="text-ink-500">Emergency contact</dt><dd className="text-ink-900">{reportRecord.emergency_contact.name ?? "—"}{reportRecord.emergency_contact.phone ? ` · ${reportRecord.emergency_contact.phone}` : ""}</dd></div>
