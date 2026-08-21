@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { humaneDate } from "@/lib/ui/formatDate";
 import { DateField } from "@/components/DateField";
 import { requireTenantActor } from "@/middleware/rbac";
 import { listPolicies, type PolicyAdminRecord } from "@/services/policyService";
@@ -41,11 +42,7 @@ const ERROR_COPY: Record<string, string> = {
 };
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  return humaneDate(iso);
 }
 
 function policyState(policy: PolicyAdminRecord): {
@@ -107,7 +104,7 @@ export default async function PoliciesPage({
 
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink-300/60 pb-5">
         <div>
-          <h1 className="text-[32px] font-extrabold leading-tight tracking-tight text-ink-800">Policies</h1>
+          <h1 className="text-[32px] font-extrabold leading-tight tracking-tight">Policies</h1>
           <p className="mt-1.5 text-[14px] text-ink-500">
             Publish the rules your team works by and collect acknowledgement records.
           </p>
@@ -173,7 +170,7 @@ export default async function PoliciesPage({
             <PendingSubmitButton
               idleLabel={isNewVersion ? "Upload new version" : "Upload policy"}
               pendingLabel="Uploading…"
-              className="rounded-lg bg-brand-signal px-5 py-2 text-[14px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:cursor-not-allowed disabled:bg-ink-300"
+              className="tf-primary-action px-5 py-2 text-[14px] font-medium disabled:cursor-not-allowed disabled:bg-ink-300"
             />
           </div>
         </form>
@@ -279,7 +276,7 @@ export default async function PoliciesPage({
                       </div>
                       {policy.is_published && !policy.archived_at ? (
                         <details className="mt-3 rounded-md border border-ink-300/50 bg-white">
-                          <summary className="cursor-pointer px-3 py-2 text-[12px] font-medium text-ink-800 hover:text-ink-900">
+                          <summary className="cursor-pointer px-3 py-2 text-[12px] font-medium hover:text-ink-900">
                             Acknowledgement evidence ·{" "}
                             <span className="tabular-nums">
                               {policy.acknowledged_count}/{policy.active_employee_count}
@@ -339,7 +336,7 @@ export default async function PoliciesPage({
                           <PendingSubmitButton
                             idleLabel="Publish"
                             pendingLabel="Publishing…"
-                            className="w-full rounded-lg bg-brand-signal px-4 py-1.5 text-[13px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:cursor-not-allowed disabled:bg-ink-300 sm:w-auto"
+                            className="w-full tf-primary-action px-4 py-1.5 text-[13px] font-medium disabled:cursor-not-allowed disabled:bg-ink-300 sm:w-auto"
                           />
                         </form>
                       ) : null}

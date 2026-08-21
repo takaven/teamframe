@@ -113,7 +113,7 @@ export default async function AccessPage({
                     <select name="profile" defaultValue={membership.profile} className="min-w-0 flex-1 rounded-lg border border-ink-300 bg-white px-2 py-1.5 text-[12px]">
                       {PROFILE_OPTIONS.map(([value, label]) => (<option key={value} value={value}>{label}</option>))}
                     </select>
-                    <PendingSubmitButton idleLabel="Apply" pendingLabel="…" className="rounded-lg bg-brand-signal px-3 py-1.5 text-[12px] font-medium text-ink-800" />
+                    <PendingSubmitButton idleLabel="Apply" pendingLabel="…" className="tf-primary-action px-3 py-1.5 text-[12px] font-medium" />
                   </form>
                   <form action={setMembershipActiveAction}>
                     <input type="hidden" name="membership_id" value={membership.id} />
@@ -164,7 +164,7 @@ export default async function AccessPage({
                     <input name="manage_users_access" type="checkbox" defaultChecked={membership.manage_users_access} /> Manage users and access
                   </label>
                   <div className="lg:col-span-2">
-                    <PendingSubmitButton idleLabel="Save custom access" pendingLabel="Saving…" className="rounded-lg border border-ink-300 bg-white px-3 py-2 text-[13px] text-ink-800 hover:border-ink-900" />
+                    <PendingSubmitButton idleLabel="Save custom access" pendingLabel="Saving…" className="rounded-lg border border-ink-300 bg-white px-3 py-2 text-[13px] hover:border-ink-900" />
                   </div>
                 </form>
               </details>

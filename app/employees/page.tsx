@@ -597,7 +597,7 @@ export default async function EmployeesPage({
                 </div>
 
               <form action={updateEmployeeAction} data-tab="employment" className="grid gap-3 rounded-xl border border-ink-200 bg-white/70 p-5 md:grid-cols-4">
-                <p className="text-[13px] font-bold text-ink-800 md:col-span-4">Edit employment</p>
+                <p className="text-[13px] font-bold md:col-span-4">Edit employment</p>
                 <input type="hidden" name="employee_id" value={employee.id} />
                 <input type="hidden" name="expected_updated_at" value={employee.updated_at} />
                 <label className="flex flex-col gap-1 text-[12px] text-ink-500">
@@ -935,7 +935,7 @@ export default async function EmployeesPage({
               </section>
 
               <dl data-tab="account" className="grid gap-x-6 gap-y-2 rounded-xl border border-ink-200 bg-white/70 p-5 text-[12px] sm:grid-cols-2 lg:grid-cols-4">
-                <p className="text-[13px] font-bold text-ink-800 sm:col-span-2 lg:col-span-4">Invite diagnostics</p>
+                <p className="text-[13px] font-bold sm:col-span-2 lg:col-span-4">Invite diagnostics</p>
                 <div>
                   <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Invite attempts</dt>
                   <dd className="mt-0.5 tabular-nums text-ink-700">{employee.invite_attempt_count}</dd>
@@ -961,7 +961,7 @@ export default async function EmployeesPage({
                 </div>
 
                 <details className="order-last mt-4 rounded-lg border border-ink-100 bg-ink-50/40 p-4">
-                  <summary className="flex cursor-pointer list-none items-center justify-between text-[13px] font-semibold text-ink-800 marker:hidden">
+                  <summary className="flex cursor-pointer list-none items-center justify-between text-[13px] font-semibold marker:hidden">
                     <span>Request or upload a document</span>
                     <span className="tf-secondary-action px-2.5 py-1 text-[11.5px]">Open</span>
                   </summary>
@@ -1061,7 +1061,7 @@ export default async function EmployeesPage({
                                 <PendingSubmitButton
                                   idleLabel="Accept"
                                   pendingLabel="Accepting…"
-                                  className="rounded-md bg-brand-signal px-3 py-1.5 text-[12px] font-medium text-ink-800 disabled:bg-ink-300"
+                                  className="tf-primary-action px-3 py-1.5 text-[12px] font-medium disabled:bg-ink-300"
                                 />
                               </form>
                               <form action={reviewDocumentRequirementAction}>
@@ -1231,7 +1231,7 @@ export default async function EmployeesPage({
               ) : null}
 
               <div data-tab="account" className="rounded-xl border border-ink-200 bg-white/70 p-5">
-                <p className="mb-3 text-[13px] font-bold text-ink-800">Account actions</p>
+                <p className="mb-3 text-[13px] font-bold">Account actions</p>
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 <div className="w-full sm:w-auto">
                   <CopyInviteEmailButton email={employee.email} />
@@ -1384,7 +1384,7 @@ export default async function EmployeesPage({
             <PendingSubmitButton
               idleLabel="Create employee"
               pendingLabel="Creating…"
-              className="rounded-md bg-brand-signal px-4 py-2 text-[14px] font-medium text-ink-800 disabled:cursor-not-allowed disabled:bg-ink-300"
+              className="tf-primary-action px-4 py-2 text-[14px] font-medium disabled:cursor-not-allowed disabled:bg-ink-300"
             />
           </div>
         </form>

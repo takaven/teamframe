@@ -2,23 +2,16 @@ import type { EmployeeMasterRecord } from "@/services/employeeMasterService";
 import type { EmployeeAssignmentRecord } from "@/services/positionAssignmentService";
 import { FileInput } from "@/components/FileInput";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
+import { EmployeeAvatar } from "@/components/EmployeeAvatar";
+import { humaneDate } from "@/lib/ui/formatDate";
 import { updateEmployeePhotoAction } from "@/app/employees/actions";
 
 // Structured, read-oriented employee master record, decomposed into panels the record tabs render.
 // Compensation/payment blocks only receive values when the record's capability flag (canView) is
 // true — the confidential-access separation is enforced in getEmployeeMasterRecord.
 
-function initialsOf(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  const a = parts[0]?.charAt(0) ?? "";
-  const b = parts.length > 1 ? parts[parts.length - 1]?.charAt(0) ?? "" : "";
-  return (a + b).toUpperCase() || "?";
-}
-
 function fmtDate(iso: string | null): string {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  return humaneDate(iso); // "" when unset → Field renders "Not set"
 }
 
 function maskIban(v: string | null): string {
@@ -83,14 +76,7 @@ export function RecordHeader({
     <section className="tf-surface p-5 sm:p-6">
       <div className="flex flex-wrap items-start gap-4">
         <div className="relative shrink-0">
-          {photoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={photoUrl} alt="" width={64} height={64} className="h-16 w-16 rounded-full object-cover ring-1 ring-ink-100" />
-          ) : (
-            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-ink-100 text-[19px] font-bold text-ink-600">
-              {initialsOf(identity.full_name)}
-            </span>
-          )}
+          <EmployeeAvatar name={identity.full_name} photoUrl={photoUrl} size={64} />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2.5">

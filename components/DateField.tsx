@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { humaneDate } from "@/lib/ui/formatDate";
 
 /**
  * TeamFrame date primitive. Fully replaces the browser's native `input[type=date]` presentation:
@@ -16,14 +17,7 @@ const MONTH_NAMES = [
 ];
 const WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 
-function humane(iso: string): string {
-  if (!iso) return "";
-  const [y, m, d] = iso.split("-").map(Number);
-  if (!y || !m || !d) return "";
-  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-GB", {
-    day: "numeric", month: "short", year: "numeric", timeZone: "UTC",
-  });
-}
+const humane = humaneDate;
 function pad(n: number): string { return String(n).padStart(2, "0"); }
 function isoOf(y: number, m0: number, d: number): string { return `${y}-${pad(m0 + 1)}-${pad(d)}`; }
 
@@ -139,7 +133,7 @@ export function DateField({
       </button>
 
       {open ? (
-        <div role="dialog" aria-label="Choose date" className="absolute left-0 z-50 mt-1 w-[248px] rounded-xl border border-ink-200 bg-white p-3 shadow-[0_12px_36px_-18px_rgba(15,17,21,0.4)]">
+        <div role="dialog" aria-label="Choose date" className="tf-pop absolute left-0 z-50 mt-1 w-[248px] rounded-xl border border-ink-200 bg-white p-3 shadow-[0_12px_36px_-18px_rgba(15,17,21,0.4)]">
           <div className="mb-2 flex items-center justify-between">
             <button type="button" onClick={() => shiftMonth(-1)} aria-label="Previous month" className="flex h-7 w-7 items-center justify-center rounded-md text-ink-600 hover:bg-ink-100">‹</button>
             <span className="text-[13px] font-semibold text-ink-800 tabular-nums">{MONTH_NAMES[view.m]} {view.y}</span>

@@ -1,18 +1,19 @@
 import type { EmployeeCompensationDetail } from "@/services/compensationService";
 import { DateField } from "@/components/DateField";
+import { humaneDate } from "@/lib/ui/formatDate";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { saveCompensationAction } from "@/app/employees/actions";
 
-function fmtMoney(amount: number | null, currency: string | null): string {
-  if (amount === null) return "—";
+const NOT_SET = <span className="text-ink-400">Not set</span>;
+
+function fmtMoney(amount: number | null, currency: string | null): React.ReactNode {
+  if (amount === null) return NOT_SET;
   const c = currency ?? "";
   return `${amount.toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ${c}`.trim();
 }
 
-function fmtDate(iso: string | null): string {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+function fmtDate(iso: string | null): React.ReactNode {
+  return humaneDate(iso) || NOT_SET;
 }
 
 const input = "mt-1 w-full rounded-lg border border-ink-300 bg-white px-3 py-2 text-[14px]";
@@ -46,7 +47,7 @@ export function CompensationPanel({
             <dt className="text-[12px] text-ink-500">{detail.mode === "components" ? "Total (derived)" : "Total"}</dt>
             <dd className="mt-0.5 text-[16px] font-bold text-ink-900">{fmtMoney(total, detail.currency)}</dd>
           </div>
-          <div><dt className="text-[12px] text-ink-500">Pay basis</dt><dd className="mt-0.5 text-[14px] text-ink-900">{detail.pay_basis ?? <span className="text-ink-400">—</span>}</dd></div>
+          <div><dt className="text-[12px] text-ink-500">Pay basis</dt><dd className="mt-0.5 text-[14px] capitalize text-ink-900">{detail.pay_basis ?? NOT_SET}</dd></div>
           <div><dt className="text-[12px] text-ink-500">Effective date</dt><dd className="mt-0.5 text-[14px] text-ink-900">{fmtDate(detail.effective_date)}</dd></div>
         </dl>
 

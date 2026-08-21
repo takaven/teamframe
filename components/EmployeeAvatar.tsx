@@ -1,25 +1,12 @@
-// Small employee avatar: uploaded photo when present, else initials on a neutral chip.
-// Server-safe (plain <img>); used in the directory table and org chart.
+// Small employee avatar: uploaded photo when present, else initials on a deterministic muted tint.
+// Server-safe (plain <img>); used in the directory, org chart, employee record and self-service.
+import { avatarTint as tintOf } from "@/lib/ui/avatarTint";
 
 function initialsOf(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   const a = parts[0]?.charAt(0) ?? "";
   const b = parts.length > 1 ? parts[parts.length - 1]?.charAt(0) ?? "" : "";
   return (a + b).toUpperCase() || "?";
-}
-
-// Restrained, muted tints (deterministic per name) — quiet variation, never loud.
-const TINTS = [
-  "bg-[#eef1f4] text-[#4a5462]",
-  "bg-[#eef2ee] text-[#4a5a4e]",
-  "bg-[#f1eef2] text-[#57505e]",
-  "bg-[#eef1f3] text-[#495663]",
-  "bg-[#f2f0ec] text-[#5c554a]",
-];
-function tintOf(name: string): string {
-  let h = 0;
-  for (let i = 0; i < name.length; i += 1) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-  return TINTS[h % TINTS.length] ?? TINTS[0]!;
 }
 
 export function EmployeeAvatar({

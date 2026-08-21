@@ -105,7 +105,7 @@ export default async function MePage({
       </div>
 
       <section id="documents" className="mt-6 tf-surface-flat p-5">
-        <h2 className="text-[15px] font-bold tracking-tight text-ink-800">Documents</h2>
+        <h2 className="text-[15px] font-bold tracking-tight">Documents</h2>
         <p className="mt-1 text-[13px] text-ink-500">Upload requested evidence here. TeamFrame records receipt and closes matching obligations where evidence is configured.</p>
         <div className="mt-4">
           <DocumentsChecklist requirements={documentRequirements} />
@@ -115,7 +115,7 @@ export default async function MePage({
       {unacknowledgedPolicies.length > 0 ? (
         <section id="policies" className="mt-6 tf-surface-flat">
           <div className="border-b border-ink-200 px-5 py-4">
-            <h2 className="text-[15px] font-bold tracking-tight text-ink-800">Policies to acknowledge — <span className="tabular-nums">{unacknowledgedPolicies.length}</span></h2>
+            <h2 className="text-[15px] font-bold tracking-tight">Policies to acknowledge — <span className="tabular-nums">{unacknowledgedPolicies.length}</span></h2>
             <p className="mt-1 text-[13px] text-ink-500">Read each policy, then confirm you have understood it. Your acknowledgement is recorded.</p>
           </div>
           <ul className="divide-y divide-ink-100">
@@ -143,7 +143,7 @@ export default async function MePage({
                     <input type="hidden" name="policy_id" value={policy.id} />
                     <input type="hidden" name="policy_version" value={policy.version} />
                     <input type="hidden" name="return_to" value="/me" />
-                    <ConfirmSubmitButton idleLabel="I acknowledge" pendingLabel="Recording…" confirmMessage={`Acknowledge "${policy.title}" v${policy.version}? This confirms you have read and understood it.`} className="w-full rounded-lg bg-brand-signal px-4 py-1.5 text-[13px] font-medium text-ink-800 sm:w-auto" />
+                    <ConfirmSubmitButton idleLabel="I acknowledge" pendingLabel="Recording…" confirmMessage={`Acknowledge "${policy.title}" v${policy.version}? This confirms you have read and understood it.`} className="w-full tf-primary-action px-4 py-1.5 text-[13px] font-medium sm:w-auto" />
                   </form>
                 </div>
               </li>
@@ -154,14 +154,14 @@ export default async function MePage({
 
       {checkInState.state === "not_yet_due" ? (
         <section className="mt-6 tf-surface-flat p-5">
-          <h2 className="text-[15px] font-bold tracking-tight text-ink-800">30-day check-in</h2>
+          <h2 className="text-[15px] font-bold tracking-tight">30-day check-in</h2>
           <p className="mt-1 text-[13px] text-ink-500">Your check-in opens on <span className="tabular-nums">{formatDay(checkInState.checkIn.due_date)}</span> — nothing to do yet.</p>
         </section>
       ) : null}
 
       {checkInState.state === "submitted" ? (
         <section className="mt-6 tf-surface-flat p-5">
-          <h2 className="text-[15px] font-bold tracking-tight text-ink-800">30-day check-in</h2>
+          <h2 className="text-[15px] font-bold tracking-tight">30-day check-in</h2>
           <p className="mt-1 text-[13px] text-ink-500">Submitted{checkInState.checkIn.submitted_at ? <> on <span className="tabular-nums">{formatDay(checkInState.checkIn.submitted_at)}</span></> : null}. Thank you — no further action needed.</p>
         </section>
       ) : null}
@@ -169,7 +169,7 @@ export default async function MePage({
       {checkInState.state === "available" ? (
         <section className="mt-6 tf-surface-flat">
           <div className="border-b border-ink-200 px-5 py-4">
-            <h2 className="text-[15px] font-bold tracking-tight text-ink-800">30-day check-in</h2>
+            <h2 className="text-[15px] font-bold tracking-tight">30-day check-in</h2>
             <p className="mt-1 text-[13px] text-ink-500">Share factual first-month feedback so the team can remove any blockers.</p>
           </div>
           <form action={submitOnboardingCheckInAction} className="grid gap-4 px-5 py-4">
@@ -210,7 +210,7 @@ export default async function MePage({
             <PendingSubmitButton
               idleLabel="Submit check-in"
               pendingLabel="Submitting..."
-              className="w-full rounded-lg bg-brand-signal px-4 py-2 text-[14px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:cursor-not-allowed disabled:bg-ink-300 sm:w-fit"
+              className="w-full tf-primary-action px-4 py-2 text-[14px] font-medium disabled:cursor-not-allowed disabled:bg-ink-300 sm:w-fit"
             />
           </form>
         </section>
@@ -220,10 +220,10 @@ export default async function MePage({
         <section className="mt-6 tf-surface-flat p-5">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h2 className="text-[15px] font-bold tracking-tight text-ink-800">My Team</h2>
+              <h2 className="text-[15px] font-bold tracking-tight">My Team</h2>
               <p className="mt-1 text-[13px] text-ink-500">Your direct reports — leave decisions, onboarding, and probation input.</p>
             </div>
-            <Link href="/manager" className="rounded-lg bg-brand-signal px-4 py-2 text-[13px] font-medium text-ink-800">Open My Team</Link>
+            <Link href="/manager" className="tf-primary-action px-4 py-2 text-[13px] font-medium">Open My Team</Link>
           </div>
         </section>
       ) : null}

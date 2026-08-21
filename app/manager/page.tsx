@@ -197,7 +197,7 @@ export default async function ManagerPage({
                           <PendingSubmitButton
                             idleLabel="Approve"
                             pendingLabel="Approving…"
-                            className="rounded-full bg-brand-signal px-4 py-1.5 text-[12px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:cursor-not-allowed disabled:bg-ink-300"
+                            className="tf-primary-action px-4 py-1.5 text-[12px] font-medium disabled:cursor-not-allowed disabled:bg-ink-300"
                           />
                         </form>
                       </div>
@@ -324,7 +324,7 @@ export default async function ManagerPage({
                         <PendingSubmitButton
                           idleLabel={review.manager_input ? "Update input" : "Submit input"}
                           pendingLabel="Saving..."
-                          className="w-fit rounded-lg bg-brand-signal px-4 py-2 text-[13px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:bg-ink-300"
+                          className="w-fit tf-primary-action px-4 py-2 text-[13px] font-medium disabled:bg-ink-300"
                         />
                       </form>
                     </li>
@@ -358,7 +358,7 @@ export default async function ManagerPage({
                             return (
                               <div key={q.key} className="flex justify-between gap-4 border-b border-ink-100 py-1">
                                 <dt className="text-ink-500">{q.label}</dt>
-                                <dd className="text-right text-ink-800">{shown}</dd>
+                                <dd className="text-right">{shown}</dd>
                               </div>
                             );
                           })}

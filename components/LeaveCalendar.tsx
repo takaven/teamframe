@@ -1,6 +1,7 @@
 import type { AdminCalendarLeave } from "@/services/leaveService";
 import { downloadLeaveEvidenceAction } from "@/app/leaves/actions";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
+import { humaneDate } from "@/lib/ui/formatDate";
 
 const SYSTEM_LABEL: Record<string, string> = {
   annual: "Annual Leave",
@@ -35,7 +36,7 @@ function firstName(full: string): string {
 }
 
 function fmtLong(iso: string): string {
-  return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+  return humaneDate(iso);
 }
 
 function monthHref(basePath: string, year: number, month: number): string {
@@ -91,18 +92,18 @@ export function LeaveCalendar({
         </div>
       ) : null}
 
-      <div className="overflow-x-auto tf-surface">
-        <div className="grid min-w-[720px] grid-cols-7 border-b border-ink-200 text-[11px] uppercase tracking-[0.08em] text-ink-500">
+      <div className="tf-surface overflow-hidden">
+        <div className="grid grid-cols-7 border-b border-ink-200 text-[11px] uppercase tracking-[0.08em] text-ink-500">
           {WEEKDAYS.map((d) => (
             <div key={d} className="px-2 py-2 text-center">{d}</div>
           ))}
         </div>
-        <div className="grid min-w-[720px] grid-cols-7">
+        <div className="grid grid-cols-7">
           {Array.from({ length: totalCells }, (_, i) => {
             const dayNum = i - startOffset + 1;
             const inMonth = dayNum >= 1 && dayNum <= daysInMonth;
             if (!inMonth) {
-              return <div key={i} className="min-h-[92px] border-b border-r border-ink-100 bg-ink-50/40" />;
+              return <div key={i} className="min-h-[76px] border-b border-r border-ink-100 bg-ink-50/40" />;
             }
             const iso = `${year}-${pad2(month)}-${pad2(dayNum)}`;
             const isWeekend = i % 7 >= 5;
@@ -111,7 +112,7 @@ export function LeaveCalendar({
             const shown = absences.slice(0, 3);
             const overflow = absences.length - shown.length;
             return (
-              <div key={i} className={`min-h-[84px] border-b border-r border-ink-100 p-1.5 ${isWeekend ? "bg-ink-50/30" : ""}`}>
+              <div key={i} className={`min-h-[76px] min-w-0 border-b border-r border-ink-100 p-1 ${isWeekend ? "bg-ink-50/30" : ""}`}>
                 <div className="mb-1 flex justify-end">
                   <span className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] tabular-nums ${isToday ? "bg-ink-900 font-semibold text-white" : "text-ink-400"}`}>{dayNum}</span>
                 </div>

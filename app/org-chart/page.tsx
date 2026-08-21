@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireTenantActor } from "@/middleware/rbac";
 import { AppShell } from "@/components/AppShell";
+import { EmployeeAvatar } from "@/components/EmployeeAvatar";
 import { EmptyState } from "@/components/EmptyState";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
@@ -239,21 +240,6 @@ function JobDescriptionControls({ position }: { position: PositionRecord }) {
   );
 }
 
-function Avatar({ photoUrl, initials, size = 32 }: { photoUrl: string | null; initials: string; size?: number }) {
-  if (photoUrl) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={photoUrl} alt="" width={size} height={size} className="rounded-full object-cover" style={{ width: size, height: size }} />;
-  }
-  return (
-    <span
-      aria-hidden
-      className="inline-flex items-center justify-center rounded-full bg-ink-100 text-[11px] font-bold text-ink-600"
-      style={{ width: size, height: size }}
-    >
-      {initials}
-    </span>
-  );
-}
 
 function PositionNode({
   position,
@@ -276,7 +262,7 @@ function PositionNode({
       {vacant ? (
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-dashed border-ink-400 text-[11px] text-ink-400" aria-hidden>+</span>
       ) : (
-        <Avatar photoUrl={display?.photoUrl ?? null} initials={display?.initials ?? "?"} size={32} />
+        <EmployeeAvatar name={position.assigned_employee_name ?? ""} photoUrl={display?.photoUrl ?? null} size={32} />
       )}
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[13.5px] font-semibold text-ink-800">{position.title}</span>

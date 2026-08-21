@@ -1,5 +1,6 @@
 import type { EmployeeMasterRecord } from "@/services/employeeMasterService";
 import { DateField } from "@/components/DateField";
+import { EmployeeAvatar } from "@/components/EmployeeAvatar";
 import { updateOwnProfileAction, updateOwnPaymentAction, updateOwnPhotoAction } from "@/app/me/actions";
 import { StatusPill } from "@/components/StatusPill";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
@@ -10,10 +11,6 @@ import { FileInput } from "@/components/FileInput";
 // employer-controlled and read-only. Missing-data uses a restrained amber cue with a
 // lime action — never an error-red treatment.
 
-function initials(name: string): string {
-  const p = name.trim().split(/\s+/).filter(Boolean);
-  return ((p[0]?.charAt(0) ?? "") + (p.length > 1 ? p[p.length - 1]?.charAt(0) ?? "" : "")).toUpperCase() || "?";
-}
 function fmt(iso: string | null): string {
   if (!iso) return "—";
   const d = new Date(iso);
@@ -29,10 +26,11 @@ const inputCls = "mt-1 w-full rounded-lg border border-ink-300 bg-white px-3 py-
 const roCls = "mt-0.5 text-[14px] text-ink-900";
 
 function ReadField({ label, value }: { label: string; value: React.ReactNode }) {
+  const empty = value === null || value === undefined || value === "";
   return (
     <div>
       <dt className="text-[12px] text-ink-500">{label}</dt>
-      <dd className={roCls}>{value === null || value === "" ? <span className="text-ink-400">—</span> : value}</dd>
+      <dd className={roCls}>{empty ? <span className="text-ink-400">Not set</span> : value}</dd>
     </div>
   );
 }
@@ -68,12 +66,7 @@ export function EmployeeSelfRecord({ record }: { record: EmployeeMasterRecord })
       <form action={updateOwnProfileAction} className="space-y-5">
         <section className="rounded-xl border border-ink-200 bg-white/70 p-5">
           <div className="flex items-center gap-4">
-            {identity.photo_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={identity.photo_url} alt="" width={56} height={56} className="h-14 w-14 rounded-full object-cover" />
-            ) : (
-              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-ink-100 text-[16px] font-bold text-ink-600">{initials(identity.full_name)}</span>
-            )}
+            <EmployeeAvatar name={identity.full_name} photoUrl={identity.photo_url} size={56} />
             <div>
               <h3 className="text-[16px] font-bold text-ink-900">{identity.full_name}</h3>
               <p className="text-[13px] text-ink-500">{employment.role_title} · {employment.department}</p>
@@ -94,7 +87,7 @@ export function EmployeeSelfRecord({ record }: { record: EmployeeMasterRecord })
         </section>
 
         <section className="rounded-xl border border-ink-200 bg-white/70 p-5">
-          <h3 className="text-[14px] font-bold text-ink-800">Contact</h3>
+          <h3 className="text-[14px] font-bold">Contact</h3>
           <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <label>{<EditLabel label="Personal email" filled={!!contact.personal_email} />}<input name="personal_email" type="email" defaultValue={contact.personal_email ?? ""} className={inputCls} /></label>
             <label>{<EditLabel label="Personal phone" filled={!!contact.personal_phone} />}<input name="mobile" defaultValue={contact.personal_phone ?? ""} className={inputCls} /></label>
@@ -105,7 +98,7 @@ export function EmployeeSelfRecord({ record }: { record: EmployeeMasterRecord })
         </section>
 
         <section className="rounded-xl border border-ink-200 bg-white/70 p-5">
-          <h3 className="text-[14px] font-bold text-ink-800">Emergency contact</h3>
+          <h3 className="text-[14px] font-bold">Emergency contact</h3>
           <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <label>{<EditLabel label="Name" filled={!!emergency_contact.name} />}<input name="emergency_contact_name" defaultValue={emergency_contact.name ?? ""} className={inputCls} /></label>
             <label>{<EditLabel label="Relationship" filled={!!emergency_contact.relationship} />}<input name="emergency_contact_relationship" defaultValue={emergency_contact.relationship ?? ""} className={inputCls} /></label>
@@ -114,12 +107,12 @@ export function EmployeeSelfRecord({ record }: { record: EmployeeMasterRecord })
           </dl>
         </section>
 
-        <PendingSubmitButton idleLabel="Save my details" pendingLabel="Saving…" className="rounded-lg bg-brand-signal px-5 py-2.5 text-[14px] font-medium text-ink-800 disabled:cursor-not-allowed disabled:bg-ink-300" />
+        <PendingSubmitButton idleLabel="Save my details" pendingLabel="Saving…" className="tf-primary-action px-5 py-2.5 text-[14px] font-medium disabled:cursor-not-allowed disabled:bg-ink-300" />
       </form>
 
       {/* Work — employer-controlled, read-only */}
       <section className="rounded-xl border border-ink-200 bg-white/70 p-5">
-        <h3 className="text-[14px] font-bold text-ink-800">Work</h3>
+        <h3 className="text-[14px] font-bold">Work</h3>
         <p className="mt-1 text-[12px] text-ink-500">Managed by your employer. Contact your admin if something looks wrong.</p>
         <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <ReadField label="Role / job title" value={employment.role_title} />
@@ -138,7 +131,7 @@ export function EmployeeSelfRecord({ record }: { record: EmployeeMasterRecord })
 
       {/* Payment details — own record, editable */}
       <section className="rounded-xl border border-ink-200 bg-white/70 p-5">
-        <h3 className="text-[14px] font-bold text-ink-800">Payment details</h3>
+        <h3 className="text-[14px] font-bold">Payment details</h3>
         <p className="mt-1 text-[12px] text-ink-500">Your own bank details for payroll. Only you and authorised finance staff can see these.</p>
         <p className="mt-2 text-[12px] text-ink-600">Current account / IBAN: <span className="font-mono">{maskIban(payment_details.account_number_iban)}</span></p>
         <form action={updateOwnPaymentAction} className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -148,13 +141,13 @@ export function EmployeeSelfRecord({ record }: { record: EmployeeMasterRecord })
           <label className="text-[13px] text-ink-700">Branch / routing<input name="routing_sort_branch_code" defaultValue={payment_details.routing_sort_branch_code ?? ""} className={inputCls} /></label>
           <label className="text-[13px] text-ink-700">SWIFT / BIC<input name="swift_bic" defaultValue={payment_details.swift_bic ?? ""} className={inputCls} /></label>
           <label className="text-[13px] text-ink-700">Currency<input name="account_currency" maxLength={3} defaultValue={payment_details.account_currency ?? ""} className={inputCls} placeholder="AED" /></label>
-          <div className="sm:col-span-2 lg:col-span-3"><PendingSubmitButton idleLabel="Save payment details" pendingLabel="Saving…" className="rounded-lg border border-ink-300 bg-white px-4 py-2 text-[13px] text-ink-800 hover:border-ink-900 disabled:cursor-not-allowed disabled:text-ink-300" /></div>
+          <div className="sm:col-span-2 lg:col-span-3"><PendingSubmitButton idleLabel="Save payment details" pendingLabel="Saving…" className="rounded-lg border border-ink-300 bg-white px-4 py-2 text-[13px] hover:border-ink-900 disabled:cursor-not-allowed disabled:text-ink-300" /></div>
         </form>
       </section>
 
       {/* Profile photo */}
       <section className="rounded-xl border border-ink-200 bg-white/70 p-5">
-        <h3 className="text-[14px] font-bold text-ink-800">Profile photo</h3>
+        <h3 className="text-[14px] font-bold">Profile photo</h3>
         <form action={updateOwnPhotoAction} className="mt-3 flex flex-wrap items-center gap-3" encType="multipart/form-data">
           <FileInput name="photo" accept="image/png,image/jpeg,image/webp" required label={identity.photo_url ? "Change photo" : "Add photo"} />
           <PendingSubmitButton idleLabel="Save" pendingLabel="Uploading…" className="rounded-lg border border-ink-300 bg-white px-3 py-1.5 text-[12px] font-medium text-ink-700 hover:border-ink-900 disabled:cursor-not-allowed disabled:text-ink-300" />

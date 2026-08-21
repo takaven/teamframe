@@ -1,4 +1,5 @@
 import { requireTenantActor } from "@/middleware/rbac";
+import { humaneDate } from "@/lib/ui/formatDate";
 import { DateField } from "@/components/DateField";
 import {
   getLeaveOverviewForEmployee,
@@ -62,11 +63,7 @@ const LEAVE_STATUS_TONE: Record<LeaveRecord["status"], StatusPillTone> = {
 };
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  return humaneDate(iso);
 }
 
 function days(value: number): string {
@@ -391,7 +388,7 @@ export default async function LeavesPage({
               <PendingSubmitButton
                 idleLabel="Submit request"
                 pendingLabel="Submitting..."
-                className="rounded-lg bg-brand-signal px-5 py-2 text-[14px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:bg-ink-300 sm:w-fit"
+                className="tf-primary-action px-5 py-2 text-[14px] font-medium disabled:bg-ink-300 sm:w-fit"
               />
             </form>
           </section>

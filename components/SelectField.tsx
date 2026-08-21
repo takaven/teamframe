@@ -88,7 +88,7 @@ export function SelectField({
       </button>
 
       {open ? (
-        <div className="absolute left-0 z-50 mt-1 w-full min-w-[200px] rounded-xl border border-ink-200 bg-white p-1 shadow-[0_12px_36px_-18px_rgba(15,17,21,0.4)]">
+        <div className="tf-pop absolute left-0 z-50 mt-1 w-full min-w-[200px] rounded-xl border border-ink-200 bg-white p-1 shadow-[0_12px_36px_-18px_rgba(15,17,21,0.4)]">
           {searchable ? (
             <input
               ref={searchRef}

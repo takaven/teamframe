@@ -59,7 +59,7 @@ function UploadForm({ requirement }: { requirement: Requirement }) {
       <input type="hidden" name="return_to" value="/me" />
       <FileInput name="file" required label="Choose a file" />
       <DateField name="expires_at" dense />
-      <PendingSubmitButton idleLabel={label} pendingLabel="Uploading…" className="rounded-md bg-brand-signal px-3 py-1.5 text-[12px] font-medium text-ink-800 disabled:bg-ink-300" />
+      <PendingSubmitButton idleLabel={label} pendingLabel="Uploading…" className="tf-primary-action px-3 py-1.5 text-[12px] font-medium disabled:bg-ink-300" />
     </form>
   );
 }

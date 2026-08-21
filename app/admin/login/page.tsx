@@ -117,7 +117,7 @@ export default async function AdminLoginPage({
           <PendingSubmitButton
             idleLabel="Sign in"
             pendingLabel="Signing you in…"
-            className="tf-primary-action h-12 w-full px-5 text-[15px] disabled:cursor-not-allowed disabled:bg-ink-300"
+            className="tf-brand-action h-12 w-full px-5 text-[15px] disabled:cursor-not-allowed disabled:bg-ink-300"
           />
 
           {errorMessage ? (

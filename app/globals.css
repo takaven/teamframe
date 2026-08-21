@@ -124,29 +124,68 @@ main:has(> .tf-app-shell[data-active="/org-chart"]) > :not(.tf-app-shell):not(.t
   display: none;
 }
 
+/* Everyday in-app primary action: institutional graphite with a high-contrast label. Signal Green
+   is reserved for focus, progress, selected accents and deliberate brand moments (.tf-brand-action)
+   — it no longer floods white admin surfaces. */
 .tf-primary-action {
+  border-radius: 8px;
+  background: var(--brand-charcoal);
+  color: #ffffff;
+  font-weight: 600;
+  transition: background 160ms ease, box-shadow 160ms ease, opacity 160ms ease, transform 120ms ease;
+}
+.tf-primary-action:hover { background: #2b3138; }
+.tf-primary-action:active { background: #14171c; transform: translateY(0.5px); }
+.tf-primary-action:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Deliberate brand-green moment: login sign-in, marketing CTAs. Balanced, not ambient. */
+.tf-brand-action {
   border-radius: 8px;
   background: var(--brand-signal);
   color: var(--text-primary);
   font-weight: 700;
-  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+  transition: background 160ms ease, box-shadow 160ms ease, transform 120ms ease;
 }
-
-.tf-primary-action:hover {
-  background: #00e51f;
-}
+.tf-brand-action:hover { background: #00e51f; }
+.tf-brand-action:active { transform: translateY(0.5px); }
+.tf-brand-action:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .tf-secondary-action {
   border-radius: 8px;
   border: 1px solid var(--border-default);
   background: #ffffff;
   color: var(--text-primary);
-  transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+  transition: border-color 160ms ease, color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+.tf-secondary-action:hover { border-color: var(--brand-charcoal); background: #fbfcfd; }
+.tf-secondary-action:active { background: #f4f6f8; }
+
+/* ---- Coherent interaction-motion system (150–200ms, restrained) ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  a, button, summary, [role="tab"], [role="option"],
+  .tf-org-node, .tf-input, .tf-select, .tf-date, .tf-textarea,
+  .tf-summary > * { transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease, opacity 160ms ease, transform 120ms ease; }
+
+  .tf-pop { animation: tf-pop-in 150ms ease; }
+  .tf-drawer-panel { animation: tf-slide-in 190ms cubic-bezier(0.22, 0.61, 0.36, 1); }
+  .tf-fade-in { animation: tf-fade 200ms ease; }
+}
+@keyframes tf-pop-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@keyframes tf-slide-in { from { transform: translateX(16px); opacity: 0.4; } to { transform: none; opacity: 1; } }
+@keyframes tf-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
 }
 
-.tf-secondary-action:hover {
-  border-color: var(--brand-charcoal);
+/* ---- One focus-ring token, applied to native + custom controls ------------ */
+:where(a, button, input, select, textarea, summary, [role="tab"], [role="option"], [tabindex]):focus-visible {
+  outline: 2px solid var(--brand-signal);
+  outline-offset: 2px;
+  border-radius: 6px;
 }
+
+/* Inline success confirmation (fades in quietly; never a large slab). */
+.tf-saved-inline { display: inline-flex; align-items: center; gap: 4px; color: var(--color-signal-green); font-size: 12.5px; font-weight: 600; }
 
 /* ============================================================================
    WAVE 1 — Global visual system (premium redesign)

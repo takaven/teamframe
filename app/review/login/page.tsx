@@ -138,7 +138,7 @@ export default async function FounderReviewLoginPage({
             pendingLabel="Signing in…"
             disabled={!enabled}
             disabledLabel="Sign in"
-            className="tf-primary-action h-12 w-full px-5 text-[15px] disabled:cursor-not-allowed disabled:bg-ink-300"
+            className="tf-brand-action h-12 w-full px-5 text-[15px] disabled:cursor-not-allowed disabled:bg-ink-300"
           />
 
           {errorMessage || !enabled ? (

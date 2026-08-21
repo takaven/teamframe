@@ -153,7 +153,7 @@ export function AssignPackForm({ employees }: { employees: AssignPackEmployee[] 
         idleLabel={keptIndexes.length > 0 ? `Assign ${keptIndexes.length} tasks` : "Assign pack"}
         pendingLabel="Assigning…"
         disabled={!pack || keptIndexes.length === 0}
-        className="rounded-lg bg-brand-signal px-5 py-2 text-[14px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:cursor-not-allowed disabled:bg-ink-300"
+        className="tf-primary-action px-5 py-2 text-[14px] font-medium disabled:cursor-not-allowed disabled:bg-ink-300"
       />
     </form>
   );

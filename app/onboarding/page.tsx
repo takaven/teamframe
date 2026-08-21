@@ -1,4 +1,5 @@
 import { requireTenantActor } from "@/middleware/rbac";
+import { humaneDate } from "@/lib/ui/formatDate";
 import {
   listAllOnboardingTasks,
   listOnboardingTasksForEmployee,
@@ -49,11 +50,7 @@ const ERROR_COPY: Record<string, string> = {
 };
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  return humaneDate(iso);
 }
 
 function formatDueDate(iso: string): string {
@@ -136,7 +133,7 @@ export default async function OnboardingPage({
 
         <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink-300/60 pb-5">
           <div>
-            <h1 className="text-[32px] font-extrabold leading-tight tracking-tight text-ink-800">Onboarding</h1>
+            <h1 className="text-[32px] font-extrabold leading-tight tracking-tight">Onboarding</h1>
             <p className="mt-1.5 text-[14px] text-ink-500">
               Assign first-week tasks so every new joiner knows what to do next.
             </p>
@@ -237,7 +234,7 @@ export default async function OnboardingPage({
               <PendingSubmitButton
                 idleLabel="Assign"
                 pendingLabel="Assigning…"
-                className="rounded-lg bg-brand-signal px-5 py-2 text-[14px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:cursor-not-allowed disabled:bg-ink-300"
+                className="tf-primary-action px-5 py-2 text-[14px] font-medium disabled:cursor-not-allowed disabled:bg-ink-300"
               />
             </form>
           )}
@@ -375,7 +372,7 @@ export default async function OnboardingPage({
             </div>
             <div className="mt-4 h-2 overflow-hidden rounded-full bg-ink-100">
               <div
-                className="h-full rounded-full bg-brand-signal transition-all"
+                className="h-full tf-primary-action transition-all"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -421,7 +418,7 @@ export default async function OnboardingPage({
                         <PendingSubmitButton
                           idleLabel="Mark done"
                           pendingLabel="Saving..."
-                          className="rounded-lg bg-brand-signal px-4 py-1.5 text-[13px] font-medium text-ink-800 transition hover:bg-[#00E51F] disabled:cursor-not-allowed disabled:bg-ink-300"
+                          className="tf-primary-action px-4 py-1.5 text-[13px] font-medium disabled:cursor-not-allowed disabled:bg-ink-300"
                         />
                       </form>
                     ) : (
