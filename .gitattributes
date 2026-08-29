@@ -1,0 +1,21 @@
+# Normalise line endings so the working tree is clean on every platform.
+# Without this, a checkout on Windows and a checkout on Linux disagree on every
+# line of every text file, which makes `git status` permanently dirty and hides
+# real changes in the noise.
+* text=auto eol=lf
+
+# Windows-only tooling keeps CRLF.
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.ps1  text eol=crlf
+
+# Binary: never touched, never diffed as text.
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.webp   binary
+*.ico    binary
+*.pdf    binary
+*.zip    binary
+*.woff   binary
+*.woff2  binary
