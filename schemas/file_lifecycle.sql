@@ -27,8 +27,15 @@ exception when duplicate_object then null; end $$;
 do $$ begin
   create type export_file_kind as enum (
     'due_diligence_pack',
-    'finance_handoff'
+    'finance_handoff',
+    'tenant_export'
   );
+exception when duplicate_object then null; end $$;
+
+-- Additive for installations created before the whole-tenant portability export.
+-- `add value if not exists` is idempotent and safe to re-run.
+do $$ begin
+  alter type export_file_kind add value if not exists 'tenant_export';
 exception when duplicate_object then null; end $$;
 
 create table if not exists file_operations (

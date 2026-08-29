@@ -14,6 +14,9 @@ import {
   getCompensationConfig,
 } from "@/services/configurationService";
 import { getCompanyIdentity } from "@/lib/company/identity";
+import { buildInstallationFacts, INSTALLATION_RESPONSIBILITIES } from "@/lib/company/installation";
+import { hasCapability } from "@/lib/rbac/access";
+import pkg from "@/package.json";
 import {
   saveCompanySettingsAction,
   saveCompanyLogoAction,
@@ -29,6 +32,7 @@ import {
   createCompensationComponentAction,
   renameCompensationComponentAction,
   toggleCompensationComponentAction,
+  exportTenantDataAction,
 } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +47,7 @@ const SECTIONS = [
   { key: "compensation", label: "Compensation" },
   { key: "checkin", label: "30-day check-in" },
   { key: "access", label: "Users & Access" },
+  { key: "installation", label: "Installation & support" },
 ] as const;
 
 const ERROR_COPY: Record<string, string> = {
@@ -56,6 +61,7 @@ const ERROR_COPY: Record<string, string> = {
   LOGO_UNSUPPORTED_TYPE: "Use a PNG, JPG, WEBP or SVG image.",
   LOGO_UPLOAD_FAILED: "The logo could not be uploaded. Try again.",
   FORBIDDEN: "You do not have permission for that action.",
+  TENANT_EXPORT_FAILED: "The export could not be prepared. Try again.",
   UNKNOWN: "Something went wrong. Try again.",
 };
 
@@ -104,6 +110,17 @@ export default async function SetupPage({
     getCompensationConfig(actor),
     getCompanyIdentity(actor.tenantId),
   ]);
+
+  // Full Access is the only profile holding `company_access_settings`; the
+  // whole-installation export is offered to nobody else.
+  const canExportInstallation = await hasCapability(actor, "company_access_settings");
+  const installationFacts = buildInstallationFacts({
+    productVersion: pkg.version,
+    installationName: identity.name,
+    installationId: actor.tenantId,
+    appUrl: process.env.SITE_URL ?? null,
+    releaseRef: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
+  });
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-14">
@@ -354,6 +371,70 @@ export default async function SetupPage({
               </p>
               <Link href="/access" className={`mt-4 inline-flex ${btn}`}>Manage users &amp; access</Link>
             </section>
+          ) : null}
+
+          {section === "installation" ? (
+            <>
+              <section className="tf-surface-flat p-6">
+                <h2 className="tf-h2">Installation</h2>
+                <p className="mt-1 text-[13px] text-ink-500">
+                  What this installation is, and who is responsible for what.
+                </p>
+                <dl className="mt-4 divide-y divide-ink-100 border-t border-ink-100">
+                  {installationFacts.map((fact) => (
+                    <div key={fact.label} className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 py-3">
+                      <dt className="text-[13.5px] font-medium text-ink-800">{fact.label}</dt>
+                      <dd className="min-w-0 text-right">
+                        <span className="break-all text-[13.5px] text-ink-700 tf-num">{fact.value}</span>
+                        {fact.hint ? <p className="mt-0.5 text-[12px] text-ink-500">{fact.hint}</p> : null}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+
+              <section className="tf-surface-flat p-6">
+                <h2 className="tf-h2">Responsibilities &amp; support</h2>
+                <dl className="mt-4 divide-y divide-ink-100 border-t border-ink-100">
+                  {INSTALLATION_RESPONSIBILITIES.map((fact) => (
+                    <div key={fact.label} className="py-3">
+                      <div className="flex flex-wrap items-baseline justify-between gap-x-6">
+                        <dt className="text-[13.5px] font-medium text-ink-800">{fact.label}</dt>
+                        <dd className="text-[13.5px] text-ink-700">{fact.value}</dd>
+                      </div>
+                      {fact.hint ? <p className="mt-1 max-w-2xl text-[12.5px] text-ink-500">{fact.hint}</p> : null}
+                    </div>
+                  ))}
+                </dl>
+              </section>
+
+              <section className="tf-surface-flat p-6">
+                <h2 className="tf-h2">Export TeamFrame data</h2>
+                <p className="mt-1 max-w-2xl text-[13px] text-ink-500">
+                  Takes a complete, portable copy of this installation — every employee, leave,
+                  onboarding, policy, document, compensation and configuration record as a
+                  spreadsheet-readable CSV, together with the original uploaded documents. The
+                  download link is private and expires shortly after it is created.
+                </p>
+                {canExportInstallation ? (
+                  <form action={exportTenantDataAction} className="mt-4">
+                    <ConfirmSubmitButton
+                      idleLabel="Export TeamFrame data"
+                      pendingLabel="Preparing export…"
+                      className={btn}
+                      confirmMessage="This prepares a download containing all employee records held in this installation, including compensation and private documents. Continue?"
+                    />
+                    <p className="mt-2 text-[12px] text-ink-500">
+                      Large installations can take a minute to prepare.
+                    </p>
+                  </form>
+                ) : (
+                  <p className="mt-4 text-[13px] text-ink-500">
+                    Exporting the whole installation requires Full Access.
+                  </p>
+                )}
+              </section>
+            </>
           ) : null}
         </div>
       </div>

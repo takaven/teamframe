@@ -50,6 +50,8 @@ import {
   uploadUaeRecordAction,
 } from "./actions";
 import { AppShell } from "@/components/AppShell";
+import { getCompanyIdentity } from "@/lib/company/identity";
+import { PrintRecordButton } from "@/components/PrintRecordButton";
 import { EmptyState } from "@/components/EmptyState";
 import { StatusPill, type StatusPillTone } from "@/components/StatusPill";
 
@@ -213,6 +215,7 @@ export default async function EmployeesPage({
     );
   }
 
+  const identity = await getCompanyIdentity(actor.tenantId);
   const employees = await listEmployeesForAdmin(actor);
   // Open probation reviews → drives the "Active · Probation" roster tag (probation is a
   // tag, never an employment status).
@@ -496,7 +499,7 @@ export default async function EmployeesPage({
           />
         ) : (
           detailEmployees.map((employee) => (
-            <article id={`employee-${employee.id}`} key={employee.id} className="space-y-4">
+            <article id={`employee-${employee.id}`} key={employee.id} className="tf-print-record space-y-4">
               {(() => {
                 const resendCooldownSeconds = getResendCooldownSeconds(employee.invite_last_attempt_at);
                 const resendBlocked = resendCooldownSeconds > 0;
@@ -513,6 +516,15 @@ export default async function EmployeesPage({
                 const master = masterByEmployee.get(employee.id);
                 return (
                   <>
+              <div className="tf-print-hide flex justify-end">
+                <PrintRecordButton className="tf-secondary-action px-3 py-1.5 text-[12px]" />
+              </div>
+              <div className="tf-print-only mb-4 border-b border-ink-200 pb-3">
+                <p className="text-[15px] font-semibold text-ink-900">{identity.name}</p>
+                <p className="mt-0.5 text-[12px] text-ink-600">
+                  Employee record · {employee.full_name} · printed {new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+                </p>
+              </div>
               {master ? (
                 <RecordHeader
                   master={master.record}

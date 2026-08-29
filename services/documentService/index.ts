@@ -685,7 +685,7 @@ async function finalizeFileOperation(
 
 async function recordExportFile(input: {
   tenantId: string;
-  exportKind: "due_diligence_pack" | "finance_handoff";
+  exportKind: "due_diligence_pack" | "finance_handoff" | "tenant_export";
   employeeId?: string | null;
   storagePath: string;
   fileName: string;
@@ -711,7 +711,7 @@ async function recordExportFile(input: {
 
 async function createExportFileUrl(input: {
   actor: Actor;
-  exportKind: "due_diligence_pack" | "finance_handoff";
+  exportKind: "due_diligence_pack" | "finance_handoff" | "tenant_export";
   employeeId?: string | null;
   storagePath: string;
   fileName: string;
@@ -1746,5 +1746,251 @@ export async function exportFinanceHandoffUrl(actor: Actor): Promise<string> {
     fileName,
     payload,
     auditActionType: "document.exported_finance_handoff",
+  });
+}
+
+// ── Whole-tenant data export (portability) ──────────────────────────────────
+//
+// One Full-Access-only action that produces a portable ZIP of the installation's
+// own data: every principal HR and configuration dataset as human-readable CSV,
+// plus the underlying document files, plus a manifest.
+//
+// Deliberate boundaries:
+//  - Full Access only. `company_access_settings` is exclusive to the Full Access
+//    profile (lib/rbac/access.ts PROFILE_CAPABILITIES), so this is the narrowest
+//    existing capability that means "highest in-product authority".
+//  - Tenant-scoped by construction: fetchTenantScopedRows ALWAYS applies a tenant
+//    filter — `.eq("tenant_id", …)` for every operational table, `.eq("id", …)`
+//    for `companies`, which is the tenant root. There is no code path that reads
+//    a dataset without one. Covered by tests/cross-tenant-isolation.test.ts.
+//  - No secrets: only the datasets listed below are read. Env vars, service keys,
+//    auth tokens, storage credentials and Supabase internals are never touched.
+//  - Reuses the existing ZIP/storage/audit lifecycle (buildZip, buildDelimited,
+//    createExportFileUrl) — no new export framework.
+
+type TenantExportDataset = {
+  table: string;
+  file: string;
+  /** `root` = the companies row itself, keyed by id; `tenant` = tenant_id column. */
+  scope: "root" | "tenant";
+  /** Stable sort key for deterministic pagination. */
+  orderBy: string;
+};
+
+const TENANT_EXPORT_DATASETS: readonly TenantExportDataset[] = [
+  { table: "companies", file: "company/company.csv", scope: "root", orderBy: "id" },
+  { table: "departments", file: "company/departments.csv", scope: "tenant", orderBy: "id" },
+  { table: "work_locations", file: "company/work-locations.csv", scope: "tenant", orderBy: "id" },
+  { table: "company_holidays", file: "company/holidays.csv", scope: "tenant", orderBy: "id" },
+  { table: "positions", file: "organisation/positions.csv", scope: "tenant", orderBy: "id" },
+  { table: "position_assignments", file: "organisation/position-assignments.csv", scope: "tenant", orderBy: "id" },
+  { table: "employees", file: "people/employees.csv", scope: "tenant", orderBy: "id" },
+  { table: "employee_profiles", file: "people/employee-profiles.csv", scope: "tenant", orderBy: "employee_id" },
+  { table: "employee_payment_details", file: "people/employee-payment-details.csv", scope: "tenant", orderBy: "employee_id" },
+  { table: "employment_changes", file: "people/employment-changes.csv", scope: "tenant", orderBy: "id" },
+  { table: "leave_definitions", file: "leave/leave-definitions.csv", scope: "tenant", orderBy: "id" },
+  { table: "leaves", file: "leave/leave-records.csv", scope: "tenant", orderBy: "id" },
+  { table: "leave_opening_adjustments", file: "leave/opening-adjustments.csv", scope: "tenant", orderBy: "id" },
+  { table: "onboarding_tasks", file: "onboarding/onboarding-tasks.csv", scope: "tenant", orderBy: "id" },
+  { table: "onboarding_check_ins", file: "onboarding/check-ins.csv", scope: "tenant", orderBy: "id" },
+  { table: "probation_reviews", file: "onboarding/probation-reviews.csv", scope: "tenant", orderBy: "id" },
+  { table: "policies", file: "policies/policies.csv", scope: "tenant", orderBy: "id" },
+  { table: "acknowledgements", file: "policies/acknowledgements.csv", scope: "tenant", orderBy: "id" },
+  { table: "documents", file: "documents/documents-index.csv", scope: "tenant", orderBy: "id" },
+  { table: "document_requirements", file: "documents/document-requirements.csv", scope: "tenant", orderBy: "id" },
+  { table: "offboarding_cases", file: "offboarding/offboarding-cases.csv", scope: "tenant", orderBy: "id" },
+  { table: "offboarding_items", file: "offboarding/offboarding-items.csv", scope: "tenant", orderBy: "id" },
+  { table: "compensation", file: "compensation/compensation.csv", scope: "tenant", orderBy: "employee_id" },
+  { table: "compensation_components", file: "compensation/components.csv", scope: "tenant", orderBy: "id" },
+  { table: "compensation_component_amounts", file: "compensation/component-amounts.csv", scope: "tenant", orderBy: "employee_id" },
+  { table: "compensation_history", file: "compensation/history.csv", scope: "tenant", orderBy: "id" },
+  { table: "tenant_memberships", file: "access/memberships.csv", scope: "tenant", orderBy: "id" },
+  { table: "tenant_access_invitations", file: "access/invitations.csv", scope: "tenant", orderBy: "id" },
+  { table: "procedures", file: "operations/procedures.csv", scope: "tenant", orderBy: "id" },
+  { table: "risk_signals", file: "operations/attention-items.csv", scope: "tenant", orderBy: "id" },
+  { table: "action_items", file: "operations/action-items.csv", scope: "tenant", orderBy: "id" },
+  { table: "audit_logs", file: "operations/audit-log.csv", scope: "tenant", orderBy: "id" },
+] as const;
+
+/** PostgREST pages responses; read every page so the export is complete. */
+const TENANT_EXPORT_PAGE_SIZE = 1000;
+
+/**
+ * Total bytes of document files to embed. The index is always complete; files
+ * beyond the budget are listed as omitted in the manifest so nothing is silently
+ * missing. Keeps a whole-tenant export from becoming unbounded.
+ */
+const TENANT_EXPORT_FILE_BYTE_BUDGET = 200 * 1024 * 1024;
+
+export type TenantExportRow = Record<string, unknown>;
+
+/**
+ * The ONLY read path used by the tenant export. A tenant filter is applied
+ * unconditionally — there is no argument that can disable it.
+ */
+export async function fetchTenantScopedRows(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  dataset: TenantExportDataset,
+  tenantId: string,
+): Promise<TenantExportRow[]> {
+  const rows: TenantExportRow[] = [];
+  for (let page = 0; ; page += 1) {
+    const from = page * TENANT_EXPORT_PAGE_SIZE;
+    const base = supabase.from(dataset.table).select("*");
+    const scoped =
+      dataset.scope === "root" ? base.eq("id", tenantId) : base.eq("tenant_id", tenantId);
+    const { data, error } = await scoped
+      .order(dataset.orderBy, { ascending: true })
+      .range(from, from + TENANT_EXPORT_PAGE_SIZE - 1);
+    if (error) throw new Error(`TENANT_EXPORT_FAILED: ${dataset.table}: ${error.message}`);
+    const batch = (data ?? []) as TenantExportRow[];
+    rows.push(...batch);
+    if (batch.length < TENANT_EXPORT_PAGE_SIZE) break;
+  }
+  return rows;
+}
+
+/** Stable column order: first row's keys, then any later-appearing keys, sorted. */
+export function tenantExportColumns(rows: readonly TenantExportRow[]): string[] {
+  const first = rows[0];
+  if (!first) return [];
+  const ordered = Object.keys(first);
+  const seen = new Set(ordered);
+  const extra: string[] = [];
+  for (const row of rows) {
+    for (const key of Object.keys(row)) {
+      if (!seen.has(key)) {
+        seen.add(key);
+        extra.push(key);
+      }
+    }
+  }
+  extra.sort();
+  return [...ordered, ...extra];
+}
+
+function tenantExportCell(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
+export function tenantExportRowsToCsv(rows: readonly TenantExportRow[]): string {
+  const columns = tenantExportColumns(rows);
+  if (columns.length === 0) return "";
+  const body = rows.map((row) => columns.map((column) => tenantExportCell(row[column])));
+  return buildDelimited([columns, ...body], ",");
+}
+
+/**
+ * Full-Access-only portable export of everything this installation holds.
+ * Returns a short-lived signed download URL, exactly like the other exports.
+ */
+export async function exportTenantData(actor: Actor): Promise<string> {
+  const tenantId = requireTenant(actor);
+  await requireCapability(actor, "company_access_settings");
+
+  const supabase = createServiceRoleClient();
+  const now = new Date();
+
+  const zipEntries: ZipEntry[] = [];
+  const datasetSummary: { table: string; file: string; row_count: number }[] = [];
+  let documentRows: TenantExportRow[] = [];
+
+  for (const dataset of TENANT_EXPORT_DATASETS) {
+    const rows = await fetchTenantScopedRows(supabase, dataset, tenantId);
+    if (dataset.table === "documents") documentRows = rows;
+    const csv = tenantExportRowsToCsv(rows);
+    zipEntries.push({
+      name: dataset.file,
+      data: Buffer.from(csv.length > 0 ? csv : "(no rows)\n", "utf-8"),
+    });
+    datasetSummary.push({ table: dataset.table, file: dataset.file, row_count: rows.length });
+  }
+
+  // Underlying document files, newest first, within the byte budget.
+  const includedFiles: { document_id: string; path: string; byte_size: number }[] = [];
+  const omittedFiles: { document_id: string; reason: string }[] = [];
+  let usedBytes = 0;
+  for (const row of documentRows) {
+    const documentId = String(row.id ?? "");
+    const storagePath = typeof row.file_url === "string" ? row.file_url : "";
+    if (!storagePath) {
+      omittedFiles.push({ document_id: documentId, reason: "no stored file" });
+      continue;
+    }
+    if (usedBytes >= TENANT_EXPORT_FILE_BYTE_BUDGET) {
+      omittedFiles.push({ document_id: documentId, reason: "file byte budget reached" });
+      continue;
+    }
+    try {
+      const bytes = await downloadDocumentBytes(storagePath);
+      const fileName = extractStoredFileName(storagePath);
+      const entryName = `documents/files/${documentId}-${fileName}`;
+      zipEntries.push({ name: entryName, data: bytes });
+      usedBytes += bytes.length;
+      includedFiles.push({ document_id: documentId, path: entryName, byte_size: bytes.length });
+    } catch (error) {
+      omittedFiles.push({
+        document_id: documentId,
+        reason: error instanceof Error ? error.message : "download failed",
+      });
+    }
+  }
+
+  const manifest = {
+    generated_at: now.toISOString(),
+    export_kind: "tenant_export",
+    tenant_id: tenantId,
+    format: "CSV per dataset (UTF-8, comma-delimited) plus original document files",
+    note:
+      "Complete portable copy of this TeamFrame installation's data. Contains no system credentials, keys or tokens.",
+    dataset_count: datasetSummary.length,
+    datasets: datasetSummary,
+    document_files_included: includedFiles.length,
+    document_files_omitted: omittedFiles.length,
+    included_files: includedFiles,
+    omitted_files: omittedFiles,
+  };
+
+  zipEntries.unshift({
+    name: "manifest.json",
+    data: Buffer.from(JSON.stringify(manifest, null, 2), "utf-8"),
+  });
+  zipEntries.unshift({
+    name: "README.txt",
+    data: Buffer.from(
+      [
+        "TeamFrame — export of your installation's data",
+        "",
+        `Generated: ${now.toISOString()}`,
+        "",
+        "Every dataset is a UTF-8, comma-delimited CSV that opens directly in Excel,",
+        "Numbers or Google Sheets. Original uploaded documents are under documents/files/.",
+        "manifest.json lists every dataset, its row count, and any file that could not be",
+        "included.",
+        "",
+        "This export contains your employee records. Store it accordingly.",
+        "",
+      ].join("\n"),
+      "utf-8",
+    ),
+  });
+
+  const payload = buildZip(zipEntries, now);
+  assertExportMimeSupported(EXPORT_ZIP_MIME);
+
+  const fileName = `teamframe-export-${formatDateForFileName(now)}.zip`;
+  const storagePath = `${tenantId}/exports/tenant/${randomUUID()}.zip`;
+
+  return createExportFileUrl({
+    actor,
+    exportKind: "tenant_export",
+    employeeId: null,
+    storagePath,
+    fileName,
+    payload,
+    auditActionType: "tenant.exported_data",
   });
 }

@@ -49,6 +49,21 @@ const ROOT = process.cwd();
 const SERVICES_DIR = join(ROOT, "services");
 const MAX_CHAIN_CHARS = 4000;
 
+// ── Tenant-root tables ────────────────────────────────────────────────────
+//
+// `companies` IS the tenant table: `companies.id` is the tenant id (see
+// schemas/companies.sql — "tenant root", and every other table's
+// `tenant_id uuid references companies(id)`). A query against it is therefore
+// correctly scoped by `.eq("id", tenantId)`, not `.eq("tenant_id", ...)`.
+//
+// This is deliberately narrow: the identifier passed to `.eq("id", ...)` must
+// itself name a tenant (`tenantId` / `tenant_id` / `actor.tenantId`). A bare
+// `.from("companies").update(...)` with no `.eq("id", ...)` still fails, and
+// `.eq("id", someOtherId)` still fails.
+const TENANT_ROOT_TABLES = new Set(["companies"]);
+const TENANT_ROOT_EQ_RE =
+  /\.eq\(\s*["']id["']\s*,\s*(?:[A-Za-z_$][A-Za-z0-9_$]*\.)*(?:tenantId|tenant_id|TenantId)\b/;
+
 // ── Allowlist — intentional non-tenant-scoped `.from(...)` calls ───────
 //
 // Keyed by (file, table, enclosingFn) so that adding a new unscoped call to
@@ -251,13 +266,34 @@ function enclosingFunctionName(src, offset) {
 // Looks for `.insert(` or `.upsert(` in the chain window and confirms the
 // payload object contains `tenant_id:` (object-literal style) or
 // `tenant_id =` (rare alt). Returns true if either pattern is present.
-function payloadCarriesTenantId(window) {
+function payloadCarriesTenantId(window, src) {
   const mutationMatch = window.match(/\.(?:insert|upsert)\s*\(/);
   if (!mutationMatch) return false;
   // From the mutation call site, scan ~20 lines or until balanced `)`.
   const start = mutationMatch.index + mutationMatch[0].length;
   const slice = window.slice(start, start + 2000);
-  return /\btenant_id\s*:/.test(slice);
+  if (/\btenant_id\s*:/.test(slice)) return true;
+
+  // Payload passed as a variable, e.g. `.upsert(rows as never, {...})` where
+  // `rows` was built above. Resolve the identifier to its `const <name> = ...`
+  // declaration in the same file and check that initializer for `tenant_id:`.
+  // Narrow by construction: only a bare identifier is followed, and only its
+  // own declaration is inspected.
+  const identMatch = slice.match(/^\s*([A-Za-z_$][A-Za-z0-9_$]*)\s*(?:as\s+[A-Za-z_$][A-Za-z0-9_$<>\[\]]*\s*)?[,)]/);
+  if (!identMatch) return false;
+  return declarationCarriesTenantId(src, identMatch[1]);
+}
+
+// Finds `const <name> = ...` in the file and reports whether its initializer
+// contains a `tenant_id:` key. Used only to resolve variable payloads above.
+function declarationCarriesTenantId(src, name) {
+  const declRe = new RegExp(`\\bconst\\s+${name}\\s*=`, "g");
+  let d;
+  while ((d = declRe.exec(src)) !== null) {
+    const body = src.slice(d.index, d.index + 1200);
+    if (/\btenant_id\s*:/.test(body)) return true;
+  }
+  return false;
 }
 
 // ── Main scan ─────────────────────────────────────────────────────────────
@@ -278,9 +314,11 @@ function scanFile(absPath) {
 
     const window = chainWindow(src, offset);
     const hasEq = /\.eq\(\s*["']tenant_id["']/.test(window);
-    const hasInsertWithTenant = payloadCarriesTenantId(window);
+    const hasInsertWithTenant = payloadCarriesTenantId(window, src);
+    const hasTenantRootEq =
+      TENANT_ROOT_TABLES.has(table) && TENANT_ROOT_EQ_RE.test(window);
 
-    if (hasEq || hasInsertWithTenant) continue;
+    if (hasEq || hasInsertWithTenant || hasTenantRootEq) continue;
 
     const enclosingFn = enclosingFunctionName(src, offset);
     const allowed = ALLOWLIST.some(

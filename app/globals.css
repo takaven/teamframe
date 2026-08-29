@@ -30,10 +30,10 @@
 
   --font-sans: var(--font-mulish), Mulish, "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 
-  /* Metrics, counts, and dates. --font-plex-mono is set by next/font in app/layout.tsx. */
+  /* Metrics, counts, and dates. --font-plex-mono is set by next/font/local in app/layout.tsx. */
   --font-mono: var(--font-plex-mono), "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 
-  /* Display face — wordmark and dashboard H1 only. --font-fraunces is set by next/font. */
+  /* Display face — wordmark and dashboard H1 only. --font-fraunces is set by next/font/local. */
   --font-display: var(--font-fraunces), Fraunces, Georgia, "Times New Roman", serif;
 }
 
@@ -650,5 +650,91 @@ main:has(> .tf-app-shell) input[type="file"]::file-selector-button {
   .tf-org-root > .tf-org-children::before,
   .tf-org-branch::before {
     display: none;
+  }
+}
+
+/* ── Print: employee record ──────────────────────────────────────────────────
+   Prints the record currently on screen as a clean document. Uses the browser's
+   own print pipeline (File → Print → Save as PDF); there is no PDF engine.
+
+   Permissions need no special handling here: the server only renders sections
+   the viewer is allowed to see, so print can never reveal more than the screen
+   already does. */
+
+.tf-print-only {
+  display: none;
+}
+
+@media print {
+  @page {
+    margin: 15mm;
+  }
+
+  html,
+  body {
+    background: #fff;
+  }
+
+  /* Hide the application, then bring back just the record. `visibility` keeps
+     ancestor layout intact, which is more reliable across browsers than trying
+     to unset `display` up the tree. */
+  body * {
+    visibility: hidden;
+  }
+
+  .tf-print-record,
+  .tf-print-record * {
+    visibility: visible;
+  }
+
+  .tf-print-record {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  .tf-print-only {
+    display: block;
+  }
+
+  /* Application chrome and anything interactive: not part of a printed record. */
+  .tf-print-hide,
+  .tf-print-record form,
+  .tf-print-record button,
+  .tf-print-record [role="tablist"],
+  .tf-print-record input,
+  .tf-print-record select,
+  .tf-print-record textarea,
+  .tf-print-record details > summary {
+    display: none !important;
+  }
+
+  /* Flatten interactive surfaces to paper. */
+  .tf-print-record .tf-surface-flat,
+  .tf-print-record .tf-surface {
+    border: 0 !important;
+    box-shadow: none !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  /* Keep a labelled value and its heading together on one page. */
+  .tf-print-record h1,
+  .tf-print-record h2,
+  .tf-print-record h3 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .tf-print-record section,
+  .tf-print-record dl > div,
+  .tf-print-record li {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .tf-print-record a[href]::after {
+    content: "";
   }
 }

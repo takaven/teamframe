@@ -1,28 +1,38 @@
 import type { Metadata } from "next";
-import { Fraunces, IBM_Plex_Mono, Mulish } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const mulish = Mulish({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
+// Self-hosted so a production build never depends on fonts.googleapis.com being reachable.
+// Faces are the same families previously loaded via next/font/google; the woff2 files live in
+// app/fonts/ and are fingerprinted and served by Next, so builds are deterministic and offline.
+const mulish = localFont({
+  src: "./fonts/mulish-variable-latin.woff2",
+  weight: "400 800",
+  style: "normal",
   variable: "--font-mulish",
   display: "swap",
+  fallback: ["Avenir Next", "Segoe UI", "Helvetica Neue", "Arial", "sans-serif"],
 });
 
 // Display face for the wordmark and dashboard H1 only (see globals.css @theme).
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  weight: ["500", "600", "700", "800"],
+const fraunces = localFont({
+  src: "./fonts/fraunces-variable-latin.woff2",
+  weight: "500 800",
+  style: "normal",
   variable: "--font-fraunces",
   display: "swap",
+  fallback: ["Georgia", "Times New Roman", "serif"],
 });
 
 // Mono face for counts, dates, and metrics.
-const plexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500"],
+const plexMono = localFont({
+  src: [
+    { path: "./fonts/ibm-plex-mono-400-latin.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/ibm-plex-mono-500-latin.woff2", weight: "500", style: "normal" },
+  ],
   variable: "--font-plex-mono",
   display: "swap",
+  fallback: ["ui-monospace", "SFMono-Regular", "Menlo", "Consolas", "monospace"],
 });
 
 export const metadata: Metadata = {

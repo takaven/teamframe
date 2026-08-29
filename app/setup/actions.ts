@@ -19,6 +19,7 @@ import {
   renameCompensationComponent,
   setCompensationComponentActive,
 } from "@/services/configurationService";
+import { exportTenantData } from "@/services/documentService";
 import { captureActionError } from "@/lib/telemetry/sentry";
 import { logAction } from "@/lib/telemetry/logger";
 
@@ -125,4 +126,38 @@ export async function updateLeaveDefinitionAction(formData: FormData): Promise<v
     counting_basis: s(formData.get("counting_basis")),
     attachment_requirement: s(formData.get("attachment_requirement")),
   }));
+}
+
+// Whole-tenant portability export. Full Access only (enforced in the service by
+// the `company_access_settings` capability). Redirects straight to the
+// short-lived signed download URL, matching the other export actions.
+export async function exportTenantDataAction(): Promise<void> {
+  const start = Date.now();
+  const requestId = crypto.randomUUID();
+  let actor: Awaited<ReturnType<typeof requireTenantActor>> | null = null;
+  let err: unknown = null;
+  let signedUrl = "";
+  try {
+    actor = await requireTenantActor();
+    signedUrl = await exportTenantData(actor);
+  } catch (error) {
+    err = error;
+  }
+  logAction({
+    action: "exportTenantData",
+    actorUserId: actor?.authUserId ?? null,
+    actorTenantId: actor?.tenantId ?? null,
+    durationMs: Date.now() - start,
+    outcome: err ? "fail" : "ok",
+    error: err ?? undefined,
+    requestId,
+  });
+  if (err) {
+    captureActionError("exportTenantData", err, {
+      actor_user_id: actor?.authUserId ?? null,
+      actor_tenant_id: actor?.tenantId ?? null,
+    });
+    redirect(`/setup?section=installation&error=${encodeURIComponent(code(err))}`);
+  }
+  redirect(signedUrl);
 }
