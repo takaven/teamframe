@@ -183,8 +183,13 @@ describe("leave lifecycle eligibility", () => {
   });
 
   it("blocks pre-start, onboarding and former employees before the leave RPC", async () => {
+    // Pre-start must stay in the future relative to the run date, otherwise the
+    // fixture silently ages into an ACTIVE employee and stops exercising the guard.
+    const futureStartDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10);
     const blockedEmployees: Array<Partial<EmployeeRow>> = [
-      { start_date: "2026-09-01" },
+      { start_date: futureStartDate },
       { setup_status: "ready" },
       { status: "inactive", lifecycle_state: "exited" },
     ];
