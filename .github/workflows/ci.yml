@@ -24,9 +24,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-      SITE_URL: ${{ secrets.SITE_URL }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://ci-placeholder.supabase.co' }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'ci-placeholder-anon-key' }}
+      SITE_URL: ${{ secrets.SITE_URL || 'http://localhost:3030' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
