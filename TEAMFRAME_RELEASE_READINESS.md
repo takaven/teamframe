@@ -4,17 +4,17 @@
 
 Current product verdict:
 
-> **PRODUCTION RELEASED**
+> **MARKET READY - CUSTOMER DEPLOYMENT CONTROLLED**
 
 Current visual verdict:
 
 > **VISUAL GO - READY FOR PRODUCTION**
 
-Production application source:
+Current authoritative application source:
 
-`3e3daaf517054a561b031057383b2b6f5a9bf143`
+`3c7ecddf5135f1747d6c9e7d1922265b92ba7b56`
 
-This file records product readiness and production release provenance.
+This file records product readiness and historical production-release provenance. Earlier deployment records below are retained as history only; they do not mean the current Takaven commercial programme has started a customer production deployment.
 
 Production operation additionally requires the independent-deployment Platform Owner, flexible access and setup/handover model documented in `TEAMFRAME_ACCESS_MODEL.md`.
 
@@ -97,7 +97,7 @@ The final visual production-readiness programme is closed.
 | Mobile Org Chart containment at 390px | PASS |
 | Final visual source | `0f72d633dcb9ef436e146e87c1f6b9366c761bda` |
 
-## Production Release Record
+## Historical Production Release Record
 
 | Item | Value |
 | --- | --- |
@@ -230,10 +230,10 @@ These are intentional release boundaries, not defects:
 
 ## Production Release Status
 
-TeamFrame is deployed to the dedicated production Vercel and Supabase targets above. The production app is live on the Vercel production URL.
+Historical deployment details above are retained for provenance. Current Takaven commercial delivery treats TeamFrame as source-ready and customer-deployment controlled: a real customer deployment requires an explicitly selected customer Vercel/Supabase target, current environment configuration, backup responsibility, post-deployment smoke verification and founder/customer-delivery approval.
 
-Repository merge to `main` is paused because GitHub Actions reports: "The job was not started because your account is locked due to a billing issue." Branch protection requires `Gate Chain (Strict)`, so the production PR cannot be merged until the GitHub account billing lock is cleared and CI can run.
+The current GitHub source is merged and source-locked on `takaven/teamframe` main at `3c7ecddf5135f1747d6c9e7d1922265b92ba7b56`. Older notes about a paused production branch merge or account billing lock are superseded by this source-locked state.
 
 ## Final Product Verdict
 
-> **PRODUCTION RELEASED**
+> **MARKET READY - CUSTOMER DEPLOYMENT CONTROLLED**
