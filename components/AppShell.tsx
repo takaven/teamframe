@@ -73,9 +73,8 @@ export async function AppShell({
     <>
       <aside className="tf-app-shell flex flex-col py-6" data-active={activePath} aria-label="Primary">
         {/* Product identity — TeamFrame stays visible after login. */}
-        <Link href={workspaceHome} className="mx-5 flex items-center gap-2 text-white" aria-label="TeamFrame">
-          <BrandLogo variant="mark" reversed className="h-6 w-6" priority />
-          <span className="text-[16px] font-extrabold tracking-tight">TeamFrame</span>
+        <Link href={workspaceHome} className="mx-5 flex items-center text-white" aria-label="TeamFrame by TAKAVEN">
+          <BrandLogo variant="lockup" reversed className="h-auto w-36" priority />
         </Link>
 
         {/* Customer workspace context (not replacement branding). */}
@@ -141,8 +140,7 @@ export async function AppShell({
         <details className="group">
           <summary className="flex h-14 cursor-pointer list-none items-center justify-between px-[18px] marker:hidden">
             <span className="flex min-w-0 items-center gap-2">
-              <BrandLogo variant="mark" reversed className="h-[20px] w-[20px]" priority />
-              <span className="text-[14.5px] font-extrabold tracking-tight">TeamFrame</span>
+              <BrandLogo variant="lockup" reversed className="h-auto w-32 shrink-0" priority />
               <span className="ml-1 min-w-0 truncate border-l border-white/20 pl-2 text-[12.5px] font-medium text-white/60">{identity.name}</span>
             </span>
             <span className="flex h-11 w-11 items-center justify-center rounded-lg text-[24px] leading-none group-open:hidden" aria-hidden="true">

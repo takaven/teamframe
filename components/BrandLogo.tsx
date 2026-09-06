@@ -1,7 +1,7 @@
 import Image from "next/image";
 
 type BrandLogoProps = {
-  variant?: "mark" | "lockup";
+  variant?: "mark" | "wordmark" | "lockup";
   reversed?: boolean;
   className?: string;
   priority?: boolean;
@@ -18,15 +18,14 @@ export function BrandLogo({
       ? reversed
         ? "/brand/teamframe-mark-reversed.svg"
         : "/brand/teamframe-mark-primary.svg"
+      : variant === "wordmark"
+        ? reversed
+          ? "/brand/teamframe-wordmark-dark.svg"
+          : "/brand/teamframe-wordmark-light.svg"
       : reversed
-        ? "/brand/teamframe-lockup-reversed.svg"
-        : "/brand/teamframe-lockup-primary.svg";
-  // Intrinsic dimensions match the official production assets (Symbol 127×127, Primary
-  // horizontal lockup 808×127) so next/image preserves the correct aspect ratio; callers
-  // control the rendered size via className.
-  const size = variant === "mark"
-    ? { width: 127, height: 127 }
-    : { width: 808, height: 127 };
+        ? "/brand/teamframe-endorsed-dark.svg"
+        : "/brand/teamframe-endorsed-light.svg";
+  const size = variant === "mark" ? { width: 127, height: 127 } : { width: 1600, height: 370 };
 
   return (
     <Image
