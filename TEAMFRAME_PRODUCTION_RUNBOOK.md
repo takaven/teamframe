@@ -18,7 +18,7 @@ Visual readiness:
 
 Final production release source:
 
-`37bf104b5d72f81f9936a99ac3134c14bd2de7a5`
+`73c3e2df701b8484632d3335ca4861c4f2ccb8a7`
 
 Production deployment must use an explicitly identified production Vercel project and production Supabase project. Founder-review, staging, CI and disposable projects must not be treated as production.
 
@@ -273,7 +273,7 @@ After deployment inspect:
 
 Stop rollout if there is an immediate server exception loop, migration error, auth configuration error, provider credential failure, automation authentication failure or obvious 5xx on core routes.
 
-## 17. Release Provenance
+## 17. Historical Release Provenance
 
 Record after successful release:
 
@@ -297,12 +297,12 @@ Record after successful release:
 
 Do not include secret values.
 
-## 18. Remaining Repository Merge Step
+## 18. Current Repository State
 
-Production is live from `codex/market-ready-implementation` at `37bf104b5d72f81f9936a99ac3134c14bd2de7a5`.
+Historical deployment details above are retained as provenance. Current Takaven commercial delivery treats TeamFrame as source-ready and customer-deployment controlled.
 
-GitHub PR:
+Current source:
 
-`https://github.com/ismaelloveexcel/TeamFrame/pull/85`
+`takaven/teamframe` on `main` at `73c3e2df701b8484632d3335ca4861c4f2ccb8a7`.
 
-Merge to `main` is paused because GitHub Actions reports an account billing lock and branch protection requires the `Gate Chain (Strict)` check. After the billing lock is cleared, rerun CI and merge PR #85 through the normal protected path.
+A real customer deployment requires an explicitly selected customer Vercel/Supabase target, current environment configuration, backup responsibility, post-deployment smoke verification and founder/customer-delivery approval.
