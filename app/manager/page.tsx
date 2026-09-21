@@ -73,11 +73,11 @@ export default async function ManagerPage({
   }
   const employeeMap = new Map(dashboard.directReports.map((employee) => [employee.id, employee]));
   const probationEmployeeIds = new Set(dashboard.probationReviews.map((review) => review.employee_id));
+  const probationInputNeeded = dashboard.probationReviews.filter((review) => !review.manager_input);
   const hasManagerWork =
-    dashboard.directReports.length > 0 ||
     dashboard.pendingLeaves.length > 0 ||
     dashboard.onboardingTasks.length > 0 ||
-    dashboard.probationReviews.length > 0 ||
+    probationInputNeeded.length > 0 ||
     dashboard.offboardingItems.length > 0;
 
   return (
@@ -85,16 +85,16 @@ export default async function ManagerPage({
       <AppShell actor={actor} activePath="/manager" />
 
       <div className="border-b border-ink-300/60 pb-5">
-        <p className="text-[12px] tracking-[0.14em] text-ink-500">Your direct reports</p>
-        <h1 className="mt-2 text-[34px] leading-tight tracking-tight">My Team</h1>
+        <p className="text-[12px] tracking-[0.14em] text-ink-500">People</p>
+        <h1 className="mt-2 text-[34px] leading-tight tracking-tight">Manager Priorities</h1>
         <p className="mt-1 max-w-2xl text-[14px] text-ink-500">
-          Your current direct reports and the work they need from you. Salary, payment details, private documents and organisation changes remain restricted.
+          Decisions and actions that need you now. Your team directory is below. Salary, payment details, private documents and organisation changes remain restricted.
         </p>
       </div>
 
       {employeeParam ? (
         <section className="mt-7 tf-surface-flat p-5">
-          <Link href="/manager" className="text-[13px] text-ink-600 hover:text-ink-900">← Back to My Team</Link>
+          <Link href="/manager" className="text-[13px] text-ink-600 hover:text-ink-900">← Back to Manager Priorities</Link>
           {reportRecord ? (
             <div className="mt-3">
               <h2 className="text-[20px] font-bold text-ink-900">{reportRecord.identity.full_name}</h2>
@@ -137,15 +137,14 @@ export default async function ManagerPage({
         <EmptyState
           className="mt-8"
           message="No manager work is assigned to you."
-          hint="Manager controls appear only when current direct-report work exists."
+          hint="You're up to date. Your direct reports remain available under My Team below."
         />
       ) : (
         <>
           <div className="tf-summary mt-6">
-            <div><div className="tf-summary-label">Reports</div><div className="tf-summary-value">{dashboard.directReports.length}</div></div>
             <div><div className="tf-summary-label">Leave</div><div className="tf-summary-value">{dashboard.pendingLeaves.length}</div></div>
             <div><div className="tf-summary-label">Onboarding</div><div className="tf-summary-value">{dashboard.onboardingTasks.length}</div></div>
-            <div><div className="tf-summary-label">Probation</div><div className="tf-summary-value">{dashboard.probationReviews.length}</div></div>
+            <div><div className="tf-summary-label">Probation input</div><div className="tf-summary-value">{probationInputNeeded.length}</div></div>
             <div><div className="tf-summary-label">Handover</div><div className="tf-summary-value">{dashboard.offboardingItems.length}</div></div>
           </div>
 
@@ -277,11 +276,11 @@ export default async function ManagerPage({
                 <h2 className="tf-h2">Probation input</h2>
                 <p className="mt-1 text-[13px] text-ink-500">Input only. Admin records the final probation outcome.</p>
               </div>
-              {dashboard.probationReviews.length === 0 ? (
+              {probationInputNeeded.length === 0 ? (
                 <p className="px-5 py-4 text-[14px] text-ink-500">No probation input is waiting.</p>
               ) : (
                 <ul className="divide-y divide-ink-300/40">
-                  {dashboard.probationReviews.map((review) => (
+                  {probationInputNeeded.map((review) => (
                     <li key={review.id} className="space-y-3 px-5 py-4">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
@@ -371,35 +370,40 @@ export default async function ManagerPage({
             </section>
           ) : null}
 
-          <section className="mt-7 tf-surface-flat">
-            <div className="border-b border-ink-300/60 px-5 py-4">
-              <h2 className="tf-h2">Direct reports</h2>
-              <p className="mt-1 text-[13px] text-ink-500">Your current one-level direct reports.</p>
-            </div>
-            <ul className="grid gap-3 p-4 sm:grid-cols-2">
-              {dashboard.directReports.map((employee) => {
-                const initials = employee.full_name.trim().split(/\s+/).filter(Boolean).map((p) => p[0]).slice(0, 2).join("").toUpperCase() || "?";
-                const onProbation = probationEmployeeIds.has(employee.id);
-                return (
-                  <li key={employee.id} className="flex items-center gap-3 rounded-xl border border-ink-200 bg-white px-4 py-3">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink-100 text-[13px] font-bold text-ink-600">{initials}</span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[14px] font-medium text-ink-900">{employee.full_name}</p>
-                      <p className="truncate text-[12px] text-ink-500">
-                        {employee.role_title} · {employee.department}{employee.country ? ` · ${employee.country}` : ""}
-                      </p>
-                      {onProbation ? (
-                        <span className="mt-1 inline-block"><StatusPill tone="amber">Probation</StatusPill></span>
-                      ) : null}
-                    </div>
-                    <Link href={`/manager?employee=${employee.id}`} className="shrink-0 rounded-lg border border-ink-300 bg-white px-3 py-1.5 text-[12px] text-ink-700 hover:border-ink-900">View</Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
         </>
       )}
+
+      <section className="mt-7 tf-surface-flat">
+        <div className="border-b border-ink-300/60 px-5 py-4">
+          <h2 className="tf-h2">My Team</h2>
+          <p className="mt-1 text-[13px] text-ink-500">Your current one-level direct reports. This directory is not a pending-work count.</p>
+        </div>
+        {dashboard.directReports.length === 0 ? (
+          <p className="px-5 py-4 text-[14px] text-ink-500">No current direct reports.</p>
+        ) : (
+          <ul className="grid gap-3 p-4 sm:grid-cols-2">
+            {dashboard.directReports.map((employee) => {
+              const initials = employee.full_name.trim().split(/\s+/).filter(Boolean).map((p) => p[0]).slice(0, 2).join("").toUpperCase() || "?";
+              const onProbation = probationEmployeeIds.has(employee.id);
+              return (
+                <li key={employee.id} className="flex items-center gap-3 rounded-xl border border-ink-200 bg-white px-4 py-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink-100 text-[13px] font-bold text-ink-600">{initials}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[14px] font-medium text-ink-900">{employee.full_name}</p>
+                    <p className="truncate text-[12px] text-ink-500">
+                      {employee.role_title} · {employee.department}{employee.country ? ` · ${employee.country}` : ""}
+                    </p>
+                    {onProbation ? (
+                      <span className="mt-1 inline-block"><StatusPill tone="amber">Probation</StatusPill></span>
+                    ) : null}
+                  </div>
+                  <Link href={`/manager?employee=${employee.id}`} className="shrink-0 rounded-lg border border-ink-300 bg-white px-3 py-1.5 text-[12px] text-ink-700 hover:border-ink-900">View</Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
 
       <div className="mt-8">
         <Link href="/me" className="rounded-full border border-ink-300 px-5 py-2 text-[14px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900">

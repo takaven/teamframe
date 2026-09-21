@@ -29,7 +29,7 @@ const EMPLOYEE_LINKS = [
   { href: "/leaves", label: "Leave" },
 ] as const;
 
-const MY_TEAM_LINK = { href: "/manager", label: "My Team" } as const;
+const MANAGER_PRIORITIES_LINK = { href: "/manager", label: "Manager Priorities" } as const;
 
 // Manager status = the employee currently has at least one direct report.
 async function hasDirectReports(actor: Actor): Promise<boolean> {
@@ -56,17 +56,17 @@ export async function AppShell({
   activePath: string;
 }) {
   const isAdminSurface = actor.role === "admin";
-  const [showMyTeam, identity] = await Promise.all([
+  const [showManagerPriorities, identity] = await Promise.all([
     isAdminSurface ? Promise.resolve(false) : hasDirectReports(actor),
     getCompanyIdentity(actor.tenantId),
   ]);
   const links = isAdminSurface
     ? [...ADMIN_LINKS, SETUP_LINK]
-    : (showMyTeam ? [...EMPLOYEE_LINKS, MY_TEAM_LINK] : [...EMPLOYEE_LINKS]);
+    : (showManagerPriorities ? [...EMPLOYEE_LINKS, MANAGER_PRIORITIES_LINK] : [...EMPLOYEE_LINKS]);
 
   const workspaceHome = actor.role === "admin" ? "/dashboard" : "/me";
 
-  const primaryLinks = isAdminSurface ? ADMIN_LINKS : (showMyTeam ? [...EMPLOYEE_LINKS, MY_TEAM_LINK] : [...EMPLOYEE_LINKS]);
+  const primaryLinks = isAdminSurface ? ADMIN_LINKS : (showManagerPriorities ? [...EMPLOYEE_LINKS, MANAGER_PRIORITIES_LINK] : [...EMPLOYEE_LINKS]);
   const isActive = (href: string) => href === activePath || (href.startsWith(`${activePath}#`) && activePath === "/me");
 
   return (

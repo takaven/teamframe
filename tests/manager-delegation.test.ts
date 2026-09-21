@@ -40,6 +40,17 @@ describe("MR-3B bounded manager delegation", () => {
     expect(managerPage).toContain("remain restricted");
   });
 
+  it("leads with actionable priorities and keeps the direct-report directory separate", () => {
+    const managerPage = read("app/manager/page.tsx");
+
+    expect(managerPage).toContain("Manager Priorities");
+    expect(managerPage.indexOf("Manager Priorities")).toBeLessThan(managerPage.indexOf('>My Team</h2>'));
+    expect(managerPage).toContain("dashboard.probationReviews.filter((review) => !review.manager_input)");
+    expect(managerPage).not.toContain("dashboard.directReports.length > 0 ||");
+    expect(managerPage).toContain("No manager work is assigned to you.");
+    expect(managerPage).toContain("This directory is not a pending-work count.");
+  });
+
   it("allows direct-report leave decisions while forbidding manager balance overrides", () => {
     const leaveService = read("services/leaveService/index.ts");
     const managerPage = read("app/manager/page.tsx");

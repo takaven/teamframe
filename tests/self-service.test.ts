@@ -46,10 +46,10 @@ describe("Phase 4 — employee self-service security", () => {
     expect(early).toMatch(/enum\(\["confirmed", "unsuccessful"\]\)/);
   });
 
-  it("employee nav drops standalone Documents/Policies; My Team is manager-derived", () => {
+  it("employee nav drops standalone Documents/Policies; Manager Priorities is manager-derived", () => {
     expect(shell).not.toContain('{ href: "/me#documents", label: "Documents" }');
     expect(shell).not.toContain('{ href: "/me#policies", label: "Policies" }');
-    expect(shell).toContain('label: "My Team"');
+    expect(shell).toContain('label: "Manager Priorities"');
     expect(shell).toContain("hasDirectReports");
   });
 });
