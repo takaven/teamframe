@@ -15,6 +15,7 @@
  */
 
 import { readFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
@@ -89,7 +90,10 @@ const STAGING_SCHEMA_ORDER = SCHEMA_ORDER;
 const { Client } = pg;
 const client = new Client({
   connectionString,
-  ssl: { rejectUnauthorized: true },
+  ssl: {
+    ca: readFileSync(join(repoRoot, "certs", "supabase-root-2021-ca.crt"), "utf8"),
+    rejectUnauthorized: true,
+  },
 });
 
 async function main() {
