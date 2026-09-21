@@ -85,7 +85,7 @@ npm run db:install:fresh -- --check-target
 npm run db:install:fresh
 ```
 
-5. **Do not replay the schema pack.** The installer requires zero public tables, auth users and stored objects, applies the canonical order once, then verifies public-table RLS and required objects. A failed/partial install is not repaired by rerunning it. For an **existing customer project**, stop and use a separately reviewed, versioned migration path; none is approved by this runbook today.
+5. **Do not replay the schema pack.** The installer requires zero public tables, auth users and stored objects, applies the canonical order once, then verifies public-table RLS and required objects. If a fresh installation fails midway **before any live/customer data exists**, treat that project as failed: confirm it contains no real data, discard/recreate the isolated project, correct the defect, and run the installer from zero on the replacement. Do not manually resume partial SQL. For an **existing customer project**, stop and use a separately reviewed, versioned migration path; none is approved by this runbook today.
 
 6. Configure and verify the private storage bucket only against the same approved project using a process-only `TEAMFRAME_INSTALL_SERVICE_ROLE_KEY`. The helper refuses to overwrite an existing bucket with different settings:
 
