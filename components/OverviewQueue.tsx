@@ -9,6 +9,8 @@ export type OverviewQueueItem = {
   source: string;
   title: string;
   subjectName: string;
+  owner: string;
+  nextAction: string;
   dueAt: string | null;
   href: string;
   detail: string;
@@ -18,18 +20,18 @@ type Filter = "all" | "decision" | "overdue" | "due" | "exception";
 
 const FILTERS: { key: Filter; label: string }[] = [
   { key: "all", label: "All" },
+  { key: "exception", label: "Exceptions" },
   { key: "overdue", label: "Overdue" },
   { key: "decision", label: "Decisions" },
   { key: "due", label: "Due" },
-  { key: "exception", label: "Exceptions" },
 ];
 
 // Group render order — most urgent first.
 const GROUPS: { key: Exclude<Filter, "all">; label: string }[] = [
+  { key: "exception", label: "Exceptions" },
   { key: "overdue", label: "Overdue" },
   { key: "decision", label: "Decisions" },
   { key: "due", label: "Due" },
-  { key: "exception", label: "Exceptions" },
 ];
 
 function dotClass(v: OverviewQueueItem["class"]): string {
@@ -45,7 +47,7 @@ function sourceLabel(source: string): string {
   return "People";
 }
 function formatDue(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return "Not set";
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
@@ -53,15 +55,16 @@ function Row({ item }: { item: OverviewQueueItem }) {
   return (
     <Link
       href={item.href}
-      className="group flex h-12 items-center gap-3 px-4 transition hover:bg-ink-50/70"
+      className="group grid gap-2 px-4 py-3 transition hover:bg-ink-50/70 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.75fr)_110px_minmax(0,1.15fr)_minmax(0,1.2fr)] lg:items-start lg:gap-4"
     >
-      <span className={`tf-dot ${dotClass(item.class)} shrink-0`} aria-hidden />
-      <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium text-ink-800">{item.title}</span>
-      <span className="hidden max-w-[260px] shrink-0 truncate text-[12.5px] text-ink-500 md:block">
-        {item.subjectName} · {sourceLabel(item.source)}
+      <span className="min-w-0">
+        <span className="flex items-start gap-2 text-[13.5px] font-medium text-ink-800"><span className={`tf-dot ${dotClass(item.class)} mt-1 shrink-0`} aria-hidden />{item.title}</span>
+        <span className="mt-0.5 block pl-5 text-[12px] text-ink-500">{item.subjectName} · {sourceLabel(item.source)}</span>
       </span>
-      <span className="w-[62px] shrink-0 text-right text-[12.5px] tabular-nums text-ink-500">{formatDue(item.dueAt)}</span>
-      <span className="w-4 shrink-0 text-right text-[13px] text-ink-300 transition group-hover:text-ink-700" aria-hidden>›</span>
+      <span className="text-[12.5px] text-ink-700"><span className="font-semibold lg:hidden">Owner: </span>{item.owner}</span>
+      <span className="text-[12.5px] tabular-nums text-ink-600"><span className="font-semibold lg:hidden">Required by: </span>{formatDue(item.dueAt)}</span>
+      <span className="text-[12.5px] text-ink-700"><span className="font-semibold lg:hidden">Next action: </span>{item.nextAction}</span>
+      <span className="text-[12.5px] text-ink-500"><span className="font-semibold lg:hidden">Reason: </span>{item.detail}</span>
     </Link>
   );
 }
@@ -107,6 +110,9 @@ export function OverviewQueue({
         </div>
       ) : filter === "all" ? (
         <div className="tf-surface overflow-hidden">
+          <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(0,0.75fr)_110px_minmax(0,1.15fr)_minmax(0,1.2fr)] gap-4 border-b border-ink-100 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-500 lg:grid">
+            <span>Attention</span><span>Owner</span><span>Required by</span><span>Next action</span><span>Reason</span>
+          </div>
           {GROUPS.map((g) => {
             const rows = items.filter((i) => i.class === g.key);
             if (rows.length === 0) return null;
@@ -124,8 +130,11 @@ export function OverviewQueue({
           })}
         </div>
       ) : (
-        <div className="tf-surface tf-divide overflow-hidden">
-          {scoped.map((item) => <Row key={item.id} item={item} />)}
+        <div className="tf-surface overflow-hidden">
+          <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(0,0.75fr)_110px_minmax(0,1.15fr)_minmax(0,1.2fr)] gap-4 border-b border-ink-100 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-500 lg:grid">
+            <span>Attention</span><span>Owner</span><span>Required by</span><span>Next action</span><span>Reason</span>
+          </div>
+          <div className="tf-divide">{scoped.map((item) => <Row key={item.id} item={item} />)}</div>
         </div>
       )}
     </div>

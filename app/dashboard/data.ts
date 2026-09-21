@@ -16,6 +16,8 @@ export type ControlCentreItem = {
   source: string;
   title: string;
   subjectName: string;
+  owner: string;
+  nextAction: string;
   dueAt: string | null;
   updatedAt: string;
   href: string;
@@ -129,6 +131,7 @@ type OnboardingTaskRow = {
   title: string;
   status: "pending" | "completed";
   owner_role: "employee" | "manager" | "admin" | "system";
+  owner_employee_id: string | null;
   due_date: string | null;
   updated_at: string;
 };
@@ -155,6 +158,7 @@ type OffboardingItemRow = {
   offboarding_case_id: string;
   title: string;
   owner_role: "admin" | "manager" | "employee" | "system";
+  owner_employee_id: string | null;
   due_date: string | null;
   status: "pending" | "completed" | "cancelled";
   updated_at: string;
@@ -236,9 +240,17 @@ function itemClassFromDue(input: {
   exception?: boolean;
 }): ControlCentreClass {
   if (input.exception) return "exception";
-  if (input.decision) return "decision";
   if (isPastDate(input.dueAt?.slice(0, 10) ?? null, input.today)) return "overdue";
+  if (input.decision) return "decision";
   return "due";
+}
+
+function taskOwner(role: string, ownerId: string | null, names: Map<string, EmployeeRow>): string {
+  if (ownerId) return names.get(ownerId)?.full_name ?? "Owner not assigned";
+  if (role === "admin") return "Admin";
+  if (role === "manager") return "Manager";
+  if (role === "employee") return "Employee";
+  return "Owner not assigned";
 }
 
 function sourcePath(source: string): string {
@@ -332,6 +344,8 @@ function buildPolicyItems(input: {
         source: "policy_acknowledgement",
         title: `Acknowledge ${policy.title} v${policy.version}`,
         subjectName: employeeName(names, employeeId),
+        owner: employeeName(names, employeeId),
+        nextAction: "Acknowledge the current policy version",
         dueAt: null,
         updatedAt: policy.updated_at,
         href: "/policies",
@@ -370,17 +384,21 @@ function buildControlCentreItems(input: {
   for (const leave of input.leaves) {
     if (leave.status !== "pending") continue;
     if (!currentIds.has(leave.employee_id)) continue;
+    const dueAt = dueDateAtStart(leave.start_date);
+    const itemClass = itemClassFromDue({ dueAt, today, decision: true });
     items.push({
       id: `leave:${leave.id}`,
-      class: "decision",
+      class: itemClass,
       source: "leave_decision",
       title: "Leave request needs decision",
       subjectName: employeeName(names, leave.employee_id),
-      dueAt: dueDateAtStart(leave.start_date),
+      owner: "Manager or Admin",
+      nextAction: "Approve or reject the leave request",
+      dueAt,
       updatedAt: leave.updated_at,
       href: "/leaves",
       detail: `${leave.leave_type} leave from ${leave.start_date} to ${leave.end_date}.`,
-      priority: 20,
+      priority: itemClass === "overdue" ? 10 : 20,
     });
   }
 
@@ -404,11 +422,13 @@ function buildControlCentreItems(input: {
         ? `Review ${request.document_type} evidence`
         : `${request.document_type} document requested`,
       subjectName: employeeName(names, request.employee_id),
+      owner: isReviewDecision ? "Admin" : employeeName(names, request.employee_id),
+      nextAction: isReviewDecision ? "Review submitted evidence" : "Provide the required document",
       dueAt,
       updatedAt: request.updated_at,
       href: "/employees",
       detail: isExpired ? "Document requirement expired without current replacement." : "Configured document evidence is outstanding.",
-      priority: isReviewDecision ? 20 : itemClass === "exception" ? 10 : itemClass === "overdue" ? 30 : 40,
+      priority: itemClass === "exception" || itemClass === "overdue" ? 10 : isReviewDecision ? 20 : 40,
     });
   }
 
@@ -436,11 +456,13 @@ function buildControlCentreItems(input: {
       source: "onboarding_task",
       title: task.title,
       subjectName: employeeName(names, task.employee_id),
+      owner: taskOwner(task.owner_role, task.owner_employee_id, names),
+      nextAction: "Complete the onboarding task",
       dueAt,
       updatedAt: task.updated_at,
       href: "/onboarding",
       detail: task.owner_role === "admin" ? "Admin-owned onboarding work requires a decision or confirmation." : "Onboarding work is due.",
-      priority: task.owner_role === "admin" ? 20 : itemClass === "overdue" ? 30 : 40,
+      priority: itemClass === "overdue" ? 10 : task.owner_role === "admin" ? 20 : 40,
     });
   }
 
@@ -448,17 +470,20 @@ function buildControlCentreItems(input: {
     if (!["scheduled", "due"].includes(review.status)) continue;
     if (!currentIds.has(review.employee_id)) continue;
     const dueAt = dueDateAtStart(review.review_due_date);
+    const itemClass = itemClassFromDue({ dueAt, today, decision: true });
     items.push({
       id: `probation:${review.id}`,
-      class: "decision",
+      class: itemClass,
       source: "probation_review",
       title: "Probation outcome needs decision",
       subjectName: employeeName(names, review.employee_id),
+      owner: "Admin",
+      nextAction: "Record the probation decision",
       dueAt,
       updatedAt: review.updated_at,
       href: "/onboarding",
       detail: "Human probation outcome is required.",
-      priority: isPastDate(review.review_due_date, today) ? 10 : 20,
+      priority: itemClass === "overdue" ? 10 : 20,
     });
   }
 
@@ -477,11 +502,13 @@ function buildControlCentreItems(input: {
       source: "offboarding_task",
       title: item.title,
       subjectName: employeeName(names, item.employee_id),
+      owner: taskOwner(item.owner_role, item.owner_employee_id, names),
+      nextAction: "Complete the exit task",
       dueAt,
       updatedAt: item.updated_at,
       href: "/employees",
       detail: "Exit workflow item is still open.",
-      priority: item.owner_role === "admin" ? 20 : itemClass === "overdue" ? 30 : 40,
+      priority: itemClass === "overdue" ? 10 : item.owner_role === "admin" ? 20 : 40,
     });
   }
 
@@ -501,6 +528,8 @@ function buildControlCentreItems(input: {
       source: "offboarding_exception",
       title: "Offboarding overdue after end date",
       subjectName: employeeName(names, offboardingCase.employee_id),
+      owner: "Owner not assigned",
+      nextAction: "Resolve the remaining exit work",
       dueAt: dueDateAtStart(offboardingCase.effective_end_date),
       updatedAt: offboardingCase.updated_at,
       href: "/employees",
@@ -520,6 +549,8 @@ function buildControlCentreItems(input: {
       source: "automation_failure",
       title: automationTitle(item),
       subjectName: employeeName(names, subjectEmployeeId ?? null),
+      owner: taskOwner("system", item.owner_employee_id, names),
+      nextAction: item.status === "escalated" ? "Investigate the failed automation" : "Check the retry outcome",
       dueAt: item.next_attempt_at ?? item.due_at,
       updatedAt: item.updated_at,
       href: "/dashboard",
@@ -537,6 +568,8 @@ function buildControlCentreItems(input: {
       source: `signal:${signal.kind}`,
       title: signalTitle(signal.kind),
       subjectName: employeeName(names, signal.subject_employee_id),
+      owner: "Owner not assigned",
+      nextAction: "Investigate and resolve the exception",
       dueAt: null,
       updatedAt: signal.last_seen_at,
       href: sourcePath(signal.kind),
@@ -625,7 +658,7 @@ export async function loadControlCentreData(params: {
         .eq("tenant_id", params.tenantId),
       supabase
         .from("onboarding_tasks")
-        .select("id, employee_id, title, status, owner_role, due_date, updated_at")
+        .select("id, employee_id, title, status, owner_role, owner_employee_id, due_date, updated_at")
         .eq("tenant_id", params.tenantId),
       supabase
         .from("probation_reviews")
@@ -637,7 +670,7 @@ export async function loadControlCentreData(params: {
         .eq("tenant_id", params.tenantId),
       supabase
         .from("offboarding_items")
-        .select("id, employee_id, offboarding_case_id, title, owner_role, due_date, status, updated_at")
+        .select("id, employee_id, offboarding_case_id, title, owner_role, owner_employee_id, due_date, status, updated_at")
         .eq("tenant_id", params.tenantId),
     ]);
 

@@ -36,6 +36,8 @@ export default async function DashboardPage() {
     source: item.source,
     title: item.title,
     subjectName: item.subjectName,
+    owner: item.owner,
+    nextAction: item.nextAction,
     dueAt: item.dueAt,
     href: item.href,
     detail: item.detail,

@@ -165,11 +165,30 @@ describe("Control Centre data", () => {
       resolved: 1,
     });
     expect(result.allItems.map((item) => item.id)).toEqual([
+      "document:doc-overdue",
       "signal:signal-open",
       "document:doc-review",
       "leave:leave-pending",
-      "document:doc-overdue",
     ]);
+    expect(result.allItems.find((item) => item.id === "leave:leave-pending")).toMatchObject({
+      owner: "Manager or Admin",
+      nextAction: "Approve or reject the leave request",
+      detail: "annual leave from 2026-08-15 to 2026-08-16.",
+    });
+    expect(result.allItems.find((item) => item.id === "signal:signal-open")?.owner).toBe("Owner not assigned");
+  });
+
+  it("shows an overdue decision as overdue rather than hiding its missed deadline", async () => {
+    db.leaves = [{
+      id: "leave-late", tenant_id: "TENANT_A", employee_id: "emp-active",
+      start_date: "2026-08-10", end_date: "2026-08-11", leave_type: "annual",
+      status: "pending", updated_at: "2026-08-01T00:00:00Z",
+    }];
+    const result = await loadControlCentreData({
+      tenantId: "TENANT_A", now: new Date("2026-08-12T12:00:00Z"), savedDataTimeoutMs: 50,
+    });
+    expect(result.allItems[0]).toMatchObject({ class: "overdue", owner: "Manager or Admin" });
+    expect(result.summary).toMatchObject({ overdue: 1, decisions: 0 });
   });
 
   it("excludes former employees, archived policies, cancelled leave and replaced documents from current state", async () => {
