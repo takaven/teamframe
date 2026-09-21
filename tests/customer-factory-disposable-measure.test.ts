@@ -49,7 +49,7 @@ it.skipIf(process.env.TEAMFRAME_FACTORY_INVOKED !== "1")("measures the unchanged
   const { data: memberships, error: membershipError } = await client.from("tenant_memberships")
     .select("auth_user_id,email,profile,active").eq("tenant_id", company.id);
   if (membershipError || memberships?.length !== 1 || memberships[0]?.profile !== "full_access" || !memberships[0]?.active ||
-      !memberships[0].email.endsWith("@launch-test.invalid")) throw new Error("FACTORY_REQUIRES_ONE_SYNTHETIC_FULL_ACCESS_ACTOR");
+      memberships[0].email !== "factory-bootstrap@teamframe.invalid") throw new Error("FACTORY_REQUIRES_ONE_SYNTHETIC_FULL_ACCESS_ACTOR");
   const { data: authUser, error: authError } = await client.auth.admin.getUserById(memberships[0].auth_user_id);
   if (authError || authUser.user?.email?.toLowerCase() !== memberships[0].email.toLowerCase()) {
     throw new Error("FACTORY_ACTOR_AUTH_MISMATCH");

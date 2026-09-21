@@ -85,6 +85,13 @@ describe("repository execution safety", () => {
     expect(run("setup-storage.mjs", { TEAMFRAME_INSTALL_APPROVAL: "" }, ["--check-target"]).status).not.toBe(0);
   }, 15_000);
 
+  it("rejects another project's service-role key before a fresh install write", () => {
+    const wrongProjectJwt = `e30.${Buffer.from(JSON.stringify({ role: "service_role", ref: "jxiiinglydqqhwjglxtg" })).toString("base64url")}.e30`;
+    const result = run("setup-storage.mjs", { TEAMFRAME_INSTALL_SERVICE_ROLE_KEY: wrongProjectJwt }, ["--verify-key"]);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain("different project or role");
+  });
+
   it("retains empty-state and verified TLS checks in the only installer", () => {
     const source = readFileSync(join(root, "scripts/apply-schemas-fresh.mjs"), "utf8");
     expect(source).toContain("rejectUnauthorized: true");

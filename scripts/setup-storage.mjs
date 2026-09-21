@@ -32,6 +32,26 @@ const supabase = createClient(url, serviceKey, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
+// Read-only credential check before the fresh installer changes a database.
+// The launch handoff uses the exact project's legacy service_role JWT; an API
+// round trip also verifies its signature rather than trusting decoded claims.
+if (process.argv.includes("--verify-key")) {
+  let claims;
+  try { claims = JSON.parse(Buffer.from(serviceKey.split(".")[1], "base64url").toString("utf8")); }
+  catch { console.error("[PARITY_FAIL] A legacy service_role key for this exact project is required."); process.exit(1); }
+  if (claims.role !== "service_role" || claims.ref !== projectRef) {
+    console.error("[PARITY_FAIL] The service_role key identifies a different project or role.");
+    process.exit(1);
+  }
+  const { error } = await supabase.storage.listBuckets();
+  if (error) {
+    console.error("[PARITY_FAIL] This project's service_role key did not pass the read-only API check.");
+    process.exit(1);
+  }
+  console.log(`Verified read-only service-role API access for ${projectRef}.`);
+  process.exit(0);
+}
+
 const BUCKET = "documents";
 const BUCKET_CONFIG = {
   public: false,
