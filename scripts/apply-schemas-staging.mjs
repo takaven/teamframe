@@ -1,16 +1,17 @@
 /**
  * TeamFrame — apply database schemas to STAGING environment.
  *
- * Reads staging credentials from .env.staging and applies all schemas
- * (including tenancy_rls_v2.sql) to the staging Supabase project.
+ * Reads staging credentials from the environment (or .env.staging) and applies
+ * the canonical schema order to the explicitly named disposable project.
  *
- * HR5 guard: asserts SUPABASE_URL_STAGING differs from NEXT_PUBLIC_SUPABASE_URL
- * (existing project) before connecting. Exits non-zero if guard fails.
+ * HR5 guard: checks both public and database URLs against
+ * SUPABASE_PROJECT_REF_STAGING before connecting. Exits non-zero on mismatch.
  *
  * Usage:
  *   npm run db:apply:staging
  *
- * Never run this against the existing project. See docs/launch/environment-parity.md.
+ * Inspect the remote schema before running: this script has no migration journal.
+ * Never run it against an existing customer project.
  */
 
 import { readFile } from "node:fs/promises";
@@ -47,18 +48,53 @@ if (!connectionString) {
   process.exit(1);
 }
 
-// Staging schema order = all existing schemas + the v2 tenant isolation fix.
-const STAGING_SCHEMA_ORDER = [...SCHEMA_ORDER, "tenancy_rls_v2.sql"];
+// Fail closed before connecting: the public project URL and Postgres endpoint
+// must both identify the explicitly selected disposable project.
+const expectedRef = process.env.SUPABASE_PROJECT_REF_STAGING;
+let publicUrl;
+let databaseUrl;
+try {
+  publicUrl = new URL(process.env.SUPABASE_URL_STAGING);
+  databaseUrl = new URL(connectionString);
+} catch {
+  console.error("[PARITY_FAIL] Invalid staging project or database URL — aborting.");
+  process.exit(1);
+}
+const publicRef = publicUrl.hostname.match(/^([a-z0-9]+)\.supabase\.co$/)?.[1];
+const directRef = databaseUrl.hostname.match(/^db\.([a-z0-9]+)\.supabase\.co$/)?.[1];
+const poolerRef = databaseUrl.username.match(/^postgres\.([a-z0-9]+)$/)?.[1];
+const dbRef = directRef ?? poolerRef;
+if (
+  !expectedRef || !/^[a-z0-9]+$/.test(expectedRef) ||
+  publicUrl.protocol !== "https:" ||
+  databaseUrl.protocol !== "postgresql:" ||
+  databaseUrl.search !== "" ||
+  !publicRef || !dbRef ||
+  publicRef !== expectedRef || dbRef !== expectedRef ||
+  (directRef && poolerRef && directRef !== poolerRef) ||
+  (poolerRef && !databaseUrl.hostname.endsWith(".pooler.supabase.com"))
+) {
+  console.error("[PARITY_FAIL] Staging project identity mismatch — aborting before connection.");
+  process.exit(1);
+}
+if (process.argv.includes("--check-target")) {
+  console.log(`Verified staging target: ${expectedRef}`);
+  process.exit(0);
+}
+
+// The canonical order already includes the v2 tenant-isolation fix.
+// Reuse it directly so staging cannot apply a migration twice as the list evolves.
+const STAGING_SCHEMA_ORDER = SCHEMA_ORDER;
 
 const { Client } = pg;
 const client = new Client({
   connectionString,
-  ssl: { rejectUnauthorized: false },
+  ssl: { rejectUnauthorized: true },
 });
 
 async function main() {
   console.log("• Connecting to STAGING Postgres…");
-  console.log(`  URL: ${new URL(connectionString).hostname}`);
+  console.log(`  Verified disposable project ref: ${expectedRef}`);
   await client.connect();
   await client.query("reset role");
   console.log("✓ Connected.\n");
