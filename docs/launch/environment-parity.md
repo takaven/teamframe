@@ -31,7 +31,7 @@ The second TAKAVEN Free project `teamframe-fresh-install-restore-disposable-2026
 
 On 2026-09-21, after a read-only check showed **0 companies, 0 auth users and 0 stored objects**, the user expressly approved temporarily pausing `xjdobcfzwluozumhnjng` to free a Free-plan slot. Supabase subsequently showed it as **PAUSED** in the Takaven project switcher; it was not deleted. Its prior install evidence above remains valid, but the paused project is unavailable until resumed.
 
-The third TAKAVEN Free project `teamframe-fresh-command-proof-disposable-20260921` has ref `nvuijkgiqqhqeqduqqgm` in Mumbai (`ap-south-1`), under `admin@takaven.com` as owner, with no GitHub repository connected. It exists solely to prove the current exact `db:install:fresh` and `storage:setup:fresh` commands. Before installation, the dashboard's read-only SQL returned **0 public tables, 0 auth users, 0 stored objects and no `public.companies` table**. No schema or storage proof is claimed yet. Its database password must stay in a secure prompt, not chat, logs or repository files.
+The third TAKAVEN Free project `teamframe-fresh-command-proof-disposable-20260921` has ref `nvuijkgiqqhqeqduqqgm` in Mumbai (`ap-south-1`), under `admin@takaven.com` as owner, with no GitHub repository connected. It exists solely to prove the current exact `db:install:fresh` and `storage:setup:fresh` commands. Before installation, the dashboard's read-only SQL returned **0 public tables, 0 auth users, 0 stored objects and no `public.companies` table**. The user ran both exact current commands through a masked, process-only local prompt: the schema command applied all 31 canonical files and reported 39 public tables/all RLS plus required objects; the storage command created the private `documents` bucket. A separate read-only dashboard query confirmed **39 public tables, 39 with RLS, 0 auth users, 0 stored objects, one private 10 MB `documents` bucket, and the tenant helper/view/index present**. This is fresh installation proof, not live role/document access, email, backup or restore proof. The database password and service-role key were not placed in chat or repository files.
 
 ## Current proof state (2026-09-21)
 
@@ -43,7 +43,7 @@ The third TAKAVEN Free project `teamframe-fresh-command-proof-disposable-2026092
 
 ## Before any database write
 
-1. Sign in as `admin@takaven.com`. In Supabase, verify the `Takaven` organization contains the named disposable project with ref `syytforaidoorrvrbqwz`.
+1. Sign in as `admin@takaven.com`. In Supabase, verify the `Takaven` organization, exact disposable project name/ref, intended purpose and current availability against the approved-project records above and `scripts/approved-launch-projects.mjs`. Do not substitute one disposable project for another.
 2. Confirm the project still contains no real ARIE, Baynunah or customer data. Use synthetic fixtures only.
 3. Compare the DB connection details with **Connect → Direct → Session pooler** on that exact project. Do not copy connection details from another browser account or project.
 4. Use a secure interactive password prompt. Never paste passwords, service-role keys or full credential-bearing URLs into chat, docs, screenshots, logs or repository files. Keep `.env.local` and `.env.staging` out of version control.
