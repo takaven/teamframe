@@ -13,6 +13,7 @@ TeamFrame combines Hire, People, operational controls, automation and defined TA
 - [AGENTS.md](AGENTS.md) - agent authority, WIP and approval gates.
 - [docs/launch/EXECUTION_LEDGER.md](docs/launch/EXECUTION_LEDGER.md) - single current execution tracker.
 - [docs/launch/DECISIONS.md](docs/launch/DECISIONS.md) - material decisions.
+- [docs/launch/environment-parity.md](docs/launch/environment-parity.md) - canonical synthetic Supabase identity and safety checks.
 - [TEAMFRAME_MARKET_READY_SCOPE.md](TEAMFRAME_MARKET_READY_SCOPE.md) - historical TeamFrame People product scope; superseded for commercial positioning.
 - [TEAMFRAME_MARKET_READY_EXECUTION_REGISTER.md](TEAMFRAME_MARKET_READY_EXECUTION_REGISTER.md) - historical implementation record; not the 45-day tracker.
 - [TEAMFRAME_AUTOMATION_REGISTER.md](TEAMFRAME_AUTOMATION_REGISTER.md) - product-level automation behaviour.
