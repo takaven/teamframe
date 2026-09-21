@@ -9,6 +9,7 @@
  *
  * Usage:
  *   npm run db:apply:staging
+ *   node scripts/apply-schemas-staging.mjs --resume-disposable-after-early-employment
  *
  * Inspect the remote schema before running: this script has no migration journal.
  * Never run it against an existing customer project.
@@ -52,6 +53,7 @@ if (!connectionString) {
 // Fail closed before connecting: the public project URL and Postgres endpoint
 // must both identify the explicitly selected disposable project.
 const expectedRef = process.env.SUPABASE_PROJECT_REF_STAGING;
+const resumePartial = process.argv.includes("--resume-disposable-after-early-employment");
 let publicUrl;
 let databaseUrl;
 try {
@@ -103,7 +105,47 @@ async function main() {
   await client.query("reset role");
   console.log("✓ Connected.\n");
 
-  for (const file of STAGING_SCHEMA_ORDER) {
+  // One-time recovery for the fresh TAKAVEN launch-test project. A previous
+  // schema order failed at transactional_mutations after early_employment.
+  // Refuse a normal full apply on any already-initialized database and refuse
+  // the recovery unless its exact empty, partial footprint is present.
+  const { rows: [state] } = await client.query(`
+    select
+      to_regclass('public.companies') is not null as has_companies,
+      to_regclass('public.onboarding_check_ins') is not null as has_early_employment,
+      to_regclass('public.file_operations') is not null as has_file_operations,
+      to_regclass('public.leave_definitions') is not null as has_leave_definitions,
+      to_regclass('public.departments') is not null as has_departments,
+      exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+        where n.nspname = 'public' and p.proname = 'teamframe_decide_leave') as has_transactional_rpc,
+      (select count(*) from pg_tables where schemaname = 'public') as public_tables,
+      (select count(*) from auth.users) as auth_users,
+      (select count(*) from storage.objects) as stored_objects
+  `);
+  if (resumePartial) {
+    if (expectedRef !== "syytforaidoorrvrbqwz" ||
+        !state.has_companies || !state.has_early_employment ||
+        state.has_file_operations || state.has_leave_definitions ||
+        state.has_departments || state.has_transactional_rpc ||
+        Number(state.public_tables) !== 25 ||
+        Number(state.auth_users) !== 0 || Number(state.stored_objects) !== 0) {
+      throw new Error("[PARITY_FAIL] Disposable partial-schema recovery preflight failed; no SQL applied.");
+    }
+    const { rows: [counts] } = await client.query(
+      "select (select count(*) from public.companies) as companies, (select count(*) from public.employees) as employees"
+    );
+    if (Number(counts.companies) !== 0 || Number(counts.employees) !== 0) {
+      throw new Error("[PARITY_FAIL] Disposable recovery requires empty company and employee tables; no SQL applied.");
+    }
+    console.log("✓ Disposable partial-schema preflight passed; resuming after early_employment.sql.\n");
+  } else if (state.has_companies) {
+    throw new Error("[PARITY_FAIL] Database already initialized; full schema replay refused. Inspect before recovery.");
+  }
+
+  const remainingFiles = resumePartial
+    ? STAGING_SCHEMA_ORDER.slice(STAGING_SCHEMA_ORDER.indexOf("early_employment.sql") + 1)
+    : STAGING_SCHEMA_ORDER;
+  for (const file of remainingFiles) {
     const path = join(repoRoot, "schemas", file);
     const sql = await readFile(path, "utf8");
     process.stdout.write(`• Applying ${file}… `);
@@ -118,7 +160,7 @@ async function main() {
   }
 
   console.log("\n✓ All staging schemas applied.");
-  console.log(`  Applied: ${STAGING_SCHEMA_ORDER.join(", ")}`);
+  console.log(`  Applied this run: ${remainingFiles.join(", ")}`);
 }
 
 main()

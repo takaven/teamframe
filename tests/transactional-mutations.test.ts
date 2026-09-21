@@ -21,12 +21,18 @@ const expectedFunctions = [
 ];
 
 describe("transactional mutation RPCs", () => {
-  it("are included after tenant integrity and before RLS policies", () => {
+  it("are included after tenant integrity, RLS helpers, and leave definitions", () => {
     expect(schemaOrder.indexOf('"tenant_integrity.sql"')).toBeLessThan(
       schemaOrder.indexOf('"transactional_mutations.sql"'),
     );
-    expect(schemaOrder.indexOf('"transactional_mutations.sql"')).toBeLessThan(
+    expect(schemaOrder.indexOf('"transactional_mutations.sql"')).toBeGreaterThan(
+      schemaOrder.indexOf('"leave_definitions.sql"'),
+    );
+    expect(schemaOrder.indexOf('"file_lifecycle.sql"')).toBeLessThan(
       schemaOrder.indexOf('"tenancy_rls.sql"'),
+    );
+    expect(schemaOrder.indexOf('"tenancy_rls_v2.sql"')).toBeLessThan(
+      schemaOrder.indexOf('"leave_definitions.sql"'),
     );
   });
 
