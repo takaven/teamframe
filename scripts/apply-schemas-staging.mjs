@@ -138,8 +138,9 @@ async function main() {
       throw new Error("[PARITY_FAIL] Disposable recovery requires empty company and employee tables; no SQL applied.");
     }
     console.log("✓ Disposable partial-schema preflight passed; resuming after early_employment.sql.\n");
-  } else if (state.has_companies) {
-    throw new Error("[PARITY_FAIL] Database already initialized; full schema replay refused. Inspect before recovery.");
+  } else if (state.has_companies || Number(state.public_tables) !== 0 ||
+             Number(state.auth_users) !== 0 || Number(state.stored_objects) !== 0) {
+    throw new Error("[PARITY_FAIL] Fresh install requires zero public tables, auth users, and stored objects; no SQL applied.");
   }
 
   const remainingFiles = resumePartial
