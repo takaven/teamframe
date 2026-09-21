@@ -1,7 +1,7 @@
 /**
  * TeamFrame — RLS verification harness.
  *
- * Runs against staging or an explicitly authorised disposable Supabase project.
+ * Runs only against one of the explicitly authorised TAKAVEN disposable projects.
  *
  * Setup (uses service-role — the ONE permitted use):
  *   Seeds tenant_a + tenant_b companies, 3 employees each (1 admin + 2 non-admin),
@@ -21,40 +21,30 @@
  * To add future probes: append to the PROBES array with { name, fn } — one line each.
  *
  * Usage:
- *   npm run verify:rls
+ *   npm run verify:rls:disposable
  */
 
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
-import dotenv from "dotenv";
+import { APPROVED_LAUNCH_PROJECT_REFS } from "./approved-launch-projects.mjs";
+const projectRef = process.env.AUDIT_SUPABASE_PROJECT_REF;
+const TARGET_URL = process.env.AUDIT_SUPABASE_URL;
+const TARGET_ANON_KEY = process.env.AUDIT_SUPABASE_ANON_KEY;
+const TARGET_SERVICE_KEY = process.env.AUDIT_SUPABASE_SERVICE_ROLE_KEY;
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const repoRoot = join(__dirname, "..");
-
-dotenv.config({ path: join(repoRoot, ".env.local"), quiet: true });
-dotenv.config({ path: join(repoRoot, ".env.staging"), quiet: true });
-
-const DISPOSABLE_MODE = process.env.TEAMFRAME_AUDIT_INTEGRATION === "authorised-disposable";
-const TARGET_URL = DISPOSABLE_MODE ? process.env.AUDIT_SUPABASE_URL : process.env.SUPABASE_URL_STAGING;
-const TARGET_ANON_KEY = DISPOSABLE_MODE ? process.env.AUDIT_SUPABASE_ANON_KEY : process.env.SUPABASE_ANON_KEY_STAGING;
-const TARGET_SERVICE_KEY = DISPOSABLE_MODE ? process.env.AUDIT_SUPABASE_SERVICE_ROLE_KEY : process.env.SUPABASE_SERVICE_ROLE_KEY_STAGING;
-
-if (!DISPOSABLE_MODE && !process.env.SUPABASE_URL_STAGING) {
-  console.error("[PARITY_FAIL] SUPABASE_URL_STAGING missing — aborting verify-rls.");
-  process.exit(1);
-}
-if (!DISPOSABLE_MODE && process.env.SUPABASE_URL_STAGING === process.env.NEXT_PUBLIC_SUPABASE_URL) {
-  console.error(
-    "[PARITY_FAIL] SUPABASE_URL_STAGING must differ from NEXT_PUBLIC_SUPABASE_URL — aborting.\n" +
-    "  verify-rls must run against staging only (HR5)."
-  );
+if (process.env.TEAMFRAME_AUDIT_INTEGRATION !== "authorised-disposable" ||
+    !APPROVED_LAUNCH_PROJECT_REFS.has(projectRef) ||
+    TARGET_URL !== `https://${projectRef}.supabase.co`) {
+  console.error("[PARITY_FAIL] RLS probes require an exact approved TAKAVEN disposable project target.");
   process.exit(1);
 }
 
 if (!TARGET_URL || !TARGET_ANON_KEY || !TARGET_SERVICE_KEY) {
   console.error("✗ RLS verification requires target URL, anon key and service-role key.");
   process.exit(1);
+}
+if (process.argv.includes("--check-target")) {
+  console.log(`Verified RLS disposable target: ${projectRef}`);
+  process.exit(0);
 }
 
 // Test identifiers — deterministic so re-runs are idempotent.

@@ -1,6 +1,8 @@
 # TeamFrame Release Readiness
 
-**STATUS: CANONICAL / CONTROLLING RELEASE GATE**
+> **HISTORICAL TECHNICAL RELEASE PROVENANCE — NOT CURRENT MANAGED-SERVICE LAUNCH APPROVAL.** The prior verdict and PASS rows below are retained as evidence of an earlier technical release, not proof of today's managed launch. Current scope and approval are controlled by [managed scope](TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE.md), [45-day plan](docs/launch/TEAMFRAME_45_DAY_EXECUTION_PLAN.md), and [execution ledger](docs/launch/EXECUTION_LEDGER.md). M1 production trust remains open until live security, email and restore gates pass.
+
+**STATUS: HISTORICAL RELEASE-READINESS RECORD**
 
 Current product verdict:
 

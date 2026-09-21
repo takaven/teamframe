@@ -47,7 +47,7 @@ Older V1/readiness/finalisation documents are retained as technical provenance. 
 2. Existing HR administration is the product substrate, not the whole commercial promise.
 3. Starter Rescue, Document Recovery and Hiring Decision Rescue are the only launch controls.
 
-TeamFrame is intentionally not payroll, ATS, employee ratings/review software, enterprise RBAC, statutory leave calculation or a workflow-builder platform.
+TeamFrame People does not implement an ATS/recruiting pipeline. TeamFrame Hire is provided by the separate HirePass application and must not be rebuilt in this repository. TeamFrame is also intentionally not payroll, employee ratings/review software, enterprise RBAC, statutory leave calculation or a workflow-builder platform.
 
 ## Architecture
 
@@ -95,12 +95,16 @@ Optional names include:
 - `SENTRY_PROJECT`
 - `NEXT_PUBLIC_PILOT_CONTACT_EMAIL`
 
-### Apply Database And Storage
+### Fresh Database Installation
+
+For this launch branch, the installer accepts only the two named TAKAVEN disposable projects. Supply the exact project ref, matching public URL, database connection URI and `TEAMFRAME_INSTALL_APPROVAL=fresh:<project-ref>` in process memory. The command does not load `.env.local`; it refuses populated targets. A future first customer project requires founder approval and a reviewed allowlist addition. Existing deployments require a separately reviewed migration and must not replay the full schema pack. See the [runbook](TEAMFRAME_PRODUCTION_RUNBOOK.md).
 
 ```bash
-npm run db:apply
-npm run storage:setup
+npm run db:install:fresh -- --check-target
+npm run db:install:fresh
 ```
+
+Then provide `TEAMFRAME_INSTALL_SERVICE_ROLE_KEY` in process memory and run `npm run storage:setup:fresh -- --check-target` followed by `npm run storage:setup:fresh` on that same project. This refuses to overwrite a mismatched existing bucket. Storage access still requires separate live tests.
 
 ### Configure Supabase Auth
 
@@ -135,12 +139,11 @@ The release gate runs typecheck, lint, tests, guards and production build.
 Additional environment-specific checks include:
 
 ```bash
-npm run verify:install
 npm run verify:integration
-npm run verify:rls
+npm run verify:rls:disposable
 ```
 
-Run environment-specific checks only against an authorised disposable, staging or production target. Do not point them at founder-review or unrelated projects.
+The historical `verify:install` replay/seed helper is retired. The integration and RLS checks require one of the explicitly approved TAKAVEN disposable project refs; they are not customer-production acceptance by themselves. Do not point them at founder-review or unrelated projects.
 
 ## Deployment
 

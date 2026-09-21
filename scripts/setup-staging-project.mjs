@@ -18,6 +18,9 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
 
+console.error("[RETIRED] Automatic Supabase project creation is disabled. Select an explicitly approved isolated target through the provider dashboard.");
+process.exit(1);
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, "..");
 

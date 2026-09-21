@@ -40,6 +40,9 @@ import dotenv from "dotenv";
 import { createClient } from "@supabase/supabase-js";
 import { SCHEMA_ORDER } from "./schema-order.mjs";
 
+console.error("[RETIRED] Historical verify:install replays the full schema and seeds auth/data. Use the guarded fresh installer and separate authorised-disposable checks.");
+process.exit(1);
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, "..");
 dotenv.config({ path: join(repoRoot, ".env.local"), quiet: true });

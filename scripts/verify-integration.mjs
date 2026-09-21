@@ -11,12 +11,9 @@ import { createClient } from "@supabase/supabase-js";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { APPROVED_LAUNCH_PROJECT_REFS } from "./approved-launch-projects.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
-const APPROVED_DISPOSABLE_REFS = new Set([
-  "syytforaidoorrvrbqwz",
-  "xjdobcfzwluozumhnjng",
-]);
 
 const REQUIRED = [
   "TEAMFRAME_AUDIT_INTEGRATION",
@@ -77,7 +74,7 @@ function requireEnv() {
   }
 
   const projectRef = process.env.AUDIT_SUPABASE_PROJECT_REF;
-  if (!APPROVED_DISPOSABLE_REFS.has(projectRef)) {
+  if (!APPROVED_LAUNCH_PROJECT_REFS.has(projectRef)) {
     fail("AUDIT_SUPABASE_PROJECT_REF is not an approved TAKAVEN disposable project.");
   }
 

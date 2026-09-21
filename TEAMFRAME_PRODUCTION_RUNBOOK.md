@@ -1,6 +1,8 @@
 # TeamFrame Production Runbook
 
-**STATUS: CANONICAL / PRODUCTION OPERATIONS**
+> **HISTORICAL TECHNICAL RELEASE PROVENANCE — NOT CURRENT MANAGED-SERVICE LAUNCH APPROVAL.** Historical GO statements and release SHA below describe an earlier technical release. Current commercial scope and launch approval are controlled by [managed scope](TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE.md), [45-day plan](docs/launch/TEAMFRAME_45_DAY_EXECUTION_PLAN.md), and [execution ledger](docs/launch/EXECUTION_LEDGER.md). M1 production trust remains open until live security, email and restore gates pass; historical PASS rows are not current evidence.
+
+**STATUS: HISTORICAL PRODUCTION OPERATIONS REFERENCE — REVALIDATE BEFORE USE**
 
 This runbook governs TeamFrame production release, production operations and bounded smoke verification.
 
@@ -76,26 +78,24 @@ Never commit `.env`, `.env.local`, production credential files, screenshots cont
 1. Identify or create the intended TeamFrame production Supabase project.
 2. Confirm it is not TeamFrame-CI, founder-review, staging or a disposable verification project.
 3. Configure production environment variables outside the repository.
-4. Apply schemas through the repository path:
+4. For a **new, empty, isolated project only**, use the guarded one-time fresh installer after exact project identity and the relevant founder/customer-deployment approval are confirmed. The current allowlist contains only the two TAKAVEN disposable projects; a first customer ref requires founder approval and a separately reviewed allowlist change. Provide `TEAMFRAME_INSTALL_PROJECT_REF`, `TEAMFRAME_INSTALL_SUPABASE_URL`, `TEAMFRAME_INSTALL_DB_URL` and `TEAMFRAME_INSTALL_APPROVAL=fresh:<project-ref>` in process memory; do not commit secrets. Preflight with `--check-target` before connecting:
 
 ```bash
-npm run db:apply
+npm run db:install:fresh -- --check-target
+npm run db:install:fresh
 ```
 
-5. Re-run the schema application once to confirm idempotency where safe:
+5. **Do not replay the schema pack.** The installer requires zero public tables, auth users and stored objects, applies the canonical order once, then verifies public-table RLS and required objects. A failed/partial install is not repaired by rerunning it. For an **existing customer project**, stop and use a separately reviewed, versioned migration path; none is approved by this runbook today.
+
+6. Configure and verify the private storage bucket only against the same approved project using a process-only `TEAMFRAME_INSTALL_SERVICE_ROLE_KEY`. The helper refuses to overwrite an existing bucket with different settings:
 
 ```bash
-npm run db:apply
+npm run storage:setup:fresh -- --check-target
+npm run storage:setup:fresh
 ```
 
-6. Configure the private storage bucket:
-
-```bash
-npm run storage:setup
-```
-
-7. Apply the committed Supabase auth configuration with the Supabase CLI against the production project.
-8. Run install, integration and RLS verification only when pointed at the confirmed production or approved pre-production target.
+7. Apply the committed Supabase auth configuration with the Supabase CLI against the approved project.
+8. Run live access/restore checks separately. The authorised-disposable integration/RLS scripts are not production verification commands.
 
 Do not seed synthetic tenants, employees or visual-audit fixtures into production.
 
