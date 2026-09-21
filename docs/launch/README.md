@@ -14,6 +14,8 @@
 ---
 # Launch Hardening — TeamFrame Pre-Launch Reference
 
+> **Historical pre-launch hardening archive.** Current strategy and execution are governed by [managed scope](../../TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE.md), [45-day plan](TEAMFRAME_45_DAY_EXECUTION_PLAN.md), and [execution ledger](EXECUTION_LEDGER.md). Technical evidence here remains provenance.
+
 This folder contains all artifacts related to the pre-launch hardening sprint. It covers the consolidated audit findings from five separate reviews, the batched execution plan, accepted risks register, operational runbooks, verification checklists, and the operational readiness checklist that must be completed before public launch.
 
 ## Contents

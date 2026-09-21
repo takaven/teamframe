@@ -1,22 +1,27 @@
 # TeamFrame
 
-> **TeamFrame is the essential HR system for startups without a dedicated HR team.**
+> **TeamFrame delivers technology-enabled managed People Operations for growing knowledge-work companies.**
 
-**Product status:** `Market-ready production release`
+**Product status:** `45-day managed People Operations launch execution; production trust and commercial gates remain open`
 
-TeamFrame gives founder-led teams the practical HR administration layer they need without turning into an enterprise HRIS. The current product is functionally, technically, securely and visually ready for production release; production deployment still requires an explicitly identified production Vercel target and production Supabase project.
+TeamFrame combines Hire, People, operational controls, automation and defined TAKAVEN operator work for 25–80 employee knowledge-work firms. The historical HR-system capability is real, but production trust, managed-service repeatability and buyer-visible differentiation still require live proof. See the commercial scope and execution ledger below; historical technical records remain provenance.
 
 ## Canonical Documents
 
-- [TEAMFRAME_MARKET_READY_SCOPE.md](TEAMFRAME_MARKET_READY_SCOPE.md) - controlling product definition and scope.
-- [TEAMFRAME_MARKET_READY_EXECUTION_REGISTER.md](TEAMFRAME_MARKET_READY_EXECUTION_REGISTER.md) - locked implementation register.
+- [TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE.md](TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE.md) - controlling commercial strategy.
+- [docs/launch/TEAMFRAME_45_DAY_EXECUTION_PLAN.md](docs/launch/TEAMFRAME_45_DAY_EXECUTION_PLAN.md) - locked launch execution.
+- [AGENTS.md](AGENTS.md) - agent authority, WIP and approval gates.
+- [docs/launch/EXECUTION_LEDGER.md](docs/launch/EXECUTION_LEDGER.md) - single current execution tracker.
+- [docs/launch/DECISIONS.md](docs/launch/DECISIONS.md) - material decisions.
+- [TEAMFRAME_MARKET_READY_SCOPE.md](TEAMFRAME_MARKET_READY_SCOPE.md) - historical TeamFrame People product scope; superseded for commercial positioning.
+- [TEAMFRAME_MARKET_READY_EXECUTION_REGISTER.md](TEAMFRAME_MARKET_READY_EXECUTION_REGISTER.md) - historical implementation record; not the 45-day tracker.
 - [TEAMFRAME_AUTOMATION_REGISTER.md](TEAMFRAME_AUTOMATION_REGISTER.md) - product-level automation behaviour.
 - [TEAMFRAME_DEFERRED_SCOPE.md](TEAMFRAME_DEFERRED_SCOPE.md) - deferred and out-of-scope work.
 - [TEAMFRAME_RELEASE_READINESS.md](TEAMFRAME_RELEASE_READINESS.md) - release-readiness record.
 - [TEAMFRAME_PRODUCTION_RUNBOOK.md](TEAMFRAME_PRODUCTION_RUNBOOK.md) - production release and operations runbook.
 - [TEAMFRAME_ACCESS_MODEL.md](TEAMFRAME_ACCESS_MODEL.md) - independent customer deployment, access and setup model.
 
-Older V1/readiness/finalisation documents are retained as provenance. Where they conflict with the files above, the canonical documents control.
+Older V1/readiness/finalisation documents are retained as technical provenance. The new commercial scope and locked 45-day plan supersede prior market positioning; technical details remain authoritative where not specifically superseded.
 
 ## Implemented Capability
 
@@ -37,9 +42,9 @@ Older V1/readiness/finalisation documents are retained as provenance. Where they
 
 ## Product Operating Model
 
-1. Basic HR administration is the product.
-2. Signal -> Action -> Resolution is the operating mechanism.
-3. Readiness, evidence and auditability are supporting outcomes.
+1. SEE → OWN → ACT → PROVE is the managed-service operating model.
+2. Existing HR administration is the product substrate, not the whole commercial promise.
+3. Starter Rescue, Document Recovery and Hiring Decision Rescue are the only launch controls.
 
 TeamFrame is intentionally not payroll, ATS, employee ratings/review software, enterprise RBAC, statutory leave calculation or a workflow-builder platform.
 
