@@ -18,16 +18,20 @@
  *   TEAMFRAME_TENANT_SLUG               target company slug
  *   TEAMFRAME_TENANT_NAME               create/find fallback company name
  *   TEAMFRAME_ENV_FILE                  env file to load instead of .env.local
+ *   TEAMFRAME_CREATE_ONLY_BOOTSTRAP=1   refuse an existing auth user (one-shot disposable setup)
  */
 
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
+import { createOnlyRefusal } from "./lib/create-only-bootstrap.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, "..");
-dotenv.config({ path: process.env.TEAMFRAME_ENV_FILE || join(repoRoot, ".env.local"), quiet: true });
+if (process.env.TEAMFRAME_CREATE_ONLY_BOOTSTRAP !== "1") {
+  dotenv.config({ path: process.env.TEAMFRAME_ENV_FILE || join(repoRoot, ".env.local"), quiet: true });
+}
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -35,6 +39,7 @@ const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const email = process.env.FULL_ACCESS_EMAIL?.trim().toLowerCase();
 const password = process.env.FULL_ACCESS_PASSWORD;
 const displayName = process.env.FULL_ACCESS_NAME?.trim() || email;
+const createOnly = process.env.TEAMFRAME_CREATE_ONLY_BOOTSTRAP === "1";
 
 function fail(message) {
   console.error(`✗ ${message}`);
@@ -72,6 +77,8 @@ async function findAuthUserByEmail(targetEmail) {
 
 async function resolveCompany() {
   if (process.env.TEAMFRAME_TENANT_ID) {
+    const refusal = createOnlyRefusal(createOnly, true, false);
+    if (refusal) fail(refusal);
     const { data, error } = await supabase
       .from("companies")
       .select("id, name")
@@ -86,11 +93,17 @@ async function resolveCompany() {
   if (slug) {
     const { data, error } = await supabase.from("companies").select("id, name").eq("slug", slug).maybeSingle();
     if (error) fail(`Company lookup failed: ${error.message}`);
-    if (data) return data;
+    if (data) {
+      const refusal = createOnlyRefusal(createOnly, true, false);
+      if (refusal) fail(refusal);
+      return data;
+    }
   }
 
   const { data: companies, error } = await supabase.from("companies").select("id, name, slug").limit(2);
   if (error) fail(`Company lookup failed: ${error.message}`);
+  const refusal = createOnlyRefusal(createOnly, (companies ?? []).length > 0, false);
+  if (refusal) fail(refusal);
   if ((companies ?? []).length === 1) return companies[0];
   if ((companies ?? []).length > 1) fail("Multiple companies found. Set TEAMFRAME_TENANT_ID or TEAMFRAME_TENANT_SLUG.");
 
@@ -107,6 +120,8 @@ async function resolveCompany() {
 
 const company = await resolveCompany();
 let user = await findAuthUserByEmail(email);
+const refusal = createOnlyRefusal(createOnly, false, Boolean(user));
+if (refusal) fail(refusal);
 if (!user) {
   const { data, error } = await supabase.auth.admin.createUser({
     email,
