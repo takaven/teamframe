@@ -137,7 +137,26 @@ async function main() {
   if (!objects.tenant_helper || !objects.employee_view || !objects.tenant_index) {
     throw new Error('[PARITY_FAIL] Post-install required function, view or index missing.');
   }
-  console.log(`\n✓ Fresh schema installation verified: ${installed.tables} public tables, all RLS enabled; required objects present.`);
+  const { rows: [privileges] } = await client.query(`
+    select
+      count(*) filter (where
+        has_table_privilege('service_role', format('%I.%I', schemaname, tablename), 'SELECT')
+        and has_table_privilege('service_role', format('%I.%I', schemaname, tablename), 'INSERT')
+        and has_table_privilege('service_role', format('%I.%I', schemaname, tablename), 'UPDATE')
+        and has_table_privilege('service_role', format('%I.%I', schemaname, tablename), 'DELETE')
+      )::int as service_tables,
+      count(*) filter (where
+        has_table_privilege('anon', format('%I.%I', schemaname, tablename), 'SELECT')
+        or has_table_privilege('anon', format('%I.%I', schemaname, tablename), 'INSERT')
+        or has_table_privilege('anon', format('%I.%I', schemaname, tablename), 'UPDATE')
+        or has_table_privilege('anon', format('%I.%I', schemaname, tablename), 'DELETE')
+      )::int as anon_tables
+    from pg_tables where schemaname = 'public'
+  `);
+  if (privileges.service_tables !== installed.tables || privileges.anon_tables !== 0) {
+    throw new Error(`[PARITY_FAIL] Post-install API privileges failed: ${privileges.service_tables}/${installed.tables} service-role tables, ${privileges.anon_tables} anon-accessible tables.`);
+  }
+  console.log(`\n✓ Fresh schema installation verified: ${installed.tables} public tables, all RLS enabled; required objects and service-role privileges present; no anon table access.`);
   console.log(`  Applied this run: ${FRESH_SCHEMA_ORDER.join(", ")}`);
 }
 

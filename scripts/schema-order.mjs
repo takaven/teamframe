@@ -45,4 +45,6 @@ export const SCHEMA_ORDER = [
   // compensation (components/amounts/history). Applies last — references every table above
   // and the access-model capability helpers.
   "phase8_corrections.sql",
+  // Explicit service-layer API privileges follow the last table-creating file.
+  "api_privileges.sql",
 ];
