@@ -78,7 +78,7 @@ Never commit `.env`, `.env.local`, production credential files, screenshots cont
 1. Identify or create the intended TeamFrame production Supabase project.
 2. Confirm it is not TeamFrame-CI, founder-review, staging or a disposable verification project.
 3. Configure production environment variables outside the repository.
-4. For a **new, empty, isolated project only**, use the guarded one-time fresh installer after exact project identity and the relevant founder/customer-deployment approval are confirmed. The current allowlist contains only the two TAKAVEN disposable projects; a first customer ref requires founder approval and a separately reviewed allowlist change. Provide `TEAMFRAME_INSTALL_PROJECT_REF`, `TEAMFRAME_INSTALL_SUPABASE_URL`, `TEAMFRAME_INSTALL_DB_URL` and `TEAMFRAME_INSTALL_APPROVAL=fresh:<project-ref>` in process memory; do not commit secrets. Preflight with `--check-target` before connecting:
+4. For a **new, empty, isolated project only**, use the guarded one-time fresh installer after exact project identity and the relevant founder/customer-deployment approval are confirmed. The current allowlist contains only named TAKAVEN disposable projects; a first customer ref requires founder approval and a separately reviewed allowlist change. Provide `TEAMFRAME_INSTALL_PROJECT_REF`, `TEAMFRAME_INSTALL_SUPABASE_URL`, `TEAMFRAME_INSTALL_DB_URL` and `TEAMFRAME_INSTALL_APPROVAL=fresh:<project-ref>` in process memory; do not commit secrets. Preflight with `--check-target` before connecting:
 
 ```bash
 npm run db:install:fresh -- --check-target
