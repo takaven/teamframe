@@ -49,8 +49,7 @@ if (process.argv.includes("--verify-key")) {
     process.exit(1);
   }
   console.log(`Verified read-only service-role API access for ${projectRef}.`);
-  process.exit(0);
-}
+} else {
 
 const BUCKET = "documents";
 const BUCKET_CONFIG = {
@@ -94,3 +93,4 @@ if (existing) {
 }
 
 console.log("\n✓ Storage ready.");
+}
