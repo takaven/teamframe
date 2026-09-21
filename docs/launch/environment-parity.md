@@ -13,7 +13,7 @@ This is the operational source of truth for the **synthetic-data-only** launch-t
 | Region | Mumbai / `ap-south-1` |
 | Purpose | TeamFrame synthetic security, restore, email and provisioning proof only |
 
-The `admin@takaven.com` account's organization list showed **Takaven only**, with **one project**, on 2026-09-21. Recheck the signed-in email, organization, project name and ref before any write; a page URL alone does not prove access or account identity. Supabase's `main` or `Production` branch label on this *disposable project* does not make it a customer production deployment.
+The `admin@takaven.com` account's organization list initially showed **Takaven only**, with **one project**, on 2026-09-21; a second synthetic-only project was subsequently created below. Recheck the signed-in email, organization, project name and ref before any write; a page URL alone does not prove access or account identity. Supabase's `main` or `Production` branch label on this *disposable project* does not make it a customer production deployment.
 
 ## Other identities and the wrong target
 
@@ -24,6 +24,10 @@ The `admin@takaven.com` account's organization list showed **Takaven only**, wit
 | `isudally@outlook.com` | Ownership/access inventory not completed. Do not infer it owns or can access either project. |
 
 The stale project ref in the execution mandate is **not** authority to connect to `qrsxoumymbcehtltbtgn`. Do not delete that project or any account until its exact organization, contents, dependencies and disposal authorization are verified. Account sign-out is not account deletion.
+
+## Fresh-install / restore disposable target
+
+The second TAKAVEN Free project `teamframe-fresh-install-restore-disposable-20260921` has ref `xjdobcfzwluozumhnjng` in Mumbai (`ap-south-1`). It is separate from the original launch-test project and has no GitHub connection. On creation, read-only SQL verified **zero public tables, zero auth users, zero stored objects, and no TeamFrame `companies` table**. Its intended role is a clean canonical-install test, then a clean restore target after that proof. Neither milestone is passed until executed and verified. Its database password is entered only through the secure local prompt; it is not kept in repository files.
 
 ## Current proof state (2026-09-21)
 
