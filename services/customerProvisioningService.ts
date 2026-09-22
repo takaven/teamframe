@@ -539,6 +539,9 @@ export async function commitSetupPack(actor: Actor, batchId: string): Promise<st
           p_grade: null,
           p_status: "active",
           p_setup_status: employee.starterType === "existing" ? "active" : "incomplete",
+          // Setup-pack employees are linked to managers below. Initialize only
+          // genuine starters after those relationships are established.
+          p_initialize_join_work: false,
         } as never)
         .single();
       if (error || !created) throw new Error(`SETUP_EMPLOYEE_CREATE_FAILED: ${error?.message ?? employee.email}`);
@@ -606,6 +609,18 @@ export async function commitSetupPack(actor: Actor, batchId: string): Promise<st
       if (!employeeId || !managerId) throw new Error("SETUP_MANAGER_LINK_FAILED");
       const { error } = await supabase.from("employees").update({ manager_id: managerId } as never).eq("tenant_id", tenantId).eq("id", employeeId);
       if (error) throw new Error(`SETUP_MANAGER_LINK_FAILED: ${error.message}`);
+    }
+
+    for (const employee of preview.employees) {
+      if (employee.starterType !== "new_starter") continue;
+      const employeeId = employeeIds.get(employee.email);
+      if (!employeeId) throw new Error("SETUP_STARTER_LINK_FAILED");
+      const { error } = await supabase.rpc("teamframe_initialize_join_work", {
+        p_tenant_id: tenantId,
+        p_actor_user_id: actor.authUserId,
+        p_employee_id: employeeId,
+      } as never);
+      if (error) throw new Error(`SETUP_STARTER_INITIALIZE_FAILED: ${error.message}`);
     }
 
     for (const holiday of preview.holidays) {

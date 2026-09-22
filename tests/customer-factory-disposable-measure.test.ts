@@ -100,6 +100,32 @@ it.skipIf(process.env.TEAMFRAME_FACTORY_INVOKED !== "1")("measures the unchanged
     expect(relationships).toEqual({ manager_links: 108, employee_numbers: 120, distinct_employee_numbers: 120,
       linked_invitations: 120, committed_batches: 1, next_employee_number: 121 });
     console.info(`FACTORY_RELATIONSHIPS ${JSON.stringify(relationships)}`);
+    const { rows: [joinWork] } = await db.query(`select
+      (select count(*)::int from public.employee_join_initializations j join public.employees e on e.id = j.employee_id
+        where e.tenant_id = $1 and e.start_date = date '2024-01-15') as existing_initializations,
+      (select count(*)::int from public.onboarding_tasks t join public.employees e on e.id = t.employee_id
+        where e.tenant_id = $1 and e.start_date = date '2024-01-15') as existing_tasks,
+      (select count(*)::int from public.onboarding_check_ins c join public.employees e on e.id = c.employee_id
+        where e.tenant_id = $1 and e.start_date = date '2024-01-15') as existing_check_ins,
+      (select count(*)::int from public.probation_reviews p join public.employees e on e.id = p.employee_id
+        where e.tenant_id = $1 and e.start_date = date '2024-01-15') as existing_probation,
+      (select count(*)::int from public.hr_automation_items a join public.employees e on e.id::text = (a.metadata ->> 'employee_id')
+        where e.tenant_id = $1 and e.start_date = date '2024-01-15' and a.tenant_id = $1
+          and a.rule_key in ('onboarding.manager_task_due', 'onboarding.check_in.due', 'probation.review_due', 'probation.manager_input_due')) as existing_join_automation,
+      (select count(*)::int from public.employee_join_initializations j join public.employees e on e.id = j.employee_id
+        where e.tenant_id = $1 and e.start_date = date '2026-10-15') as starter_initializations,
+      (select count(*)::int from public.onboarding_tasks t join public.employees e on e.id = t.employee_id
+        where e.tenant_id = $1 and e.start_date = date '2026-10-15') as starter_tasks,
+      (select count(*)::int from public.onboarding_tasks t join public.employees e on e.id = t.employee_id
+        where e.tenant_id = $1 and e.start_date = date '2026-10-15' and t.owner_role = 'manager' and t.owner_employee_id = e.manager_id) as starter_manager_tasks,
+      (select count(*)::int from public.onboarding_check_ins c join public.employees e on e.id = c.employee_id
+        where e.tenant_id = $1 and e.start_date = date '2026-10-15') as starter_check_ins,
+      (select count(*)::int from public.probation_reviews p join public.employees e on e.id = p.employee_id
+        where e.tenant_id = $1 and e.start_date = date '2026-10-15') as starter_probation`, [company.id]);
+    expect(joinWork).toEqual({ existing_initializations: 0, existing_tasks: 0, existing_check_ins: 0,
+      existing_probation: 0, existing_join_automation: 0, starter_initializations: 4, starter_tasks: 24, starter_manager_tasks: 4,
+      starter_check_ins: 4, starter_probation: 4 });
+    console.info(`FACTORY_JOIN_WORK ${JSON.stringify(joinWork)}`);
     console.info(`FACTORY_RESULT ${JSON.stringify({ ref, previewSeconds, commitSeconds: (performance.now() - commitStart) / 1000,
       totalSeconds: (performance.now() - started) / 1000, before, after })}`);
   } catch (error) {

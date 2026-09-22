@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const migration = readFileSync(join(process.cwd(), "schemas", "transactional_mutations.sql"), "utf8");
 const employeeService = readFileSync(join(process.cwd(), "services", "employeeService", "index.ts"), "utf8");
+const setupService = readFileSync(join(process.cwd(), "services", "customerProvisioningService.ts"), "utf8");
 const leaveService = readFileSync(join(process.cwd(), "services", "leaveService", "index.ts"), "utf8");
 const schemaOrder = readFileSync(join(process.cwd(), "scripts", "schema-order.mjs"), "utf8");
 
@@ -100,6 +101,25 @@ describe("transactional mutation RPCs", () => {
     expect(leaveService).toContain('.rpc("teamframe_cancel_approved_leave"');
     expect(leaveService).not.toMatch(/from\("leaves"\)\s*\n\s*\.insert\(/);
     expect(leaveService).not.toMatch(/from\("leaves"\)\s*\n\s*\.update\(/);
+  });
+
+  it("separates historical imports from genuine join work without changing ordinary creation", () => {
+    const create = migration.slice(migration.indexOf("create or replace function teamframe_create_employee("));
+    expect(create).toContain("p_initialize_join_work boolean");
+    expect(create).toContain("JOIN_WORK_INTENT_REQUIRED");
+    expect(create).toContain("if p_initialize_join_work then");
+    expect(create).toContain("p_setup_status, true");
+    expect(employeeService).not.toContain("p_initialize_join_work:");
+    expect(setupService).toContain("p_initialize_join_work: false");
+    const managerLink = setupService.indexOf('if (!employee.managerEmail) continue;');
+    const starterInit = setupService.indexOf('.rpc("teamframe_initialize_join_work"');
+    expect(managerLink).toBeGreaterThan(0);
+    expect(starterInit).toBeGreaterThan(managerLink);
+    expect(setupService).toContain('if (employee.starterType !== "new_starter") continue;');
+    expect(create).toContain("employee_setup_status, boolean\n) to service_role");
+    // Guided company setup is a separate path left unchanged here. It still
+    // initializes every supplied employee; historical use is not covered.
+    expect(migration).toContain("perform teamframe_initialize_join_work(p_tenant_id, p_actor_user_id, v_employee.id);");
   });
 
   it("does not expose transactional RPCs to browser-facing database roles", () => {
