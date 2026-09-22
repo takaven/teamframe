@@ -6,6 +6,8 @@ Milestones: **M1 Production trustworthy** · **M2 Product wedge visible** · **M
 
 Daily question: **Are current tasks moving TeamFrame toward M5/M6, or merely closing technical tickets?** Current milestone M1/M2; Day 45 date follows actual execution start, not a fabricated date.
 
+**Current M1/M3 target gate (2026-09-22):** H2 ref `euhvgedjldqzfczkzjqi` is **PAUSED, not deleted** after exact read-only synthetic/no-file/no-connection checks; its H2 evidence remains in row H2, committed code and the environment record. New TAKAVEN/Mumbai ref `xqiamhwkuogcgucwmlxy` is **ACTIVE, CLEAN, synthetic-only**: read-only SQL returned 0 public base tables, 0 auth users, 0 storage buckets, 0 stored objects. It is a candidate for S1/S3 and M3 work, **not yet an admitted write or restore target**. Recheck identity, operation-specific empty state, TLS and credentials before any write; do not use protected `wafk...` or paused H2. Earlier S1/S3 row statements about no empty target describe the prior inventory, not this new state. No installer/bootstrap/restore has run on `xqiam...`.
+
 | ID | Milestone | Workstream | Task | Depends On | Blocks | Agent | State | Effort Used | Effort Ceiling | Evidence | Decision | Approval |
 | -- | --------- | ---------- | ---- | ---------- | ------ | ----- | ----- | ----------: | -------------: | -------- | -------- | -------- |
 | G0 | M1–M6 | Governance | Establish canonical scope, plan, agent rules, ledger, decisions, README links | Locked blueprint | All workstreams | Main Orchestrator | PASS | 0.5h | 3h max; stop at minimum controls | Commit `2b0793e` | No further beautification | None |
