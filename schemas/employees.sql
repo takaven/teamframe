@@ -271,7 +271,7 @@ begin
   end if;
 end $$;
 
-create or replace view employees_public as
+create or replace view employees_public with (security_invoker = true) as
 select
   id,
   tenant_id,
@@ -285,5 +285,5 @@ where tenant_id = current_actor_tenant_id()
   and deleted_at is null;
 
 revoke all on table employees_public from public;
-grant select on table employees_public to authenticated;
+revoke all on table employees_public from authenticated;
 grant select on table employees_public to service_role;
