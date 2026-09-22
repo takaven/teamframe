@@ -26,6 +26,9 @@ import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 import { createOnlyRefusal } from "./lib/create-only-bootstrap.mjs";
+import { mutationTargetRef } from "./lib/mutation-target-guard.mjs";
+
+mutationTargetRef("access-bootstrap");
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, "..");
