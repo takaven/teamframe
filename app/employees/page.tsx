@@ -9,6 +9,8 @@ import {
 } from "@/services/employeeService";
 import { UAE_COUNTRY, UAE_RECORD_TYPES, isUaeRecordType, uaeRecordLabel } from "@/lib/countryRecords";
 import { listDocumentRequirementsForEmployee, listDocumentsForEmployee } from "@/services/documentService";
+import { listOnboardingTasksForEmployee } from "@/services/onboardingService";
+import { configuredPreStartChecks } from "@/services/starterReadiness";
 import { listEmploymentChangesForEmployee } from "@/services/employmentChangeService";
 import { getOffboardingLeaveReconciliation, listOffboardingForEmployee } from "@/services/offboardingService";
 import { listPositions } from "@/services/positionService";
@@ -54,6 +56,7 @@ import { getCompanyIdentity } from "@/lib/company/identity";
 import { PrintRecordButton } from "@/components/PrintRecordButton";
 import { EmptyState } from "@/components/EmptyState";
 import { StatusPill, type StatusPillTone } from "@/components/StatusPill";
+import { StarterReadinessPanel } from "@/components/StarterReadinessPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -253,6 +256,9 @@ export default async function EmployeesPage({
   const detailEmployees = employeeParam
     ? employees.filter((employee) => employee.id === employeeParam)
     : [];
+  const onboardingByEmployee = new Map(await Promise.all(detailEmployees.map(async (employee) => [
+    employee.id, await listOnboardingTasksForEmployee(actor, employee.id),
+  ] as const)));
   const employmentChanges = await Promise.all(
     detailEmployees.map(async (employee) => ({
       employeeId: employee.id,
@@ -505,6 +511,7 @@ export default async function EmployeesPage({
                 const resendBlocked = resendCooldownSeconds > 0;
                 const documents = documentsByEmployee.get(employee.id) ?? [];
                 const documentRequirements = documentRequirementsByEmployee.get(employee.id) ?? [];
+                const readiness = configuredPreStartChecks(employee.start_date, onboardingByEmployee.get(employee.id) ?? [], documentRequirements, employeeNameById);
                 const changes = changesByEmployee.get(employee.id) ?? [];
                 const offboarding = offboardingByEmployee.get(employee.id) ?? null;
                 const offboardingLeave = offboardingLeaveByEmployee.get(employee.id) ?? null;
@@ -583,6 +590,13 @@ export default async function EmployeesPage({
                     />
                   </div>
                 ) : null}
+                <StarterReadinessPanel
+                  ready={readiness.ready}
+                  checked={readiness.checked}
+                  startDate={employee.start_date}
+                  accountState={employee.activated_at ? "Activated" : employee.invite_last_sent_at ? "Invite send recorded" : employee.invite_attempt_count > 0 ? "Invite attempted; no delivery recorded" : "No invite attempt or delivery recorded"}
+                  blockers={readiness.blockers}
+                />
                 {master ? <div data-tab="personal"><PersonalPanel master={master.record} /></div> : null}
                 <div data-tab="compensation">
                   <CompensationPanel detail={compensationByEmployee.get(employee.id)!} employeeId={employee.id} />

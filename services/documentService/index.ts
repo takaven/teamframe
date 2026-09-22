@@ -1047,14 +1047,19 @@ export async function listDocumentRequirementsForEmployee(
   // Enrich with the current document's expiry so the checklist can derive "Expiring soon".
   const currentDocIds = records.map((r) => r.current_document_id).filter((id): id is string => Boolean(id));
   if (currentDocIds.length > 0) {
-    const { data: docs } = await supabase
+    const { data: docs, error: expiryError } = await supabase
       .from("documents")
-      .select("id, expires_at")
+      .select("id, expires_at, deleted_at")
       .eq("tenant_id", tenantId)
       .in("id", currentDocIds);
-    const expiryById = new Map<string, string | null>((docs ?? []).map((d: { id: string; expires_at: string | null }) => [d.id, d.expires_at ?? null]));
+    if (expiryError) throw new Error(`DOCUMENT_REQUIREMENT_LIST_FAILED: ${expiryError.message}`);
+    const currentById = new Map<string, { expires_at: string | null; deleted_at: string | null }>((docs ?? []).map((d: { id: string; expires_at: string | null; deleted_at: string | null }) => [d.id, d]));
     for (const r of records) {
-      if (r.current_document_id) r.current_expires_at = expiryById.get(r.current_document_id) ?? null;
+      if (r.current_document_id) {
+        const current = currentById.get(r.current_document_id);
+        if (!current || current.deleted_at) r.current_document_id = null;
+        else r.current_expires_at = current.expires_at;
+      }
     }
   }
   return records;
