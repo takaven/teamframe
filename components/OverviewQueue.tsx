@@ -26,14 +26,6 @@ const FILTERS: { key: Filter; label: string }[] = [
   { key: "due", label: "Due" },
 ];
 
-// Group render order — most urgent first.
-const GROUPS: { key: Exclude<Filter, "all">; label: string }[] = [
-  { key: "exception", label: "Exceptions" },
-  { key: "overdue", label: "Overdue" },
-  { key: "decision", label: "Decisions" },
-  { key: "due", label: "Due" },
-];
-
 function dotClass(v: OverviewQueueItem["class"]): string {
   return v === "exception" || v === "overdue" ? "tf-dot-red" : v === "decision" ? "tf-dot-amber" : "tf-dot-neutral";
 }
@@ -113,21 +105,7 @@ export function OverviewQueue({
           <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(0,0.75fr)_110px_minmax(0,1.15fr)_minmax(0,1.2fr)] gap-4 border-b border-ink-100 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-500 lg:grid">
             <span>Attention</span><span>Owner</span><span>Required by</span><span>Next action</span><span>Reason</span>
           </div>
-          {GROUPS.map((g) => {
-            const rows = items.filter((i) => i.class === g.key);
-            if (rows.length === 0) return null;
-            return (
-              <section key={g.key} className="border-t border-ink-100 first:border-t-0">
-                <div className="flex items-center justify-between bg-ink-50/50 px-4 py-1.5">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-500">{g.label}</span>
-                  <span className="text-[11px] tabular-nums text-ink-400">{rows.length}</span>
-                </div>
-                <div className="tf-divide">
-                  {rows.map((item) => <Row key={item.id} item={item} />)}
-                </div>
-              </section>
-            );
-          })}
+          <div className="tf-divide">{items.map((item) => <Row key={item.id} item={item} />)}</div>
         </div>
       ) : (
         <div className="tf-surface overflow-hidden">

@@ -303,10 +303,13 @@ function automationDetail(row: AutomationRow): string {
 }
 
 function compareItems(a: ControlCentreItem, b: ControlCentreItem): number {
-  if (a.priority !== b.priority) return a.priority - b.priority;
+  const urgency = (item: ControlCentreItem) => item.class === "exception" ? 0 : item.class === "overdue" ? 1 : 2;
+  if (urgency(a) !== urgency(b)) return urgency(a) - urgency(b);
   const aDue = a.dueAt ?? a.updatedAt;
   const bDue = b.dueAt ?? b.updatedAt;
   if (aDue !== bDue) return aDue.localeCompare(bDue);
+  if (a.class !== b.class) return a.class === "decision" ? -1 : 1;
+  if (a.priority !== b.priority) return a.priority - b.priority;
   if (a.updatedAt !== b.updatedAt) return b.updatedAt.localeCompare(a.updatedAt);
   return a.id.localeCompare(b.id);
 }

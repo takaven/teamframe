@@ -165,8 +165,8 @@ describe("Control Centre data", () => {
       resolved: 1,
     });
     expect(result.allItems.map((item) => item.id)).toEqual([
-      "document:doc-overdue",
       "signal:signal-open",
+      "document:doc-overdue",
       "document:doc-review",
       "leave:leave-pending",
     ]);
@@ -288,6 +288,29 @@ describe("Control Centre data", () => {
     expect(result.summary.total).toBe(8);
     expect(result.previewItems).toHaveLength(6);
     expect(result.allItems).toHaveLength(8);
+  });
+
+  it("orders future work by deadline within its urgency group, even when owner priorities differ", async () => {
+    db.onboarding_tasks = [
+      {
+        id: "december-admin", tenant_id: "TENANT_A", employee_id: "emp-active",
+        title: "December admin check", status: "pending", owner_role: "admin",
+        due_date: "2026-12-01", updated_at: "2026-09-01T00:00:00Z",
+      },
+      {
+        id: "october-employee", tenant_id: "TENANT_A", employee_id: "emp-active",
+        title: "October employee check", status: "pending", owner_role: "employee",
+        due_date: "2026-10-01", updated_at: "2026-09-01T00:00:00Z",
+      },
+    ];
+
+    const result = await loadControlCentreData({
+      tenantId: "TENANT_A", now: new Date("2026-09-22T12:00:00Z"), savedDataTimeoutMs: 50,
+    });
+
+    expect(result.allItems.map((item) => item.id)).toEqual([
+      "onboarding:october-employee", "onboarding:december-admin",
+    ]);
   });
 
   it("does not show an all-clear when the current-state read times out", async () => {

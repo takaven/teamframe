@@ -61,7 +61,7 @@ export default async function DashboardPage() {
         </div>
         <p className="tf-meta">
           {summary.total === 0 ? "All clear" : (
-            <><span className="font-semibold text-ink-900 tf-num">{summary.total}</span> {summary.total === 1 ? "item needs" : "items need"} attention</>
+            <><span className="font-semibold text-ink-900 tf-num">{summary.total}</span> open {summary.total === 1 ? "item" : "items"}</>
           )}
           <span className="mx-2 text-ink-300">·</span>
           <span className="tf-num">{activeEmployeeCount}</span> active
