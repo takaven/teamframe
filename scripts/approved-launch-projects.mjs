@@ -6,4 +6,5 @@ export const APPROVED_LAUNCH_PROJECT_REFS = new Set([
   "nvuijkgiqqhqeqduqqgm",
   "jxiiinglydqqhwjglxtg",
   "wafkfvpsdhjfrxrmgksl",
+  "euhvgedjldqzfczkzjqi",
 ]);

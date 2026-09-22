@@ -33,6 +33,7 @@ import { FileInput } from "@/components/FileInput";
 import { CopyInviteEmailButton } from "./CopyInviteEmailButton";
 import {
   createEmployeeAction,
+  createEmployeeFromHireAction,
   createDocumentRequirementAction,
   deleteEmployeeDocumentAction,
   downloadEmployeeDocumentAction,
@@ -62,6 +63,7 @@ export const dynamic = "force-dynamic";
 
 const STATUS_COPY: Record<string, string> = {
   created: "Employee created.",
+  hire_handoff_created: "Hire handoff saved. Invitation has not been sent; review the employee before inviting.",
   updated: "Employee updated.",
   offboarding_started: "Offboarding started.",
   offboarding_cancelled: "Offboarding cancelled.",
@@ -87,6 +89,11 @@ const ERROR_COPY: Record<string, string> = {
   MISSING_EXPECTED_UPDATED_AT: "This action is out of date. Refresh and retry.",
   NO_PATCH_FIELDS: "No editable fields were provided.",
   EMPLOYEE_CREATE_FAILED: "Could not create employee.",
+  HIRE_HANDOFF_INVALID_SNAPSHOT: "The reviewed Hire snapshot or People mapping is incomplete.",
+  HIRE_HANDOFF_CONFLICT: "This Hire candidate was already transferred with different details. Review the existing employee; no duplicate was created.",
+  HIRE_HANDOFF_REVIEW_REQUIRED: "Confirm that you reviewed the accepted offer and hired candidate in HirePass.",
+  HIRE_HANDOFF_SOURCE_NOT_CONFIGURED: "The stable HirePass source is not configured for this customer. No employee was created.",
+  HIRE_HANDOFF_FAILED: "Hire handoff failed; no partial employee was saved. Review the details before trying again.",
   EMPLOYEE_UPDATE_FAILED: "Could not update employee.",
   EMPLOYEE_DELETE_FAILED: "Could not archive employee.",
   OFFBOARDING_START_FAILED: "Could not start offboarding.",
@@ -1413,6 +1420,28 @@ export default async function EmployeesPage({
               className="tf-primary-action px-4 py-2 text-[14px] font-medium disabled:cursor-not-allowed disabled:bg-ink-300"
             />
           </div>
+        </form>
+      </section>
+      <section id="hire-handoff" className="mt-8 rounded-xl border border-ink-300/70 bg-white/80 p-5">
+        <h2 className="text-[19px] font-medium tracking-tight">Move a successful Hire candidate into People</h2>
+        <p className="mt-2 text-sm text-ink-600">Operator-attested one-way snapshot, not a live or independently verified HirePass connection. Check the source candidate and offer yourself. No invitation, salary, CV or live sync is included.</p>
+        <form action={createEmployeeFromHireAction} className="mt-4 grid gap-3 md:grid-cols-2">
+          <label className="text-xs text-ink-600">HirePass candidate ID<input className="tf-input mt-1" name="pass_candidate_id" type="number" min="1" required /></label>
+          <label className="text-xs text-ink-600">Accepted offer ID<input className="tf-input mt-1" name="offer_id" type="number" min="1" required /></label>
+          <label className="text-xs text-ink-600">Candidate status in HirePass<select className="tf-select mt-1" name="candidate_status" required defaultValue=""><option value="" disabled>Choose observed status</option><option value="hired">Hired</option><option value="other">Not hired</option></select></label>
+          <label className="text-xs text-ink-600">Offer status in HirePass<select className="tf-select mt-1" name="offer_status" required defaultValue=""><option value="" disabled>Choose observed status</option><option value="accepted">Accepted</option><option value="other">Not accepted</option></select></label>
+          <label className="text-xs text-ink-600">Review evidence/reference<input className="tf-input mt-1" name="approval_reference" required /></label>
+          <label className="text-xs text-ink-600">Full name<input className="tf-input mt-1" name="full_name" required /></label>
+          <label className="text-xs text-ink-600">Work email<input className="tf-input mt-1" name="email" type="email" required /></label>
+          <label className="text-xs text-ink-600">Role title<input className="tf-input mt-1" name="role_title" required /></label>
+          <label className="text-xs text-ink-600">Department<input className="tf-input mt-1" name="department" required /></label>
+          <label className="text-xs text-ink-600">Timezone<input className="tf-input mt-1" name="timezone" defaultValue="UTC" required /></label>
+          <label className="text-xs text-ink-600">Employment type<select className="tf-select mt-1" name="employment_type" required defaultValue=""><option value="" disabled>Choose explicitly</option><option value="full_time">Full time</option><option value="part_time">Part time</option><option value="contractor">Contractor</option><option value="intern">Intern</option></select></label>
+          <label className="text-xs text-ink-600">Country<input className="tf-input mt-1" name="country" required /></label>
+          <label className="text-xs text-ink-600">Start date<DateField name="start_date" required /></label>
+          <label className="text-xs text-ink-600">End date (optional)<DateField name="end_date" /></label>
+          <label className="flex items-center gap-2 text-sm text-ink-700 md:col-span-2"><input name="source_reviewed" type="checkbox" value="yes" required />I verified this candidate is hired and this offer is accepted in HirePass, and explicitly reviewed the People fields above.</label>
+          <div className="md:col-span-2"><PendingSubmitButton idleLabel="Create People record without invitation" pendingLabel="Creating…" className="tf-primary-action px-4 py-2 text-sm" /></div>
         </form>
       </section>
 

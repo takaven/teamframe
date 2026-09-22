@@ -34,6 +34,7 @@ import { setEmployeePhoto } from "@/services/employeeMasterService";
 import { saveEmployeeCompensation } from "@/services/compensationService";
 import { logAction } from "@/lib/telemetry/logger";
 import { captureActionError } from "@/lib/telemetry/sentry";
+import { createEmployeeFromReviewedHire } from "@/services/hirePeopleHandoff";
 
 const CreateInputSchema = z.object({
   full_name: z.string().trim().min(1),
@@ -258,6 +259,39 @@ export async function createEmployeeAction(formData: FormData): Promise<void> {
   }
 
   redirect("/employees?status=created");
+}
+
+export async function createEmployeeFromHireAction(formData: FormData): Promise<void> {
+  let errorCode: string | null = null;
+  let employeeId: string | null = null;
+  try {
+    const actor = await requireTenantActor();
+    if (formData.get("source_reviewed") !== "yes") throw new Error("HIRE_HANDOFF_REVIEW_REQUIRED");
+    const result = await createEmployeeFromReviewedHire(actor, {
+      pass_candidate_id: Number(formData.get("pass_candidate_id")),
+      offer_id: Number(formData.get("offer_id")),
+      candidate_status: formData.get("candidate_status"),
+      offer_status: formData.get("offer_status"),
+      approval_reference: formData.get("approval_reference"),
+      full_name: formData.get("full_name"),
+      email: formData.get("email"),
+      role_title: formData.get("role_title"),
+      department: formData.get("department"),
+      timezone: formData.get("timezone"),
+      employment_type: formData.get("employment_type"),
+      country: formData.get("country"),
+      start_date: formData.get("start_date"),
+      end_date: optionalString(formData.get("end_date")) ?? null,
+      manager_id: null,
+      grade: null,
+    });
+    employeeId = result.employeeId;
+  } catch (error) {
+    captureActionError("createEmployeeFromHire", error);
+    errorCode = getErrorCode(error);
+  }
+  if (errorCode) redirect(`/employees?error=${encodeURIComponent(errorCode)}#hire-handoff`);
+  redirect(`/employees?status=hire_handoff_created&employee=${employeeId}#hire-handoff`);
 }
 
 export async function updateEmployeeAction(formData: FormData): Promise<void> {

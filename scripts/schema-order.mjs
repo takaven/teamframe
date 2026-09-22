@@ -47,4 +47,6 @@ export const SCHEMA_ORDER = [
   "phase8_corrections.sql",
   // Explicit service-layer API privileges follow the last table-creating file.
   "api_privileges.sql",
+  // One-way HirePass provenance depends on the ordinary employee RPC and grants.
+  "hire_people_handoff.sql",
 ];
