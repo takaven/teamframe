@@ -13,6 +13,8 @@ This is the operational source of truth for the **synthetic-data-only** launch-t
 | Region | Mumbai / `ap-south-1` |
 | Purpose | TeamFrame synthetic security, restore, email and provisioning proof only |
 
+On 2026-09-22, a fresh read-only dashboard check of this exact TAKAVEN project showed **0 company rows**, an empty Authentication Users list, and **no storage buckets**. The Users page also displayed a conflicting estimated-total footer, so the empty list alone is not a database-level auth count proof. No project was paused, deleted or modified. Before using its Free-plan slot for another clean fixture, confirm no active process depends on it and resolve any remaining state uncertainty; do not treat this observation as authorization to pause it.
+
 The `admin@takaven.com` account's organization list initially showed **Takaven only**, with **one project**, on 2026-09-21; a second synthetic-only project was subsequently created below. Recheck the signed-in email, organization, project name and ref before any write; a page URL alone does not prove access or account identity. Supabase's `main` or `Production` branch label on this *disposable project* does not make it a customer production deployment.
 
 ## Other identities and the wrong target
