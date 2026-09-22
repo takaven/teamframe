@@ -47,6 +47,20 @@ describe("repository execution safety", () => {
     expect(result.stdout).toContain(`Verified fresh-install target: ${ref}`);
   });
 
+  it("preflights only the exact new synthetic install and storage target", () => {
+    const freshRef = "xqiamhwkuogcgucwmlxy";
+    const target = {
+      TEAMFRAME_INSTALL_PROJECT_REF: freshRef,
+      TEAMFRAME_INSTALL_SUPABASE_URL: `https://${freshRef}.supabase.co`,
+      TEAMFRAME_INSTALL_DB_URL: `postgresql://postgres.${freshRef}:test-only@aws-0-ap-south-1.pooler.supabase.com:5432/postgres`,
+      TEAMFRAME_INSTALL_APPROVAL: `fresh:${freshRef}`,
+    };
+    expect(run("apply-schemas-fresh.mjs", target, ["--check-target"]).status).toBe(0);
+    expect(run("setup-storage.mjs", target, ["--check-target"]).status).toBe(0);
+    expect(run("apply-schemas-fresh.mjs", { ...target, TEAMFRAME_INSTALL_DB_URL: `postgresql://postgres.${ref}:test-only@aws-0-ap-south-1.pooler.supabase.com:5432/postgres` }, ["--check-target"]).status).not.toBe(0);
+    expect(run("setup-storage.mjs", { ...target, TEAMFRAME_INSTALL_SUPABASE_URL: `https://${ref}.supabase.co` }, ["--check-target"]).status).not.toBe(0);
+  }, 15_000);
+
   it("rejects an install without explicit matching approval", () => {
     const result = run("apply-schemas-fresh.mjs", { TEAMFRAME_INSTALL_APPROVAL: "" }, ["--check-target"]);
     expect(result.status).not.toBe(0);
