@@ -26,6 +26,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { APPROVED_LAUNCH_PROJECT_REFS } from "./approved-launch-projects.mjs";
+import { APPROVED_DIRECT_MUTATION_REFS } from "./lib/mutation-target-guard.mjs";
 const projectRef = process.env.AUDIT_SUPABASE_PROJECT_REF;
 const TARGET_URL = process.env.AUDIT_SUPABASE_URL;
 const TARGET_ANON_KEY = process.env.AUDIT_SUPABASE_ANON_KEY;
@@ -33,6 +34,7 @@ const TARGET_SERVICE_KEY = process.env.AUDIT_SUPABASE_SERVICE_ROLE_KEY;
 
 if (process.env.TEAMFRAME_AUDIT_INTEGRATION !== "authorised-disposable" ||
     !APPROVED_LAUNCH_PROJECT_REFS.has(projectRef) ||
+    !APPROVED_DIRECT_MUTATION_REFS.has(projectRef) ||
     TARGET_URL !== `https://${projectRef}.supabase.co`) {
   console.error("[PARITY_FAIL] RLS probes require an exact approved TAKAVEN disposable project target.");
   process.exit(1);

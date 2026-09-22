@@ -75,8 +75,8 @@ describe("repository execution safety", () => {
     expect(run("setup-storage.mjs", overrides, ["--check-target"]).status).not.toBe(0);
   }, 15_000);
 
-  it("only preflights RLS on the approved exact disposable project", () => {
-    expect(run("verify-rls.mjs", {}, ["--check-target"]).status).toBe(0);
+  it("keeps the destructive RLS harness closed even for a generally approved project", () => {
+    expect(run("verify-rls.mjs", {}, ["--check-target"]).status).not.toBe(0);
     expect(run("verify-rls.mjs", { AUDIT_SUPABASE_PROJECT_REF: "qrsxoumymbcehtltbtgn" }, ["--check-target"]).status).not.toBe(0);
   }, 15_000);
 
@@ -99,4 +99,29 @@ describe("repository execution safety", () => {
     expect(source).toContain("Number(state.auth_users) !== 0");
     expect(source).toContain("Number(state.stored_objects) !== 0");
   });
+
+  it("refuses legacy direct writers before credential loading or client creation", () => {
+    for (const script of [
+      "force-create-admin.mjs",
+      "gen-magic-link.mjs",
+      "smoke-core-loop.mjs",
+      "verify-customer-readiness.mjs",
+      "cleanup-expired-exports.mjs",
+      "seed-admin.mjs",
+      "seed-demo.mjs",
+      "bootstrap-full-access.mjs",
+    ]) {
+      const result = run(script, {
+        TEAMFRAME_MUTATION_PROJECT_REF: ref,
+        TEAMFRAME_MUTATION_APPROVAL: `${script === "bootstrap-full-access.mjs" ? "access-bootstrap" : script.replace(/\.mjs$/, "")}:${ref}`,
+        NEXT_PUBLIC_SUPABASE_URL: `https://${ref}.supabase.co`,
+        SUPABASE_SERVICE_ROLE_KEY: "test-only",
+        EXPORT_CLEANUP_SUPABASE_URL: `https://${ref}.supabase.co`,
+        EXPORT_CLEANUP_SERVICE_ROLE_KEY: "test-only",
+      }, script === "cleanup-expired-exports.mjs" ? ["--execute"] : []);
+      expect(result.status, script).not.toBe(0);
+      expect(result.stderr, script).toContain("refused");
+      expect(result.stdout, script).not.toContain("CALLBACK_URL");
+    }
+  }, 20_000);
 });

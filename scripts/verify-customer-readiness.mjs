@@ -6,6 +6,14 @@
 
 import pg from "pg";
 import { createClient } from "@supabase/supabase-js";
+import { APPROVED_DIRECT_MUTATION_REFS, mutationTargetRef } from "./lib/mutation-target-guard.mjs";
+
+mutationTargetRef("verify-customer-readiness", {
+  TEAMFRAME_MUTATION_PROJECT_REF: process.env.AUDIT_SUPABASE_PROJECT_REF,
+  TEAMFRAME_MUTATION_APPROVAL: process.env.TEAMFRAME_MUTATION_APPROVAL,
+  NEXT_PUBLIC_SUPABASE_URL: process.env.AUDIT_SUPABASE_URL,
+  SUPABASE_SERVICE_ROLE_KEY: process.env.AUDIT_SUPABASE_SERVICE_ROLE_KEY,
+}, APPROVED_DIRECT_MUTATION_REFS);
 
 const REQUIRED = [
   "TEAMFRAME_AUDIT_INTEGRATION",
