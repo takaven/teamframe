@@ -82,7 +82,7 @@ export async function AppShell({
           {identity.logoUrl ? (
             <Image src={identity.logoUrl} alt="" width={26} height={26} className="h-[26px] w-[26px] shrink-0 rounded-md object-cover" unoptimized />
           ) : (
-            <span className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-md bg-brand-signal text-[11px] font-extrabold text-ink-900">
+            <span className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-md bg-white/10 text-[11px] font-extrabold text-white shadow-inner">
               {identity.monogram}
             </span>
           )}
@@ -170,6 +170,7 @@ export async function AppShell({
             <p className="px-[18px] pt-2 text-[13px] text-ink-500">
               Documents and exports are reached from the records they belong to.
             </p>
+            <SignOutButton className="px-[18px] pt-4" tone="light" />
           </nav>
         </details>
       </header>

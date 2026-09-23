@@ -13,8 +13,8 @@ export default async function CheckEmailPage({
   const wasResent = resent === "1" && !rateLimited;
 
   return (
-    <main className="min-h-screen bg-white md:grid md:grid-cols-[1fr_minmax(520px,620px)]">
-      <section className="flex h-[388px] flex-col bg-brand-charcoal px-[22px] pb-[34px] pt-7 text-white md:h-auto md:px-14 md:py-14">
+    <main className="tf-auth-page">
+      <section className="tf-auth-brand-panel">
         <BrandLogo variant="lockup" reversed className="h-7 w-auto" priority />
         <div className="mt-auto max-w-[420px]">
           <h1 className="text-[30px] font-extrabold leading-[1.18] tracking-[-0.8px] md:text-[40px] md:tracking-[-1.1px]">
@@ -26,13 +26,13 @@ export default async function CheckEmailPage({
         </div>
       </section>
 
-      <section className="-mt-[14px] rounded-t-[14px] bg-white px-[22px] pb-6 pt-7 md:mt-0 md:flex md:flex-col md:justify-center md:rounded-none md:px-16">
+      <section className="tf-auth-card">
       <div>
         <div className="flex items-center gap-2">
           <span className="h-1.5 w-1.5 rounded-full bg-signal-green" aria-hidden="true" />
           <p className="text-[12px] font-bold text-signal-green">Link sent</p>
         </div>
-        <h1 className="mt-3 text-[28px] font-extrabold leading-tight tracking-[-0.7px] text-ink-800">Check your email</h1>
+        <h1 className="tf-auth-title mt-3">Check your email</h1>
         <p className="mt-3 max-w-prose text-[15.5px] leading-relaxed text-ink-700">
           We sent a sign-in link to <span className="font-medium">{recipient}</span>. It opens TeamFrame on this device.
         </p>

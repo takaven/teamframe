@@ -22,8 +22,9 @@ export function PendingSubmitButton({
   const label = pending ? pendingLabel : disabled && disabledLabel ? disabledLabel : idleLabel;
 
   return (
-    <button type="submit" disabled={isDisabled} className={className}>
-      {label}
+    <button type="submit" disabled={isDisabled} className={className} aria-busy={pending}>
+      {pending ? <span className="tf-inline-loader" aria-hidden="true" /> : null}
+      <span>{label}</span>
     </button>
   );
 }

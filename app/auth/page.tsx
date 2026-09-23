@@ -77,8 +77,8 @@ export default async function AuthPage({
   const infoMessage = switchedAccount ? ERROR_COPY.switched_account : null;
 
   return (
-    <main className="min-h-screen bg-white md:grid md:grid-cols-[1fr_minmax(520px,620px)]">
-      <section className="flex h-[388px] flex-col bg-brand-charcoal px-[22px] pb-[34px] pt-7 text-white md:h-auto md:px-14 md:py-14">
+    <main className="tf-auth-page">
+      <section className="tf-auth-brand-panel">
         <BrandLogo variant="lockup" reversed className="h-7 w-auto" priority />
         <div className="mt-auto max-w-[420px]">
           <h1 className="text-[30px] font-extrabold leading-[1.18] tracking-[-0.8px] md:text-[40px] md:tracking-[-1.1px]">
@@ -90,9 +90,9 @@ export default async function AuthPage({
         </div>
       </section>
 
-      <section className="-mt-[14px] rounded-t-[14px] bg-white px-[22px] pb-6 pt-7 md:mt-0 md:flex md:flex-col md:justify-center md:rounded-none md:px-16">
+      <section className="tf-auth-card">
         <div>
-          <h2 className="text-[28px] font-extrabold leading-tight tracking-[-0.7px] text-ink-800">Sign in</h2>
+          <h2 className="tf-auth-title">Log in</h2>
           <p className="mt-2 text-[15.5px] text-ink-500">
             Use the email your workspace was set up with.
           </p>

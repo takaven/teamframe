@@ -195,7 +195,7 @@ export default async function SetupPage({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={identity.logoUrl} alt="Current company logo" className="h-12 w-12 rounded-md border border-ink-200 object-cover" />
                   ) : (
-                    <span className="flex h-12 w-12 items-center justify-center rounded-md bg-brand-signal text-[15px] font-extrabold text-ink-900">{identity.monogram}</span>
+                    <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-ink-100 text-[15px] font-extrabold text-ink-800 shadow-inner">{identity.monogram}</span>
                   )}
                   <form action={saveCompanyLogoAction} encType="multipart/form-data" className="flex flex-wrap items-center gap-3">
                     <FileInput name="logo" accept="image/png,image/jpeg,image/webp,image/svg+xml" label="Choose logo" />
