@@ -15,7 +15,7 @@ export default async function CheckEmailPage({
   return (
     <main className="tf-auth-page">
       <section className="tf-auth-brand-panel">
-        <BrandLogo variant="lockup" reversed className="h-7 w-auto" priority />
+        <BrandLogo variant="lockup" className="h-7 w-auto" priority />
         <div className="mt-auto max-w-[420px]">
           <h1 className="text-[30px] font-extrabold leading-[1.18] tracking-[-0.8px] md:text-[40px] md:tracking-[-1.1px]">
             Welcome to TeamFrame

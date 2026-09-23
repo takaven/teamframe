@@ -1029,3 +1029,308 @@ main:has(> .tf-app-shell) :where(button, a)[class*="bg-white"][class*="border"]:
   .tf-inline-loader,
   .animate-pulse { animation: none !important; }
 }
+
+/* ============================================================================
+   GLOBAL THEME CORRECTION — the Uiverse reference is the portal language.
+   Four levels only: canvas, raised, inset and floating. These final overrides
+   intentionally supersede the first restrained attempt while preserving every
+   route, action and data contract.
+   ============================================================================ */
+:root {
+  --tf-canvas: #e8e8e8;
+  --tf-material: #e8e8e8;
+  --tf-material-light: #eeeeef;
+  --tf-raised: 10px 10px 22px rgba(32, 36, 43, 0.14), -10px -10px 22px rgba(255, 255, 255, 0.82);
+  --tf-raised-hover: 13px 13px 26px rgba(32, 36, 43, 0.16), -13px -13px 26px rgba(255, 255, 255, 0.88);
+  --tf-inset: inset 5px 5px 12px rgba(32, 36, 43, 0.12), inset -5px -5px 12px rgba(255, 255, 255, 0.84);
+  --tf-pressed: inset 4px 4px 9px rgba(32, 36, 43, 0.16), inset -4px -4px 9px rgba(255, 255, 255, 0.78);
+  --tf-floating: 18px 18px 38px rgba(32, 36, 43, 0.19), -18px -18px 38px rgba(255, 255, 255, 0.9);
+  --tf-line: rgba(66, 73, 77, 0.2);
+  --tf-radius-panel: 15px;
+  --tf-radius-control: 9px;
+}
+
+html,
+body { background: var(--tf-canvas); }
+
+/* Raised outer architecture. */
+.tf-surface,
+.tf-summary {
+  border: 0;
+  border-radius: var(--tf-radius-panel);
+  background: var(--tf-material);
+  box-shadow: var(--tf-raised);
+}
+
+/* Inset inner architecture: queue wells, grouped detail regions and empties. */
+.tf-surface-flat {
+  border: 0;
+  border-radius: 12px;
+  background: var(--tf-material);
+  box-shadow: var(--tf-inset);
+}
+
+.tf-summary { padding: 5px; }
+.tf-summary > * {
+  border: 0;
+  border-radius: 10px;
+  box-shadow: var(--tf-inset);
+}
+
+/* Physical buttons: raised, charcoal hover/focus with a restrained lime edge,
+   then pressed into the material. */
+:where(.tf-primary-action, .tf-secondary-action, .tf-brand-action, .tf-auth-submit),
+main:has(> .tf-app-shell) :where(button, a)[class*="rounded"][class*="border"] {
+  border: 0;
+  border-radius: var(--tf-radius-control);
+  background: var(--tf-material);
+  color: var(--tf-charcoal);
+  box-shadow: var(--tf-raised);
+  transition: background-color 170ms ease, color 170ms ease, box-shadow 170ms ease, transform 150ms ease;
+}
+:where(.tf-primary-action, .tf-secondary-action, .tf-brand-action, .tf-auth-submit):hover,
+:where(.tf-primary-action, .tf-secondary-action, .tf-brand-action, .tf-auth-submit):focus-visible,
+main:has(> .tf-app-shell) :where(button, a)[class*="rounded"][class*="border"]:hover {
+  background: var(--tf-charcoal);
+  color: #fff;
+  box-shadow: var(--tf-raised-hover), inset 3px 0 0 var(--tf-lime);
+}
+:where(.tf-primary-action, .tf-secondary-action, .tf-brand-action, .tf-auth-submit):active,
+main:has(> .tf-app-shell) :where(button, a)[class*="rounded"][class*="border"]:active {
+  background: var(--tf-material);
+  color: var(--tf-charcoal);
+  box-shadow: var(--tf-pressed);
+  transform: translateY(1px);
+}
+:where(.tf-primary-action, .tf-secondary-action, .tf-brand-action, .tf-auth-submit):disabled {
+  background: #e2e2e2;
+  color: var(--tf-titanium);
+  box-shadow: none;
+  opacity: .62;
+}
+
+/* Recess every real portal field into the common material. */
+:where(main:has(> .tf-app-shell)) :where(
+  input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  select,
+  textarea,
+  .tf-input,
+  .tf-select,
+  .tf-date,
+  .tf-textarea
+) {
+  border: 1px solid transparent;
+  border-left: 2px solid var(--tf-graphite);
+  border-bottom: 2px solid var(--tf-graphite);
+  border-radius: 0 0 0 8px;
+  background-color: transparent;
+  box-shadow: none;
+}
+:where(main:has(> .tf-app-shell)) :where(input, select, textarea, .tf-input, .tf-select, .tf-date, .tf-textarea):focus {
+  border: 1px solid var(--tf-lime);
+  border-radius: var(--tf-radius-control);
+  background-color: var(--tf-material-light);
+  box-shadow: var(--tf-inset), 0 0 0 2px rgba(1, 255, 34, .14);
+}
+
+/* Canonical floating field uses the same deep inset treatment from the start. */
+.tf-floating-input {
+  background: transparent;
+  box-shadow: none;
+}
+.tf-floating-input:hover { background: rgba(255,255,255,.16); box-shadow: none; }
+.tf-floating-input:focus,
+.tf-floating-input:not(:placeholder-shown),
+.tf-floating-input:-webkit-autofill {
+  background: var(--tf-material);
+  box-shadow: none;
+}
+.tf-floating-input:focus { box-shadow: 0 0 0 2px rgba(1,255,34,.16); }
+.tf-floating-input:focus + .tf-floating-label,
+.tf-floating-input:not(:placeholder-shown) + .tf-floating-label,
+.tf-floating-input:-webkit-autofill + .tf-floating-label {
+  background: var(--tf-material);
+  box-shadow: 4px 4px 9px rgba(32,36,43,.12), -4px -4px 9px rgba(255,255,255,.86);
+}
+
+/* The shell is sculpted graphite rather than a flat dark slab. */
+.tf-app-shell {
+  background: var(--tf-graphite);
+  box-shadow: 10px 0 26px rgba(32,36,43,.25), inset -5px 0 12px rgba(20,22,26,.2), inset 1px 0 rgba(255,255,255,.14);
+}
+.tf-app-shell > div:first-of-type { box-shadow: inset 4px 4px 10px rgba(20,22,26,.24), inset -4px -4px 10px rgba(255,255,255,.06); }
+.tf-app-shell nav a { border-radius: 8px !important; }
+.tf-app-shell nav a:hover { box-shadow: inset 3px 3px 7px rgba(20,22,26,.25), inset -3px -3px 7px rgba(255,255,255,.05); }
+.tf-app-shell nav a[aria-current="page"] {
+  background: rgba(255,255,255,.08);
+  box-shadow: inset 5px 5px 12px rgba(20,22,26,.32), inset -5px -5px 12px rgba(255,255,255,.06);
+}
+.tf-mobile-bar { background: var(--tf-graphite); box-shadow: 0 8px 18px rgba(32,36,43,.24), inset 0 -3px 8px rgba(20,22,26,.18); }
+.tf-mobile-bar nav {
+  border: 0;
+  background: var(--tf-material) !important;
+  box-shadow: var(--tf-floating) !important;
+}
+
+/* Major legacy panels become raised surfaces; their inner lists remain flat or
+   inset so operational screens do not become card grids. */
+main:has(> .tf-app-shell) :where(section, article, details, dl, form)[class*="bg-white"][class*="border"],
+main:has(> .tf-app-shell) :where(section, article, details, dl, form)[class*="bg-ink-50"][class*="border"] {
+  border: 0;
+  border-radius: var(--tf-radius-panel);
+  background: var(--tf-material);
+  box-shadow: var(--tf-raised);
+}
+main:has(> .tf-app-shell) :where(ul, ol, div)[class*="border"][class*="rounded"] {
+  border-color: transparent;
+  background: var(--tf-material);
+  box-shadow: var(--tf-inset);
+}
+main:has(> .tf-app-shell) :where(li)[class*="border"][class*="rounded"] {
+  border-color: rgba(66,73,77,.12);
+  background: transparent;
+  box-shadow: none;
+}
+.tf-divide > * + * { border-top-color: rgba(66,73,77,.12); }
+
+/* Dense lists/tables: one raised frame, recessed header, flat compact rows. */
+main:has(> .tf-app-shell) :where(table) {
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--tf-material);
+  box-shadow: var(--tf-raised);
+}
+main:has(> .tf-app-shell) :where(thead) { background: var(--tf-material); box-shadow: var(--tf-inset); }
+main:has(> .tf-app-shell) :where(tbody tr) { background: transparent; box-shadow: none; }
+main:has(> .tf-app-shell) :where(tbody tr:hover) { background: rgba(255,255,255,.28); }
+main:has(> .tf-app-shell) :where(tbody td) { border-bottom-color: rgba(66,73,77,.1); }
+
+/* Tabs and queue filters are tactile selectors, with selected state recessed. */
+:where([role="tablist"]) { padding: 5px; border-radius: 11px; background: var(--tf-material); box-shadow: var(--tf-inset); }
+:where([role="tab"]) { border-radius: 7px !important; }
+:where([role="tab"])[aria-selected="true"] { background: var(--tf-charcoal) !important; color: #fff !important; box-shadow: inset 3px 0 0 var(--tf-lime), 4px 4px 9px rgba(32,36,43,.14); }
+
+/* Org chart nodes get restrained lift; drawers, calendars and menus float. */
+.tf-org-node { border-color: transparent !important; background: var(--tf-material) !important; box-shadow: 5px 5px 12px rgba(32,36,43,.11), -5px -5px 12px rgba(255,255,255,.75) !important; }
+.tf-org-node[aria-current="true"], .tf-org-node:focus-within { box-shadow: var(--tf-inset), inset 3px 0 0 var(--tf-lime) !important; }
+.tf-drawer-panel,
+.tf-org-detail-panel,
+.tf-pop {
+  border: 0 !important;
+  background: var(--tf-material) !important;
+  box-shadow: var(--tf-floating) !important;
+}
+.tf-drawer-backdrop { background: rgba(32,36,43,.3); backdrop-filter: blur(2px); }
+
+/* Empty, success and error states stay tactile without using lime as a fill. */
+.tf-status-pill { border: 0 !important; background: var(--tf-material) !important; box-shadow: var(--tf-inset); }
+.tf-status-pill.text-signal-green .tf-status-dot,
+.tf-dot-green { background: var(--tf-lime); }
+main:has(> .tf-app-shell) :where([role="alert"]) { border-radius: 10px; background: var(--tf-material); box-shadow: var(--tf-inset); }
+.tf-empty-state,
+main:has(> .tf-app-shell) :where([class*="border-dashed"]) {
+  border-color: transparent !important;
+  background: var(--tf-material) !important;
+  box-shadow: var(--tf-inset) !important;
+}
+main:has(> .tf-app-shell) :where(input[type="file"] + *, label:has(input[type="file"])) {
+  border-color: transparent !important;
+  background: var(--tf-material) !important;
+  box-shadow: var(--tf-inset) !important;
+}
+
+/* Auth is a single floating monochrome object. The former charcoal cap is now
+   the top material segment of the same card, with the real brand lockup. */
+.tf-auth-page { grid-template-columns: minmax(0, 500px); }
+.tf-auth-brand-panel {
+  width: 100%;
+  min-height: 84px;
+  margin: 0;
+  padding: 28px 42px 18px;
+  border-radius: 15px 15px 0 0;
+  background: var(--tf-material);
+  color: var(--tf-charcoal);
+  box-shadow: var(--tf-floating);
+}
+.tf-auth-brand-panel > :first-child { margin-inline: auto; }
+.tf-auth-brand-panel > div,
+.tf-auth-brand-panel > .mt-10 { display: none; }
+.tf-auth-card {
+  width: 100%;
+  margin-top: -1px;
+  padding: 20px 42px 38px;
+  border-radius: 0 0 15px 15px;
+  background: var(--tf-material);
+  box-shadow: 18px 18px 38px rgba(32,36,43,.19), -18px 4px 38px rgba(255,255,255,.88);
+}
+.tf-auth-title { font-size: 25px; letter-spacing: .17em; }
+.tf-auth-card > div:first-child { text-align: center; }
+.tf-auth-card:has(form) > div:first-child > p { display: none; }
+.tf-auth-submit {
+  display: flex;
+  min-width: 150px;
+  min-height: 50px;
+  width: auto !important;
+  margin-inline: auto;
+  border: 3px solid var(--tf-charcoal);
+  background: transparent;
+  box-shadow: none;
+}
+.tf-auth-submit:hover,
+.tf-auth-submit:focus-visible { border-color: var(--tf-charcoal); }
+
+/* Public entry is the same product material, not an editorial microsite. */
+.tf-public-page { max-width: 1120px; }
+.tf-public-header {
+  padding: 16px 20px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--tf-material);
+  box-shadow: var(--tf-raised);
+}
+.tf-public-header > a { padding: 9px 16px; border-radius: 8px; box-shadow: var(--tf-raised); font-weight: 700; }
+.tf-public-header > a:hover { background: var(--tf-charcoal); color: #fff; box-shadow: var(--tf-raised-hover), inset 3px 0 var(--tf-lime); }
+.tf-public-hero {
+  max-width: none;
+  padding: 38px 40px;
+  border-radius: var(--tf-radius-panel);
+  background: var(--tf-material);
+  box-shadow: var(--tf-raised);
+}
+.tf-public-preview {
+  border-radius: var(--tf-radius-panel);
+  background: var(--tf-material);
+  box-shadow: var(--tf-floating);
+}
+.tf-public-preview img { box-shadow: var(--tf-inset); }
+.tf-public-feature {
+  border: 0;
+  border-radius: 12px;
+  background: var(--tf-material);
+  box-shadow: var(--tf-raised);
+  transition: box-shadow 170ms ease, transform 170ms ease;
+}
+.tf-public-feature:hover { box-shadow: var(--tf-raised-hover); transform: translateY(-2px); }
+.tf-public-page > section[class*="border-t"],
+.tf-public-page > footer { border-color: rgba(66,73,77,.14); }
+
+/* Loader and structured skeletons use the deeper physical system. */
+.tf-loader-track { background: var(--tf-material); box-shadow: var(--tf-inset); }
+.tf-loader-ball { box-shadow: 5px 5px 10px rgba(32,36,43,.24), -3px -3px 8px rgba(255,255,255,.72); }
+.animate-pulse :where([class*="bg-ink"], [class*="bg-white"]) { background: #dedede !important; box-shadow: var(--tf-inset); }
+
+@media (max-width: 767px) {
+  :root {
+    --tf-raised: 7px 7px 16px rgba(32,36,43,.13), -7px -7px 16px rgba(255,255,255,.8);
+    --tf-floating: 11px 11px 24px rgba(32,36,43,.17), -11px -11px 24px rgba(255,255,255,.86);
+  }
+  .tf-auth-page { grid-template-columns: minmax(0, 1fr); }
+  .tf-auth-brand-panel { padding: 24px 24px 15px; }
+  .tf-auth-card { padding: 18px 24px 30px; }
+  .tf-public-page { padding-left: 18px; padding-right: 18px; }
+  .tf-public-header { padding: 14px; }
+  .tf-public-hero { margin-top: 28px; padding: 28px 24px; }
+  .tf-public-preview { margin-top: 32px; }
+}
