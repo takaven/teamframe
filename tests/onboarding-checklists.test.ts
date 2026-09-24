@@ -32,6 +32,7 @@ describe("persistent onboarding checklist closure", () => {
     expect(schema).toContain("onboarding_tasks_checklist_assignment_fk");
     expect(schema).toContain("foreign key (tenant_id, source_checklist_assignment_id)");
     expect(schema).toContain("if v_assignment_id is null then return 0");
+    expect(schema).toMatch(/delete from onboarding_tasks[\s\S]*source_checklist_assignment_id is null[\s\S]*Sign your employment contract/i);
     expect(schema).toContain("source_checklist_assignment_id");
   });
 

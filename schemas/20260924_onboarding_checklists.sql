@@ -123,6 +123,24 @@ begin
   returning id into v_assignment_id;
   if v_assignment_id is null then return 0; end if;
 
+  -- Employee creation still initializes the historical five-task starter
+  -- baseline before the application assigns a configurable default. Replace
+  -- only those exact pending, unprovenanced starter rows so a configured
+  -- checklist is the single source of onboarding work. Manual/custom tasks
+  -- and any task with evidence or a checklist assignment remain untouched.
+  delete from onboarding_tasks
+  where tenant_id = p_tenant_id
+    and employee_id = p_employee_id
+    and status = 'pending'
+    and source_checklist_assignment_id is null
+    and title in (
+      'Sign your employment contract',
+      'Complete your employee profile',
+      'Upload ID and right-to-work documents',
+      'Read and acknowledge company policies',
+      'Confirm payroll and bank details'
+    );
+
   insert into onboarding_tasks (
     tenant_id, employee_id, title, status, owner_role, owner_employee_id,
     assigned_by, due_date, completion_mode, required_document_type,

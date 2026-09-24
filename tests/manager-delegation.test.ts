@@ -57,6 +57,7 @@ describe("MR-3B bounded manager delegation", () => {
     const mutations = read("schemas/transactional_mutations.sql");
 
     expect(leaveService).toContain("listPendingLeavesForManager");
+    expect(leaveService).toMatch(/listLeaveDefinitionBalances[\s\S]*assertCurrentDirectManager\(actor, employeeId\)/);
     expect(leaveService).toContain("decideLeaveRequestAsManager");
     expect(leaveService).toContain("assertCurrentDirectManager(actor, pendingLeave.employee_id)");
     expect(leaveService).toContain("MANAGER_LEAVE_OVERRIDE_FORBIDDEN");
