@@ -676,7 +676,7 @@ export async function PeopleExperience({
                 <section data-tab="time-off" className="rounded-xl border border-ink-200 bg-white/70 p-5">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div><h3 className="text-[14px] font-semibold text-ink-900">Time off</h3><p className="mt-1 text-[12px] text-ink-500">Balances and request history for this person.</p></div>
-                    <Link href="/leaves" className="tf-secondary-action px-3 py-1.5 text-[12px]">Open Time off</Link>
+                    <div className="flex gap-2"><Link href={`/leaves?view=record&employee=${employee.id}`} className="tf-primary-action px-3 py-1.5 text-[12px]">Record time off</Link><Link href="/leaves" className="tf-secondary-action px-3 py-1.5 text-[12px]">Open Time off</Link></div>
                   </div>
                   <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     {(leaveOverview?.balances ?? []).map((balance) => (

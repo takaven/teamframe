@@ -741,6 +741,16 @@ export async function submitLeaveRequest(
   return rowToRecord(created);
 }
 
+/** Admin-on-behalf entry that deliberately reuses the normal validation and leave engine. */
+export async function submitLeaveRequestForEmployee(
+  actor: Actor,
+  employeeId: string,
+  input: Parameters<typeof submitLeaveRequest>[1],
+): Promise<LeaveRecord> {
+  requireAdmin(actor);
+  return submitLeaveRequest({ ...actor, employeeId }, input);
+}
+
 export async function decideLeaveRequest(
   actor: Actor,
   leaveId: string,
