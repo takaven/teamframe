@@ -1027,6 +1027,13 @@ main > section[class*="bg-white"][class*="border"] {
   padding: 28px;
   background: var(--tf-canvas);
 }
+.tf-auth-panel {
+  width: min(100%, 500px);
+  overflow: hidden;
+  border-radius: 15px;
+  background: var(--tf-material);
+  box-shadow: var(--tf-floating);
+}
 .tf-auth-brand-panel {
   box-sizing: border-box;
   display: flex;
@@ -1040,7 +1047,7 @@ main > section[class*="bg-white"][class*="border"] {
   border-radius: 15px 15px 0 0;
   background: var(--tf-material);
   color: var(--tf-charcoal);
-  box-shadow: var(--tf-floating);
+  box-shadow: none;
 }
 .tf-auth-brand-panel > :first-child { margin-inline: auto; }
 .tf-auth-brand-panel > div,
@@ -1053,13 +1060,16 @@ main > section[class*="bg-white"][class*="border"] {
   padding: 20px 42px 38px;
   border-radius: 0 0 15px 15px;
   background: var(--tf-material);
-  box-shadow: 18px 18px 38px rgba(32,36,43,.19), -18px 4px 38px rgba(255,255,255,.88);
+  box-shadow: none;
 }
 .tf-auth-title { font-size: 25px; letter-spacing: .17em; }
 .tf-auth-card > div:first-child { text-align: center; }
 .tf-auth-card:has(form) > div:first-child > p { display: none; }
 .tf-auth-submit {
-  display: flex;
+  display: inline-flex;
+  position: relative;
+  align-items: center;
+  justify-content: center;
   min-width: 150px;
   min-height: 50px;
   width: auto !important;
@@ -1067,6 +1077,15 @@ main > section[class*="bg-white"][class*="border"] {
   border: 3px solid var(--tf-charcoal);
   background: transparent;
   box-shadow: none;
+}
+.tf-auth-submit > span:last-child {
+  display: block;
+  width: 100%;
+  text-align: center;
+}
+.tf-auth-submit > .tf-inline-loader {
+  position: absolute;
+  left: 16px;
 }
 .tf-auth-submit:hover,
 .tf-auth-submit:focus-visible { border-color: var(--tf-charcoal); }

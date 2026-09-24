@@ -81,6 +81,7 @@ export default async function FounderReviewLoginPage({
 
   return (
     <main className="tf-auth-page">
+      <div className="tf-auth-panel">
       <section className="tf-auth-brand-panel">
         <BrandLogo variant="lockup" className="h-7 w-auto" priority />
         <div className="mt-auto max-w-[440px]">
@@ -140,6 +141,7 @@ export default async function FounderReviewLoginPage({
           ) : null}
         </form>
       </section>
+      </div>
     </main>
   );
 }
