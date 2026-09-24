@@ -33,12 +33,10 @@ import {
   createCompensationComponentAction,
   renameCompensationComponentAction,
   toggleCompensationComponentAction,
-  exportTenantDataAction,
   createChecklistAction, copyStarterChecklistAction, updateChecklistAction, toggleChecklistAction,
   setDefaultChecklistAction, addChecklistItemAction, updateChecklistItemAction,
   removeChecklistItemAction, moveChecklistItemAction,
 } from "./actions";
-import { exportFinanceHandoffAction } from "@/app/employees/actions";
 import { listCompanyHolidays } from "@/services/companyHolidayService";
 import { deleteHolidayAction, saveHolidayAction } from "@/app/company/actions";
 import { listCustomFieldDefinitions } from "@/services/customFieldService";
@@ -511,42 +509,9 @@ export default async function SetupPage({
               </section>
 
               <section className="tf-surface-flat p-6">
-                <h2 className="tf-h2">Export TeamFrame data</h2>
-                <p className="mt-1 max-w-2xl text-[13px] text-ink-500">
-                  Takes a complete, portable copy of this installation — every employee, leave,
-                  onboarding, policy, document, compensation and configuration record as a
-                  spreadsheet-readable CSV, together with the original uploaded documents. The
-                  download link is private and expires shortly after it is created.
-                </p>
-                {canExportInstallation ? (
-                  <form action={exportTenantDataAction} className="mt-4">
-                    <ConfirmSubmitButton
-                      idleLabel="Export TeamFrame data"
-                      pendingLabel="Preparing export…"
-                      className={btn}
-                      confirmMessage="This prepares a download containing all employee records held in this installation, including compensation and private documents. Continue?"
-                    />
-                    <p className="mt-2 text-[12px] text-ink-500">
-                      Large installations can take a minute to prepare.
-                    </p>
-                  </form>
-                ) : (
-                  <p className="mt-4 text-[13px] text-ink-500">
-                    Exporting the whole installation requires Full Access.
-                  </p>
-                )}
-              </section>
-              <section className="tf-surface-flat p-6">
-                <h2 className="tf-h2">Finance handoff</h2>
-                <p className="mt-1 max-w-2xl text-[13px] text-ink-500">
-                  Download the existing finance handoff package as CSV and spreadsheet-friendly TSV.
-                </p>
-                {canExportFinance ? (
-                  <form action={exportFinanceHandoffAction} className="mt-4">
-                    <input type="hidden" name="return_to" value="/setup?section=data" />
-                    <PendingSubmitButton idleLabel="Export finance handoff" pendingLabel="Preparing export…" className={btn} />
-                  </form>
-                ) : <p className="mt-4 text-[13px] text-ink-500">Finance export access is required.</p>}
+                <h2 className="tf-h2">Organisation exports</h2>
+                <p className="mt-1 max-w-2xl text-[13px] text-ink-500">Payroll and full-data exports now have one clear home under Reports.</p>
+                {(canExportInstallation || canExportFinance) ? <Link href="/reports?view=exports" className={`mt-4 inline-flex ${btn}`}>Open Reports → Exports</Link> : <p className="mt-4 text-[13px] text-ink-500">Your access does not include organisation-wide exports.</p>}
               </section>
             </>
           ) : null}
