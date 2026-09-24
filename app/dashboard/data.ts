@@ -277,18 +277,28 @@ function documentLabel(documentType: string): string {
 }
 
 function sourcePath(source: string): string {
-  if (source.startsWith("document")) return "/employees";
+  if (source.startsWith("document")) return "/people";
   if (source.startsWith("policy")) return "/policies";
   if (source.startsWith("onboarding")) return "/onboarding";
   if (source.startsWith("probation")) return "/onboarding";
   if (source.startsWith("leave")) return "/leaves";
-  if (source.startsWith("offboarding")) return "/employees";
+  if (source.startsWith("offboarding")) return "/people";
   if (source.startsWith("automation")) return "/dashboard";
-  return "/employees";
+  return "/people";
 }
 
-function employeePath(employeeId: string, tab = "employment"): string {
-  return `/employees?employee=${encodeURIComponent(employeeId)}&tab=${encodeURIComponent(tab)}#employee-${encodeURIComponent(employeeId)}`;
+function employeePath(employeeId: string, tab = "overview"): string {
+  const sections: Record<string, string> = {
+    employment: "employment",
+    personal: "personal",
+    compensation: "compensation-payment",
+    payment: "compensation-payment",
+    emergency: "personal",
+    documents: "documents",
+    account: "onboarding-offboarding",
+  };
+  const section = sections[tab] ?? tab;
+  return `/people/${encodeURIComponent(employeeId)}#${encodeURIComponent(section)}`;
 }
 
 function signalTitle(kind: string): string {

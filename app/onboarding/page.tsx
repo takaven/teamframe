@@ -168,7 +168,7 @@ export default async function OnboardingPage({
           {employees.length === 0 ? (
             <p className="mt-3 text-[14px] text-ink-500">
               You do not have employees to assign yet.{" "}
-              <Link href="/employees" className="underline hover:text-ink-900">Add an employee</Link> first.
+              <Link href="/people/add" className="underline hover:text-ink-900">Add a person</Link> first.
             </p>
           ) : (
             <AssignPackForm
@@ -188,7 +188,7 @@ export default async function OnboardingPage({
           {employees.length === 0 ? (
             <p className="mt-3 text-[14px] text-ink-500">
               You do not have employees to assign yet.{" "}
-              <Link href="/employees" className="underline hover:text-ink-900">Add an employee</Link> first.
+              <Link href="/people/add" className="underline hover:text-ink-900">Add a person</Link> first.
             </p>
           ) : (
             <form action={assignOnboardingTaskAction} className="mt-4 flex flex-wrap items-end gap-3">

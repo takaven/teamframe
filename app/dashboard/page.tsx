@@ -135,9 +135,9 @@ export default async function DashboardPage() {
           <h2 id="your-team-heading" className="tf-h2">Your team</h2>
           <div className="mt-4 grid grid-cols-2 gap-3">
             {[
-              ["Active", activeEmployeeCount, "/employees?filter=active"],
-              ["Starting this month", teamSummary.startingThisMonth, "/employees?filter=pre_start"],
-              ["Leaving this month", teamSummary.leavingThisMonth, "/employees?filter=offboarding"],
+              ["Active", activeEmployeeCount, "/people?filter=active"],
+              ["Starting this month", teamSummary.startingThisMonth, "/people?filter=pre_start"],
+              ["Leaving this month", teamSummary.leavingThisMonth, "/people?filter=offboarding"],
               ["Away today", teamSummary.awayToday, "/leaves?view=calendar"],
             ].map(([label, value, href]) => (
               <Link key={String(label)} href={String(href)} className="rounded-xl border border-ink-200 bg-white/60 p-3 transition hover:border-ink-400">
@@ -152,7 +152,7 @@ export default async function DashboardPage() {
       <section className="mt-8" aria-labelledby="quick-actions-heading">
         <h2 id="quick-actions-heading" className="tf-h2">Quick actions</h2>
         <div className="mt-3 flex flex-wrap gap-3">
-          <Link href="/employees#add-employee" className="tf-primary-action px-4 py-2 text-[13px]">Add person</Link>
+          <Link href="/people/add" className="tf-primary-action px-4 py-2 text-[13px]">Add person</Link>
           <Link href="/policies#upload" className="tf-secondary-action px-4 py-2 text-[13px]">New policy</Link>
         </div>
       </section>

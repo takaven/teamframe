@@ -1,6 +1,6 @@
 "use client";
 
-import { Children, isValidElement, useState, type ReactNode } from "react";
+import { Children, isValidElement, useEffect, useState, type ReactNode } from "react";
 
 export type SectionTabDef = { id: string; label: string; badge?: number | string };
 
@@ -25,6 +25,16 @@ export function SectionTabs({
   const first = initialId && tabs.some((t) => t.id === initialId) ? initialId : tabs[0]?.id;
   const [active, setActive] = useState<string | undefined>(first);
 
+  useEffect(() => {
+    const selectHash = () => {
+      const id = window.location.hash.slice(1);
+      if (tabs.some((tab) => tab.id === id)) setActive(id);
+    };
+    selectHash();
+    window.addEventListener("hashchange", selectHash);
+    return () => window.removeEventListener("hashchange", selectHash);
+  }, [tabs]);
+
   const panels = Children.toArray(children).filter((child) => {
     if (!isValidElement(child)) return false;
     const props = child.props as { "data-tab"?: string };
@@ -32,8 +42,8 @@ export function SectionTabs({
   });
 
   return (
-    <div>
-      <div role="tablist" aria-label={ariaLabel} className="flex flex-nowrap gap-1 overflow-x-auto border-b border-ink-200 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div className="grid items-start gap-5 md:grid-cols-[190px_minmax(0,1fr)]">
+      <div role="tablist" aria-label={ariaLabel} className="grid grid-cols-2 gap-1 rounded-xl bg-ink-100/55 p-2 sm:grid-cols-4 md:sticky md:top-6 md:grid-cols-1">
         {tabs.map((t) => {
           const isActive = t.id === active;
           return (
@@ -42,10 +52,13 @@ export function SectionTabs({
               type="button"
               role="tab"
               aria-selected={isActive}
-              onClick={() => setActive(t.id)}
+              onClick={() => {
+                setActive(t.id);
+                window.history.replaceState(null, "", `#${t.id}`);
+              }}
               className={[
-                "relative -mb-px inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3.5 py-2.5 text-[13.5px] font-medium transition",
-                isActive ? "border-b-2 border-ink-900 text-ink-900" : "border-b-2 border-transparent text-ink-500 hover:text-ink-800",
+                "inline-flex min-h-10 items-center gap-1.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition",
+                isActive ? "bg-white font-semibold text-ink-900 shadow-sm" : "text-ink-500 hover:bg-white/60 hover:text-ink-800",
               ].join(" ")}
             >
               {t.label}
@@ -58,7 +71,7 @@ export function SectionTabs({
           );
         })}
       </div>
-      <div role="tabpanel" className="space-y-4 pt-5">
+      <div id={active} role="tabpanel" className="min-w-0 space-y-4 scroll-mt-6">
         {panels}
       </div>
     </div>

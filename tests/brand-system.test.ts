@@ -83,7 +83,7 @@ describe("TeamFrame brand system", () => {
     const appShell = read("components/AppShell.tsx");
 
     expect(appShell).toContain('{ href: "/dashboard", label: "Home" }');
-    expect(appShell).toContain('{ href: "/employees", label: "People" }');
+    expect(appShell).toContain('{ href: "/people", label: "People" }');
     expect(appShell).toContain('{ href: "/leaves", label: "Time off" }');
     expect(appShell).not.toContain('{ href: "/employees?tab=documents", label: "Documents" }');
     expect(appShell).toContain('{ href: "/policies", label: "Policies" }');

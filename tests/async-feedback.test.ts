@@ -24,7 +24,7 @@ function tsxFiles(dir: string): string[] {
 // a useFormStatus-driven button.
 const ALLOWED = new Set([
   path.normalize("app/company/page.tsx"), // year filter (GET navigation)
-  path.normalize("app/employees/page.tsx"), // directory search (GET navigation)
+  path.normalize("components/PeopleExperience.tsx"), // directory search (GET navigation)
   path.normalize("app/error.tsx"), // error boundary reset()
 ]);
 

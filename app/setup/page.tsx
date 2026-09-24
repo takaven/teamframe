@@ -34,6 +34,7 @@ import {
   toggleCompensationComponentAction,
   exportTenantDataAction,
 } from "./actions";
+import { exportFinanceHandoffAction } from "@/app/employees/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -114,6 +115,7 @@ export default async function SetupPage({
   // Full Access is the only profile holding `company_access_settings`; the
   // whole-installation export is offered to nobody else.
   const canExportInstallation = await hasCapability(actor, "company_access_settings");
+  const canExportFinance = await hasCapability(actor, "finance_payroll_exports");
   const installationFacts = buildInstallationFacts({
     productVersion: pkg.version,
     installationName: identity.name,
@@ -433,6 +435,18 @@ export default async function SetupPage({
                     Exporting the whole installation requires Full Access.
                   </p>
                 )}
+              </section>
+              <section className="tf-surface-flat p-6">
+                <h2 className="tf-h2">Finance handoff</h2>
+                <p className="mt-1 max-w-2xl text-[13px] text-ink-500">
+                  Download the existing finance handoff package as CSV and spreadsheet-friendly TSV.
+                </p>
+                {canExportFinance ? (
+                  <form action={exportFinanceHandoffAction} className="mt-4">
+                    <input type="hidden" name="return_to" value="/setup?section=installation" />
+                    <PendingSubmitButton idleLabel="Export finance handoff" pendingLabel="Preparing export…" className={btn} />
+                  </form>
+                ) : <p className="mt-4 text-[13px] text-ink-500">Finance export access is required.</p>}
               </section>
             </>
           ) : null}

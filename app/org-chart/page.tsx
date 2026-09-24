@@ -437,7 +437,7 @@ function PositionDetailPanel({
           </p>
           {position.assigned_employee_id ? (
             <Link
-              href={`/employees?employee=${position.assigned_employee_id}#employee-${position.assigned_employee_id}`}
+              href={`/people/${position.assigned_employee_id}`}
               className="mt-3 inline-flex text-[13px] font-bold text-ink-800 underline decoration-ink-300 underline-offset-4 hover:decoration-ink-800"
             >
               Open employee

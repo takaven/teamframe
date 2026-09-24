@@ -13,7 +13,7 @@ import { getCompanyIdentity } from "@/lib/company/identity";
 // permanent top-level module. Company/Access/Guided Setup live under Setup.
 const ADMIN_LINKS = [
   { href: "/dashboard", label: "Home" },
-  { href: "/employees", label: "People" },
+  { href: "/people", label: "People" },
   { href: "/leaves", label: "Time off" },
   { href: "/policies", label: "Policies" },
 ] as const;
@@ -92,6 +92,12 @@ export async function AppShell({
         </div>
 
         <nav className="mt-6 flex-1" aria-label={actor.role === "admin" ? "Admin" : "Employee"}>
+          {isAdminSurface ? (
+            <form action="/people" className="mx-3 mb-3">
+              <label className="sr-only" htmlFor="people-search">Search people</label>
+              <input id="people-search" name="q" placeholder="Search people" className="h-9 w-full rounded-lg border border-white/10 bg-white/[0.06] px-3 text-[12px] text-white placeholder:text-white/35 focus:border-brand-signal focus:outline-none" />
+            </form>
+          ) : null}
           {primaryLinks.map((link) => {
             const active = isActive(link.href);
             return (

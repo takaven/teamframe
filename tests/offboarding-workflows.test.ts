@@ -62,7 +62,7 @@ describe("MR-7 bounded offboarding workflow", () => {
 
   it("keeps evidence-backed exit document completion non-bypassable and synced from MR-5 evidence", () => {
     const schema = read("schemas/offboarding.sql");
-    const page = read("app/employees/page.tsx");
+    const page = read("components/PeopleExperience.tsx");
 
     expect(schema).toContain("v_item.completion_mode <> 'manual_confirmation'");
     expect(schema).toContain("raise exception 'EVIDENCE_REQUIRED'");

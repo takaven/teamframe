@@ -3,7 +3,7 @@ import { createServerClient } from "@/lib/db/supabaseServer";
 import { resolveIdentity } from "@/lib/rbac/roles";
 import { track } from "@/lib/telemetry/track";
 
-const NEXT_ALLOWLIST = ["/dashboard", "/employees", "/leaves", "/onboarding", "/me", "/access", "/setup", "/company"] as const;
+const NEXT_ALLOWLIST = ["/dashboard", "/people", "/employees", "/leaves", "/onboarding", "/me", "/access", "/setup", "/company"] as const;
 
 function safeNext(raw: string | null): string {
   if (!raw) return "";

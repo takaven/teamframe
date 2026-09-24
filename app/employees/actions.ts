@@ -206,6 +206,7 @@ export async function createEmployeeAction(formData: FormData): Promise<void> {
   const requestId = crypto.randomUUID();
   let actor: Awaited<ReturnType<typeof requireTenantActor>> | null = null;
   let caughtError: unknown = null;
+  let employeeId: string | null = null;
 
   try {
     actor = await requireTenantActor();
@@ -221,7 +222,8 @@ export async function createEmployeeAction(formData: FormData): Promise<void> {
       end_date: optionalString(formData.get("end_date")),
     });
 
-    await createEmployee(actor, parsed);
+    const created = await createEmployee(actor, parsed);
+    employeeId = created.id;
   } catch (error) {
     failed = true;
     errorCode = getErrorCode(error);
@@ -255,10 +257,10 @@ export async function createEmployeeAction(formData: FormData): Promise<void> {
   }
 
   if (failed) {
-    redirect(`/employees?error=${encodeURIComponent(errorCode)}`);
+    redirect(`/people/add?error=${encodeURIComponent(errorCode)}`);
   }
 
-  redirect("/employees?status=created");
+  redirect(`/people/${encodeURIComponent(employeeId!)}?status=created`);
 }
 
 export async function createEmployeeFromHireAction(formData: FormData): Promise<void> {
@@ -290,8 +292,8 @@ export async function createEmployeeFromHireAction(formData: FormData): Promise<
     captureActionError("createEmployeeFromHire", error);
     errorCode = getErrorCode(error);
   }
-  if (errorCode) redirect(`/employees?error=${encodeURIComponent(errorCode)}#hire-handoff`);
-  redirect(`/employees?status=hire_handoff_created&employee=${employeeId}#hire-handoff`);
+  if (errorCode) redirect(`/people/add?error=${encodeURIComponent(errorCode)}#hire-handoff`);
+  redirect(`/people/${encodeURIComponent(employeeId!)}?status=hire_handoff_created`);
 }
 
 export async function updateEmployeeAction(formData: FormData): Promise<void> {
