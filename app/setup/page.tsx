@@ -5,6 +5,7 @@ import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { FileInput } from "@/components/FileInput";
 import { SelectField } from "@/components/SelectField";
+import { DateField } from "@/components/DateField";
 import { ISO_COUNTRIES } from "@/lib/geo/countries";
 import {
   getCompanySettings,
@@ -35,20 +36,19 @@ import {
   exportTenantDataAction,
 } from "./actions";
 import { exportFinanceHandoffAction } from "@/app/employees/actions";
+import { listCompanyHolidays } from "@/services/companyHolidayService";
+import { deleteHolidayAction, saveHolidayAction } from "@/app/company/actions";
 
 export const dynamic = "force-dynamic";
 
 const SECTIONS = [
   { key: "company", label: "Company" },
-  { key: "departments", label: "Departments" },
-  { key: "locations", label: "Work locations" },
-  { key: "workingdays", label: "Working days" },
-  { key: "holidays", label: "Holidays" },
-  { key: "leave", label: "Leave" },
+  { key: "organisation", label: "Organisation" },
+  { key: "timeoff", label: "Time off" },
+  { key: "onboarding", label: "Onboarding" },
   { key: "compensation", label: "Compensation" },
-  { key: "checkin", label: "30-day check-in" },
   { key: "access", label: "Users & Access" },
-  { key: "installation", label: "Installation & support" },
+  { key: "data", label: "Data & Installation" },
 ] as const;
 
 const ERROR_COPY: Record<string, string> = {
@@ -103,13 +103,15 @@ export default async function SetupPage({
     );
   }
 
-  const [company, departments, workLocations, leaveDefinitions, compConfig, identity] = await Promise.all([
+  const holidayYear = new Date().getUTCFullYear();
+  const [company, departments, workLocations, leaveDefinitions, compConfig, identity, holidays] = await Promise.all([
     getCompanySettings(actor),
     listDepartments(actor),
     listWorkLocations(actor),
     listLeaveDefinitions(actor),
     getCompensationConfig(actor),
     getCompanyIdentity(actor.tenantId),
+    listCompanyHolidays(actor, holidayYear),
   ]);
 
   // Full Access is the only profile holding `company_access_settings`; the
@@ -153,7 +155,7 @@ export default async function SetupPage({
         </nav>
 
         <div className="min-w-0 space-y-5">
-          {section === "company" || section === "workingdays" || section === "checkin" ? (
+          {section === "company" ? (
             <section className="tf-surface-flat p-6">
               <h2 className="tf-h2">Company</h2>
               <p className="mt-1 text-[13px] text-ink-500">Identity, country, timezone, working-day defaults and the 30-day check-in.</p>
@@ -213,7 +215,7 @@ export default async function SetupPage({
             </section>
           ) : null}
 
-          {section === "departments" ? (
+          {section === "organisation" ? (
             <section className="tf-surface-flat p-6">
               <h2 className="tf-h2">Departments</h2>
               <p className="mt-1 text-[13px] text-ink-500">Company-controlled department list. Deactivate rather than delete — legacy free-text labels stay valid.</p>
@@ -242,7 +244,7 @@ export default async function SetupPage({
             </section>
           ) : null}
 
-          {section === "locations" ? (
+          {section === "organisation" ? (
             <section className="tf-surface-flat p-6">
               <h2 className="tf-h2">Work locations</h2>
               <p className="mt-1 text-[13px] text-ink-500">Company-defined work locations, each linked to a country.</p>
@@ -268,15 +270,23 @@ export default async function SetupPage({
             </section>
           ) : null}
 
-          {section === "holidays" ? (
+          {section === "timeoff" ? (
             <section className="tf-surface-flat p-6">
               <h2 className="tf-h2">Holidays</h2>
-              <p className="mt-1 text-[13px] text-ink-500">The company holiday calendar feeds working-day leave calculations. Managed here under Setup.</p>
-              <Link href="/company" className={`mt-4 inline-flex ${btn}`}>Open holiday calendar</Link>
+              <p className="mt-1 text-[13px] text-ink-500">Manual company holidays feed working-day leave calculations.</p>
+              <form action={saveHolidayAction} className="mt-4 grid gap-3 sm:grid-cols-[180px_1fr_auto] sm:items-end">
+                <input type="hidden" name="year" value={holidayYear} />
+                <label className="text-[12px] text-ink-600">Date<DateField name="holiday_date" required dense /></label>
+                <label className="text-[12px] text-ink-600">Name<input name="name" required maxLength={160} className={input} placeholder="Company holiday" /></label>
+                <PendingSubmitButton idleLabel="Add holiday" pendingLabel="Adding…" className={btn} />
+              </form>
+              <ul className="mt-4 divide-y divide-ink-100 rounded-lg border border-ink-200">
+                {holidays.length === 0 ? <li className="px-3 py-3 text-[13px] text-ink-500">No holidays recorded for {holidayYear}.</li> : holidays.map((holiday) => <li key={holiday.id} className="flex items-center justify-between gap-3 px-3 py-2"><span className="text-[13px]"><strong>{holiday.holiday_date}</strong> · {holiday.name}</span><form action={deleteHolidayAction}><input type="hidden" name="holiday_id" value={holiday.id}/><input type="hidden" name="year" value={holidayYear}/><PendingSubmitButton idleLabel="Remove" pendingLabel="Removing…" className={btnGhost}/></form></li>)}
+              </ul>
             </section>
           ) : null}
 
-          {section === "leave" ? (
+          {section === "timeoff" ? (
             <section className="tf-surface-flat p-6">
               <h2 className="tf-h2">Leave definitions</h2>
               <p className="mt-1 text-[13px] text-ink-500">Configure the leave types offered. These drive the employee leave dropdown (a later phase). The underlying leave engine is unchanged.</p>
@@ -365,6 +375,17 @@ export default async function SetupPage({
             </section>
           ) : null}
 
+          {section === "onboarding" ? (
+            <section className="tf-surface-flat p-6">
+              <h2 className="tf-h2">Onboarding</h2>
+              <p className="mt-1 text-[13px] text-ink-500">Assign the existing Every hire, Engineering or Operations checklist and tailor its tasks before assignment.</p>
+              <div className="mt-4 rounded-lg border border-ink-200 bg-ink-50/50 p-4 text-[13px] text-ink-700">
+                Checklist packs are currently fixed product templates. The assignment screen already lets an admin remove tasks before applying a pack; persistent template editing requires a dedicated stored model and is deferred rather than introducing a workflow engine here.
+              </div>
+              <Link href="/onboarding" className={`mt-4 inline-flex ${btn}`}>Assign onboarding checklist</Link>
+            </section>
+          ) : null}
+
           {section === "access" ? (
             <section className="tf-surface-flat p-6">
               <h2 className="tf-h2">Users &amp; Access</h2>
@@ -375,7 +396,7 @@ export default async function SetupPage({
             </section>
           ) : null}
 
-          {section === "installation" ? (
+          {section === "data" ? (
             <>
               <section className="tf-surface-flat p-6">
                 <h2 className="tf-h2">Installation</h2>
@@ -443,7 +464,7 @@ export default async function SetupPage({
                 </p>
                 {canExportFinance ? (
                   <form action={exportFinanceHandoffAction} className="mt-4">
-                    <input type="hidden" name="return_to" value="/setup?section=installation" />
+                    <input type="hidden" name="return_to" value="/setup?section=data" />
                     <PendingSubmitButton idleLabel="Export finance handoff" pendingLabel="Preparing export…" className={btn} />
                   </form>
                 ) : <p className="mt-4 text-[13px] text-ink-500">Finance export access is required.</p>}

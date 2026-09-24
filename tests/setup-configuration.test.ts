@@ -35,7 +35,7 @@ describe("Phase 3 — Setup / Administration configuration", () => {
   });
 
   it("Setup hub covers all sections and drops the bootstrap anti-patterns", () => {
-    for (const s of ["Company", "Departments", "Work locations", "Working days", "Holidays", "Leave", "30-day check-in", "Users & Access"]) {
+    for (const s of ["Company", "Organisation", "Time off", "Onboarding", "Compensation", "Users & Access", "Data & Installation"]) {
       expect(setupPage).toContain(s);
     }
     expect(setupPage).toContain("admin-only");
@@ -48,9 +48,10 @@ describe("Phase 3 — Setup / Administration configuration", () => {
     expect(appShell).toContain('{ href: "/setup", label: "Settings" }');
     expect(appShell).not.toContain('{ href: "/company", label: "Company" }');
     expect(appShell).not.toContain('{ href: "/access", label: "Access" }');
-    // Setup entry-point leads with presets and re-homes access + holidays.
+    // Settings leads with presets and owns holiday maintenance directly.
     expect(setupPage).toContain('href="/access"');
-    expect(setupPage).toContain('href="/company"');
+    expect(setupPage).toContain("saveHolidayAction");
+    expect(setupPage).toContain("Data & Installation");
     expect(setupPage).toContain("Full Access");
   });
 
@@ -61,6 +62,8 @@ describe("Phase 3 — Setup / Administration configuration", () => {
     expect(accessPage).toContain("updateAccessMatrixAction"); // granular model preserved
     expect(accessPage).toContain("setMembershipActiveAction"); // suspend/reactivate preserved
     expect(accessPage).toContain("derived from current direct reports"); // Manager is derived, not a preset
+    expect(accessPage).toContain("selected people");
+    expect(accessPage).not.toContain("comma-separated");
     // The granular matrix lives inside the collapsed <details> (hidden by default).
     expect(accessPage).toMatch(/<details[\s\S]*updateAccessMatrixAction/);
     // Manager is not a manually-assignable preset option.
