@@ -170,7 +170,7 @@ export async function AppShell({
             <p className="px-[18px] pt-2 text-[13px] text-ink-500">
               Documents and exports are reached from the records they belong to.
             </p>
-            <SignOutButton className="px-[18px] pt-4" tone="light" />
+            <SignOutButton className="px-[18px] pt-4" />
           </nav>
         </details>
       </header>
