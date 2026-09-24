@@ -754,11 +754,11 @@ main:has(> .tf-app-shell) input[type="file"]::file-selector-button {
   --tf-lime: #01ff22;
   --tf-material: #e8e8e8;
   --tf-material-light: #eeeeef;
-  --tf-raised: 10px 10px 22px rgba(32, 36, 43, 0.14), -10px -10px 22px rgba(255, 255, 255, 0.82);
-  --tf-raised-hover: 13px 13px 26px rgba(32, 36, 43, 0.16), -13px -13px 26px rgba(255, 255, 255, 0.88);
-  --tf-inset: inset 5px 5px 12px rgba(32, 36, 43, 0.12), inset -5px -5px 12px rgba(255, 255, 255, 0.84);
-  --tf-pressed: inset 4px 4px 9px rgba(32, 36, 43, 0.16), inset -4px -4px 9px rgba(255, 255, 255, 0.78);
-  --tf-floating: 18px 18px 38px rgba(32, 36, 43, 0.19), -18px -18px 38px rgba(255, 255, 255, 0.9);
+  --tf-raised: 6px 6px 15px rgba(32, 36, 43, 0.12), -6px -6px 15px rgba(255, 255, 255, 0.72);
+  --tf-raised-hover: 8px 8px 18px rgba(32, 36, 43, 0.15), -8px -8px 18px rgba(255, 255, 255, 0.8);
+  --tf-inset: inset 3px 3px 8px rgba(32, 36, 43, 0.11), inset -3px -3px 8px rgba(255, 255, 255, 0.72);
+  --tf-pressed: inset 3px 3px 7px rgba(32, 36, 43, 0.15), inset -3px -3px 7px rgba(255, 255, 255, 0.7);
+  --tf-floating: 12px 12px 28px rgba(32, 36, 43, 0.17), -12px -12px 28px rgba(255, 255, 255, 0.82);
   --tf-line: rgba(66, 73, 77, 0.2);
   --tf-radius-panel: 15px;
   --tf-radius-control: 9px;
@@ -786,7 +786,11 @@ main:has(> .tf-app-shell) { background: var(--tf-canvas); }
   box-shadow: var(--tf-inset);
 }
 
-.tf-summary { padding: 5px; }
+.tf-summary {
+  width: fit-content;
+  max-width: 100%;
+  padding: 5px;
+}
 .tf-summary > * {
   border: 0;
   border-radius: 10px;
@@ -839,8 +843,8 @@ main:has(> .tf-app-shell) :where(button, a)[class*="rounded"][class*="border"]:a
   border-left: 2px solid var(--tf-graphite);
   border-bottom: 2px solid var(--tf-graphite);
   border-radius: 0 0 0 8px;
-  background-color: transparent;
-  box-shadow: none;
+  background-color: rgba(255, 255, 255, .14);
+  box-shadow: inset 2px 2px 5px rgba(32, 36, 43, .05), inset -2px -2px 5px rgba(255, 255, 255, .34);
 }
 :where(main:has(> .tf-app-shell)) :where(input, select, textarea, .tf-input, .tf-select, .tf-date, .tf-textarea):focus {
   border: 1px solid var(--tf-lime);
@@ -915,7 +919,7 @@ main:has(> .tf-app-shell) :where(button, a)[class*="rounded"][class*="border"]:a
 /* The shell is sculpted graphite rather than a flat dark slab. */
 .tf-app-shell {
   background: var(--tf-graphite);
-  box-shadow: 10px 0 26px rgba(32,36,43,.25), inset -5px 0 12px rgba(20,22,26,.2), inset 1px 0 rgba(255,255,255,.14);
+  box-shadow: 7px 0 20px rgba(32,36,43,.22), inset -4px 0 10px rgba(20,22,26,.18), inset 1px 0 rgba(255,255,255,.12);
 }
 .tf-app-shell > div:first-of-type { box-shadow: inset 4px 4px 10px rgba(20,22,26,.24), inset -4px -4px 10px rgba(255,255,255,.06); }
 .tf-app-shell nav a { border-radius: 8px !important; }
@@ -995,6 +999,7 @@ main:has(> .tf-app-shell) :where([class*="border-dashed"]) {
   background: var(--tf-material) !important;
   box-shadow: var(--tf-inset) !important;
 }
+.tf-empty-state { max-width: 720px; margin-inline: auto; }
 main:has(> .tf-app-shell) :where(input[type="file"] + *, label:has(input[type="file"])) {
   border-color: transparent !important;
   background: var(--tf-material) !important;
@@ -1170,6 +1175,7 @@ main > section[class*="bg-white"][class*="border"] {
     --tf-floating: 11px 11px 24px rgba(32,36,43,.17), -11px -11px 24px rgba(255,255,255,.86);
   }
   .tf-auth-page { grid-template-columns: minmax(0, 1fr); }
+  .tf-summary { width: 100%; }
   .tf-auth-brand-panel { padding: 24px 24px 15px; }
   .tf-auth-card { padding: 18px 24px 30px; }
   .tf-public-page { padding-left: 18px; padding-right: 18px; }

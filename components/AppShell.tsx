@@ -128,10 +128,10 @@ export async function AppShell({
         </nav>
 
         {/* Account + quiet parent-company endorsement. */}
-        <div className="mt-auto px-5">
+        <div className="mt-auto px-5 pb-1">
           <SignOutButton className="mb-4" />
-          <p className="border-t border-white/10 pt-4 text-[10.5px] font-medium uppercase tracking-[0.14em] text-white/35">
-            Conceptualised by <span className="text-white/55">TAKAVEN</span>
+          <p className="border-t border-white/10 pt-4 text-center text-[9px] font-semibold uppercase tracking-[0.16em] text-white/45">
+            Conceptualised by <span className="text-white/70">TAKAVEN</span>
           </p>
         </div>
       </aside>
