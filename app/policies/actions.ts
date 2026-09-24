@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { notifyPolicyPublished } from "@/services/notificationService";
 import { requireTenantActor } from "@/middleware/rbac";
 import {
   acknowledgePolicy,
@@ -234,6 +235,7 @@ export async function publishPolicyAction(formData: FormData): Promise<void> {
     });
     policyId = parsed.policy_id;
     await publishPolicy(actor, parsed.policy_id, parsed.expected_updated_at);
+    await notifyPolicyPublished(actor.tenantId, parsed.policy_id);
   } catch (error) {
     failed = true;
     errorCode = getErrorCode(error);

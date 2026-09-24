@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { notifyDocumentRequest } from "@/services/notificationService";
 import { requireTenantActor } from "@/middleware/rbac";
 import { UAE_RECORD_TYPE_VALUES } from "@/lib/countryRecords";
 import {
@@ -966,7 +967,7 @@ export async function createDocumentRequirementAction(formData: FormData): Promi
     employeeId = parsed.employee_id;
     returnTo = safeReturnPath(parsed.return_to, "/employees");
 
-    await createDocumentRequirement(actor, {
+    const requirement = await createDocumentRequirement(actor, {
       employeeId: parsed.employee_id,
       documentType: parsed.document_type,
       dueDate: parsed.due_date ?? null,
@@ -974,6 +975,7 @@ export async function createDocumentRequirementAction(formData: FormData): Promi
       reviewRequired: parsed.review_required === "on",
       employeeUploadAllowed: parsed.employee_upload_allowed !== undefined,
     });
+    await notifyDocumentRequest(actor.tenantId, requirement.id);
   } catch (error) {
     failed = true;
     errorCode = getErrorCode(error);

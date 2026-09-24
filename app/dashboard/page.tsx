@@ -4,6 +4,9 @@ import { AppShell } from "@/components/AppShell";
 import { OverviewQueue, type OverviewQueueItem } from "@/components/OverviewQueue";
 import { getCompanyIdentity, getActorFirstName } from "@/lib/company/identity";
 import { loadControlCentreData } from "@/app/dashboard/data";
+import { listFailedDeliveries } from "@/services/notificationService";
+import { retryNotificationAction } from "@/app/notifications/actions";
+import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 
 export const dynamic = "force-dynamic";
 
@@ -25,11 +28,12 @@ function addDays(date: Date, days: number): Date {
 
 export default async function DashboardPage() {
   const actor = await requireTenantRole("admin");
-  const [{ savedDataStatus, allItems, resolvedItems, activeEmployeeCount, teamSummary: loadedTeamSummary }, identity, firstName] =
+  const [{ savedDataStatus, allItems, resolvedItems, activeEmployeeCount, teamSummary: loadedTeamSummary }, identity, firstName, failedNotifications] =
     await Promise.all([
       loadControlCentreData({ tenantId: actor.tenantId }),
       getCompanyIdentity(actor.tenantId),
       getActorFirstName(actor),
+      listFailedDeliveries(actor.tenantId),
     ]);
 
   const now = new Date();
@@ -97,6 +101,8 @@ export default async function DashboardPage() {
           </Link>
         </section>
       ) : null}
+
+      {failedNotifications.length > 0 ? <section className="mt-5 rounded-xl border border-signal-red/30 bg-signal-red/10 px-4 py-3"><h2 className="text-[14px] font-bold text-ink-900">Email delivery needs review</h2><ul className="mt-2 divide-y divide-signal-red/15">{failedNotifications.map((item) => <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 py-2 text-[13px]"><span><strong>{item.notification_type.replaceAll("_", " ")}</strong> could not be sent to {item.recipient_email ?? "the intended recipient"}. <span className="text-ink-500">{item.last_error_summary}</span></span>{item.attempt_count < 3 ? <form action={retryNotificationAction}><input type="hidden" name="delivery_id" value={item.id}/><PendingSubmitButton idleLabel="Retry" pendingLabel="Retrying…" className="tf-secondary-action px-3 py-1.5 text-[12px]"/></form> : null}</li>)}</ul></section> : null}
 
       <section className="mt-7" aria-labelledby="needs-attention-heading">
         <div className="mb-3 flex flex-wrap items-end justify-between gap-3">

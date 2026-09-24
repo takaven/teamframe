@@ -49,6 +49,8 @@ export const SCHEMA_ORDER = [
   "20260924_custom_fields.sql",
   // Group C closure: tenant-configurable onboarding checklist blueprints.
   "20260924_onboarding_checklists.sql",
+  // Group D: bounded notification delivery/idempotency ledger.
+  "20260924_notification_deliveries.sql",
   // Explicit service-layer API privileges follow the last table-creating file.
   "api_privileges.sql",
   // One-way HirePass provenance depends on the ordinary employee RPC and grants.

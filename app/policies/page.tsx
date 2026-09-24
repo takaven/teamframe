@@ -10,6 +10,7 @@ import { AppShell } from "@/components/AppShell";
 import { EmptyState } from "@/components/EmptyState";
 import { StatusPill, type StatusPillTone } from "@/components/StatusPill";
 import { archivePolicyAction, attachPolicyFileAction, createPolicyAction, downloadPolicyFileAction, publishPolicyAction, uploadPolicyAction } from "./actions";
+import { remindPolicyAction } from "@/app/notifications/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -300,6 +301,7 @@ export default async function PoliciesPage({
                                   <p className="tabular-nums text-ink-500">
                                     {entry.acknowledged_at ? formatDate(entry.acknowledged_at) : "-"}
                                   </p>
+                                  {entry.status !== "acknowledged" ? <form action={remindPolicyAction} className="sm:col-span-3 sm:justify-self-end"><input type="hidden" name="policy_id" value={policy.id}/><input type="hidden" name="employee_id" value={entry.employee_id}/><PendingSubmitButton idleLabel="Remind" pendingLabel="Sending…" className="tf-secondary-action px-3 py-1.5 text-[12px]"/></form> : null}
                                 </li>
                               ))}
                             </ul>

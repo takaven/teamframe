@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { notifyLeaveDecision } from "@/services/notificationService";
 import { requireTenantActor } from "@/middleware/rbac";
 import { cancelApprovedLeave, decideLeaveRequest, submitLeaveRequest, submitLeaveRequestForEmployee, withdrawPendingLeave } from "@/services/leaveService";
 import { getSignedDownloadUrl } from "@/services/documentService";
@@ -213,6 +214,7 @@ export async function decideLeaveAction(formData: FormData): Promise<void> {
         decisionNote: parsed.decision_note,
       },
     );
+    await notifyLeaveDecision(actor.tenantId, parsed.leave_id, parsed.decision);
   } catch (error) {
     failed = true;
     errorCode = getErrorCode(error);
