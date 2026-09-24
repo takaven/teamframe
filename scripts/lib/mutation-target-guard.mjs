@@ -2,7 +2,9 @@ import { APPROVED_LAUNCH_PROJECT_REFS } from "../approved-launch-projects.mjs";
 
 // These legacy direct-entry writers have no independently verified safe target.
 // The general launch allowlist includes populated and protected fixtures.
-export const APPROVED_DIRECT_MUTATION_REFS = new Set();
+export const APPROVED_DIRECT_MUTATION_REFS = new Set([
+  "dcfxyjrfsrkibhpbmjnw",
+]);
 
 // Run before loading any repository env file or constructing a service-role client.
 export function mutationTargetRef(command, env = process.env, eligibleRefs = APPROVED_DIRECT_MUTATION_REFS) {
