@@ -114,7 +114,7 @@ describe("guided company setup source contracts", () => {
     expect(service).not.toContain("createEmployee(actor");
     expect(service).not.toContain("createPosition(actor");
     expect(service).toContain("SETUP_ALREADY_COMPLETED");
-    expect(appShell).toContain('{ href: "/setup", label: "Setup" }');
+    expect(appShell).toContain('{ href: "/setup", label: "Settings" }');
   });
 
   it("keeps company setup completion transactional and audited at the database boundary", () => {

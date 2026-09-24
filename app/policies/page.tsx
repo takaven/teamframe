@@ -223,7 +223,7 @@ export default async function PoliciesPage({
             {policies.map((policy) => {
               const state = policyState(policy);
               return (
-                <li key={policy.id} className="px-5 py-4">
+                <li id={`policy-${policy.id}`} key={policy.id} className="scroll-mt-6 px-5 py-4">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="min-w-0 flex-1 space-y-1">
                       <p className="text-[15px] text-ink-900 font-medium">

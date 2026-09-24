@@ -152,11 +152,11 @@ describe("Org Chart schema and UI contracts", () => {
     expect(mutationSchema).toContain("position.vacated");
   });
 
-  it("exposes one Org Chart admin route and navigation item", () => {
+  it("preserves the Org Chart route while the simplified shell reaches it contextually", () => {
     const appShell = read("components/AppShell.tsx");
     const page = read("app/org-chart/page.tsx");
 
-    expect(appShell).toContain('{ href: "/org-chart", label: "Org chart" }');
+    expect(appShell).not.toContain('{ href: "/org-chart", label: "Org chart" }');
     expect(page).toContain("Design your team structure.");
     // Redesign: JD count now shown inline in the compact header summary ("N with JD").
     expect(page).toContain("with JD");

@@ -43,8 +43,8 @@ describe("MR-3B bounded manager delegation", () => {
   it("leads with actionable priorities and keeps the direct-report directory separate", () => {
     const managerPage = read("app/manager/page.tsx");
 
-    expect(managerPage).toContain("Manager Priorities");
-    expect(managerPage.indexOf("Manager Priorities")).toBeLessThan(managerPage.indexOf('>My Team</h2>'));
+    expect(managerPage).toContain("My team");
+    expect(managerPage.indexOf("My team")).toBeLessThan(managerPage.indexOf("Your current one-level direct reports"));
     expect(managerPage).toContain("dashboard.probationReviews.filter((review) => !review.manager_input)");
     expect(managerPage).not.toContain("dashboard.directReports.length > 0 ||");
     expect(managerPage).toContain("No manager work is assigned to you.");

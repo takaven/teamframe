@@ -45,7 +45,7 @@ async function getOptionalManagerDashboard(actor: Awaited<ReturnType<typeof requ
     return await getManagerDashboard(actor);
   } catch (error) {
     if (error instanceof Error && ["MANAGER_NOT_ACTIVE", "NO_EMPLOYEE_RECORD"].includes(error.message)) {
-      return { directReports: [], pendingLeaves: [], onboardingTasks: [], probationReviews: [] };
+      return { directReports: [], pendingLeaves: [], onboardingTasks: [], probationReviews: [], offboardingItems: [] };
     }
     throw error;
   }
@@ -86,21 +86,46 @@ export default async function MePage({
     getOptionalManagerDashboard(actor),
   ]);
   const isManager = managerDashboard.directReports.length > 0;
+  const outstandingDocuments = documentRequirements.filter((item) => !["accepted", "replaced", "cancelled"].includes(item.state));
+  const managerWorkCount = managerDashboard.pendingLeaves.length + managerDashboard.onboardingTasks.length + managerDashboard.probationReviews.filter((item) => !item.manager_input).length + managerDashboard.offboardingItems.length;
+  const personalTaskCount = outstandingDocuments.length + unacknowledgedPolicies.length + (checkInState.state === "available" ? 1 : 0);
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-14">
       <AppShell actor={actor} activePath="/me" />
 
       <div className="border-b border-ink-300/60 pb-5">
-        <p className="text-[12px] tracking-[0.14em] text-ink-500">My profile</p>
-        <h1 className="mt-2 text-[34px] leading-tight tracking-tight">{record.identity.full_name}</h1>
-        <p className="mt-1 text-[16px] text-ink-700">{record.employment.role_title} · {record.employment.department}</p>
+        <p className="text-[12px] tracking-[0.14em] text-ink-500">Home</p>
+        <h1 className="mt-2 text-[34px] leading-tight tracking-tight">What you need to do</h1>
+        <p className="mt-1 text-[14px] text-ink-500">Your tasks, documents and time off in one place.</p>
       </div>
 
       {successMessage ? <p className="mt-6 rounded-lg border border-accent/70 bg-white/80 px-4 py-3 text-[14px] text-accent">{successMessage}</p> : null}
       {errorMessage ? <p role="alert" className="mt-6 rounded-lg border border-signal-red/30 bg-signal-red/10 px-4 py-3 text-[14px] text-signal-red">{errorMessage}</p> : null}
 
-      <div className="mt-7">
+      <section className="mt-7 tf-surface-flat p-5" aria-labelledby="my-next-steps">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 id="my-next-steps" className="tf-h2">Needs your attention</h2>
+            <p className="mt-1 text-[13px] text-ink-500">{personalTaskCount === 0 ? "You're up to date." : `${personalTaskCount} ${personalTaskCount === 1 ? "item" : "items"} to complete.`}</p>
+          </div>
+          {isManager ? <Link href="/manager" className="tf-secondary-action px-4 py-2 text-[13px]">My team{managerWorkCount > 0 ? ` · ${managerWorkCount}` : ""}</Link> : null}
+        </div>
+        {personalTaskCount > 0 ? (
+          <div className="mt-4 grid gap-2 sm:grid-cols-3">
+            {outstandingDocuments.length > 0 ? <Link href="/me#documents" className="rounded-xl border border-ink-200 bg-white/60 p-3 text-[13px] font-medium">Upload {outstandingDocuments.length} requested {outstandingDocuments.length === 1 ? "document" : "documents"}</Link> : null}
+            {unacknowledgedPolicies.length > 0 ? <Link href="/me#policies" className="rounded-xl border border-ink-200 bg-white/60 p-3 text-[13px] font-medium">Acknowledge {unacknowledgedPolicies.length} {unacknowledgedPolicies.length === 1 ? "policy" : "policies"}</Link> : null}
+            {checkInState.state === "available" ? <Link href="/me#check-in" className="rounded-xl border border-ink-200 bg-white/60 p-3 text-[13px] font-medium">Complete 30-day check-in</Link> : null}
+          </div>
+        ) : null}
+      </section>
+
+      <div id="profile" className="mt-7 scroll-mt-6 border-b border-ink-200 pb-3">
+        <p className="text-[12px] uppercase tracking-[0.12em] text-ink-500">My profile</p>
+        <h2 className="mt-1 text-[24px] font-semibold tracking-tight">{record.identity.full_name}</h2>
+        <p className="mt-1 text-[14px] text-ink-600">{record.employment.role_title} · {record.employment.department}</p>
+      </div>
+      <div className="mt-5">
         <EmployeeSelfRecord record={record} />
       </div>
 
@@ -113,7 +138,7 @@ export default async function MePage({
       </section>
 
       {unacknowledgedPolicies.length > 0 ? (
-        <section id="policies" className="mt-6 tf-surface-flat">
+        <section id="policies" className="mt-6 scroll-mt-6 tf-surface-flat">
           <div className="border-b border-ink-200 px-5 py-4">
             <h2 className="text-[15px] font-bold tracking-tight">Policies to acknowledge — <span className="tabular-nums">{unacknowledgedPolicies.length}</span></h2>
             <p className="mt-1 text-[13px] text-ink-500">Read each policy, then confirm you have understood it. Your acknowledgement is recorded.</p>
@@ -167,7 +192,7 @@ export default async function MePage({
       ) : null}
 
       {checkInState.state === "available" ? (
-        <section className="mt-6 tf-surface-flat">
+        <section id="check-in" className="mt-6 scroll-mt-6 tf-surface-flat">
           <div className="border-b border-ink-200 px-5 py-4">
             <h2 className="text-[15px] font-bold tracking-tight">30-day check-in</h2>
             <p className="mt-1 text-[13px] text-ink-500">Share factual first-month feedback so the team can remove any blockers.</p>
@@ -220,7 +245,7 @@ export default async function MePage({
         <section className="mt-6 tf-surface-flat p-5">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h2 className="text-[15px] font-bold tracking-tight">My Team</h2>
+              <h2 className="text-[15px] font-bold tracking-tight">My team</h2>
               <p className="mt-1 text-[13px] text-ink-500">Your direct reports — leave decisions, onboarding, and probation input.</p>
             </div>
             <Link href="/manager" className="tf-primary-action px-4 py-2 text-[13px] font-medium">Open My Team</Link>

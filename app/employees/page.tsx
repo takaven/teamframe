@@ -202,10 +202,10 @@ function getResendCooldownSeconds(lastAttemptAt: string | null): number {
 export default async function EmployeesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; error?: string; employee?: string; activation_link?: string; q?: string; filter?: string }>;
+  searchParams: Promise<{ status?: string; error?: string; employee?: string; activation_link?: string; q?: string; filter?: string; tab?: string }>;
 }) {
   const actor = await requireTenantActor();
-  const { status, error, employee: employeeParam, activation_link: activationLink, q, filter } = await searchParams;
+  const { status, error, employee: employeeParam, activation_link: activationLink, q, filter, tab } = await searchParams;
 
   const successMessage = status ? (STATUS_COPY[status] ?? null) : null;
   const errorMessage = error ? (ERROR_COPY[error] ?? ERROR_COPY.UNKNOWN) : null;
@@ -313,7 +313,7 @@ export default async function EmployeesPage({
   const inviteActivated = currentEmployees.filter((e) => e.setup_status === "active").length;
   const archived = employees.filter((e) => e.canonical_lifecycle === "FORMER").length;
   const query = (q ?? "").trim().toLowerCase();
-  const activeFilter = filter === "attention" || filter === "active" || filter === "archived" ? filter : "all";
+  const activeFilter = filter === "attention" || filter === "active" || filter === "pre_start" || filter === "offboarding" || filter === "archived" ? filter : "all";
 
   function inviteState(employeeRecord: (typeof employees)[number]): {
     label: "Pending delivery" | "Sent" | "Activated" | "Archived" | "Delivery failed" | "Rate limited";
@@ -377,6 +377,7 @@ export default async function EmployeesPage({
     const matchesQuery =
       !query ||
       employee.full_name.toLowerCase().includes(query) ||
+      employee.employee_number?.toLowerCase().includes(query) ||
       employee.email.toLowerCase().includes(query) ||
       employee.role_title.toLowerCase().includes(query) ||
       employee.department.toLowerCase().includes(query);
@@ -387,6 +388,8 @@ export default async function EmployeesPage({
       activeFilter === "all" ||
       (activeFilter === "attention" && hasAttention) ||
       (activeFilter === "active" && employee.canonical_lifecycle !== "FORMER") ||
+      (activeFilter === "pre_start" && employee.canonical_lifecycle === "PRE_START") ||
+      (activeFilter === "offboarding" && employee.canonical_lifecycle === "OFFBOARDING") ||
       (activeFilter === "archived" && employee.canonical_lifecycle === "FORMER");
     return matchesQuery && matchesFilter;
   });
@@ -396,7 +399,7 @@ export default async function EmployeesPage({
       <AppShell actor={actor} activePath="/employees" />
       <div className="flex flex-wrap items-center justify-between gap-4 pb-5">
         <div>
-          <h1 className="tf-h1">Employees</h1>
+          <h1 className="tf-h1">People</h1>
           <p className="tf-meta mt-1 tf-num">
             {inviteActivated} active · {invitePending + inviteSent} awaiting sign-in{archived > 0 ? ` · ${archived} archived` : ""}
           </p>
@@ -405,7 +408,7 @@ export default async function EmployeesPage({
           <input
             name="q"
             defaultValue={q ?? ""}
-            placeholder="Search name, role, department"
+            placeholder="Search name, number, role, department"
             className="h-9 min-w-0 flex-1 rounded-lg border border-ink-300 bg-white px-3 text-[13px] text-ink-900 sm:w-60"
           />
           <select
@@ -416,6 +419,8 @@ export default async function EmployeesPage({
             <option value="all">All</option>
             <option value="attention">Needs attention</option>
             <option value="active">Active</option>
+            <option value="pre_start">Starting</option>
+            <option value="offboarding">Leaving</option>
             <option value="archived">Archived</option>
           </select>
           <button type="submit" className="tf-secondary-action h-9 px-4 text-[13px] font-medium">Search</button>
@@ -576,7 +581,7 @@ export default async function EmployeesPage({
               <div className="mt-6">
               <SectionTabs
                 ariaLabel="Employee record sections"
-                initialId="employment"
+                initialId={tab}
                 tabs={[
                   { id: "employment", label: "Employment" },
                   { id: "personal", label: "Personal" },

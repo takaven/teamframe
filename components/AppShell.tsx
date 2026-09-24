@@ -12,24 +12,24 @@ import { getCompanyIdentity } from "@/lib/company/identity";
 // oversight) is a secondary lifecycle destination reached contextually from Onboarding, not a
 // permanent top-level module. Company/Access/Guided Setup live under Setup.
 const ADMIN_LINKS = [
-  { href: "/dashboard", label: "Overview" },
-  { href: "/org-chart", label: "Org chart" },
-  { href: "/employees", label: "Employees" },
-  { href: "/onboarding", label: "Onboarding" },
-  { href: "/leaves", label: "Leave" },
+  { href: "/dashboard", label: "Home" },
+  { href: "/employees", label: "People" },
+  { href: "/leaves", label: "Time off" },
+  { href: "/employees?tab=documents", label: "Documents" },
   { href: "/policies", label: "Policies" },
 ] as const;
 
-const SETUP_LINK = { href: "/setup", label: "Setup" } as const;
+const SETUP_LINK = { href: "/setup", label: "Settings" } as const;
 
 // Documents and Policies are sections within /me, not separate destinations.
 const EMPLOYEE_LINKS = [
-  { href: "/me", label: "Me" },
-  { href: "/onboarding", label: "Onboarding" },
-  { href: "/leaves", label: "Leave" },
+  { href: "/me", label: "Home" },
+  { href: "/me#profile", label: "Me" },
+  { href: "/leaves", label: "Time off" },
+  { href: "/me#documents", label: "Documents & policies" },
 ] as const;
 
-const MANAGER_PRIORITIES_LINK = { href: "/manager", label: "Manager Priorities" } as const;
+const MANAGER_PRIORITIES_LINK = { href: "/manager", label: "My team" } as const;
 
 // Manager status = the employee currently has at least one direct report.
 async function hasDirectReports(actor: Actor): Promise<boolean> {
@@ -67,7 +67,7 @@ export async function AppShell({
   const workspaceHome = actor.role === "admin" ? "/dashboard" : "/me";
 
   const primaryLinks = isAdminSurface ? ADMIN_LINKS : (showManagerPriorities ? [...EMPLOYEE_LINKS, MANAGER_PRIORITIES_LINK] : [...EMPLOYEE_LINKS]);
-  const isActive = (href: string) => href === activePath || (href.startsWith(`${activePath}#`) && activePath === "/me");
+  const isActive = (href: string) => href.split(/[?#]/)[0] === activePath;
 
   return (
     <>
@@ -152,7 +152,7 @@ export async function AppShell({
           </summary>
           <nav className="rounded-b-[14px] bg-white pb-3 pt-2 text-ink-500 shadow-[0_18px_44px_-30px_rgba(15,17,21,.45)]" aria-label="Mobile primary">
             {links.map((link) => {
-              const active = link.href === activePath || (link.href.startsWith(`${activePath}#`) && activePath === "/me");
+              const active = isActive(link.href);
               return (
                 <Link
                   key={link.href}
@@ -168,7 +168,7 @@ export async function AppShell({
               );
             })}
             <p className="px-[18px] pt-2 text-[13px] text-ink-500">
-              Documents and exports are reached from the records they belong to.
+              Records and actions open in the part of TeamFrame where the work is completed.
             </p>
             <SignOutButton className="px-[18px] pt-4" />
           </nav>

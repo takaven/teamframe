@@ -46,6 +46,14 @@ function days(value: number): string {
   return `${value} day${value === 1 ? "" : "s"}`;
 }
 
+function employmentStatus(lifecycle: string, status: string): string {
+  if (lifecycle === "preboarding") return "Pre-start";
+  if (lifecycle === "offboarding") return "Offboarding";
+  if (lifecycle === "exited" || status === "inactive") return "Former";
+  if (lifecycle === "on_leave" || status === "on_leave") return "On leave";
+  return lifecycle === "active" ? "Active" : "Onboarding";
+}
+
 export default async function ManagerPage({
   searchParams,
 }: {
@@ -86,7 +94,7 @@ export default async function ManagerPage({
 
       <div className="border-b border-ink-300/60 pb-5">
         <p className="text-[12px] tracking-[0.14em] text-ink-500">People</p>
-        <h1 className="mt-2 text-[34px] leading-tight tracking-tight">Manager Priorities</h1>
+        <h1 className="mt-2 text-[34px] leading-tight tracking-tight">My team</h1>
         <p className="mt-1 max-w-2xl text-[14px] text-ink-500">
           Decisions and actions that need you now. Your team directory is below. Salary, payment details, private documents and organisation changes remain restricted.
         </p>
@@ -94,7 +102,7 @@ export default async function ManagerPage({
 
       {employeeParam ? (
         <section className="mt-7 tf-surface-flat p-5">
-          <Link href="/manager" className="text-[13px] text-ink-600 hover:text-ink-900">← Back to Manager Priorities</Link>
+          <Link href="/manager" className="text-[13px] text-ink-600 hover:text-ink-900">← Back to My team</Link>
           {reportRecord ? (
             <div className="mt-3">
               <h2 className="text-[20px] font-bold text-ink-900">{reportRecord.identity.full_name}</h2>
@@ -104,7 +112,7 @@ export default async function ManagerPage({
                 <div><dt className="text-ink-500">Department</dt><dd className="text-ink-900">{reportRecord.employment.department}</dd></div>
                 <div><dt className="text-ink-500">Work location</dt><dd className="text-ink-900">{reportRecord.employment.work_location ?? "—"}</dd></div>
                 <div><dt className="text-ink-500">Employment type</dt><dd className="text-ink-900">{reportRecord.employment.employment_type.replace(/_/g, " ")}</dd></div>
-                <div><dt className="text-ink-500">Status</dt><dd className="capitalize text-ink-900">{(reportRecord.employment.status || reportRecord.employment.lifecycle_state).replace(/_/g, " ")}</dd></div>
+                <div><dt className="text-ink-500">Status</dt><dd className="text-ink-900">{employmentStatus(reportRecord.employment.lifecycle_state, reportRecord.employment.status)}</dd></div>
                 <div><dt className="text-ink-500">Company email</dt><dd className="text-ink-900">{reportRecord.contact.company_email}</dd></div>
                 <div><dt className="text-ink-500">Company phone</dt><dd className="text-ink-900">{reportRecord.contact.company_phone ?? "—"}</dd></div>
                 <div><dt className="text-ink-500">Emergency contact</dt><dd className="text-ink-900">{reportRecord.emergency_contact.name ?? "—"}{reportRecord.emergency_contact.phone ? ` · ${reportRecord.emergency_contact.phone}` : ""}</dd></div>

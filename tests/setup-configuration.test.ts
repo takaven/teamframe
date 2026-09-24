@@ -45,7 +45,7 @@ describe("Phase 3 — Setup / Administration configuration", () => {
   });
 
   it("navigation re-homes Company and Access under Setup (removed from primary admin nav)", () => {
-    expect(appShell).toContain('{ href: "/setup", label: "Setup" }');
+    expect(appShell).toContain('{ href: "/setup", label: "Settings" }');
     expect(appShell).not.toContain('{ href: "/company", label: "Company" }');
     expect(appShell).not.toContain('{ href: "/access", label: "Access" }');
     // Setup entry-point leads with presets and re-homes access + holidays.

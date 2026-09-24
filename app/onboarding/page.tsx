@@ -249,7 +249,7 @@ export default async function OnboardingPage({
             </div>
             <ul className="divide-y divide-ink-300/40">
               {pending.map((task) => (
-                <li key={task.id} className="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
+                <li id={`task-${task.id}`} key={task.id} className="scroll-mt-6 flex flex-wrap items-center justify-between gap-4 px-5 py-4">
                   <div className="min-w-0 flex-1 space-y-0.5">
                     <p className="text-[15px] text-ink-900">{task.title}</p>
                     <p className="text-[12px] text-ink-500">

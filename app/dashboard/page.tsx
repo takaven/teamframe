@@ -17,9 +17,15 @@ function formatResolvedAt(iso: string): string {
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
+function addDays(date: Date, days: number): Date {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+}
+
 export default async function DashboardPage() {
   const actor = await requireTenantRole("admin");
-  const [{ savedDataStatus, summary, allItems, resolvedItems, activeEmployeeCount }, identity, firstName] =
+  const [{ savedDataStatus, summary, allItems, resolvedItems, activeEmployeeCount, teamSummary: loadedTeamSummary }, identity, firstName] =
     await Promise.all([
       loadControlCentreData({ tenantId: actor.tenantId }),
       getCompanyIdentity(actor.tenantId),
@@ -27,10 +33,19 @@ export default async function DashboardPage() {
     ]);
 
   const now = new Date();
+  const teamSummary = loadedTeamSummary ?? { startingThisMonth: 0, leavingThisMonth: 0, awayToday: 0 };
   const dateLabel = now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
   const hello = firstName ? `${greeting(now.getHours())}, ${firstName}` : greeting(now.getHours());
 
-  const queueItems: OverviewQueueItem[] = allItems.map((item) => ({
+  const attentionCutoff = addDays(now, 7).toISOString();
+  const comingUpCutoff = addDays(now, 30).toISOString();
+  const needsAttention = allItems
+    .filter((item) => !item.dueAt || item.dueAt <= attentionCutoff || item.class !== "due")
+    .slice(0, 10);
+  const comingUp = allItems
+    .filter((item) => item.dueAt && item.dueAt > attentionCutoff && item.dueAt <= comingUpCutoff)
+    .slice(0, 8);
+  const queueItems: OverviewQueueItem[] = needsAttention.map((item) => ({
     id: item.id,
     class: item.class,
     source: item.source,
@@ -43,11 +58,11 @@ export default async function DashboardPage() {
     detail: item.detail,
   }));
   const counts = {
-    all: summary.total,
-    decision: summary.decisions,
-    overdue: summary.overdue,
-    due: summary.due,
-    exception: summary.exceptions,
+    all: needsAttention.length,
+    decision: needsAttention.filter((item) => item.class === "decision").length,
+    overdue: needsAttention.filter((item) => item.class === "overdue").length,
+    due: needsAttention.filter((item) => item.class === "due").length,
+    exception: needsAttention.filter((item) => item.class === "exception").length,
   };
 
   return (
@@ -60,8 +75,8 @@ export default async function DashboardPage() {
           <p className="tf-meta mt-1">{identity.name} · {dateLabel}</p>
         </div>
         <p className="tf-meta">
-          {summary.total === 0 ? "All clear" : (
-            <><span className="font-semibold text-ink-900 tf-num">{summary.total}</span> open {summary.total === 1 ? "item" : "items"}</>
+          {needsAttention.length === 0 ? "Nothing needs your attention" : (
+            <><span className="font-semibold text-ink-900 tf-num">{needsAttention.length}</span> need your attention</>
           )}
           <span className="mx-2 text-ink-300">·</span>
           <span className="tf-num">{activeEmployeeCount}</span> active
@@ -83,15 +98,72 @@ export default async function DashboardPage() {
         </section>
       ) : null}
 
-      <section className="mt-7">
+      <section className="mt-7" aria-labelledby="needs-attention-heading">
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="tf-kicker">Today</p>
+            <h2 id="needs-attention-heading" className="tf-h2 mt-1">Needs your attention</h2>
+          </div>
+          {summary.total > needsAttention.length ? <p className="text-[12px] text-ink-500">Showing the first {needsAttention.length} of {summary.total}</p> : null}
+        </div>
         <OverviewQueue items={queueItems} counts={counts} />
+      </section>
+
+      <div className="mt-8 grid gap-6 lg:grid-cols-[1.35fr_.9fr]">
+        <section className="tf-surface-flat p-5" aria-labelledby="coming-up-heading">
+          <div className="flex items-baseline justify-between gap-4">
+            <h2 id="coming-up-heading" className="tf-h2">Coming up</h2>
+            <span className="text-[12px] text-ink-500">Next 30 days</span>
+          </div>
+          {comingUp.length === 0 ? (
+            <p className="mt-4 text-[13.5px] text-ink-500">No scheduled people events in the next 30 days.</p>
+          ) : (
+            <ul className="mt-3 divide-y divide-ink-100">
+              {comingUp.map((item) => (
+                <li key={item.id}>
+                  <Link href={item.href} className="flex items-center justify-between gap-4 py-3 text-[13px] hover:text-ink-900">
+                    <span><span className="font-medium text-ink-800">{item.title}</span><span className="mt-0.5 block text-[12px] text-ink-500">{item.subjectName}</span></span>
+                    <span className="shrink-0 tabular-nums text-ink-500">{item.dueAt ? formatResolvedAt(item.dueAt) : ""}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="tf-surface-flat p-5" aria-labelledby="your-team-heading">
+          <h2 id="your-team-heading" className="tf-h2">Your team</h2>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            {[
+              ["Active", activeEmployeeCount, "/employees?filter=active"],
+              ["Starting this month", teamSummary.startingThisMonth, "/employees?filter=pre_start"],
+              ["Leaving this month", teamSummary.leavingThisMonth, "/employees?filter=offboarding"],
+              ["Away today", teamSummary.awayToday, "/leaves?view=calendar"],
+            ].map(([label, value, href]) => (
+              <Link key={String(label)} href={String(href)} className="rounded-xl border border-ink-200 bg-white/60 p-3 transition hover:border-ink-400">
+                <span className="block text-[22px] font-semibold tabular-nums text-ink-900">{value}</span>
+                <span className="mt-0.5 block text-[11.5px] text-ink-500">{label}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      <section className="mt-8" aria-labelledby="quick-actions-heading">
+        <h2 id="quick-actions-heading" className="tf-h2">Quick actions</h2>
+        <div className="mt-3 flex flex-wrap gap-3">
+          <Link href="/employees#add-employee" className="tf-primary-action px-4 py-2 text-[13px]">Add person</Link>
+          <Link href="/employees?tab=documents" className="tf-secondary-action px-4 py-2 text-[13px]">Request document</Link>
+          <Link href="/leaves" className="tf-secondary-action px-4 py-2 text-[13px]">Record time off</Link>
+          <Link href="/policies#upload" className="tf-secondary-action px-4 py-2 text-[13px]">New policy</Link>
+        </div>
       </section>
 
       {resolvedItems.length > 0 ? (
         <section className="mt-8">
           <details className="group tf-surface-flat px-5 py-4">
             <summary className="flex cursor-pointer list-none items-center justify-between text-[13.5px] font-semibold text-ink-700 marker:hidden">
-              <span>Recently resolved</span>
+              <span>Recently done</span>
               <span className="text-[12px] font-normal text-ink-500 group-open:hidden">{resolvedItems.length} · show</span>
               <span className="hidden text-[12px] font-normal text-ink-500 group-open:inline">hide</span>
             </summary>
@@ -100,7 +172,7 @@ export default async function DashboardPage() {
                 <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 border-b border-ink-100 py-2.5 last:border-b-0">
                   <div className="min-w-0">
                     <p className="text-[14px] font-medium text-ink-800">{item.title}</p>
-                    <p className="mt-0.5 text-[12px] text-ink-500">{item.subjectName} · {item.detail}</p>
+                    <p className="mt-0.5 text-[12px] text-ink-500">{item.subjectName} · Done</p>
                   </div>
                   <span className="text-[12px] tabular-nums text-ink-500">{formatResolvedAt(item.resolvedAt)}</span>
                 </li>

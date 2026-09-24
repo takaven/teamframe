@@ -118,7 +118,7 @@ export default async function EarlyEmploymentPage({
           ) : (
             <ul className="divide-y divide-ink-300/40">
               {[...openProbationReviews, ...completedProbationReviews].slice(0, 8).map((review) => (
-                <li key={review.id} className="space-y-3 px-5 py-4">
+                <li id={`probation-${review.id}`} key={review.id} className="scroll-mt-6 space-y-3 px-5 py-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-[14px] font-medium text-ink-900">{employeeMap.get(review.employee_id) ?? "Team member"}</p>

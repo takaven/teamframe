@@ -165,10 +165,10 @@ describe("Control Centre data", () => {
       resolved: 1,
     });
     expect(result.allItems.map((item) => item.id)).toEqual([
-      "signal:signal-open",
       "document:doc-overdue",
       "document:doc-review",
       "leave:leave-pending",
+      "signal:signal-open",
     ]);
     expect(result.allItems.find((item) => item.id === "leave:leave-pending")).toMatchObject({
       owner: "Manager or Admin",
@@ -290,7 +290,7 @@ describe("Control Centre data", () => {
     expect(result.allItems).toHaveLength(8);
   });
 
-  it("orders future work by deadline within its urgency group, even when owner priorities differ", async () => {
+  it("places work needing a decision before ordinary future work", async () => {
     db.onboarding_tasks = [
       {
         id: "december-admin", tenant_id: "TENANT_A", employee_id: "emp-active",
@@ -309,7 +309,7 @@ describe("Control Centre data", () => {
     });
 
     expect(result.allItems.map((item) => item.id)).toEqual([
-      "onboarding:october-employee", "onboarding:december-admin",
+      "onboarding:december-admin", "onboarding:october-employee",
     ]);
   });
 

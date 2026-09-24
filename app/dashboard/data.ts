@@ -51,6 +51,11 @@ export type ControlCentreData = {
   allItems: ControlCentreItem[];
   resolvedItems: ResolvedControlCentreItem[];
   activeEmployeeCount: number;
+  teamSummary: {
+    startingThisMonth: number;
+    leavingThisMonth: number;
+    awayToday: number;
+  };
 };
 
 type EmployeeRow = {
@@ -178,6 +183,7 @@ function savedDataTimeoutAfter(ms: number): Promise<ControlCentreData> {
           allItems: [],
           resolvedItems: [],
           activeEmployeeCount: 0,
+          teamSummary: { startingThisMonth: 0, leavingThisMonth: 0, awayToday: 0 },
         }),
       ms,
     );
@@ -264,6 +270,10 @@ function sourcePath(source: string): string {
   return "/employees";
 }
 
+function employeePath(employeeId: string, tab = "employment"): string {
+  return `/employees?employee=${encodeURIComponent(employeeId)}&tab=${encodeURIComponent(tab)}#employee-${encodeURIComponent(employeeId)}`;
+}
+
 function signalTitle(kind: string): string {
   if (kind === "expired_document") return "Expired document";
   if (kind === "expiring_document") return "Document expiring soon";
@@ -274,14 +284,14 @@ function signalTitle(kind: string): string {
   if (kind === "leave_conflict") return "Leave conflict";
   if (kind === "onboarding_check_in_follow_up") return "30-day check-in follow-up";
   if (kind === "missing_jurisdiction_requirement") return "Missing jurisdiction document";
-  return "Operational exception";
+  return "Something needs attention";
 }
 
 function signalDetail(signal: RiskSignalRow): string {
   const what = signal.evidence?.what_is_wrong;
   return typeof what === "string" && what.trim().length > 0
     ? what
-    : "A meaningful exception requires attention.";
+    : "This needs review before the record is complete.";
 }
 
 function automationTitle(row: AutomationRow): string {
@@ -303,7 +313,7 @@ function automationDetail(row: AutomationRow): string {
 }
 
 function compareItems(a: ControlCentreItem, b: ControlCentreItem): number {
-  const urgency = (item: ControlCentreItem) => item.class === "exception" ? 0 : item.class === "overdue" ? 1 : 2;
+  const urgency = (item: ControlCentreItem) => item.class === "overdue" ? 0 : item.class === "decision" ? 1 : item.class === "due" ? 2 : 3;
   if (urgency(a) !== urgency(b)) return urgency(a) - urgency(b);
   const aDue = a.dueAt ?? a.updatedAt;
   const bDue = b.dueAt ?? b.updatedAt;
@@ -351,7 +361,7 @@ function buildPolicyItems(input: {
         nextAction: "Acknowledge the current policy version",
         dueAt: null,
         updatedAt: policy.updated_at,
-        href: "/policies",
+        href: `/policies#policy-${policy.id}`,
         detail: "Published policy version requires acknowledgement.",
         priority: 40,
       });
@@ -377,6 +387,7 @@ function buildControlCentreItems(input: {
   allItems: ControlCentreItem[];
   resolvedItems: ResolvedControlCentreItem[];
   activeEmployeeCount: number;
+  teamSummary: ControlCentreData["teamSummary"];
 } {
   const today = dateOnly(input.now);
   const names = employeeMap(input.employees);
@@ -399,7 +410,7 @@ function buildControlCentreItems(input: {
       nextAction: "Approve or reject the leave request",
       dueAt,
       updatedAt: leave.updated_at,
-      href: "/leaves",
+      href: `/leaves?leave=${encodeURIComponent(leave.id)}`,
       detail: `${leave.leave_type} leave from ${leave.start_date} to ${leave.end_date}.`,
       priority: itemClass === "overdue" ? 10 : 20,
     });
@@ -429,7 +440,7 @@ function buildControlCentreItems(input: {
       nextAction: isReviewDecision ? "Review submitted evidence" : "Provide the required document",
       dueAt,
       updatedAt: request.updated_at,
-      href: "/employees",
+      href: employeePath(request.employee_id, "documents"),
       detail: isExpired ? "Document requirement expired without current replacement." : "Configured document evidence is outstanding.",
       priority: itemClass === "exception" || itemClass === "overdue" ? 10 : isReviewDecision ? 20 : 40,
     });
@@ -463,7 +474,7 @@ function buildControlCentreItems(input: {
       nextAction: "Complete the onboarding task",
       dueAt,
       updatedAt: task.updated_at,
-      href: "/onboarding",
+      href: `/onboarding?employee=${encodeURIComponent(task.employee_id)}#task-${encodeURIComponent(task.id)}`,
       detail: task.owner_role === "admin" ? "Admin-owned onboarding work requires a decision or confirmation." : "Onboarding work is due.",
       priority: itemClass === "overdue" ? 10 : task.owner_role === "admin" ? 20 : 40,
     });
@@ -484,7 +495,7 @@ function buildControlCentreItems(input: {
       nextAction: "Record the probation decision",
       dueAt,
       updatedAt: review.updated_at,
-      href: "/onboarding",
+      href: `/early-employment#probation-${encodeURIComponent(review.id)}`,
       detail: "Human probation outcome is required.",
       priority: itemClass === "overdue" ? 10 : 20,
     });
@@ -509,7 +520,7 @@ function buildControlCentreItems(input: {
       nextAction: "Complete the exit task",
       dueAt,
       updatedAt: item.updated_at,
-      href: "/employees",
+      href: employeePath(item.employee_id, "account"),
       detail: "Exit workflow item is still open.",
       priority: itemClass === "overdue" ? 10 : item.owner_role === "admin" ? 20 : 40,
     });
@@ -535,7 +546,7 @@ function buildControlCentreItems(input: {
       nextAction: "Resolve the remaining exit work",
       dueAt: dueDateAtStart(offboardingCase.effective_end_date),
       updatedAt: offboardingCase.updated_at,
-      href: "/employees",
+      href: employeePath(offboardingCase.employee_id, "account"),
       detail: "End date has passed while required exit work remains incomplete.",
       priority: 5,
     });
@@ -572,10 +583,12 @@ function buildControlCentreItems(input: {
       title: signalTitle(signal.kind),
       subjectName: employeeName(names, signal.subject_employee_id),
       owner: "Owner not assigned",
-      nextAction: "Investigate and resolve the exception",
+      nextAction: signal.kind.includes("document") || signal.kind === "missing_contract" ? "Review the employee document" : "Fix the problem",
       dueAt: null,
       updatedAt: signal.last_seen_at,
-      href: sourcePath(signal.kind),
+      href: signal.subject_employee_id
+        ? employeePath(signal.subject_employee_id, signal.kind.includes("document") || signal.kind === "missing_contract" ? "documents" : "employment")
+        : sourcePath(signal.kind),
       detail: signalDetail(signal),
       priority: signal.severity === "red" ? 5 : 15,
     });
@@ -592,8 +605,8 @@ function buildControlCentreItems(input: {
       title: signalTitle(signal.kind),
       subjectName: employeeName(names, signal.subject_employee_id),
       resolvedAt: signal.resolved_at!,
-      href: sourcePath(signal.kind),
-      detail: "Resolution retained in Signal and audit history.",
+      href: signal.subject_employee_id ? employeePath(signal.subject_employee_id) : sourcePath(signal.kind),
+      detail: "Completion is retained in the activity history.",
     }));
 
   const sortedItems = items.sort(compareItems);
@@ -601,6 +614,11 @@ function buildControlCentreItems(input: {
     allItems: sortedItems,
     resolvedItems,
     activeEmployeeCount: activeIds.size,
+    teamSummary: {
+      startingThisMonth: input.employees.filter((employee) => employee.start_date?.startsWith(today.slice(0, 7)) && projectEmployeeLifecycle(employee, input.now) === "PRE_START").length,
+      leavingThisMonth: input.offboardingCases.filter((item) => item.status === "active" && item.effective_end_date.startsWith(today.slice(0, 7))).length,
+      awayToday: input.leaves.filter((leave) => leave.status === "approved" && leave.start_date <= today && leave.end_date >= today).length,
+    },
   };
 }
 
@@ -720,6 +738,7 @@ export async function loadControlCentreData(params: {
       allItems: derived.allItems,
       resolvedItems: derived.resolvedItems,
       activeEmployeeCount: derived.activeEmployeeCount,
+      teamSummary: derived.teamSummary,
     };
   };
 
@@ -739,6 +758,7 @@ export async function loadControlCentreData(params: {
       allItems: [],
       resolvedItems: [],
       activeEmployeeCount: 0,
+      teamSummary: { startingThisMonth: 0, leavingThisMonth: 0, awayToday: 0 },
     };
   }
 }

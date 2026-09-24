@@ -127,8 +127,8 @@ export default async function LeavesPage({
 
         <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink-300/60 pb-5">
           <div className="space-y-2">
-            <p className="text-[12px] tracking-[0.14em] text-ink-500">Leave administration</p>
-            <h1 className="text-[34px] leading-tight tracking-tight">Leave</h1>
+            <p className="text-[12px] tracking-[0.14em] text-ink-500">Team availability</p>
+            <h1 className="text-[34px] leading-tight tracking-tight">Time off</h1>
             <p className="text-[14px] text-ink-500">Review requests, protect balances and keep absence records truthful.</p>
           </div>
         </div>

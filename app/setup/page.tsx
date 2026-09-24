@@ -126,7 +126,7 @@ export default async function SetupPage({
     <main className="mx-auto max-w-6xl px-6 py-14">
       <AppShell actor={actor} activePath="/setup" />
       <div className="pb-5">
-        <h1 className="tf-h1">Setup</h1>
+        <h1 className="tf-h1">Settings</h1>
         <p className="tf-meta mt-1">Configure your TeamFrame workspace.</p>
       </div>
 

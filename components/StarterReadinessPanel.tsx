@@ -14,10 +14,10 @@ export function StarterReadinessPanel({
     <section data-tab="employment" className="rounded-xl border border-ink-200 bg-white/70 p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h4 className="tf-h3">Configured pre-start checks</h4>
+          <h4 className="tf-h3">Ready to start?</h4>
           <p className="mt-1 text-[12px] text-ink-500">Only tasks and evidence requests due by the start date. This does not prove legal compliance or invite delivery.</p>
         </div>
-        <StatusPill tone={ready ? "green" : "amber"}>{ready ? "READY" : "ACTION REQUIRED"}</StatusPill>
+        <StatusPill tone={ready ? "green" : "amber"}>{ready ? "Ready" : `${blockers.length} ${blockers.length === 1 ? "thing" : "things"} to do`}</StatusPill>
       </div>
       <p className="mt-2 text-[12px] text-ink-600">{checked} configured pre-start checks · Start date: {startDate ?? "Missing"}</p>
       <p className="mt-1 text-[12px] text-ink-600">Account: {accountState}. This is separate from pre-start checks.</p>

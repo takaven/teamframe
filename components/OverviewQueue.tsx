@@ -20,10 +20,10 @@ type Filter = "all" | "decision" | "overdue" | "due" | "exception";
 
 const FILTERS: { key: Filter; label: string }[] = [
   { key: "all", label: "All" },
-  { key: "exception", label: "Exceptions" },
+  { key: "exception", label: "Problems" },
   { key: "overdue", label: "Overdue" },
-  { key: "decision", label: "Decisions" },
-  { key: "due", label: "Due" },
+  { key: "decision", label: "Needs a decision" },
+  { key: "due", label: "Due this week" },
 ];
 
 function dotClass(v: OverviewQueueItem["class"]): string {
@@ -34,7 +34,7 @@ function sourceLabel(source: string): string {
   if (source.startsWith("document")) return "Documents";
   if (source.startsWith("onboarding")) return "Onboarding";
   if (source.startsWith("probation")) return "Probation";
-  if (source.startsWith("leave")) return "Leave";
+  if (source.startsWith("leave")) return "Time off";
   if (source.startsWith("offboarding")) return "Offboarding";
   return "People";
 }
@@ -44,19 +44,27 @@ function formatDue(iso: string | null): string {
 }
 
 function Row({ item }: { item: OverviewQueueItem }) {
+  const actionLabel = (item.nextAction || "Open")
+    .replace(/^Approve or reject/i, "Review")
+    .replace(/^Provide/i, "Upload")
+    .replace(/^Complete/i, "Mark done")
+    .replace(/^Acknowledge/i, "Acknowledge")
+    .replace(/^Record/i, "Review")
+    .replace(/^Investigate and resolve the exception$/i, "Fix")
+    .replace(/^Resolve/i, "Fix");
   return (
     <Link
       href={item.href}
-      className="group grid gap-2 px-4 py-3 transition hover:bg-ink-50/70 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.75fr)_110px_minmax(0,1.15fr)_minmax(0,1.2fr)] lg:items-start lg:gap-4"
+      className="group grid gap-2 px-4 py-3 transition hover:bg-ink-50/70 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,.8fr)_100px_minmax(0,.75fr)] lg:items-center lg:gap-4"
     >
       <span className="min-w-0">
         <span className="flex items-start gap-2 text-[13.5px] font-medium text-ink-800"><span className={`tf-dot ${dotClass(item.class)} mt-1 shrink-0`} aria-hidden />{item.title}</span>
         <span className="mt-0.5 block pl-5 text-[12px] text-ink-500">{item.subjectName} · {sourceLabel(item.source)}</span>
+        <span className="mt-1 block pl-5 text-[11.5px] leading-snug text-ink-400">{item.detail}</span>
       </span>
       <span className="text-[12.5px] text-ink-700"><span className="font-semibold lg:hidden">Owner: </span>{item.owner}</span>
-      <span className="text-[12.5px] tabular-nums text-ink-600"><span className="font-semibold lg:hidden">Required by: </span>{formatDue(item.dueAt)}</span>
-      <span className="text-[12.5px] text-ink-700"><span className="font-semibold lg:hidden">Next action: </span>{item.nextAction}</span>
-      <span className="text-[12.5px] text-ink-500"><span className="font-semibold lg:hidden">Reason: </span>{item.detail}</span>
+      <span className="text-[12.5px] tabular-nums text-ink-600"><span className="font-semibold lg:hidden">Due: </span>{formatDue(item.dueAt)}</span>
+      <span className="justify-self-start rounded-lg border border-ink-300 bg-white px-3 py-1.5 text-[12px] font-semibold text-ink-800 transition group-hover:border-ink-900">{actionLabel}</span>
     </Link>
   );
 }
@@ -73,7 +81,7 @@ export function OverviewQueue({
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap gap-1.5" role="tablist" aria-label="Filter attention items">
+      <div className="mb-4 flex flex-wrap gap-1.5" role="tablist" aria-label="Filter work that needs attention">
         {FILTERS.map((f) => {
           const active = filter === f.key;
           const count = counts[f.key];
@@ -102,15 +110,15 @@ export function OverviewQueue({
         </div>
       ) : filter === "all" ? (
         <div className="tf-surface overflow-hidden">
-          <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(0,0.75fr)_110px_minmax(0,1.15fr)_minmax(0,1.2fr)] gap-4 border-b border-ink-100 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-500 lg:grid">
-            <span>Attention</span><span>Owner</span><span>Required by</span><span>Next action</span><span>Reason</span>
+          <div className="hidden grid-cols-[minmax(0,1.5fr)_minmax(0,.8fr)_100px_minmax(0,.75fr)] gap-4 border-b border-ink-100 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-500 lg:grid">
+            <span>What</span><span>Owner</span><span>Due</span><span>Action</span>
           </div>
           <div className="tf-divide">{items.map((item) => <Row key={item.id} item={item} />)}</div>
         </div>
       ) : (
         <div className="tf-surface overflow-hidden">
-          <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(0,0.75fr)_110px_minmax(0,1.15fr)_minmax(0,1.2fr)] gap-4 border-b border-ink-100 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-500 lg:grid">
-            <span>Attention</span><span>Owner</span><span>Required by</span><span>Next action</span><span>Reason</span>
+          <div className="hidden grid-cols-[minmax(0,1.5fr)_minmax(0,.8fr)_100px_minmax(0,.75fr)] gap-4 border-b border-ink-100 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-500 lg:grid">
+            <span>What</span><span>Owner</span><span>Due</span><span>Action</span>
           </div>
           <div className="tf-divide">{scoped.map((item) => <Row key={item.id} item={item} />)}</div>
         </div>
