@@ -21,6 +21,8 @@ describe("People architecture", () => {
     expect(dashboardData).toContain('return `/people/${encodeURIComponent(employeeId)}#${encodeURIComponent(section)}`');
     expect(dashboardData).toContain('documents: "documents"');
     expect(dashboardData).toContain('account: "onboarding-offboarding"');
+    expect(dashboardData).not.toContain('href: `/onboarding?employee=');
+    expect(dashboardData).not.toContain('href: `/early-employment#probation-');
   });
 
   it("does not advertise finance export from the People surface", () => {

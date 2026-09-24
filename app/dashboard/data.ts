@@ -501,7 +501,7 @@ function buildControlCentreItems(input: {
       nextAction: "Open task",
       dueAt,
       updatedAt: task.updated_at,
-      href: `/onboarding?employee=${encodeURIComponent(task.employee_id)}#task-${encodeURIComponent(task.id)}`,
+      href: employeePath(task.employee_id, "account"),
       detail: task.owner_role === "admin" ? "This onboarding task needs an admin decision." : "This onboarding task is due.",
       priority: itemClass === "overdue" ? 10 : task.owner_role === "admin" ? 20 : 40,
     });
@@ -522,7 +522,7 @@ function buildControlCentreItems(input: {
       nextAction: "Review probation",
       dueAt,
       updatedAt: review.updated_at,
-      href: `/early-employment#probation-${encodeURIComponent(review.id)}`,
+      href: employeePath(review.employee_id, "account"),
       detail: "Human probation outcome is required.",
       priority: itemClass === "overdue" ? 10 : 20,
     });
