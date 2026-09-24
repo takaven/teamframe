@@ -5,11 +5,11 @@ import { describe, expect, it } from "vitest";
 const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
 
 describe("fresh API privilege contract", () => {
-  it("grants only the 41 named TeamFrame tables to the server-only service role", () => {
+  it("grants only the 44 named TeamFrame tables to the server-only service role", () => {
     const sql = read("schemas/api_privileges.sql");
     const names = [...sql.matchAll(/public\.([a-z_]+)/g)].map((match) => match[1]);
-    expect(names).toHaveLength(41);
-    expect(new Set(names).size).toBe(41);
+    expect(names).toHaveLength(44);
+    expect(new Set(names).size).toBe(44);
     expect(names).toContain("companies");
     expect(names).toContain("tenant_memberships");
     expect(names).toContain("setup_import_batches");

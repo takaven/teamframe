@@ -36,6 +36,7 @@ import { saveEmployeeCompensation } from "@/services/compensationService";
 import { logAction } from "@/lib/telemetry/logger";
 import { captureActionError } from "@/lib/telemetry/sentry";
 import { createEmployeeFromReviewedHire } from "@/services/hirePeopleHandoff";
+import { assignDefaultChecklist } from "@/services/onboardingService/checklistTemplates";
 
 const CreateInputSchema = z.object({
   full_name: z.string().trim().min(1),
@@ -225,6 +226,18 @@ export async function createEmployeeAction(formData: FormData): Promise<void> {
 
     const created = await createEmployee(actor, parsed);
     employeeId = created.id;
+    try {
+      await assignDefaultChecklist(actor, created.id);
+    } catch (assignmentError) {
+      // Employee creation is already committed. Keep the successful record and
+      // surface the checklist failure in telemetry; an admin can assign it from
+      // Onboarding without retrying (and potentially duplicating) the person.
+      captureActionError("assignDefaultChecklistAfterCreate", assignmentError, {
+        actor_user_id: actor.authUserId,
+        actor_tenant_id: actor.tenantId,
+        employee_id: created.id,
+      });
+    }
   } catch (error) {
     failed = true;
     errorCode = getErrorCode(error);

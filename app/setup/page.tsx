@@ -34,12 +34,17 @@ import {
   renameCompensationComponentAction,
   toggleCompensationComponentAction,
   exportTenantDataAction,
+  createChecklistAction, copyStarterChecklistAction, updateChecklistAction, toggleChecklistAction,
+  setDefaultChecklistAction, addChecklistItemAction, updateChecklistItemAction,
+  removeChecklistItemAction, moveChecklistItemAction,
 } from "./actions";
 import { exportFinanceHandoffAction } from "@/app/employees/actions";
 import { listCompanyHolidays } from "@/services/companyHolidayService";
 import { deleteHolidayAction, saveHolidayAction } from "@/app/company/actions";
 import { listCustomFieldDefinitions } from "@/services/customFieldService";
 import { createCustomFieldAction, toggleCustomFieldAction } from "./custom-field-actions";
+import { listChecklistTemplates } from "@/services/onboardingService/checklistTemplates";
+import { ONBOARDING_TEMPLATE_PACKS, dueOffsetLabel } from "@/services/onboardingService/templates";
 
 export const dynamic = "force-dynamic";
 
@@ -106,7 +111,7 @@ export default async function SetupPage({
   }
 
   const holidayYear = new Date().getUTCFullYear();
-  const [company, departments, workLocations, leaveDefinitions, compConfig, identity, holidays, customFields] = await Promise.all([
+  const [company, departments, workLocations, leaveDefinitions, compConfig, identity, holidays, customFields, checklists] = await Promise.all([
     getCompanySettings(actor),
     listDepartments(actor),
     listWorkLocations(actor),
@@ -115,6 +120,7 @@ export default async function SetupPage({
     getCompanyIdentity(actor.tenantId),
     listCompanyHolidays(actor, holidayYear),
     listCustomFieldDefinitions(actor),
+    listChecklistTemplates(actor),
   ]);
 
   // Full Access is the only profile holding `company_access_settings`; the
@@ -390,14 +396,73 @@ export default async function SetupPage({
           ) : null}
 
           {section === "onboarding" ? (
-            <section className="tf-surface-flat p-6">
-              <h2 className="tf-h2">Onboarding</h2>
-              <p className="mt-1 text-[13px] text-ink-500">Assign the existing Every hire, Engineering or Operations checklist and tailor its tasks before assignment.</p>
-              <div className="mt-4 rounded-lg border border-ink-200 bg-ink-50/50 p-4 text-[13px] text-ink-700">
-                Checklist packs are currently fixed product templates. The assignment screen already lets an admin remove tasks before applying a pack; persistent template editing requires a dedicated stored model and is deferred rather than introducing a workflow engine here.
-              </div>
-              <Link href="/onboarding" className={`mt-4 inline-flex ${btn}`}>Assign onboarding checklist</Link>
-            </section>
+            <div className="space-y-5">
+              <section className="tf-surface-flat p-6">
+                <h2 className="tf-h2">Onboarding checklists</h2>
+                <p className="mt-1 text-[13px] text-ink-500">Create reusable checklists for new starters. The default is assigned automatically when a person is added.</p>
+                {checklists.length === 0 ? <p className="mt-4 rounded-lg border border-ink-200 p-4 text-[13px] text-ink-600">No default checklist is configured. New people will be added without onboarding tasks.</p> : null}
+                <div className="mt-5 space-y-4">
+                  {checklists.map((checklist) => (
+                    <details key={checklist.id} className="rounded-xl border border-ink-200 p-4" open={checklist.is_default}>
+                      <summary className="cursor-pointer list-none">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div><strong className="text-[14px] text-ink-900">{checklist.name}</strong>{checklist.is_default ? <span className="ml-2 rounded-full border border-signal-green/30 px-2 py-0.5 text-[10px] font-bold uppercase text-signal-green">Default</span> : null}<p className="mt-0.5 text-[12px] text-ink-500">{checklist.items.length} tasks · {checklist.active ? "Active" : "Archived"}</p></div>
+                          <span className="text-[12px] font-semibold text-ink-600">Edit</span>
+                        </div>
+                      </summary>
+                      <div className="mt-5 space-y-5 border-t border-ink-100 pt-5">
+                        <form action={updateChecklistAction} className="grid gap-3 sm:grid-cols-[1fr_2fr_auto]">
+                          <input type="hidden" name="id" value={checklist.id} />
+                          <label className="text-[12px] text-ink-600">Name<input name="name" required defaultValue={checklist.name} className={input} /></label>
+                          <label className="text-[12px] text-ink-600">Description<input name="description" defaultValue={checklist.description ?? ""} className={input} /></label>
+                          <PendingSubmitButton idleLabel="Save" pendingLabel="Saving…" className={`${btnGhost} self-end`} />
+                        </form>
+                        <div className="flex flex-wrap gap-2">
+                          {!checklist.is_default && checklist.active ? <form action={setDefaultChecklistAction}><input type="hidden" name="id" value={checklist.id} /><PendingSubmitButton idleLabel="Make default" pendingLabel="Saving…" className={btnGhost} /></form> : null}
+                          <form action={toggleChecklistAction}><input type="hidden" name="id" value={checklist.id} /><input type="hidden" name="active" value={(!checklist.active).toString()} /><PendingSubmitButton idleLabel={checklist.active ? "Archive" : "Reactivate"} pendingLabel="Saving…" className={btnGhost} /></form>
+                        </div>
+                        <ol className="space-y-3">
+                          {checklist.items.map((item, index) => (
+                            <li key={item.id} className="rounded-lg border border-ink-200 p-3">
+                              <form action={updateChecklistItemAction} className="grid gap-3 md:grid-cols-6">
+                                <input type="hidden" name="id" value={item.id} />
+                                <label className="text-[12px] text-ink-600 md:col-span-2">Task<input name="title" required defaultValue={item.title} className={input} /></label>
+                                <label className="text-[12px] text-ink-600">Owner<select name="owner_role" defaultValue={item.owner_role} className={selectCls}><option value="employee">Employee</option><option value="manager">Manager</option><option value="admin">Admin</option></select></label>
+                                <label className="text-[12px] text-ink-600">Days from start<input name="due_offset_days" type="number" min="-90" max="365" defaultValue={item.due_offset_days} className={input} /></label>
+                                <label className="text-[12px] text-ink-600">Needs<select name="completion_mode" defaultValue={item.completion_mode} className={selectCls}><option value="manual_confirmation">Mark done</option><option value="document_required">A document</option></select></label>
+                                <label className="text-[12px] text-ink-600">Document type<input name="required_document_type" defaultValue={item.required_document_type ?? ""} className={input} /></label>
+                                <div className="flex flex-wrap items-center gap-2 md:col-span-6"><span className="mr-auto text-[12px] text-ink-500">{index + 1}. Due {dueOffsetLabel(item.due_offset_days).toLowerCase()}</span><PendingSubmitButton idleLabel="Save task" pendingLabel="Saving…" className={btnGhost} /></div>
+                              </form>
+                              <div className="mt-2 flex gap-2">
+                                <form action={moveChecklistItemAction}><input type="hidden" name="id" value={item.id} /><input type="hidden" name="direction" value="up" /><PendingSubmitButton idleLabel="Move up" pendingLabel="Moving…" disabled={index === 0} className={btnGhost} /></form>
+                                <form action={moveChecklistItemAction}><input type="hidden" name="id" value={item.id} /><input type="hidden" name="direction" value="down" /><PendingSubmitButton idleLabel="Move down" pendingLabel="Moving…" disabled={index === checklist.items.length - 1} className={btnGhost} /></form>
+                                <form action={removeChecklistItemAction}><input type="hidden" name="id" value={item.id} /><ConfirmSubmitButton idleLabel="Remove" pendingLabel="Removing…" confirmMessage="Remove this task from future assignments?" className={btnGhost} /></form>
+                              </div>
+                            </li>
+                          ))}
+                        </ol>
+                        <form action={addChecklistItemAction} className="grid gap-3 rounded-lg bg-ink-50/60 p-3 sm:grid-cols-5">
+                          <input type="hidden" name="template_id" value={checklist.id} />
+                          <label className="text-[12px] text-ink-600 sm:col-span-2">New task<input name="title" required placeholder="e.g. First-day induction" className={input} /></label>
+                          <label className="text-[12px] text-ink-600">Owner<select name="owner_role" defaultValue="employee" className={selectCls}><option value="employee">Employee</option><option value="manager">Manager</option><option value="admin">Admin</option></select></label>
+                          <label className="text-[12px] text-ink-600">Days from start<input name="due_offset_days" type="number" min="-90" max="365" defaultValue="0" className={input} /></label>
+                          <label className="text-[12px] text-ink-600">Needs<select name="completion_mode" defaultValue="manual_confirmation" className={selectCls}><option value="manual_confirmation">Mark done</option><option value="document_required">A document</option></select></label>
+                          <label className="text-[12px] text-ink-600 sm:col-span-2">Document type (when needed)<input name="required_document_type" placeholder="e.g. passport" className={input} /></label>
+                          <div className="self-end sm:col-span-3"><PendingSubmitButton idleLabel="Add task" pendingLabel="Adding…" className={btn} /></div>
+                        </form>
+                      </div>
+                    </details>
+                  ))}
+                </div>
+              </section>
+              <section className="tf-surface-flat p-6">
+                <h3 className="text-[14px] font-bold text-ink-800">New checklist</h3>
+                <form action={createChecklistAction} className="mt-3 grid gap-3 sm:grid-cols-[1fr_2fr_auto]"><label className="text-[12px] text-ink-600">Name<input name="name" required className={input} /></label><label className="text-[12px] text-ink-600">Description<input name="description" className={input} /></label><PendingSubmitButton idleLabel="Create checklist" pendingLabel="Creating…" className={`${btn} self-end`} /></form>
+                <p className="mt-5 text-[12px] font-semibold uppercase tracking-wide text-ink-500">Or copy a TeamFrame starter</p>
+                <div className="mt-2 flex flex-wrap gap-2">{ONBOARDING_TEMPLATE_PACKS.map((pack) => <form action={copyStarterChecklistAction} key={pack.id}><input type="hidden" name="pack_id" value={pack.id} /><PendingSubmitButton idleLabel={`Copy ${pack.name}`} pendingLabel="Copying…" className={btnGhost} /></form>)}</div>
+                <Link href="/onboarding" className={`mt-5 inline-flex ${btnGhost}`}>Assign a checklist manually</Link>
+              </section>
+            </div>
           ) : null}
 
           {section === "access" ? (

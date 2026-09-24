@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import type { Actor } from "@/middleware/rbac";
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
+import { assignDefaultChecklist } from "@/services/onboardingService/checklistTemplates";
 
 // This is an operator-reviewed assertion, not an authenticated HirePass API read.
 // Excluding unknown keys prevents CV, salary or other candidate data crossing over.
@@ -52,5 +53,15 @@ export async function createEmployeeFromReviewedHire(
     if (error.message.includes("HIRE_HANDOFF_INVALID_SNAPSHOT")) throw new Error("HIRE_HANDOFF_INVALID_SNAPSHOT");
     throw new Error(`HIRE_HANDOFF_FAILED: ${error.message}`);
   }
-  return { employeeId: (data as { id: string }).id };
+  const employeeId = (data as { id: string }).id;
+  try {
+    await assignDefaultChecklist(actor, employeeId);
+  } catch (assignmentError) {
+    console.error("HIRE_HANDOFF_DEFAULT_CHECKLIST_FAILED", {
+      tenant_id: actor.tenantId,
+      employee_id: employeeId,
+      message: assignmentError instanceof Error ? assignmentError.message : "UNKNOWN",
+    });
+  }
+  return { employeeId };
 }

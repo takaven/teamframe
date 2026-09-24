@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/db/supabaseServer", () => ({ createServiceRoleClient: vi.fn() }));
+vi.mock("@/services/onboardingService/checklistTemplates", () => ({ assignDefaultChecklist: vi.fn().mockResolvedValue(0) }));
 
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 import { createEmployeeFromReviewedHire, HirePeopleSnapshotSchema } from "@/services/hirePeopleHandoff";
