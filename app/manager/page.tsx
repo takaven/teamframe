@@ -141,6 +141,25 @@ export default async function ManagerPage({
         </p>
       ) : null}
 
+      <section className="mt-7 tf-surface-flat">
+        <div className="border-b border-ink-300/60 px-5 py-4">
+          <h2 className="tf-h2">Team calendar &amp; upcoming</h2>
+          <p className="mt-1 text-[13px] text-ink-500">Approved leave, new starters, probation reviews and company holidays for the next 60 days.</p>
+        </div>
+        {dashboard.upcoming.length === 0 ? (
+          <p className="px-5 py-4 text-[14px] text-ink-500">Nothing scheduled for your team in the next 60 days.</p>
+        ) : (
+          <ul className="divide-y divide-ink-300/40">
+            {dashboard.upcoming.map((item) => (
+              <li key={item.id} className="grid gap-1 px-5 py-3 sm:grid-cols-[120px_1fr] sm:items-center">
+                <p className="text-[12px] font-medium text-ink-600">{formatDate(item.date)}</p>
+                <p className="text-[14px] text-ink-900">{item.employee_name ? `${item.employee_name} · ` : ""}{item.label}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       {!hasManagerWork ? (
         <EmptyState
           className="mt-8"

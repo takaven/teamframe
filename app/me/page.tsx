@@ -45,7 +45,7 @@ async function getOptionalManagerDashboard(actor: Awaited<ReturnType<typeof requ
     return await getManagerDashboard(actor);
   } catch (error) {
     if (error instanceof Error && ["MANAGER_NOT_ACTIVE", "NO_EMPLOYEE_RECORD"].includes(error.message)) {
-      return { directReports: [], pendingLeaves: [], onboardingTasks: [], probationReviews: [], offboardingItems: [] };
+      return { directReports: [], pendingLeaves: [], onboardingTasks: [], probationReviews: [], offboardingItems: [], upcoming: [] };
     }
     throw error;
   }

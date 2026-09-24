@@ -38,6 +38,8 @@ import {
 import { exportFinanceHandoffAction } from "@/app/employees/actions";
 import { listCompanyHolidays } from "@/services/companyHolidayService";
 import { deleteHolidayAction, saveHolidayAction } from "@/app/company/actions";
+import { listCustomFieldDefinitions } from "@/services/customFieldService";
+import { createCustomFieldAction, toggleCustomFieldAction } from "./custom-field-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -104,7 +106,7 @@ export default async function SetupPage({
   }
 
   const holidayYear = new Date().getUTCFullYear();
-  const [company, departments, workLocations, leaveDefinitions, compConfig, identity, holidays] = await Promise.all([
+  const [company, departments, workLocations, leaveDefinitions, compConfig, identity, holidays, customFields] = await Promise.all([
     getCompanySettings(actor),
     listDepartments(actor),
     listWorkLocations(actor),
@@ -112,6 +114,7 @@ export default async function SetupPage({
     getCompensationConfig(actor),
     getCompanyIdentity(actor.tenantId),
     listCompanyHolidays(actor, holidayYear),
+    listCustomFieldDefinitions(actor),
   ]);
 
   // Full Access is the only profile holding `company_access_settings`; the
@@ -211,6 +214,17 @@ export default async function SetupPage({
                     </form>
                   ) : null}
                 </div>
+              </div>
+              <div className="mt-6 border-t border-ink-200 pt-5">
+                <h3 className="text-[14px] font-bold text-ink-800">Employee custom fields</h3>
+                <p className="mt-1 text-[13px] text-ink-500">Add simple company-specific fields without changing the standard employee record.</p>
+                <form action={createCustomFieldAction} className="mt-4 grid gap-2 sm:grid-cols-[1fr_180px_1fr_auto] sm:items-end">
+                  <label className="text-[12px] text-ink-600">Label<input name="label" required className={input}/></label>
+                  <label className="text-[12px] text-ink-600">Type<select name="field_type" className={selectCls}><option value="text">Text</option><option value="number">Number</option><option value="date">Date</option><option value="yes_no">Yes / No</option><option value="single_select">Single select</option></select></label>
+                  <label className="text-[12px] text-ink-600">Choices (single select)<input name="choices" className={input} placeholder="Option A, Option B"/></label>
+                  <PendingSubmitButton idleLabel="Add field" pendingLabel="Adding…" className={btn}/>
+                </form>
+                <ul className="mt-4 divide-y divide-ink-100 rounded-lg border border-ink-200">{customFields.length === 0 ? <li className="px-3 py-3 text-[13px] text-ink-500">No custom fields yet.</li> : customFields.map((field) => <li key={field.id} className="flex items-center justify-between px-3 py-2 text-[13px]"><span><strong>{field.label}</strong> · {field.field_type.replaceAll("_", " ")}</span><form action={toggleCustomFieldAction}><input type="hidden" name="id" value={field.id}/><input type="hidden" name="active" value={String(!field.active)}/><PendingSubmitButton idleLabel={field.active ? "Deactivate" : "Reactivate"} pendingLabel="Saving…" className={btnGhost}/></form></li>)}</ul>
               </div>
             </section>
           ) : null}

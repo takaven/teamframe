@@ -129,11 +129,11 @@ export default async function PoliciesPage({
       ) : null}
 
       <section id="upload" className="mt-8 tf-surface-flat p-5">
-        <h2 className="tf-h2">{isNewVersion ? "Upload new version" : "Upload policy"}</h2>
+        <h2 className="tf-h2">{isNewVersion ? "New policy version" : "New policy"}</h2>
         <p className="mt-1 text-[13px] text-ink-500">
           {isNewVersion
             ? "This creates a new version as its own record. Earlier versions and their acknowledgements are preserved."
-            : "The primary way to add a policy: upload the document, set its version and effective date, then publish."}
+            : "Upload policy files here, or use the simple text option below. Publishing asks employees to acknowledge this version."}
         </p>
         <form action={uploadPolicyAction} className="mt-4 grid gap-3" encType="multipart/form-data">
           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_120px_160px]">
@@ -168,7 +168,7 @@ export default async function PoliciesPage({
           </label>
           <div>
             <PendingSubmitButton
-              idleLabel={isNewVersion ? "Upload new version" : "Upload policy"}
+              idleLabel={isNewVersion ? "Add new version" : "Create policy"}
               pendingLabel="Uploading…"
               className="tf-primary-action px-5 py-2 text-[14px] font-medium disabled:cursor-not-allowed disabled:bg-ink-300"
             />
@@ -288,7 +288,7 @@ export default async function PoliciesPage({
                             </p>
                           ) : (
                             <ul className="divide-y divide-ink-300/40 border-t border-ink-300/40">
-                              {policy.acknowledgement_evidence.slice(0, 8).map((entry) => (
+                              {policy.acknowledgement_evidence.map((entry) => (
                                 <li key={entry.employee_id} className="grid gap-2 px-3 py-2 text-[12px] sm:grid-cols-[1fr_auto_auto] sm:items-center">
                                   <div>
                                     <p className="font-medium text-ink-900">{entry.full_name}</p>
@@ -304,11 +304,6 @@ export default async function PoliciesPage({
                               ))}
                             </ul>
                           )}
-                          {policy.acknowledgement_evidence.length > 8 ? (
-                            <p className="border-t border-ink-300/40 px-3 py-2 text-[12px] text-ink-500">
-                              Showing first 8 records. Outstanding acknowledgements are listed first.
-                            </p>
-                          ) : null}
                         </details>
                       ) : null}
                       <details className="mt-1">

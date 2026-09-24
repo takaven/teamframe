@@ -24,6 +24,7 @@ const SETUP_LINK = { href: "/setup", label: "Settings" } as const;
 // Documents and Policies are sections within /me, not separate destinations.
 const EMPLOYEE_LINKS = [
   { href: "/me", label: "Home" },
+  { href: "/directory", label: "Directory" },
   { href: "/me#profile", label: "Me" },
   { href: "/leaves", label: "Time off" },
   { href: "/me#documents", label: "Documents & policies" },

@@ -13,6 +13,8 @@ grant select, insert, update, delete on table
   public.compensation_component_amounts,
   public.compensation_components,
   public.compensation_history,
+  public.custom_field_definitions,
+  public.custom_field_values,
   public.departments,
   public.document_requirements,
   public.documents,

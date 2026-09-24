@@ -50,6 +50,7 @@ import {
   reviewDocumentRequirementAction,
   uploadEmployeeDocumentAction,
   uploadUaeRecordAction,
+  updateEmployeePersonalProfileAction,
 } from "@/app/employees/actions";
 import { AppShell } from "@/components/AppShell";
 import { getCompanyIdentity } from "@/lib/company/identity";
@@ -60,6 +61,8 @@ import { StarterReadinessPanel } from "@/components/StarterReadinessPanel";
 import { getLeaveOverviewForEmployee } from "@/services/leaveService";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { listCustomFieldDefinitions, listCustomFieldValues } from "@/services/customFieldService";
+import { savePersonCustomFieldsAction } from "@/app/people/custom-field-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -311,6 +314,8 @@ export async function PeopleExperience({
     })),
   );
   const masterByEmployee = new Map(masterRecords.map((item) => [item.employeeId, item]));
+  const customFieldDefinitions = await listCustomFieldDefinitions(actor);
+  const customFieldValuesByEmployee = new Map(await Promise.all(detailEmployees.map(async (employee) => [employee.id, await listCustomFieldValues(actor, employee.id)] as const)));
   // Configurable compensation detail (capability-gated) for the opened employee's Compensation tab.
   const compensationRecords = await Promise.all(
     detailEmployees.map(async (employee) => ({ employeeId: employee.id, detail: await getEmployeeCompensationDetail(actor, employee.id) })),
@@ -434,6 +439,7 @@ export async function PeopleExperience({
         </div>
         <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
         <Link href="/org-chart" className="tf-secondary-action h-9 px-4 text-[13px] font-medium">Org chart</Link>
+        <Link href="/people/import" className="tf-secondary-action h-9 px-4 text-[13px] font-medium">Import CSV</Link>
         <Link href="/people/add" className="tf-primary-action h-9 px-4 text-[13px] font-medium">Add person</Link>
         <form className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:flex-none">
           <input
@@ -668,7 +674,25 @@ export async function PeopleExperience({
                     <div className="rounded-lg bg-ink-50/70 p-3"><p className="text-[11px] text-ink-500">End date</p><p className="mt-1 text-[13px] font-semibold">{formatDate(employee.end_date)}</p></div>
                   </div>
                 </section>
-                {master ? <div data-tab="personal" className="space-y-4"><PersonalPanel master={master.record} /><EmergencyReadPanel master={master.record} /></div> : null}
+                {master ? <div data-tab="personal" className="space-y-4"><PersonalPanel master={master.record} /><EmergencyReadPanel master={master.record} />
+                  <details className="tf-surface-flat p-5"><summary className="cursor-pointer text-[14px] font-semibold">Edit personal details</summary>
+                    <form action={updateEmployeePersonalProfileAction} className="mt-4 grid gap-3 md:grid-cols-2">
+                      <input type="hidden" name="employee_id" value={employee.id}/>
+                      <label className="text-[12px] text-ink-500">Preferred name<input name="preferred_name" defaultValue={master.record.identity.preferred_name ?? ""} className="tf-input mt-1"/></label>
+                      <label className="text-[12px] text-ink-500">Nationality<input name="nationality" defaultValue={master.record.identity.nationality ?? ""} className="tf-input mt-1"/></label>
+                      <label className="text-[12px] text-ink-500">Personal email<input name="personal_email" type="email" defaultValue={master.record.contact.personal_email ?? ""} className="tf-input mt-1"/></label>
+                      <label className="text-[12px] text-ink-500">Mobile<input name="mobile" defaultValue={master.record.contact.personal_phone ?? ""} className="tf-input mt-1"/></label>
+                      <label className="text-[12px] text-ink-500 md:col-span-2">Address<textarea name="residential_address" defaultValue={master.record.contact.residential_address ?? ""} className="tf-input mt-1 min-h-20 w-full p-3"/></label>
+                      <label className="text-[12px] text-ink-500">Emergency contact<input name="emergency_contact_name" defaultValue={master.record.emergency_contact.name ?? ""} className="tf-input mt-1"/></label>
+                      <label className="text-[12px] text-ink-500">Relationship<input name="emergency_contact_relationship" defaultValue={master.record.emergency_contact.relationship ?? ""} className="tf-input mt-1"/></label>
+                      <label className="text-[12px] text-ink-500">Emergency phone<input name="emergency_contact_phone" defaultValue={master.record.emergency_contact.phone ?? ""} className="tf-input mt-1"/></label>
+                      <label className="text-[12px] text-ink-500">Emergency email<input name="emergency_contact_email" type="email" defaultValue={master.record.emergency_contact.email ?? ""} className="tf-input mt-1"/></label>
+                      <input type="hidden" name="date_of_birth" value={master.record.identity.date_of_birth ?? ""}/><input type="hidden" name="gender" value={master.record.identity.gender ?? ""}/>
+                      <div className="md:col-span-2"><PendingSubmitButton idleLabel="Save personal details" pendingLabel="Saving…" className="tf-primary-action px-4 py-2 text-[13px]"/></div>
+                    </form>
+                  </details>
+                  {customFieldDefinitions.filter((field) => field.active).length > 0 ? <section className="tf-surface-flat p-5"><h3 className="text-[14px] font-semibold">Company fields</h3><form action={savePersonCustomFieldsAction} className="mt-4 grid gap-3 md:grid-cols-2"><input type="hidden" name="employee_id" value={employee.id}/>{customFieldDefinitions.filter((field) => field.active).map((field) => { const stored = customFieldValuesByEmployee.get(employee.id)?.find((value) => value.definition_id === field.id)?.value; return <label key={field.id} className="text-[12px] text-ink-500">{field.label}{field.field_type === "single_select" ? <select name={`field_${field.id}`} defaultValue={String(stored ?? "")} className="tf-select-sm mt-1 w-full"><option value="">Select</option>{field.choices.map((choice) => <option key={choice}>{choice}</option>)}</select> : field.field_type === "yes_no" ? <select name={`field_${field.id}`} defaultValue={String(stored ?? "")} className="tf-select-sm mt-1 w-full"><option value="">Select</option><option value="yes">Yes</option><option value="no">No</option></select> : <input name={`field_${field.id}`} type={field.field_type === "date" ? "date" : field.field_type === "number" ? "number" : "text"} defaultValue={String(stored ?? "")} className="tf-input mt-1"/>}</label>; })}<div className="md:col-span-2"><PendingSubmitButton idleLabel="Save company fields" pendingLabel="Saving…" className="tf-primary-action px-4 py-2 text-[13px]"/></div></form></section> : null}
+                </div> : null}
                 <div data-tab="compensation-payment" className="space-y-4">
                   <CompensationPanel detail={compensationByEmployee.get(employee.id)!} employeeId={employee.id} />
                   {master ? <PaymentReadPanel master={master.record} /> : null}

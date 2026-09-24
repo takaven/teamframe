@@ -31,6 +31,7 @@ import {
   uploadDocumentForRequirement,
 } from "@/services/documentService";
 import { setEmployeePhoto } from "@/services/employeeMasterService";
+import { updateEmployeePersonalProfile } from "@/services/selfServiceService";
 import { saveEmployeeCompensation } from "@/services/compensationService";
 import { logAction } from "@/lib/telemetry/logger";
 import { captureActionError } from "@/lib/telemetry/sentry";
@@ -912,6 +913,24 @@ export async function updateEmployeePhotoAction(formData: FormData): Promise<voi
     redirect(`/employees?error=${encodeURIComponent(getErrorCode(caughtError))}&employee=${encodeURIComponent(employeeId)}`);
   }
   redirect(`/employees?status=photo_updated&employee=${encodeURIComponent(employeeId)}`);
+}
+
+export async function updateEmployeePersonalProfileAction(formData: FormData): Promise<void> {
+  let employeeId = "";
+  try {
+    const actor = await requireTenantActor();
+    employeeId = z.string().uuid().parse(formData.get("employee_id"));
+    const text = (name: string) => typeof formData.get(name) === "string" ? String(formData.get(name)) : "";
+    await updateEmployeePersonalProfile(actor, employeeId, {
+      preferred_name: text("preferred_name"), date_of_birth: text("date_of_birth"), gender: text("gender"), nationality: text("nationality"),
+      personal_email: text("personal_email"), mobile: text("mobile"), residential_address: text("residential_address"),
+      emergency_contact_name: text("emergency_contact_name"), emergency_contact_relationship: text("emergency_contact_relationship"),
+      emergency_contact_phone: text("emergency_contact_phone"), emergency_contact_email: text("emergency_contact_email"),
+    });
+  } catch (error) {
+    redirect(`/people/${employeeId}?error=${encodeURIComponent(getErrorCode(error))}#personal`);
+  }
+  redirect(`/people/${employeeId}?status=updated#personal`);
 }
 
 export async function createDocumentRequirementAction(formData: FormData): Promise<void> {

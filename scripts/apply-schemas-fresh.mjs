@@ -125,7 +125,7 @@ async function main() {
     from pg_class c join pg_namespace n on n.oid = c.relnamespace
     where n.nspname = 'public' and c.relkind = 'r'
   `);
-  if (installed.tables !== 39 || installed.rls_tables !== installed.tables) {
+  if (installed.tables !== 41 || installed.rls_tables !== installed.tables) {
     throw new Error(`[PARITY_FAIL] Post-install verification failed: ${installed.tables} public tables, ${installed.rls_tables} with RLS.`);
   }
   const { rows: [objects] } = await client.query(`

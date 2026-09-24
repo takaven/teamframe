@@ -45,6 +45,8 @@ export const SCHEMA_ORDER = [
   // compensation (components/amounts/history). Applies last — references every table above
   // and the access-model capability helpers.
   "phase8_corrections.sql",
+  // Group C: bounded tenant-defined employee fields, with isolated tables and RLS.
+  "20260924_custom_fields.sql",
   // Explicit service-layer API privileges follow the last table-creating file.
   "api_privileges.sql",
   // One-way HirePass provenance depends on the ordinary employee RPC and grants.
