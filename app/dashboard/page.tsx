@@ -25,7 +25,7 @@ function addDays(date: Date, days: number): Date {
 
 export default async function DashboardPage() {
   const actor = await requireTenantRole("admin");
-  const [{ savedDataStatus, summary, allItems, resolvedItems, activeEmployeeCount, teamSummary: loadedTeamSummary }, identity, firstName] =
+  const [{ savedDataStatus, allItems, resolvedItems, activeEmployeeCount, teamSummary: loadedTeamSummary }, identity, firstName] =
     await Promise.all([
       loadControlCentreData({ tenantId: actor.tenantId }),
       getCompanyIdentity(actor.tenantId),
@@ -39,11 +39,11 @@ export default async function DashboardPage() {
 
   const attentionCutoff = addDays(now, 7).toISOString();
   const comingUpCutoff = addDays(now, 30).toISOString();
-  const needsAttention = allItems
-    .filter((item) => !item.dueAt || item.dueAt <= attentionCutoff || item.class !== "due")
-    .slice(0, 10);
+  const attentionItems = allItems.filter((item) => !item.dueAt || item.dueAt <= attentionCutoff || item.class !== "due");
+  const needsAttention = attentionItems.slice(0, 10);
+  const attentionIds = new Set(attentionItems.map((item) => item.id));
   const comingUp = allItems
-    .filter((item) => item.dueAt && item.dueAt > attentionCutoff && item.dueAt <= comingUpCutoff)
+    .filter((item) => !attentionIds.has(item.id) && item.dueAt && item.dueAt > attentionCutoff && item.dueAt <= comingUpCutoff)
     .slice(0, 8);
   const queueItems: OverviewQueueItem[] = needsAttention.map((item) => ({
     id: item.id,
@@ -104,7 +104,7 @@ export default async function DashboardPage() {
             <p className="tf-kicker">Today</p>
             <h2 id="needs-attention-heading" className="tf-h2 mt-1">Needs your attention</h2>
           </div>
-          {summary.total > needsAttention.length ? <p className="text-[12px] text-ink-500">Showing the first {needsAttention.length} of {summary.total}</p> : null}
+          {attentionItems.length > needsAttention.length ? <p className="text-[12px] text-ink-500">Showing the first {needsAttention.length} of {attentionItems.length}</p> : null}
         </div>
         <OverviewQueue items={queueItems} counts={counts} />
       </section>
@@ -153,8 +153,6 @@ export default async function DashboardPage() {
         <h2 id="quick-actions-heading" className="tf-h2">Quick actions</h2>
         <div className="mt-3 flex flex-wrap gap-3">
           <Link href="/employees#add-employee" className="tf-primary-action px-4 py-2 text-[13px]">Add person</Link>
-          <Link href="/employees?tab=documents" className="tf-secondary-action px-4 py-2 text-[13px]">Request document</Link>
-          <Link href="/leaves" className="tf-secondary-action px-4 py-2 text-[13px]">Record time off</Link>
           <Link href="/policies#upload" className="tf-secondary-action px-4 py-2 text-[13px]">New policy</Link>
         </div>
       </section>

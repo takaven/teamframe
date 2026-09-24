@@ -151,7 +151,9 @@ function isInviteExpired(lastSentAt: string | null): boolean {
 
 function formatDateTime(iso: string | null): string {
   if (!iso) return "—";
-  return new Date(iso).toLocaleString("en-GB", {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString("en-GB", {
     day: "numeric",
     month: "short",
     hour: "2-digit",
@@ -160,8 +162,11 @@ function formatDateTime(iso: string | null): string {
 }
 
 function formatDate(value: string | null): string {
-  if (!value) return "-";
-  return new Date(`${value}T00:00:00.000Z`).toLocaleDateString("en-GB", {
+  if (!value) return "—";
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00:00.000Z` : value;
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",

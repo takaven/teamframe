@@ -54,13 +54,20 @@ describe("dashboard rendered states", () => {
   });
 
   it("limits the primary list and separates future work", async () => {
+    const now = new Date();
+    const currentDue = new Date(now);
+    currentDue.setDate(currentDue.getDate() + 2);
+    const futureDue = new Date(now);
+    futureDue.setDate(futureDue.getDate() + 14);
     const allItems = Array.from({ length: 8 }, (_, index) => ({
       id: `item-${index}`,
       class: "due",
       source: "onboarding_task",
-      title: `Task ${index}`,
+      title: index === 7 ? "Future-only task" : `Task ${index}`,
       subjectName: "Amina Rahman",
-      dueAt: "2026-08-12T00:00:00.000Z",
+      owner: "Amina Rahman",
+      nextAction: "Open task",
+      dueAt: index === 7 ? futureDue.toISOString() : currentDue.toISOString(),
       updatedAt: `2026-08-12T00:00:0${index}Z`,
       href: "/onboarding",
       detail: "Onboarding work is due.",
@@ -90,6 +97,9 @@ describe("dashboard rendered states", () => {
     expect(html).toContain("Needs your attention");
     expect(html).toContain("Recently done");
     expect(html).toContain("Add person");
+    expect(html).not.toContain("Request document");
+    expect(html).not.toContain("Record time off");
+    expect(html.match(/Future-only task/g)).toHaveLength(1);
   });
 
   it("does not show all-clear when the current-state read fails", async () => {

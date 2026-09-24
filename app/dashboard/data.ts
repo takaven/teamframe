@@ -251,12 +251,29 @@ function itemClassFromDue(input: {
   return "due";
 }
 
-function taskOwner(role: string, ownerId: string | null, names: Map<string, EmployeeRow>): string {
+function taskOwner(role: string, ownerId: string | null, names: Map<string, EmployeeRow>, subjectEmployeeId?: string): string {
   if (ownerId) return names.get(ownerId)?.full_name ?? "Owner not assigned";
   if (role === "admin") return "Admin";
   if (role === "manager") return "Manager";
-  if (role === "employee") return "Employee";
+  if (role === "employee" && subjectEmployeeId) return employeeName(names, subjectEmployeeId);
   return "Owner not assigned";
+}
+
+function documentLabel(documentType: string): string {
+  const known: Record<string, string> = {
+    contract: "Contract",
+    employment_contract: "Employment contract",
+    medical_fitness: "Medical fitness certificate",
+    medical_insurance: "Medical insurance",
+    emirates_id: "Emirates ID",
+    right_to_work: "Right-to-work document",
+    jd: "Job description",
+    iloe: "ILOE certificate",
+    passport: "Passport",
+    visa: "Visa",
+  };
+  const normalized = documentType.trim().toLowerCase();
+  return known[normalized] ?? normalized.replace(/_/g, " ").replace(/^./, (letter) => letter.toUpperCase());
 }
 
 function sourcePath(source: string): string {
@@ -358,7 +375,7 @@ function buildPolicyItems(input: {
         title: `Acknowledge ${policy.title} v${policy.version}`,
         subjectName: employeeName(names, employeeId),
         owner: employeeName(names, employeeId),
-        nextAction: "Acknowledge the current policy version",
+        nextAction: "View policy",
         dueAt: null,
         updatedAt: policy.updated_at,
         href: `/policies#policy-${policy.id}`,
@@ -407,7 +424,7 @@ function buildControlCentreItems(input: {
       title: "Leave request needs decision",
       subjectName: employeeName(names, leave.employee_id),
       owner: "Manager or Admin",
-      nextAction: "Approve or reject the leave request",
+      nextAction: "Review request",
       dueAt,
       updatedAt: leave.updated_at,
       href: `/leaves?leave=${encodeURIComponent(leave.id)}`,
@@ -433,15 +450,15 @@ function buildControlCentreItems(input: {
       class: itemClass,
       source: isReviewDecision ? "document_review" : "document_request",
       title: isReviewDecision
-        ? `Review ${request.document_type} evidence`
-        : `${request.document_type} document requested`,
+        ? `${documentLabel(request.document_type)} needs review`
+        : `${documentLabel(request.document_type)} requested`,
       subjectName: employeeName(names, request.employee_id),
       owner: isReviewDecision ? "Admin" : employeeName(names, request.employee_id),
-      nextAction: isReviewDecision ? "Review submitted evidence" : "Provide the required document",
+      nextAction: isReviewDecision ? "Review document" : "Upload document",
       dueAt,
       updatedAt: request.updated_at,
       href: employeePath(request.employee_id, "documents"),
-      detail: isExpired ? "Document requirement expired without current replacement." : "Configured document evidence is outstanding.",
+      detail: isExpired ? "This document is overdue." : "Waiting for this document.",
       priority: itemClass === "exception" || itemClass === "overdue" ? 10 : isReviewDecision ? 20 : 40,
     });
   }
@@ -470,12 +487,12 @@ function buildControlCentreItems(input: {
       source: "onboarding_task",
       title: task.title,
       subjectName: employeeName(names, task.employee_id),
-      owner: taskOwner(task.owner_role, task.owner_employee_id, names),
-      nextAction: "Complete the onboarding task",
+      owner: taskOwner(task.owner_role, task.owner_employee_id, names, task.employee_id),
+      nextAction: "Open task",
       dueAt,
       updatedAt: task.updated_at,
       href: `/onboarding?employee=${encodeURIComponent(task.employee_id)}#task-${encodeURIComponent(task.id)}`,
-      detail: task.owner_role === "admin" ? "Admin-owned onboarding work requires a decision or confirmation." : "Onboarding work is due.",
+      detail: task.owner_role === "admin" ? "This onboarding task needs an admin decision." : "This onboarding task is due.",
       priority: itemClass === "overdue" ? 10 : task.owner_role === "admin" ? 20 : 40,
     });
   }
@@ -492,7 +509,7 @@ function buildControlCentreItems(input: {
       title: "Probation outcome needs decision",
       subjectName: employeeName(names, review.employee_id),
       owner: "Admin",
-      nextAction: "Record the probation decision",
+      nextAction: "Review probation",
       dueAt,
       updatedAt: review.updated_at,
       href: `/early-employment#probation-${encodeURIComponent(review.id)}`,
@@ -516,8 +533,8 @@ function buildControlCentreItems(input: {
       source: "offboarding_task",
       title: item.title,
       subjectName: employeeName(names, item.employee_id),
-      owner: taskOwner(item.owner_role, item.owner_employee_id, names),
-      nextAction: "Complete the exit task",
+      owner: taskOwner(item.owner_role, item.owner_employee_id, names, item.employee_id),
+      nextAction: "Open task",
       dueAt,
       updatedAt: item.updated_at,
       href: employeePath(item.employee_id, "account"),
@@ -543,7 +560,7 @@ function buildControlCentreItems(input: {
       title: "Offboarding overdue after end date",
       subjectName: employeeName(names, offboardingCase.employee_id),
       owner: "Owner not assigned",
-      nextAction: "Resolve the remaining exit work",
+      nextAction: "Open task",
       dueAt: dueDateAtStart(offboardingCase.effective_end_date),
       updatedAt: offboardingCase.updated_at,
       href: employeePath(offboardingCase.employee_id, "account"),
@@ -564,7 +581,7 @@ function buildControlCentreItems(input: {
       title: automationTitle(item),
       subjectName: employeeName(names, subjectEmployeeId ?? null),
       owner: taskOwner("system", item.owner_employee_id, names),
-      nextAction: item.status === "escalated" ? "Investigate the failed automation" : "Check the retry outcome",
+      nextAction: "Check issue",
       dueAt: item.next_attempt_at ?? item.due_at,
       updatedAt: item.updated_at,
       href: "/dashboard",
@@ -583,7 +600,7 @@ function buildControlCentreItems(input: {
       title: signalTitle(signal.kind),
       subjectName: employeeName(names, signal.subject_employee_id),
       owner: "Owner not assigned",
-      nextAction: signal.kind.includes("document") || signal.kind === "missing_contract" ? "Review the employee document" : "Fix the problem",
+      nextAction: signal.kind.includes("document") || signal.kind === "missing_contract" ? "Open documents" : "Open employee",
       dueAt: null,
       updatedAt: signal.last_seen_at,
       href: signal.subject_employee_id
