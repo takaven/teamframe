@@ -34,6 +34,8 @@ describe("Group C HR completeness", () => {
     const form = read("app/people/import/ImportForm.tsx");
     const action = read("app/people/import/actions.ts");
     expect(form).toContain("preview.rows");
+    expect(form).toContain('type="file"');
+    expect(form).toContain("readAsText");
     expect(form).toContain("manager_email");
     expect(action).toContain("createEmployee(actor");
     expect(action).toContain("applyImportedEmployeeIdentity");
