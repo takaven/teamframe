@@ -42,6 +42,12 @@ function formatDate(iso: string | null): string {
   });
 }
 
+function upcomingLabel(item: { label: string; date: string; end_date?: string }): string {
+  return item.label === "Away" && item.end_date && item.end_date !== item.date
+    ? `Away until ${formatDate(item.end_date)}`
+    : item.label;
+}
+
 function days(value: number): string {
   return `${value} day${value === 1 ? "" : "s"}`;
 }
@@ -128,7 +134,7 @@ export default async function ManagerPage({
               </section>
               <section className="tf-surface-flat p-5">
                 <h2 className="tf-h2">Time off</h2>
-                {personLeave.length ? <ul className="mt-3 divide-y divide-ink-100">{personLeave.map((item) => <li key={item.id} className="py-3 text-[13px]"><span className="font-medium">{item.label}</span><span className="ml-2 text-ink-500">from {formatDate(item.date)}</span></li>)}</ul> : <p className="mt-3 text-[13px] text-ink-500">No approved time off in the next 60 days.</p>}
+                {personLeave.length ? <ul className="mt-3 divide-y divide-ink-100">{personLeave.map((item) => <li key={item.id} className="py-3 text-[13px]"><span className="font-medium">{upcomingLabel(item)}</span><span className="ml-2 text-ink-500">from {formatDate(item.date)}</span></li>)}</ul> : <p className="mt-3 text-[13px] text-ink-500">No approved time off in the next 60 days.</p>}
               </section>
             </div>
             <section className="mt-5 tf-surface-flat p-5">
@@ -176,7 +182,7 @@ export default async function ManagerPage({
             {dashboard.upcoming.map((item) => (
               <li key={item.id} className="grid gap-1 px-5 py-3 sm:grid-cols-[120px_1fr] sm:items-center">
                 <p className="text-[12px] font-medium text-ink-600">{formatDate(item.date)}</p>
-                <p className="text-[14px] text-ink-900">{item.employee_name ? `${item.employee_name} · ` : ""}{item.label}</p>
+                <p className="text-[14px] text-ink-900">{item.employee_name ? `${item.employee_name} · ` : ""}{upcomingLabel(item)}</p>
               </li>
             ))}
           </ul>

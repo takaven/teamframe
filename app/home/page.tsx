@@ -33,6 +33,12 @@ function formatDay(iso: string): string {
   return Number.isNaN(date.getTime()) ? "—" : date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 }
 
+function upcomingLabel(item: { label: string; date: string; end_date?: string }): string {
+  return item.label === "Away" && item.end_date && item.end_date !== item.date
+    ? `Away until ${formatDay(item.end_date)}`
+    : item.label;
+}
+
 async function optionalManagerDashboard(actor: Awaited<ReturnType<typeof requireTenantActor>>) {
   try {
     return await getManagerDashboard(actor);
@@ -97,7 +103,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         )}
       </section>
 
-      {manager && manager.upcoming.length > 0 ? <section className="mt-6 tf-surface-flat"><div className="border-b border-ink-200 px-5 py-4"><h2 className="tf-h2">Coming up</h2><p className="mt-1 text-[13px] text-ink-500">Your team over the next 60 days.</p></div><ul className="divide-y divide-ink-100">{manager.upcoming.slice(0, 6).map((item) => <li key={item.id} className="grid gap-1 px-5 py-3 sm:grid-cols-[120px_1fr]"><p className="text-[12px] font-medium text-ink-600">{formatDay(item.date)}</p><p className="text-[14px]">{item.employee_name ? `${item.employee_name} · ` : ""}{item.label}</p></li>)}</ul></section> : null}
+      {manager && manager.upcoming.length > 0 ? <section className="mt-6 tf-surface-flat"><div className="border-b border-ink-200 px-5 py-4"><h2 className="tf-h2">Coming up</h2><p className="mt-1 text-[13px] text-ink-500">Your team over the next 60 days.</p></div><ul className="divide-y divide-ink-100">{manager.upcoming.slice(0, 6).map((item) => <li key={item.id} className="grid gap-1 px-5 py-3 sm:grid-cols-[120px_1fr]"><p className="text-[12px] font-medium text-ink-600">{formatDay(item.date)}</p><p className="text-[14px]">{item.employee_name ? `${item.employee_name} · ` : ""}{upcomingLabel(item)}</p></li>)}</ul></section> : null}
 
       {checkIn.state === "available" ? <section id="check-in" className="mt-6 scroll-mt-6 tf-surface-flat"><div className="border-b border-ink-200 px-5 py-4"><h2 className="tf-h2">30-day check-in</h2><p className="mt-1 text-[13px] text-ink-500">Share factual first-month feedback so the team can remove any blockers.</p></div><form action={submitOnboardingCheckInAction} className="grid gap-4 px-5 py-4"><input type="hidden" name="check_in_id" value={checkIn.checkIn.id} />{([['role_clarity','Role and priorities'],['manager_team_clarity','Manager and team clarity'],['training_clear','Onboarding information'],['policies_clear','Policies and processes']] as const).map(([name,label]) => <label key={name} className="grid gap-1 text-[13px] text-ink-700">{label}<select name={name} required defaultValue="mostly_clear" className="rounded-md border border-ink-300 bg-white px-3 py-2 text-[14px]"><option value="clear">Clear</option><option value="mostly_clear">Mostly clear</option><option value="unclear">Unclear</option><option value="needs_help">I need help</option></select></label>)}{([['tools_ready','I have the tools and access I need'],['support_available','I know where to get support'],['has_blockers','Something is blocking my work']] as const).map(([name,label]) => <label key={name} className="grid gap-1 text-[13px] text-ink-700">{label}<select name={name} required defaultValue={name === 'has_blockers' ? 'no' : 'yes'} className="rounded-md border border-ink-300 bg-white px-3 py-2 text-[14px]"><option value="yes">Yes</option><option value="no">No</option></select></label>)}<label className="grid gap-1 text-[13px] text-ink-700">What would improve onboarding?<textarea name="improvement_note" rows={3} className="rounded-md border border-ink-300 bg-white px-3 py-2 text-[14px]" placeholder="Optional note" /></label><PendingSubmitButton idleLabel="Submit check-in" pendingLabel="Submitting…" className="w-full tf-primary-action px-4 py-2 text-[14px] font-medium sm:w-fit" /></form></section> : null}
     </main>

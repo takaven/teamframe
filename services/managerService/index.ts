@@ -11,6 +11,7 @@ import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 export type ManagerUpcomingItem = {
   id: string;
   date: string;
+  end_date?: string;
   label: string;
   employee_name: string | null;
   kind: "start" | "probation" | "leave" | "holiday";
@@ -54,7 +55,7 @@ async function listManagerUpcoming(actor: Actor, directReports: ManagerEmployeeR
     }
   }
   for (const leave of (leaveResult.data ?? []) as Array<{ id: string; employee_id: string; start_date: string; end_date: string }>) {
-    items.push({ id: `leave-${leave.id}`, date: leave.start_date, label: leave.start_date === leave.end_date ? "Away" : `Away until ${leave.end_date}`, employee_name: names.get(leave.employee_id) ?? "Direct report", kind: "leave" });
+    items.push({ id: `leave-${leave.id}`, date: leave.start_date, end_date: leave.end_date, label: "Away", employee_name: names.get(leave.employee_id) ?? "Direct report", kind: "leave" });
   }
   for (const holiday of (holidayResult.data ?? []) as Array<{ id: string; holiday_date: string; name: string }>) {
     items.push({ id: `holiday-${holiday.id}`, date: holiday.holiday_date, label: holiday.name, employee_name: null, kind: "holiday" });

@@ -46,11 +46,16 @@ describe("final red-team UI safeguards", () => {
 
   it("keeps the manager direct-report view focused and useful", () => {
     const manager = read("app/manager/page.tsx");
+    const home = read("app/home/page.tsx");
+    const service = read("services/managerService/index.ts");
     expect(manager).toContain("← Back to My team");
     expect(manager).toContain("Probation recommendation");
     expect(manager).toContain("30-day check-in");
     expect(manager).not.toContain("Back to my profile");
     expect(manager).not.toContain("Compensation: not visible to managers");
+    expect(manager).toContain("upcomingLabel(item)");
+    expect(home).toContain("upcomingLabel(item)");
+    expect(service).not.toContain("`Away until ${leave.end_date}`");
   });
 
   it("describes headcount scope truthfully and humanises country exports", () => {
