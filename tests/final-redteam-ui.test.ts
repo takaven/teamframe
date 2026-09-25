@@ -54,7 +54,10 @@ describe("final red-team UI safeguards", () => {
     expect(manager).not.toContain("Back to my profile");
     expect(manager).not.toContain("Compensation: not visible to managers");
     expect(manager).toContain("upcomingLabel(item)");
+    expect(manager).toContain("getCountryName(employee.country)");
     expect(home).toContain("upcomingLabel(item)");
+    expect(home).toContain("manager.directReports.length > 0");
+    expect(home).toContain("Overdue — was due");
     expect(service).not.toContain("`Away until ${leave.end_date}`");
   });
 

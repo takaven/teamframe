@@ -7,6 +7,7 @@ import { StatusPill } from "@/components/StatusPill";
 import { getManagerDashboard } from "@/services/managerService";
 import { getEmployeeMasterRecord } from "@/services/employeeMasterService";
 import { listDirectReportCheckIns } from "@/services/earlyEmploymentService";
+import { getCountryName } from "@/lib/geo/countries";
 import {
   completeManagerOffboardingItemAction,
   completeManagerOnboardingTaskAction,
@@ -441,13 +442,14 @@ export default async function ManagerPage({
             {dashboard.directReports.map((employee) => {
               const initials = employee.full_name.trim().split(/\s+/).filter(Boolean).map((p) => p[0]).slice(0, 2).join("").toUpperCase() || "?";
               const onProbation = probationEmployeeIds.has(employee.id);
+              const country = getCountryName(employee.country) ?? employee.country;
               return (
                 <li key={employee.id} className="flex items-center gap-3 rounded-xl border border-ink-200 bg-white px-4 py-3">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink-100 text-[13px] font-bold text-ink-600">{initials}</span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[14px] font-medium text-ink-900">{employee.full_name}</p>
-                    <p className="line-clamp-2 text-[12px] leading-snug text-ink-500" title={`${employee.role_title} · ${employee.department}${employee.country ? ` · ${employee.country}` : ""}`}>
-                      {employee.role_title} · {employee.department}{employee.country ? ` · ${employee.country}` : ""}
+                    <p className="line-clamp-2 text-[12px] leading-snug text-ink-500" title={`${employee.role_title} · ${employee.department}${country ? ` · ${country}` : ""}`}>
+                      {employee.role_title} · {employee.department}{country ? ` · ${country}` : ""}
                     </p>
                     {onProbation ? (
                       <span className="mt-1 inline-block"><StatusPill tone="amber">Probation</StatusPill></span>
