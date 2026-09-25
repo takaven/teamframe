@@ -1043,6 +1043,7 @@ export async function PeopleExperience({
                 </form>
                 </details>
 
+                <h5 className="mt-6 text-[13px] font-semibold text-ink-900">Employment changes</h5>
                 {changes.length === 0 ? (
                   <p className="mt-3 rounded-md border border-ink-300/50 bg-ink-100/40 px-3 py-2 text-[12px] text-ink-500">
                     No employment changes have been recorded for this employee yet.
