@@ -52,7 +52,7 @@ describe("Group C HR completeness", () => {
 
   it("presents one New policy entry point while preserving both supported content paths", () => {
     const page = read("app/policies/page.tsx");
-    expect(page).toContain('"New policy"');
+    expect(page).toContain('"Create a policy"');
     expect(page).toContain("uploadPolicyAction");
     expect(page).toContain("createPolicyAction");
   });

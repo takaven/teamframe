@@ -54,7 +54,7 @@ describe("Global async processing-feedback coverage", () => {
   });
 
   it("shows an in-flight affordance on async signed-URL downloads", () => {
-    for (const file of ["app/leaves/page.tsx", "app/me/page.tsx", "app/policies/page.tsx", "components/LeaveCalendar.tsx"]) {
+    for (const file of ["app/leaves/page.tsx", "app/documents-and-policies/page.tsx", "app/policies/page.tsx", "components/LeaveCalendar.tsx"]) {
       expect(read(file)).toMatch(/pendingLabel="Opening…"/);
     }
   });

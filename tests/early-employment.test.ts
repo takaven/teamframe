@@ -97,8 +97,8 @@ describe("MR-4 join and early employment workflows", () => {
 
   it("keeps the check-in factual and deterministic rather than performance-scored", () => {
     const schema = read("schemas/early_employment.sql");
-    // Phase 5C: the employee 30-day check-in form now lives on /me (moved off /onboarding).
-    const page = read("app/me/page.tsx");
+    // The role-aware route split keeps the employee check-in on Home, while /me is profile-only.
+    const page = read("app/home/page.tsx");
 
     for (const topic of [
       "role_clarity",
