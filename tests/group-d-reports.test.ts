@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { csv } from "@/lib/reports/csv";
+import { csv, humanCsvValue } from "@/lib/reports/csv";
 
 const read = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8");
 
@@ -30,5 +30,11 @@ describe("Group D fixed reports", () => {
   it("creates spreadsheet-safe CSV", () => {
     expect(csv([{ person: 'Hugo "H" Salcedo', department: "People, Ops", value: 0, unknown: null }]))
       .toBe('"person","department","value","unknown"\r\n"Hugo ""H"" Salcedo","People, Ops","0",""');
+  });
+
+  it("exports human-readable enum values", () => {
+    expect(humanCsvValue("full_time")).toBe("Full Time");
+    expect(humanCsvValue("awaiting_review")).toBe("Awaiting Review");
+    expect(humanCsvValue(null)).toBe("");
   });
 });
