@@ -129,9 +129,9 @@ export default async function PoliciesPage({
         </p>
       ) : null}
 
-      <section id="upload" className="mt-8 tf-surface-flat p-5">
-        <h2 className="tf-h2">{isNewVersion ? "New policy version" : "New policy"}</h2>
-        <p className="mt-1 text-[13px] text-ink-500">
+      <details id="upload" className="mt-8 tf-surface-flat p-5" open={isNewVersion || policies.length === 0}>
+        <summary className="cursor-pointer text-[14px] font-semibold text-ink-800">{isNewVersion ? "Add this policy version" : "Create a policy"}</summary>
+        <p className="mt-3 text-[13px] text-ink-500">
           {isNewVersion
             ? "This creates a new version as its own record. Earlier versions and their acknowledgements are preserved."
             : "Upload policy files here, or use the simple text option below. Publishing asks employees to acknowledge this version."}
@@ -205,7 +205,7 @@ export default async function PoliciesPage({
             </div>
           </form>
         </details>
-      </section>
+      </details>
 
       {policies.length === 0 ? (
         <EmptyState

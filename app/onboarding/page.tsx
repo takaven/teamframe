@@ -409,7 +409,13 @@ export default async function OnboardingPage({
                         Added <span className="tabular-nums">{formatDate(task.created_at)}</span>
                       </p>
                       <DueDateBadge task={task} />
-                      <p className="text-[12px] text-ink-500">Complete this once the step is finished.</p>
+                      <p className="text-[12px] text-ink-500">
+                        {task.completion_mode === "document_required"
+                          ? "Upload the requested document to complete this step."
+                          : task.completion_mode === "policy_acknowledgement"
+                            ? "Read and acknowledge the policy to complete this step."
+                            : "Mark this done when you've completed the step."}
+                      </p>
                     </div>
                     {task.completion_mode === "manual_confirmation" ? (
                       <form action={completeOnboardingTaskAction}>
@@ -421,11 +427,11 @@ export default async function OnboardingPage({
                           className="tf-primary-action px-4 py-1.5 text-[13px] font-medium disabled:cursor-not-allowed disabled:bg-ink-300"
                         />
                       </form>
-                    ) : (
-                      <span className="rounded-lg border border-ink-300 bg-ink-50 px-4 py-1.5 text-[13px] font-medium text-ink-700">
-                        {completionModeLabel(task.completion_mode)}
-                      </span>
-                    )}
+                    ) : task.completion_mode === "document_required" ? (
+                      <Link href="/documents-and-policies#documents" className="tf-secondary-action px-4 py-1.5 text-[13px]">Upload document</Link>
+                    ) : task.completion_mode === "policy_acknowledgement" ? (
+                      <Link href="/documents-and-policies#policies" className="tf-secondary-action px-4 py-1.5 text-[13px]">View policy</Link>
+                    ) : <span className="tf-secondary-action px-4 py-1.5 text-[13px]">{completionModeLabel(task.completion_mode)}</span>}
                   </li>
                 ))}
               </ul>

@@ -124,7 +124,7 @@ export function LeaveCalendar({
                         key={`${l.id}-${iso}`}
                         href={leaveHref(basePath, year, month, l.id)}
                         title={`${l.employee_full_name} — ${typeLabel(l)} (${fmtLong(l.start_date)} to ${fmtLong(l.end_date)})`}
-                        className={`block truncate rounded border-l-[3px] px-1.5 py-0.5 text-[11px] ${typeAccent(l)} ${isSel ? "bg-ink-800 text-white" : "bg-ink-50 text-ink-700 hover:bg-ink-100"}`}
+                        className={`block rounded border-l-[3px] px-1.5 py-0.5 text-[11px] leading-tight ${typeAccent(l)} ${isSel ? "bg-ink-800 text-white" : "bg-ink-50 text-ink-700 hover:bg-ink-100"}`}
                       >
                         {firstName(l.employee_full_name)} · {typeLabel(l)}
                       </a>

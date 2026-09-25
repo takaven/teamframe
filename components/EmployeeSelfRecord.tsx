@@ -5,6 +5,7 @@ import { updateOwnProfileAction, updateOwnPaymentAction, updateOwnPhotoAction } 
 import { StatusPill } from "@/components/StatusPill";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { FileInput } from "@/components/FileInput";
+import { getCountryName } from "@/lib/geo/countries";
 
 // Employee self-service record. Editable personal/contact/emergency fields submit as a
 // SINGLE form (the write path whitelist-updates them together). Work fields are
@@ -126,15 +127,13 @@ export function EmployeeSelfRecord({ record }: { record: EmployeeMasterRecord })
         <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <ReadField label="Role / job title" value={employment.role_title} />
           <ReadField label="Department" value={employment.department} />
-          <ReadField label="Country" value={employment.country} />
+          <ReadField label="Country" value={getCountryName(employment.country) ?? employment.country} />
           <ReadField label="Work location" value={employment.work_location} />
           <ReadField label="Timezone" value={employment.timezone} />
           <ReadField label="Employment type" value={employment.employment_type.replace(/_/g, " ").replace(/\b\w/g, (character) => character.toUpperCase())} />
           <ReadField label="Start date" value={fmt(employment.start_date)} />
           <ReadField label="End date" value={employment.end_date ? fmt(employment.end_date) : null} />
           <ReadField label="Employment status" value={lifecycleLabel(employment.lifecycle_state, employment.status)} />
-          <ReadField label="Working-days override" value={employment.working_days_override ? employment.working_days_override.join(", ") : null} />
-          <ReadField label="Leave entitlement override" value={employment.annual_leave_entitlement_override} />
         </dl>
       </section>
 

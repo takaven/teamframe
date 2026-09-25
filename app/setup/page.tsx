@@ -154,13 +154,13 @@ export default async function SetupPage({
 
       <div className="grid gap-8 lg:grid-cols-[196px_minmax(0,1fr)]">
         <nav aria-label="Setup sections" className="h-fit lg:sticky lg:top-10">
-          <ul className="flex gap-1 overflow-x-auto lg:flex-col lg:gap-0.5">
+          <ul className="grid grid-cols-2 gap-1 sm:grid-cols-3 lg:flex lg:flex-col lg:gap-0.5">
             {SECTIONS.map((s) => (
               <li key={s.key}>
                 <Link
                   href={`/setup?section=${s.key}`}
                   aria-current={section === s.key ? "page" : undefined}
-                  className={`block whitespace-nowrap rounded-lg px-3 py-2 text-[13.5px] transition ${section === s.key ? "bg-ink-100 font-semibold text-ink-900" : "text-ink-600 hover:bg-ink-50 hover:text-ink-900"}`}
+                  className={`block rounded-lg px-3 py-2 text-[13.5px] leading-snug transition ${section === s.key ? "bg-ink-100 font-semibold text-ink-900" : "text-ink-600 hover:bg-ink-50 hover:text-ink-900"}`}
                 >
                   {s.label}
                 </Link>
@@ -392,13 +392,13 @@ export default async function SetupPage({
                         <ol className="space-y-3">
                           {checklist.items.map((item, index) => (
                             <li key={item.id} className="rounded-lg border border-ink-200 p-3">
-                              <form action={updateChecklistItemAction} className="grid gap-3 md:grid-cols-6">
+                              <form action={updateChecklistItemAction} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
                                 <input type="hidden" name="id" value={item.id} />
                                 <label className="text-[12px] text-ink-600 md:col-span-2">Task<input name="title" required defaultValue={item.title} className={input} /></label>
                                 <label className="text-[12px] text-ink-600">Owner<select name="owner_role" defaultValue={item.owner_role} className={selectCls}><option value="employee">Employee</option><option value="manager">Manager</option><option value="admin">Admin</option></select></label>
                                 <label className="text-[12px] text-ink-600">Days from start<input name="due_offset_days" type="number" min="-90" max="365" defaultValue={item.due_offset_days} className={input} /></label>
-                                <label className="text-[12px] text-ink-600">Needs<select name="completion_mode" defaultValue={item.completion_mode} className={selectCls}><option value="manual_confirmation">Mark done</option><option value="document_required">A document</option></select></label>
-                                <label className="text-[12px] text-ink-600">Document type<input name="required_document_type" defaultValue={item.required_document_type ?? ""} className={input} /></label>
+                                <label className="text-[12px] text-ink-600">Completion method<select name="completion_mode" defaultValue={item.completion_mode} className={selectCls}><option value="manual_confirmation">Mark done</option><option value="document_required">Upload a document</option></select></label>
+                                <label className="text-[12px] text-ink-600">Required document<input name="required_document_type" defaultValue={item.required_document_type ?? ""} className={input} /></label>
                                 <div className="flex flex-wrap items-center gap-2 md:col-span-6"><span className="mr-auto text-[12px] text-ink-500">{index + 1}. Due {dueOffsetLabel(item.due_offset_days).toLowerCase()}</span><PendingSubmitButton idleLabel="Save task" pendingLabel="Saving…" className={btnGhost} /></div>
                               </form>
                               <div className="mt-2 flex gap-2">

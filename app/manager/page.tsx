@@ -88,6 +88,59 @@ export default async function ManagerPage({
     probationInputNeeded.length > 0 ||
     dashboard.offboardingItems.length > 0;
 
+  if (employeeParam) {
+    const personTasks = dashboard.onboardingTasks.filter((item) => item.employee_id === employeeParam);
+    const personProbation = dashboard.probationReviews.find((item) => item.employee_id === employeeParam);
+    const personCheckIns = reportCheckIns.filter((item) => item.employee_id === employeeParam);
+    const personLeave = dashboard.upcoming.filter((item) => item.kind === "leave" && item.employee_name === reportRecord?.identity.full_name);
+    return (
+      <main className="mx-auto max-w-5xl px-6 py-14">
+        <AppShell actor={actor} activePath="/manager" />
+        <Link href="/manager" className="inline-flex items-center text-[13px] font-medium text-ink-600 hover:text-ink-900">← Back to My team</Link>
+        {reportRecord ? (
+          <>
+            <header className="mt-5 border-b border-ink-300/60 pb-5">
+              <p className="text-[12px] tracking-[0.14em] text-ink-500">Direct report</p>
+              <h1 className="mt-2 text-[34px] leading-tight tracking-tight">{reportRecord.identity.full_name}</h1>
+              <p className="mt-1 text-[14px] text-ink-500">{reportRecord.employment.role_title} · {reportRecord.employment.department}</p>
+            </header>
+            <section className="mt-7 tf-surface-flat p-5">
+              <h2 className="tf-h2">Current employment</h2>
+              <dl className="mt-4 grid gap-4 text-[13px] sm:grid-cols-2 lg:grid-cols-4">
+                <div><dt className="text-ink-500">Status</dt><dd className="mt-1 font-medium text-ink-900">{employmentStatus(reportRecord.employment.lifecycle_state, reportRecord.employment.status)}</dd></div>
+                <div><dt className="text-ink-500">Start date</dt><dd className="mt-1 font-medium text-ink-900">{formatDate(reportRecord.employment.start_date)}</dd></div>
+                <div><dt className="text-ink-500">Work location</dt><dd className="mt-1 font-medium text-ink-900">{reportRecord.employment.work_location ?? "—"}</dd></div>
+                <div><dt className="text-ink-500">Employment type</dt><dd className="mt-1 font-medium text-ink-900">{reportRecord.employment.employment_type.replace(/_/g, " ").replace(/\b\w/g, (character) => character.toUpperCase())}</dd></div>
+              </dl>
+            </section>
+            <div className="mt-5 grid gap-5 lg:grid-cols-2">
+              <section className="tf-surface-flat p-5">
+                <h2 className="tf-h2">Onboarding</h2>
+                {personTasks.length ? <ul className="mt-3 divide-y divide-ink-100">{personTasks.map((task) => <li key={task.id} className="py-3"><p className="text-[13px] font-medium">{task.title}</p><p className="mt-1 text-[12px] text-ink-500">Manager-owned · Due {formatDate(task.due_date)}</p></li>)}</ul> : <p className="mt-3 text-[13px] text-ink-500">No manager-owned onboarding work is open.</p>}
+              </section>
+              <section className="tf-surface-flat p-5">
+                <h2 className="tf-h2">Probation recommendation</h2>
+                {personProbation ? <dl className="mt-3 grid gap-3 text-[13px]"><div><dt className="text-ink-500">Review due</dt><dd>{formatDate(personProbation.review_due_date)}</dd></div><div><dt className="text-ink-500">Probation ends</dt><dd>{formatDate(personProbation.probation_end_date)}</dd></div><div><dt className="text-ink-500">Status</dt><dd>{personProbation.status.replaceAll("_", " ").replace(/\b\w/g, (character) => character.toUpperCase())}</dd></div><div><dt className="text-ink-500">Recommendation</dt><dd>{personProbation.manager_recommended_outcome ? personProbation.manager_recommended_outcome.replaceAll("_", " ").replace(/\b\w/g, (character) => character.toUpperCase()) : "Not submitted"}</dd></div></dl> : <p className="mt-3 text-[13px] text-ink-500">No probation review is scheduled.</p>}
+              </section>
+              <section className="tf-surface-flat p-5">
+                <h2 className="tf-h2">30-day check-in</h2>
+                {personCheckIns.length ? <ul className="mt-3 divide-y divide-ink-100">{personCheckIns.map((item) => <li key={item.id} className="py-3 text-[13px]"><span className="font-medium">{item.status === "submitted" ? "Submitted" : "Scheduled"}</span><span className="ml-2 text-ink-500">{item.submitted_at ? formatDate(item.submitted_at) : `Due ${formatDate(item.due_date)}`}</span></li>)}</ul> : <p className="mt-3 text-[13px] text-ink-500">No check-in is currently available.</p>}
+              </section>
+              <section className="tf-surface-flat p-5">
+                <h2 className="tf-h2">Time off</h2>
+                {personLeave.length ? <ul className="mt-3 divide-y divide-ink-100">{personLeave.map((item) => <li key={item.id} className="py-3 text-[13px]"><span className="font-medium">{item.label}</span><span className="ml-2 text-ink-500">from {formatDate(item.date)}</span></li>)}</ul> : <p className="mt-3 text-[13px] text-ink-500">No approved time off in the next 60 days.</p>}
+              </section>
+            </div>
+            <section className="mt-5 tf-surface-flat p-5">
+              <h2 className="tf-h2">Contact</h2>
+              <dl className="mt-4 grid gap-4 text-[13px] sm:grid-cols-2 lg:grid-cols-3"><div><dt className="text-ink-500">Company email</dt><dd>{reportRecord.contact.company_email}</dd></div><div><dt className="text-ink-500">Company phone</dt><dd>{reportRecord.contact.company_phone ?? "—"}</dd></div><div><dt className="text-ink-500">Emergency contact</dt><dd>{reportRecord.emergency_contact.name ?? "—"}{reportRecord.emergency_contact.phone ? ` · ${reportRecord.emergency_contact.phone}` : ""}</dd></div></dl>
+            </section>
+          </>
+        ) : <p className="mt-7 rounded-lg border border-signal-red/30 bg-signal-red/10 px-4 py-3 text-[14px] text-signal-red">{reportError ? "You can only open current direct reports." : "Employee not found."}</p>}
+      </main>
+    );
+  }
+
   return (
     <main className="mx-auto max-w-5xl px-6 py-14">
       <AppShell actor={actor} activePath="/manager" />
@@ -96,39 +149,9 @@ export default async function ManagerPage({
         <p className="text-[12px] tracking-[0.14em] text-ink-500">People</p>
         <h1 className="mt-2 text-[34px] leading-tight tracking-tight">My team</h1>
         <p className="mt-1 max-w-2xl text-[14px] text-ink-500">
-          Decisions and actions that need you now. Your team directory is below. Salary, payment details, private documents and organisation changes remain restricted.
+          Decisions and actions that need you now, followed by your direct reports.
         </p>
       </div>
-
-      {employeeParam ? (
-        <section className="mt-7 tf-surface-flat p-5">
-          <Link href="/manager" className="text-[13px] text-ink-600 hover:text-ink-900">← Back to My team</Link>
-          {reportRecord ? (
-            <div className="mt-3">
-              <h2 className="text-[20px] font-bold text-ink-900">{reportRecord.identity.full_name}</h2>
-              <p className="text-[13px] text-ink-500">Direct-report record. Salary, payment details and private documents are not visible to managers.</p>
-              <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 text-[13px]">
-                <div><dt className="text-ink-500">Role / job title</dt><dd className="text-ink-900">{reportRecord.employment.role_title}</dd></div>
-                <div><dt className="text-ink-500">Department</dt><dd className="text-ink-900">{reportRecord.employment.department}</dd></div>
-                <div><dt className="text-ink-500">Work location</dt><dd className="text-ink-900">{reportRecord.employment.work_location ?? "—"}</dd></div>
-                <div><dt className="text-ink-500">Employment type</dt><dd className="text-ink-900">{reportRecord.employment.employment_type.replace(/_/g, " ").replace(/\b\w/g, (character) => character.toUpperCase())}</dd></div>
-                <div><dt className="text-ink-500">Status</dt><dd className="text-ink-900">{employmentStatus(reportRecord.employment.lifecycle_state, reportRecord.employment.status)}</dd></div>
-                <div><dt className="text-ink-500">Company email</dt><dd className="text-ink-900">{reportRecord.contact.company_email}</dd></div>
-                <div><dt className="text-ink-500">Company phone</dt><dd className="text-ink-900">{reportRecord.contact.company_phone ?? "—"}</dd></div>
-                <div><dt className="text-ink-500">Emergency contact</dt><dd className="text-ink-900">{reportRecord.emergency_contact.name ?? "—"}{reportRecord.emergency_contact.phone ? ` · ${reportRecord.emergency_contact.phone}` : ""}</dd></div>
-              </dl>
-              <div className="mt-4 flex flex-wrap gap-3 text-[12px]">
-                <span className="rounded-lg border border-dashed border-ink-300 bg-ink-50/50 px-3 py-1.5 text-ink-500">Compensation: not visible to managers</span>
-                <span className="rounded-lg border border-dashed border-ink-300 bg-ink-50/50 px-3 py-1.5 text-ink-500">Payment details: not visible to managers</span>
-              </div>
-            </div>
-          ) : (
-            <p className="mt-3 rounded-lg border border-signal-red/30 bg-signal-red/10 px-4 py-3 text-[14px] text-signal-red">
-              {reportError ? "You do not have access to that employee — managers can only open their current direct reports." : "Employee not found."}
-            </p>
-          )}
-        </section>
-      ) : null}
 
       {successMessage ? (
         <p className="mt-7 rounded-lg border border-accent/70 bg-white/80 px-4 py-3 text-[14px] text-accent">
@@ -171,14 +194,14 @@ export default async function ManagerPage({
           <div className="tf-summary mt-6">
             <div><div className="tf-summary-label">Leave</div><div className="tf-summary-value">{dashboard.pendingLeaves.length}</div></div>
             <div><div className="tf-summary-label">Onboarding</div><div className="tf-summary-value">{dashboard.onboardingTasks.length}</div></div>
-            <div><div className="tf-summary-label">Probation input</div><div className="tf-summary-value">{probationInputNeeded.length}</div></div>
+            <div><div className="tf-summary-label">Probation recommendations</div><div className="tf-summary-value">{probationInputNeeded.length}</div></div>
             <div><div className="tf-summary-label">Handover</div><div className="tf-summary-value">{dashboard.offboardingItems.length}</div></div>
           </div>
 
           <section className="mt-7 tf-surface-flat">
             <div className="border-b border-ink-300/60 px-5 py-4">
               <h2 className="tf-h2">Pending leave</h2>
-              <p className="mt-1 text-[13px] text-ink-500">Approval uses the same TeamFrame leave balance and overlap rules. Manager override is not available.</p>
+              <p className="mt-1 text-[13px] text-ink-500">Review the dates and available balance before deciding.</p>
             </div>
             {dashboard.pendingLeaves.length === 0 ? (
               <p className="px-5 py-4 text-[14px] text-ink-500">No direct-report leave requests are waiting.</p>
@@ -300,8 +323,8 @@ export default async function ManagerPage({
 
             <article className="tf-surface-flat">
               <div className="border-b border-ink-300/60 px-5 py-4">
-                <h2 className="tf-h2">Probation input</h2>
-                <p className="mt-1 text-[13px] text-ink-500">Input only. Admin records the final probation outcome.</p>
+                <h2 className="tf-h2">Probation recommendations</h2>
+                <p className="mt-1 text-[13px] text-ink-500">Share your recommendation; an admin records the final outcome.</p>
               </div>
               {probationInputNeeded.length === 0 ? (
                 <p className="px-5 py-4 text-[14px] text-ink-500">No probation input is waiting.</p>
@@ -348,7 +371,7 @@ export default async function ManagerPage({
                         </label>
                         <p className="text-[11px] text-ink-500">A recommendation only — the final probation outcome is recorded by an admin.</p>
                         <PendingSubmitButton
-                          idleLabel={review.manager_input ? "Update input" : "Submit input"}
+                          idleLabel={review.manager_input ? "Update recommendation" : "Submit recommendation"}
                           pendingLabel="Saving..."
                           className="w-fit tf-primary-action px-4 py-2 text-[13px] font-medium disabled:bg-ink-300"
                         />
@@ -402,7 +425,7 @@ export default async function ManagerPage({
 
       <section className="mt-7 tf-surface-flat">
         <div className="border-b border-ink-300/60 px-5 py-4">
-          <h2 className="tf-h2">My Team</h2>
+          <h2 className="tf-h2">My team · {dashboard.directReports.length}</h2>
           <p className="mt-1 text-[13px] text-ink-500">Your current one-level direct reports. This directory is not a pending-work count.</p>
         </div>
         {dashboard.directReports.length === 0 ? (
@@ -417,7 +440,7 @@ export default async function ManagerPage({
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink-100 text-[13px] font-bold text-ink-600">{initials}</span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[14px] font-medium text-ink-900">{employee.full_name}</p>
-                    <p className="truncate text-[12px] text-ink-500">
+                    <p className="line-clamp-2 text-[12px] leading-snug text-ink-500" title={`${employee.role_title} · ${employee.department}${employee.country ? ` · ${employee.country}` : ""}`}>
                       {employee.role_title} · {employee.department}{employee.country ? ` · ${employee.country}` : ""}
                     </p>
                     {onProbation ? (
@@ -432,11 +455,6 @@ export default async function ManagerPage({
         )}
       </section>
 
-      <div className="mt-8">
-        <Link href="/me" className="rounded-full border border-ink-300 px-5 py-2 text-[14px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900">
-          Back to my profile
-        </Link>
-      </div>
     </main>
   );
 }

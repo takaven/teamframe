@@ -182,7 +182,7 @@ describe("Control Centre data", () => {
       detail: "Waiting for this document.",
     });
     expect(result.allItems.find((item) => item.id === "document:doc-review")).toMatchObject({
-      title: "Contract needs review",
+      title: "Employment contract needs review",
       nextAction: "Review document",
     });
     expect(result.allItems.find((item) => item.id === "signal:signal-open")?.owner).toBe("Owner not assigned");

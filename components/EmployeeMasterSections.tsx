@@ -161,8 +161,6 @@ export function EmploymentReadPanel({
           <Field label="Employment type" value={employment.employment_type.replaceAll("_", " ").replace(/\b\w/g, (character) => character.toUpperCase())} />
           <Field label="Start date" value={fmtDate(employment.start_date)} />
           <Field label="End date" value={employment.end_date ? fmtDate(employment.end_date) : null} />
-          <Field label="Working-days override" value={employment.working_days_override ? employment.working_days_override.join(", ") : null} />
-          <Field label="Leave entitlement override" value={employment.annual_leave_entitlement_override} />
         </Grid>
       </PanelCard>
       <PanelCard title="Position history">

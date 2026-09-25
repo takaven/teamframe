@@ -2,6 +2,7 @@ import "server-only";
 
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 import { projectEmployeeLifecycle } from "@/services/employeeLifecycle";
+import { documentLabel } from "@/lib/ui/documentLabels";
 
 export type DashboardSavedDataStatus =
   | { state: "success" }
@@ -257,23 +258,6 @@ function taskOwner(role: string, ownerId: string | null, names: Map<string, Empl
   if (role === "manager") return "Manager";
   if (role === "employee" && subjectEmployeeId) return employeeName(names, subjectEmployeeId);
   return "Owner not assigned";
-}
-
-function documentLabel(documentType: string): string {
-  const known: Record<string, string> = {
-    contract: "Contract",
-    employment_contract: "Employment contract",
-    medical_fitness: "Medical fitness certificate",
-    medical_insurance: "Medical insurance",
-    emirates_id: "Emirates ID",
-    right_to_work: "Right-to-work document",
-    jd: "Job description",
-    iloe: "ILOE certificate",
-    passport: "Passport",
-    visa: "Visa",
-  };
-  const normalized = documentType.trim().toLowerCase();
-  return known[normalized] ?? normalized.replace(/_/g, " ").replace(/^./, (letter) => letter.toUpperCase());
 }
 
 function sourcePath(source: string): string {

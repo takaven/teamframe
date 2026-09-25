@@ -19,6 +19,7 @@ import { getEmployeeMasterRecord, listEmployeePhotoUrls } from "@/services/emplo
 import { listAssignmentsForEmployee } from "@/services/positionAssignmentService";
 import { getCompanySettings, listDepartments } from "@/services/configurationService";
 import { ISO_COUNTRIES, normalizeCountryCode } from "@/lib/geo/countries";
+import { documentLabel } from "@/lib/ui/documentLabels";
 import { isValidTimeZone } from "@/lib/geo/timezones";
 import {
   RecordHeader,
@@ -668,7 +669,7 @@ export async function PeopleExperience({
                   <div className="mt-3 divide-y divide-ink-100 border-t border-ink-100">
                     {documentRequirements.filter((item) => item.state !== "accepted").slice(0, 3).map((item) => (
                       <a key={item.id} href="#documents" className="flex items-center justify-between gap-3 py-3 text-[12px] hover:text-ink-900">
-                        <span>{item.document_type.replaceAll("_", " ").replace(/\b\w/g, (character) => character.toUpperCase())} is still needed</span><span className="font-semibold">Open documents</span>
+                        <span>{documentLabel(item.document_type)} is still needed</span><span className="font-semibold">Open documents</span>
                       </a>
                     ))}
                     {(onboardingByEmployee.get(employee.id) ?? []).filter((task) => task.status !== "completed").slice(0, 3).map((task) => (
@@ -764,9 +765,9 @@ export async function PeopleExperience({
                 <section data-tab="history" className="rounded-xl border border-ink-200 bg-white/70 p-5">
                   <h3 className="text-[14px] font-semibold text-ink-900">Recent history</h3>
                   <div className="mt-3 divide-y divide-ink-100 border-t border-ink-100">
-                    {changes.slice(0, 6).map((change) => <p key={change.id} className="py-3 text-[12px] text-ink-700">Employment change · {formatDate(change.effective_date)} · {change.status}</p>)}
-                    {documentRequirements.filter((item) => item.state === "accepted").slice(0, 4).map((item) => <p key={item.id} className="py-3 text-[12px] text-ink-700">Document accepted · {item.document_type.replaceAll("_", " ").replace(/\b\w/g, (character) => character.toUpperCase())}</p>)}
-                    {(onboardingByEmployee.get(employee.id) ?? []).filter((task) => task.status === "completed").slice(0, 4).map((task) => <p key={task.id} className="py-3 text-[12px] text-ink-700">Onboarding completed · {task.title}</p>)}
+                    {changes.slice(0, 6).map((change) => <p key={change.id} className="py-3 text-[12px] text-ink-700">Employment change · {formatDate(change.effective_date)} · {change.status.replaceAll("_", " ").replace(/\b\w/g, (character) => character.toUpperCase())}</p>)}
+                    {documentRequirements.filter((item) => item.state === "accepted").slice(0, 4).map((item) => <p key={item.id} className="py-3 text-[12px] text-ink-700">Document accepted · {documentLabel(item.document_type)} · {formatDate(item.updated_at)}</p>)}
+                    {(onboardingByEmployee.get(employee.id) ?? []).filter((task) => task.status === "completed").slice(0, 4).map((task) => <p key={task.id} className="py-3 text-[12px] text-ink-700">Onboarding completed · {task.title} · {formatDate(task.completed_at)}</p>)}
                     {changes.length === 0 && documentRequirements.every((item) => item.state !== "accepted") && (onboardingByEmployee.get(employee.id) ?? []).every((task) => task.status !== "completed") ? <p className="py-3 text-[12px] text-ink-500">No recent activity.</p> : null}
                   </div>
                 </section>
@@ -1240,7 +1241,7 @@ export async function PeopleExperience({
                       {documentRequirements.slice(0, 6).map((requirement) => (
                         <li key={requirement.id} className="grid gap-2 px-3 py-2 text-[12px] md:grid-cols-[1fr_auto] md:items-center">
                           <div>
-                            <p className="font-medium text-ink-900">{requirement.document_type.replace(/_/g, " ").replace(/\b\w/g, (character) => character.toUpperCase())}</p>
+                            <p className="font-medium text-ink-900">{documentLabel(requirement.document_type)}</p>
                             <p className="text-ink-500">
                               State: {requirement.state} · Due: {requirement.due_date ? formatDate(requirement.due_date) : "-"}
                               {requirement.review_required ? " · Admin review required" : ""}

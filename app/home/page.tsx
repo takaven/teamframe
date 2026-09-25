@@ -10,6 +10,7 @@ import { AppShell } from "@/components/AppShell";
 import { EmptyState } from "@/components/EmptyState";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { submitOnboardingCheckInAction } from "@/app/onboarding/actions";
+import { documentLabel } from "@/lib/ui/documentLabels";
 
 export const dynamic = "force-dynamic";
 
@@ -26,16 +27,6 @@ const ERROR_COPY: Record<string, string> = {
   UNKNOWN: "Something went wrong. Refresh and try again.",
 };
 
-function humanLabel(value: string): string {
-  const normalized = value.trim().toLowerCase();
-  const known: Record<string, string> = {
-    medical_fitness: "Medical fitness certificate",
-    employment_contract: "Employment contract",
-    emirates_id: "Emirates ID",
-    right_to_work: "Right-to-work document",
-  };
-  return known[normalized] ?? normalized.replaceAll("_", " ").replace(/^./, (character) => character.toUpperCase());
-}
 
 function formatDay(iso: string): string {
   const date = new Date(iso.length === 10 ? `${iso}T00:00:00Z` : iso);
@@ -98,7 +89,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             {manager?.onboardingTasks.map((task) => <li key={`manager-task-${task.id}`} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3"><div><p className="text-[14px] font-medium">{task.title}</p><p className="text-[12px] text-ink-500">Manager-owned onboarding{task.due_date ? ` · Due ${formatDay(task.due_date)}` : ""}</p></div><Link href={`/manager#onboarding-${task.id}`} className="tf-secondary-action px-3 py-1.5 text-[12px]">Open task</Link></li>)}
             {managerProbation.map((review) => <li key={`probation-${review.id}`} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3"><div><p className="text-[14px] font-medium">Probation recommendation</p><p className="text-[12px] text-ink-500">Due {formatDay(review.review_due_date)}</p></div><Link href={`/manager#probation-${review.id}`} className="tf-secondary-action px-3 py-1.5 text-[12px]">Review probation</Link></li>)}
             {manager?.offboardingItems.map((item) => <li key={`offboarding-${item.id}`} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3"><div><p className="text-[14px] font-medium">{item.title}</p><p className="text-[12px] text-ink-500">Handover{item.due_date ? ` · Due ${formatDay(item.due_date)}` : ""}</p></div><Link href={`/manager#offboarding-${item.id}`} className="tf-secondary-action px-3 py-1.5 text-[12px]">Open task</Link></li>)}
-            {documents.map((document) => <li key={`document-${document.id}`} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3"><div><p className="text-[14px] font-medium">Upload {humanLabel(document.document_type)}</p><p className="text-[12px] text-ink-500">{document.due_date ? `Due ${formatDay(document.due_date)}` : "Requested by your HR team"}</p></div><Link href={`/documents-and-policies#documents`} className="tf-secondary-action px-3 py-1.5 text-[12px]">Upload document</Link></li>)}
+            {documents.map((document) => <li key={`document-${document.id}`} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3"><div><p className="text-[14px] font-medium">Upload {documentLabel(document.document_type)}</p><p className="text-[12px] text-ink-500">{document.due_date ? `Due ${formatDay(document.due_date)}` : "Requested by your HR team"}</p></div><Link href={`/documents-and-policies#documents`} className="tf-secondary-action px-3 py-1.5 text-[12px]">Upload document</Link></li>)}
             {policies.map((policy) => <li key={`policy-${policy.id}`} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3"><div><p className="text-[14px] font-medium">Acknowledge {policy.title}</p><p className="text-[12px] text-ink-500">Version {policy.version}{policy.effective_date ? ` · Effective ${formatDay(policy.effective_date)}` : ""}</p></div><Link href="/documents-and-policies#policies" className="tf-secondary-action px-3 py-1.5 text-[12px]">View policy</Link></li>)}
             {onboardingTasks.map((task) => <li key={`own-task-${task.id}`} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3"><div><p className="text-[14px] font-medium">{task.title}</p><p className="text-[12px] text-ink-500">Onboarding{task.due_date ? ` · Due ${formatDay(task.due_date)}` : ""}</p></div><Link href="/onboarding" className="tf-secondary-action px-3 py-1.5 text-[12px]">Open task</Link></li>)}
             {checkIn.state === "available" ? <li className="flex flex-wrap items-center justify-between gap-3 px-5 py-3"><div><p className="text-[14px] font-medium">Complete your 30-day check-in</p><p className="text-[12px] text-ink-500">Share your first-month feedback.</p></div><a href="#check-in" className="tf-secondary-action px-3 py-1.5 text-[12px]">Start check-in</a></li> : null}

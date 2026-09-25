@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { StatusPill } from "@/components/StatusPill";
 import { humaneDate } from "@/lib/ui/formatDate";
+import { documentLabel } from "@/lib/ui/documentLabels";
 import { requireTenantActor } from "@/middleware/rbac";
 import { listEmployeesForAdmin } from "@/services/employeeService";
 import { listWorkspaceDocuments } from "@/services/documentService";
@@ -12,21 +13,6 @@ import { createDocumentRequirementAction, reviewDocumentRequirementAction } from
 import { remindDocumentAction } from "@/app/notifications/actions";
 
 export const dynamic = "force-dynamic";
-
-const labels: Record<string, string> = {
-  contract: "Employment contract",
-  employment_contract: "Employment contract",
-  right_to_work: "Right to work",
-  passport: "Passport",
-  medical_fitness: "Medical fitness certificate",
-  emirates_id: "Emirates ID",
-  jd: "Job description",
-  visa: "Visa",
-};
-
-function documentLabel(value: string): string {
-  return labels[value] ?? value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
 
 function dateOrDash(value: string | null): string {
   return value ? humaneDate(value) : "—";

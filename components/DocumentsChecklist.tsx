@@ -3,6 +3,7 @@ import { DateField } from "@/components/DateField";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { FileInput } from "@/components/FileInput";
 import { StatusPill } from "@/components/StatusPill";
+import { documentLabel } from "@/lib/ui/documentLabels";
 
 // Groups the EXISTING document_requirements states into a useful employee checklist.
 // No new document system — this only derives buckets from the current model.
@@ -58,7 +59,7 @@ function UploadForm({ requirement, returnTo }: { requirement: Requirement; retur
       <input type="hidden" name="requirement_id" value={requirement.id} />
       <input type="hidden" name="return_to" value={returnTo} />
       <FileInput name="file" required label="Choose a file" />
-      <DateField name="expires_at" dense />
+      <label className="text-[12px] text-ink-500">Expiry date (optional)<DateField name="expires_at" dense /></label>
       <PendingSubmitButton idleLabel={label} pendingLabel="Uploading…" className="tf-primary-action px-3 py-1.5 text-[12px] font-medium disabled:bg-ink-300" />
     </form>
   );
@@ -91,8 +92,11 @@ export function DocumentsChecklist({ requirements, returnTo = "/documents-and-po
             {grouped.get(bucket)!.map((r) => (
               <li key={r.id} className="px-3 py-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-[13px] font-medium text-ink-900">{r.document_type.replace(/_/g, " ").replace(/\b\w/g, (character) => character.toUpperCase())}</span>
-                  <span className="text-[12px] text-ink-500">{r.due_date ? `Due ${fmt(r.due_date)}` : ""}{r.review_required ? " · review required" : ""}</span>
+                  <span className="text-[13px] font-medium text-ink-900">{documentLabel(r.document_type)}</span>
+                  <span className="text-[12px] text-ink-500">
+                    {r.due_date ? (new Date(`${r.due_date}T23:59:59`).getTime() < Date.now() && !["accepted", "received"].includes(r.state) ? `Overdue — was due ${fmt(r.due_date)}` : `Due ${fmt(r.due_date)}`) : ""}
+                    {r.review_required ? " · review required" : ""}
+                  </span>
                 </div>
                 <UploadForm requirement={r} returnTo={returnTo} />
               </li>

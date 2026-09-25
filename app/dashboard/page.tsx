@@ -110,7 +110,6 @@ export default async function DashboardPage() {
             <p className="tf-kicker">Today</p>
             <h2 id="needs-attention-heading" className="tf-h2 mt-1">Needs your attention</h2>
           </div>
-          {attentionItems.length > needsAttention.length ? <p className="text-[12px] text-ink-500">Showing the first {needsAttention.length} of {attentionItems.length}</p> : null}
         </div>
         <OverviewQueue items={queueItems} counts={counts} />
       </section>
