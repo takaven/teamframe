@@ -129,7 +129,7 @@ export function EmployeeSelfRecord({ record }: { record: EmployeeMasterRecord })
           <ReadField label="Country" value={employment.country} />
           <ReadField label="Work location" value={employment.work_location} />
           <ReadField label="Timezone" value={employment.timezone} />
-          <ReadField label="Employment type" value={employment.employment_type.replace(/_/g, " ")} />
+          <ReadField label="Employment type" value={employment.employment_type.replace(/_/g, " ").replace(/\b\w/g, (character) => character.toUpperCase())} />
           <ReadField label="Start date" value={fmt(employment.start_date)} />
           <ReadField label="End date" value={employment.end_date ? fmt(employment.end_date) : null} />
           <ReadField label="Employment status" value={lifecycleLabel(employment.lifecycle_state, employment.status)} />
