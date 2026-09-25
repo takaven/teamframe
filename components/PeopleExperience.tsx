@@ -1215,7 +1215,7 @@ export async function PeopleExperience({
                       {documentRequirements.slice(0, 6).map((requirement) => (
                         <li key={requirement.id} className="grid gap-2 px-3 py-2 text-[12px] md:grid-cols-[1fr_auto] md:items-center">
                           <div>
-                            <p className="font-medium text-ink-900">{requirement.document_type.replace(/_/g, " ")}</p>
+                            <p className="font-medium text-ink-900">{requirement.document_type.replace(/_/g, " ").replace(/\b\w/g, (character) => character.toUpperCase())}</p>
                             <p className="text-ink-500">
                               State: {requirement.state} · Due: {requirement.due_date ? formatDate(requirement.due_date) : "-"}
                               {requirement.review_required ? " · Admin review required" : ""}

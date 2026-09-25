@@ -91,7 +91,7 @@ export function DocumentsChecklist({ requirements }: { requirements: Requirement
             {grouped.get(bucket)!.map((r) => (
               <li key={r.id} className="px-3 py-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-[13px] font-medium text-ink-900">{r.document_type.replace(/_/g, " ")}</span>
+                  <span className="text-[13px] font-medium text-ink-900">{r.document_type.replace(/_/g, " ").replace(/\b\w/g, (character) => character.toUpperCase())}</span>
                   <span className="text-[12px] text-ink-500">{r.due_date ? `Due ${fmt(r.due_date)}` : ""}{r.review_required ? " · review required" : ""}</span>
                 </div>
                 <UploadForm requirement={r} />
