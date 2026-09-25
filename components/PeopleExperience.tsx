@@ -17,7 +17,9 @@ import { listPositions } from "@/services/positionService";
 import { listEarlyEmploymentForAdmin } from "@/services/earlyEmploymentService";
 import { getEmployeeMasterRecord, listEmployeePhotoUrls } from "@/services/employeeMasterService";
 import { listAssignmentsForEmployee } from "@/services/positionAssignmentService";
-import { listDepartments } from "@/services/configurationService";
+import { getCompanySettings, listDepartments } from "@/services/configurationService";
+import { ISO_COUNTRIES, normalizeCountryCode } from "@/lib/geo/countries";
+import { isValidTimeZone } from "@/lib/geo/timezones";
 import {
   RecordHeader,
   PersonalPanel,
@@ -253,7 +255,14 @@ export async function PeopleExperience({
       .map((review) => review.employee_id),
   );
   const positions = await listPositions(actor);
-  const departmentOptions = (await listDepartments(actor)).filter((d) => d.active);
+  const [departmentOptionsRaw, companySettings] = await Promise.all([
+    listDepartments(actor),
+    view === "create" ? getCompanySettings(actor) : Promise.resolve(null),
+  ]);
+  const departmentOptions = departmentOptionsRaw.filter((d) => d.active);
+  const defaultCountry = normalizeCountryCode(companySettings?.country);
+  const defaultTimezone = companySettings?.default_timezone ?? "";
+  const hasUsableDefaults = Boolean(defaultCountry && isValidTimeZone(defaultTimezone));
   const positionByEmployeeId = new Map(
     positions
       .filter((position) => position.assigned_employee_id)
@@ -744,7 +753,7 @@ export async function PeopleExperience({
                   </div>
                   <form action={exportEmployeeDueDiligencePackAction}>
                     <input type="hidden" name="employee_id" value={employee.id} />
-                    <input type="hidden" name="return_to" value="/employees" />
+                    <input type="hidden" name="return_to" value={`/people/${employee.id}`} />
                     <PendingSubmitButton
                       idleLabel="Export due diligence pack"
                       pendingLabel="Preparing pack…"
@@ -874,7 +883,7 @@ export async function PeopleExperience({
                               <input type="hidden" name="item_id" value={item.id} />
                               <input type="hidden" name="expected_updated_at" value={item.updated_at} />
                               <input type="hidden" name="employee_id" value={employee.id} />
-                              <input type="hidden" name="return_to" value="/employees" />
+                              <input type="hidden" name="return_to" value={`/people/${employee.id}`} />
                               <PendingSubmitButton
                                 idleLabel="Mark complete"
                                 pendingLabel="Saving..."
@@ -892,7 +901,7 @@ export async function PeopleExperience({
                     <form action={cancelOffboardingAction}>
                       <input type="hidden" name="case_id" value={offboarding.case.id} />
                       <input type="hidden" name="employee_id" value={employee.id} />
-                      <input type="hidden" name="return_to" value="/employees" />
+                      <input type="hidden" name="return_to" value={`/people/${employee.id}`} />
                       <ConfirmSubmitButton
                         idleLabel="Cancel offboarding"
                         pendingLabel="Cancelling..."
@@ -905,7 +914,7 @@ export async function PeopleExperience({
                   <form action={startOffboardingAction} className="mt-3 grid gap-2 md:grid-cols-[1fr_auto] md:items-end">
                     <input type="hidden" name="employee_id" value={employee.id} />
                     <input type="hidden" name="expected_updated_at" value={employee.updated_at} />
-                    <input type="hidden" name="return_to" value="/employees" />
+                    <input type="hidden" name="return_to" value={`/people/${employee.id}`} />
                     <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                       Effective end date
                       <DateField name="effective_end_date" defaultValue={employee.end_date ?? ""} required dense />
@@ -945,7 +954,7 @@ export async function PeopleExperience({
                   <summary className="tf-secondary-action inline-flex cursor-pointer list-none px-4 py-2 text-[13px] marker:hidden">Change employment</summary>
                 <form action={recordEmploymentChangeAction} className="tf-edit-panel mt-4 grid gap-3 md:grid-cols-3">
                   <input type="hidden" name="employee_id" value={employee.id} />
-                  <input type="hidden" name="return_to" value="/employees" />
+                  <input type="hidden" name="return_to" value={`/people/${employee.id}`} />
                   <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                     Effective date
                     <DateField name="effective_date" defaultValue={new Date().toISOString().slice(0, 10)} required dense />
@@ -1100,7 +1109,7 @@ export async function PeopleExperience({
                                 <form action={cancelEmploymentChangeAction}>
                                   <input type="hidden" name="employee_id" value={employee.id} />
                                   <input type="hidden" name="change_id" value={change.id} />
-                                  <input type="hidden" name="return_to" value="/employees" />
+                                  <input type="hidden" name="return_to" value={`/people/${employee.id}`} />
                                   <ConfirmSubmitButton
                                     idleLabel="Cancel"
                                     pendingLabel="Cancelling…"
@@ -1153,7 +1162,7 @@ export async function PeopleExperience({
                   <div className="mt-4 space-y-4">
                 <form action={createDocumentRequirementAction} className="grid gap-2 md:grid-cols-5">
                   <input type="hidden" name="employee_id" value={employee.id} />
-                  <input type="hidden" name="return_to" value="/employees" />
+                  <input type="hidden" name="return_to" value={`/people/${employee.id}`} />
                   <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                     Request type
                     <select name="document_type" defaultValue="contract" className="tf-select-sm">
@@ -1191,7 +1200,7 @@ export async function PeopleExperience({
 
                 <form action={uploadEmployeeDocumentAction} className="grid gap-2 border-t border-ink-100 pt-4 md:grid-cols-4" encType="multipart/form-data">
                   <input type="hidden" name="employee_id" value={employee.id} />
-                  <input type="hidden" name="return_to" value="/employees" />
+                  <input type="hidden" name="return_to" value={`/people/${employee.id}`} />
                   <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                     Document type
                     <select name="type" defaultValue="contract" className="tf-select-sm">
@@ -1242,7 +1251,7 @@ export async function PeopleExperience({
                               <form action={reviewDocumentRequirementAction}>
                                 <input type="hidden" name="requirement_id" value={requirement.id} />
                                 <input type="hidden" name="decision" value="accepted" />
-                                <input type="hidden" name="return_to" value="/employees" />
+                                <input type="hidden" name="return_to" value={`/people/${employee.id}`} />
                                 <PendingSubmitButton
                                   idleLabel="Accept"
                                   pendingLabel="Accepting…"
@@ -1252,7 +1261,7 @@ export async function PeopleExperience({
                               <form action={reviewDocumentRequirementAction}>
                                 <input type="hidden" name="requirement_id" value={requirement.id} />
                                 <input type="hidden" name="decision" value="rejected" />
-                                <input type="hidden" name="return_to" value="/employees" />
+                                <input type="hidden" name="return_to" value={`/people/${employee.id}`} />
                                 <PendingSubmitButton
                                   idleLabel="Reject"
                                   pendingLabel="Rejecting…"
@@ -1291,7 +1300,7 @@ export async function PeopleExperience({
                           <div className="flex flex-wrap items-center gap-2">
                             <form action={downloadEmployeeDocumentAction}>
                               <input type="hidden" name="document_id" value={document.id} />
-                              <input type="hidden" name="return_to" value="/employees" />
+                              <input type="hidden" name="return_to" value={`/people/${employee.id}`} />
                               <PendingSubmitButton
                                 idleLabel="Download"
                                 pendingLabel="Preparing…"
@@ -1301,7 +1310,7 @@ export async function PeopleExperience({
                             <form action={deleteEmployeeDocumentAction}>
                               <input type="hidden" name="document_id" value={document.id} />
                               <input type="hidden" name="employee_id" value={employee.id} />
-                              <input type="hidden" name="return_to" value="/employees" />
+                              <input type="hidden" name="return_to" value={`/people/${employee.id}`} />
                               <ConfirmSubmitButton
                                 idleLabel="Delete"
                                 pendingLabel="Deleting…"
@@ -1329,7 +1338,7 @@ export async function PeopleExperience({
                     <summary className="tf-secondary-action inline-flex cursor-pointer list-none px-4 py-2 text-[12px] marker:hidden">Add UAE record</summary>
                   <form action={uploadUaeRecordAction} className="tf-edit-panel mt-3 grid gap-3 md:grid-cols-3" encType="multipart/form-data">
                     <input type="hidden" name="employee_id" value={employee.id} />
-                    <input type="hidden" name="return_to" value="/employees" />
+                    <input type="hidden" name="return_to" value={`/people/${employee.id}`} />
                     <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                       Record type
                       <select name="type" defaultValue="emirates_id" className="tf-select-sm">
@@ -1368,7 +1377,7 @@ export async function PeopleExperience({
                     <summary className="tf-tertiary-action inline-flex cursor-pointer list-none marker:hidden">Request record</summary>
                   <form action={createDocumentRequirementAction} className="tf-edit-panel mt-3 flex flex-wrap items-end gap-3">
                     <input type="hidden" name="employee_id" value={employee.id} />
-                    <input type="hidden" name="return_to" value="/employees" />
+                    <input type="hidden" name="return_to" value={`/people/${employee.id}`} />
                     <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                       Request a UAE record
                       <select name="document_type" defaultValue="emirates_id" className="tf-select-sm">
@@ -1404,7 +1413,7 @@ export async function PeopleExperience({
                             </div>
                             <form action={downloadEmployeeDocumentAction}>
                               <input type="hidden" name="document_id" value={document.id} />
-                              <input type="hidden" name="return_to" value="/employees" />
+                              <input type="hidden" name="return_to" value={`/people/${employee.id}`} />
                               <PendingSubmitButton
                                 idleLabel="Download"
                                 pendingLabel="Preparing…"
@@ -1434,7 +1443,7 @@ export async function PeopleExperience({
                   <>
                     <form action={reinviteEmployeeAction} className="w-full sm:w-auto">
                       <input type="hidden" name="employee_id" value={employee.id} />
-                      <input type="hidden" name="return_to" value="/employees" />
+                      <input type="hidden" name="return_to" value={`/people/${employee.id}`} />
                       <PendingSubmitButton
                         idleLabel="Re-send invite"
                         pendingLabel="Sending…"
@@ -1445,7 +1454,7 @@ export async function PeopleExperience({
                     </form>
                     <form action={generateActivationLinkAction} className="w-full sm:w-auto">
                       <input type="hidden" name="employee_id" value={employee.id} />
-                      <input type="hidden" name="return_to" value="/employees" />
+                      <input type="hidden" name="return_to" value={`/people/${employee.id}`} />
                       <PendingSubmitButton
                         idleLabel="Generate activation link"
                         pendingLabel="Generating…"
@@ -1457,7 +1466,7 @@ export async function PeopleExperience({
                 <form action={archiveEmployeeAction} className="w-full sm:w-auto">
                   <input type="hidden" name="employee_id" value={employee.id} />
                   <input type="hidden" name="expected_updated_at" value={employee.updated_at} />
-                  <input type="hidden" name="return_to" value="/employees" />
+                  <input type="hidden" name="return_to" value="/people" />
                   <ConfirmSubmitButton
                     idleLabel="Archive employee"
                     pendingLabel="Archiving…"
@@ -1486,6 +1495,7 @@ export async function PeopleExperience({
       </div>
       <section id="add-person" className="rounded-xl border border-ink-300/70 bg-white/80 p-5">
         <h2 className="text-[19px] font-medium tracking-tight">New employee record</h2>
+        {!hasUsableDefaults ? <p role="alert" className="mt-4 rounded-lg border border-signal-red/30 bg-signal-red/5 px-4 py-3 text-[13px] text-signal-red">Set a valid company country and timezone in <Link href="/setup?view=company" className="font-semibold underline">Settings</Link> before adding people.</p> : null}
         <form action={createEmployeeAction} className="mt-4 grid gap-3 md:grid-cols-2">
           <label className="flex flex-col gap-1 text-[12px] text-ink-500">
             Full name
@@ -1542,8 +1552,7 @@ export async function PeopleExperience({
             Timezone
             <input
               name="timezone"
-              placeholder="e.g. UTC"
-              defaultValue="UTC"
+              defaultValue={defaultTimezone}
               required
               className="tf-input"
             />
@@ -1564,12 +1573,15 @@ export async function PeopleExperience({
           </label>
           <label className="flex flex-col gap-1 text-[12px] text-ink-500">
             Country
-            <input
+            <select
               name="country"
-              placeholder="e.g. UAE"
+              defaultValue={defaultCountry ?? ""}
               required
-              className="tf-input"
-            />
+              className="tf-select"
+            >
+              <option value="" disabled>Choose country</option>
+              {ISO_COUNTRIES.map((country) => <option key={country.code} value={country.code}>{country.name}</option>)}
+            </select>
           </label>
           <label className="flex flex-col gap-1 text-[12px] text-ink-500">
             Start date
@@ -1583,6 +1595,7 @@ export async function PeopleExperience({
             <PendingSubmitButton
               idleLabel="Add person"
               pendingLabel="Creating…"
+              disabled={!hasUsableDefaults}
               className="tf-primary-action px-4 py-2 text-[14px] font-medium disabled:cursor-not-allowed disabled:bg-ink-300"
             />
           </div>
@@ -1601,13 +1614,13 @@ export async function PeopleExperience({
           <label className="text-xs text-ink-600">Work email<input className="tf-input mt-1" name="email" type="email" required /></label>
           <label className="text-xs text-ink-600">Role title<input className="tf-input mt-1" name="role_title" required /></label>
           <label className="text-xs text-ink-600">Department<input className="tf-input mt-1" name="department" required /></label>
-          <label className="text-xs text-ink-600">Timezone<input className="tf-input mt-1" name="timezone" defaultValue="UTC" required /></label>
+          <label className="text-xs text-ink-600">Timezone<input className="tf-input mt-1" name="timezone" defaultValue={defaultTimezone} required /></label>
           <label className="text-xs text-ink-600">Employment type<select className="tf-select mt-1" name="employment_type" required defaultValue=""><option value="" disabled>Choose explicitly</option><option value="full_time">Full time</option><option value="part_time">Part time</option><option value="contractor">Contractor</option><option value="intern">Intern</option></select></label>
-          <label className="text-xs text-ink-600">Country<input className="tf-input mt-1" name="country" required /></label>
+          <label className="text-xs text-ink-600">Country<select className="tf-select mt-1" name="country" defaultValue={defaultCountry ?? ""} required><option value="" disabled>Choose country</option>{ISO_COUNTRIES.map((country) => <option key={country.code} value={country.code}>{country.name}</option>)}</select></label>
           <label className="text-xs text-ink-600">Start date<DateField name="start_date" required /></label>
           <label className="text-xs text-ink-600">End date (optional)<DateField name="end_date" /></label>
           <label className="flex items-center gap-2 text-sm text-ink-700 md:col-span-2"><input name="source_reviewed" type="checkbox" value="yes" required />I verified this candidate is hired and this offer is accepted in HirePass, and explicitly reviewed the People fields above.</label>
-          <div className="md:col-span-2"><PendingSubmitButton idleLabel="Create People record without invitation" pendingLabel="Creating…" className="tf-primary-action px-4 py-2 text-sm" /></div>
+          <div className="md:col-span-2"><PendingSubmitButton idleLabel="Create People record without invitation" pendingLabel="Creating…" disabled={!hasUsableDefaults} className="tf-primary-action px-4 py-2 text-sm" /></div>
         </form>
       </section>
       </> : null}

@@ -2,6 +2,7 @@ import "server-only";
 import type { Actor } from "@/middleware/rbac";
 import { requireCapability } from "@/lib/rbac/access";
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
+import { listLeaveDefinitionBalances } from "@/services/leaveService";
 
 type Employee = { id: string; full_name: string; department: string; work_location: string | null; employment_type: string; country: string | null; start_date: string | null; end_date: string | null; lifecycle_state: string | null; status: string };
 type Leave = { employee_id: string; leave_type: string; start_date: string; end_date: string; requested_days: number; status: string };
@@ -28,7 +29,7 @@ function countBy(rows: Employee[], key: keyof Pick<Employee, "department" | "wor
 function monthStart(date: Date) { return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1)); }
 function iso(date: Date) { return date.toISOString().slice(0, 10); }
 
-export async function getReports(actor: Actor & { tenantId: string }, filters: ReportFilters) {
+export async function getReports(actor: Actor & { tenantId: string }, filters: ReportFilters, options: { includeBalances?: boolean } = {}) {
   await requireCapability(actor, "people_operations");
   const db = createServiceRoleClient();
   const tenant = actor.tenantId;
@@ -79,11 +80,17 @@ export async function getReports(actor: Actor & { tenantId: string }, filters: R
     return { employee, tasks: rows.length, complete, overdue: rows.filter((t) => t.status === "pending" && !!t.due_date && t.due_date < today).length, checkIns: checks.filter((c) => c.employee_id === employee.id), probation: probation.filter((p) => p.employee_id === employee.id) };
   });
   const policyRows = policies.flatMap((policy) => active.map((employee) => ({ policy, employee, acknowledgement: acknowledgements.find((a) => a.policy_id === policy.id && a.policy_version === policy.version && a.employee_id === employee.id) ?? null })));
+  // Reports use the same verified balance calculation as Time off, including opening usage,
+  // configured defaults and per-person annual overrides. There is no second report formula.
+  const balanceRows = options.includeBalances ? (await Promise.all(employees.map(async (employee) => {
+    const balances = await listLeaveDefinitionBalances(actor, employee.id);
+    return balances.map((balance) => ({ employee, ...balance }));
+  }))).flat() : [];
   const trend = Array.from({ length: 12 }, (_, index) => {
     const date = monthStart(new Date()); date.setUTCMonth(date.getUTCMonth() - (11 - index));
     const end = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0));
     return { month: date.toLocaleString("en", { month: "short", year: "numeric", timeZone: "UTC" }), count: employees.filter((e) => (!e.start_date || e.start_date <= iso(end)) && (!e.end_date || e.end_date >= iso(date))).length };
   });
   const avgHeadcount = trend.length ? trend.reduce((sum, row) => sum + row.count, 0) / trend.length : 0;
-  return { filters, departments, locations, employees, active, names, leaves, periodLeaves, away, joiners, leavers, turnover: avgHeadcount ? (leavers.length / avgHeadcount) * 100 : null, byDepartment: countBy(active, "department"), byLocation: countBy(active, "work_location"), byEmployment: countBy(active, "employment_type"), byCountry: countBy(active, "country"), trend, requirementRows, expiry, onboardingRows, policyRows };
+  return { filters, departments, locations, employees, active, names, leaves, periodLeaves, away, joiners, leavers, turnover: avgHeadcount ? (leavers.length / avgHeadcount) * 100 : null, byDepartment: countBy(active, "department"), byLocation: countBy(active, "work_location"), byEmployment: countBy(active, "employment_type"), byCountry: countBy(active, "country"), trend, requirementRows, expiry, onboardingRows, policyRows, balanceRows };
 }

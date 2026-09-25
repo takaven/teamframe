@@ -35,4 +35,12 @@ describe("final role architecture", () => {
     expect(compatibility).toContain('"#policies": "/documents-and-policies#policies"');
     expect(compatibility).toContain('"#check-in": "/home#check-in"');
   });
+
+  it("keeps employee-record actions on the canonical People routes", () => {
+    const experience = read("components/PeopleExperience.tsx");
+    const actions = read("app/employees/actions.ts");
+    expect(experience).not.toContain('name="return_to" value="/employees"');
+    expect(actions).not.toContain('returnTo = "/employees"');
+    expect(actions).not.toContain('safeReturnPath(parsed.return_to, "/employees")');
+  });
 });

@@ -3,6 +3,8 @@ import { z } from "zod";
 import type { Actor } from "@/middleware/rbac";
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 import { assignDefaultChecklist } from "@/services/onboardingService/checklistTemplates";
+import { normalizeCountryCode } from "@/lib/geo/countries";
+import { isValidTimeZone } from "@/lib/geo/timezones";
 
 // This is an operator-reviewed assertion, not an authenticated HirePass API read.
 // Excluding unknown keys prevents CV, salary or other candidate data crossing over.
@@ -16,9 +18,13 @@ export const HirePeopleSnapshotSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
   role_title: z.string().trim().min(1).max(200),
   department: z.string().trim().min(1).max(120),
-  timezone: z.string().trim().min(1).max(100),
+  timezone: z.string().trim().min(1).max(100).refine(isValidTimeZone),
   employment_type: z.enum(["full_time", "part_time", "contractor", "intern"]),
-  country: z.string().trim().min(2).max(100),
+  country: z.string().trim().min(2).max(100).transform((value, context) => {
+    const normalized = normalizeCountryCode(value);
+    if (!normalized) { context.addIssue({ code: "custom", message: "Invalid country" }); return z.NEVER; }
+    return normalized;
+  }),
   start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
   manager_id: z.string().uuid().nullable(),

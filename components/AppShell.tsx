@@ -101,7 +101,7 @@ export async function AppShell({
           </span>
         </div>
 
-        <nav className="mt-6 flex-1" aria-label={actor.role === "admin" ? "Admin" : "Employee"}>
+        <nav className="mt-6 flex-1" aria-label={actor.role === "admin" ? "Admin" : showManagerPriorities ? "Manager" : "Employee"}>
           {isAdminSurface ? (
             <form action="/people" className="mx-3 mb-3">
               <label className="sr-only" htmlFor="people-search">Search people</label>

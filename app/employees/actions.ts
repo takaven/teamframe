@@ -39,15 +39,21 @@ import { logAction } from "@/lib/telemetry/logger";
 import { captureActionError } from "@/lib/telemetry/sentry";
 import { createEmployeeFromReviewedHire } from "@/services/hirePeopleHandoff";
 import { assignDefaultChecklist } from "@/services/onboardingService/checklistTemplates";
+import { normalizeCountryCode } from "@/lib/geo/countries";
+import { isValidTimeZone } from "@/lib/geo/timezones";
 
 const CreateInputSchema = z.object({
   full_name: z.string().trim().min(1),
   email: z.string().trim().toLowerCase().email(),
   role_title: z.string().trim().min(1),
   department: z.string().trim().min(1),
-  timezone: z.string().trim().min(1),
+  timezone: z.string().trim().min(1).refine(isValidTimeZone),
   employment_type: z.enum(["full_time", "part_time", "contractor", "intern"]),
-  country: z.string().trim().min(2),
+  country: z.string().trim().min(2).transform((value, context) => {
+    const normalized = normalizeCountryCode(value);
+    if (!normalized) { context.addIssue({ code: "custom", message: "Invalid country" }); return z.NEVER; }
+    return normalized;
+  }),
   start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
@@ -383,10 +389,10 @@ export async function updateEmployeeAction(formData: FormData): Promise<void> {
   }
 
   if (failed) {
-    redirect(`/employees?error=${encodeURIComponent(errorCode)}`);
+    redirect(`/people?error=${encodeURIComponent(errorCode)}`);
   }
 
-  redirect("/employees?status=updated");
+  redirect("/people?status=updated");
 }
 
 export async function saveCompensationAction(formData: FormData): Promise<void> {
@@ -446,7 +452,7 @@ export async function archiveEmployeeAction(formData: FormData): Promise<void> {
   let failed = false;
   let errorCode = "UNKNOWN";
   let employeeId = "";
-  let returnTo = "/employees";
+  let returnTo = "/people";
 
   // Observability instrumentation (Phase 1C).
   const start = Date.now();
@@ -463,7 +469,7 @@ export async function archiveEmployeeAction(formData: FormData): Promise<void> {
       return_to: optionalString(formData.get("return_to")),
     });
     employeeId = parsed.employee_id;
-    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    returnTo = safeReturnPath(parsed.return_to, "/people");
 
     await softDeleteEmployee(actor, parsed.employee_id, parsed.expected_updated_at);
   } catch (error) {
@@ -510,7 +516,7 @@ export async function startOffboardingAction(formData: FormData): Promise<void> 
   let failed = false;
   let errorCode = "UNKNOWN";
   let employeeId = "";
-  let returnTo = "/employees";
+  let returnTo = "/people";
 
   const start = Date.now();
   const requestId = crypto.randomUUID();
@@ -526,7 +532,7 @@ export async function startOffboardingAction(formData: FormData): Promise<void> 
     });
 
     employeeId = parsed.employee_id;
-    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    returnTo = safeReturnPath(parsed.return_to, "/people");
 
     const workflow = await startOffboarding(actor, {
       employeeId: parsed.employee_id,
@@ -578,7 +584,7 @@ export async function completeOffboardingItemAction(formData: FormData): Promise
   let failed = false;
   let errorCode = "UNKNOWN";
   let employeeId = "";
-  let returnTo = "/employees";
+  let returnTo = "/people";
 
   try {
     const actor = await requireTenantActor();
@@ -589,7 +595,7 @@ export async function completeOffboardingItemAction(formData: FormData): Promise
       return_to: optionalString(formData.get("return_to")),
     });
     employeeId = parsed.employee_id;
-    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    returnTo = safeReturnPath(parsed.return_to, "/people");
 
     await completeOffboardingItem(actor, parsed.item_id, parsed.expected_updated_at);
   } catch (error) {
@@ -608,7 +614,7 @@ export async function cancelOffboardingAction(formData: FormData): Promise<void>
   let failed = false;
   let errorCode = "UNKNOWN";
   let employeeId = "";
-  let returnTo = "/employees";
+  let returnTo = "/people";
 
   try {
     const actor = await requireTenantActor();
@@ -618,7 +624,7 @@ export async function cancelOffboardingAction(formData: FormData): Promise<void>
       return_to: optionalString(formData.get("return_to")),
     });
     employeeId = parsed.employee_id;
-    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    returnTo = safeReturnPath(parsed.return_to, "/people");
 
     await cancelOffboarding(actor, parsed.case_id);
   } catch (error) {
@@ -637,7 +643,7 @@ export async function reinviteEmployeeAction(formData: FormData): Promise<void> 
   let failed = false;
   let errorCode = "UNKNOWN";
   let employeeId = "";
-  let returnTo = "/employees";
+  let returnTo = "/people";
 
   // Observability instrumentation (Phase 1C).
   const start = Date.now();
@@ -652,7 +658,7 @@ export async function reinviteEmployeeAction(formData: FormData): Promise<void> 
       return_to: optionalString(formData.get("return_to")),
     });
     employeeId = parsed.employee_id;
-    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    returnTo = safeReturnPath(parsed.return_to, "/people");
 
     await reinviteEmployee(actor, parsed.employee_id);
   } catch (error) {
@@ -699,7 +705,7 @@ export async function generateActivationLinkAction(formData: FormData): Promise<
   let failed = false;
   let errorCode = "UNKNOWN";
   let employeeId = "";
-  let returnTo = "/employees";
+  let returnTo = "/people";
   let activationLink = "";
 
   // Observability instrumentation (Phase 1C).
@@ -715,7 +721,7 @@ export async function generateActivationLinkAction(formData: FormData): Promise<
       return_to: optionalString(formData.get("return_to")),
     });
     employeeId = parsed.employee_id;
-    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    returnTo = safeReturnPath(parsed.return_to, "/people");
 
     const result = await generateEmployeeActivationLink(actor, parsed.employee_id);
     activationLink = result.activationLink;
@@ -765,7 +771,7 @@ export async function uploadEmployeeDocumentAction(formData: FormData): Promise<
   let failed = false;
   let errorCode = "UNKNOWN";
   let employeeId = "";
-  let returnTo = "/employees";
+  let returnTo = "/people";
 
   const start = Date.now();
   const requestId = crypto.randomUUID();
@@ -788,7 +794,7 @@ export async function uploadEmployeeDocumentAction(formData: FormData): Promise<
     });
 
     employeeId = parsed.employee_id;
-    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    returnTo = safeReturnPath(parsed.return_to, "/people");
 
     await uploadDocument(actor, {
       employeeId: parsed.employee_id,
@@ -846,7 +852,7 @@ export async function uploadUaeRecordAction(formData: FormData): Promise<void> {
   let failed = false;
   let errorCode = "UNKNOWN";
   let employeeId = "";
-  let returnTo = "/employees";
+  let returnTo = "/people";
   let actor: Awaited<ReturnType<typeof requireTenantActor>> | null = null;
 
   try {
@@ -863,7 +869,7 @@ export async function uploadUaeRecordAction(formData: FormData): Promise<void> {
       return_to: optionalString(formData.get("return_to")),
     });
     employeeId = parsed.employee_id;
-    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    returnTo = safeReturnPath(parsed.return_to, "/people");
 
     await uploadDocument(
       actor,
@@ -953,7 +959,7 @@ export async function createDocumentRequirementAction(formData: FormData): Promi
   let failed = false;
   let errorCode = "UNKNOWN";
   let employeeId = "";
-  let returnTo = "/employees";
+  let returnTo = "/people";
 
   try {
     const actor = await requireTenantActor();
@@ -967,7 +973,7 @@ export async function createDocumentRequirementAction(formData: FormData): Promi
       return_to: optionalString(formData.get("return_to")),
     });
     employeeId = parsed.employee_id;
-    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    returnTo = safeReturnPath(parsed.return_to, "/people");
 
     const requirement = await createDocumentRequirement(actor, {
       employeeId: parsed.employee_id,
@@ -1022,7 +1028,7 @@ export async function uploadRequirementDocumentAction(formData: FormData): Promi
 export async function reviewDocumentRequirementAction(formData: FormData): Promise<void> {
   let failed = false;
   let errorCode = "UNKNOWN";
-  let returnTo = "/employees";
+  let returnTo = "/people";
 
   try {
     const actor = await requireTenantActor();
@@ -1031,7 +1037,7 @@ export async function reviewDocumentRequirementAction(formData: FormData): Promi
       decision: formData.get("decision"),
       return_to: optionalString(formData.get("return_to")),
     });
-    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    returnTo = safeReturnPath(parsed.return_to, "/people");
     await reviewDocumentRequirement(actor, {
       requirementId: parsed.requirement_id,
       decision: parsed.decision,
@@ -1048,7 +1054,7 @@ export async function reviewDocumentRequirementAction(formData: FormData): Promi
 export async function downloadEmployeeDocumentAction(formData: FormData): Promise<void> {
   let failed = false;
   let errorCode = "UNKNOWN";
-  let returnTo = "/employees";
+  let returnTo = "/people";
   let documentId = "";
   let signedUrl = "";
 
@@ -1059,7 +1065,7 @@ export async function downloadEmployeeDocumentAction(formData: FormData): Promis
       return_to: optionalString(formData.get("return_to")),
     });
     documentId = parsed.document_id;
-    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    returnTo = safeReturnPath(parsed.return_to, "/people");
     signedUrl = await getSignedDownloadUrl(actor, parsed.document_id);
   } catch (error) {
     failed = true;
@@ -1077,7 +1083,7 @@ export async function deleteEmployeeDocumentAction(formData: FormData): Promise<
   let failed = false;
   let errorCode = "UNKNOWN";
   let employeeId = "";
-  let returnTo = "/employees";
+  let returnTo = "/people";
 
   const start = Date.now();
   const requestId = crypto.randomUUID();
@@ -1092,7 +1098,7 @@ export async function deleteEmployeeDocumentAction(formData: FormData): Promise<
       return_to: optionalString(formData.get("return_to")),
     });
     employeeId = parsed.employee_id;
-    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    returnTo = safeReturnPath(parsed.return_to, "/people");
 
     await softDeleteDocument(actor, parsed.document_id);
   } catch (error) {
@@ -1139,7 +1145,7 @@ export async function exportEmployeeDueDiligencePackAction(formData: FormData): 
   let failed = false;
   let errorCode = "UNKNOWN";
   let employeeId = "";
-  let returnTo = "/employees";
+  let returnTo = "/people";
   let signedUrl = "";
 
   try {
@@ -1149,7 +1155,7 @@ export async function exportEmployeeDueDiligencePackAction(formData: FormData): 
       return_to: optionalString(formData.get("return_to")),
     });
     employeeId = parsed.employee_id;
-    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    returnTo = safeReturnPath(parsed.return_to, "/people");
     signedUrl = await exportEmployeeDueDiligencePackUrl(actor, parsed.employee_id);
   } catch (error) {
     failed = true;
@@ -1166,7 +1172,7 @@ export async function exportEmployeeDueDiligencePackAction(formData: FormData): 
 export async function exportFinanceHandoffAction(formData: FormData): Promise<void> {
   let failed = false;
   let errorCode = "UNKNOWN";
-  let returnTo = "/employees";
+  let returnTo = "/people";
   let signedUrl = "";
 
   try {
@@ -1174,7 +1180,7 @@ export async function exportFinanceHandoffAction(formData: FormData): Promise<vo
     const parsed = ExportFinanceHandoffInputSchema.parse({
       return_to: optionalString(formData.get("return_to")),
     });
-    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    returnTo = safeReturnPath(parsed.return_to, "/people");
     signedUrl = await exportFinanceHandoffUrl(actor);
   } catch (error) {
     failed = true;
@@ -1192,7 +1198,7 @@ export async function recordEmploymentChangeAction(formData: FormData): Promise<
   let failed = false;
   let errorCode = "UNKNOWN";
   let employeeId = "";
-  let returnTo = "/employees";
+  let returnTo = "/people";
 
   const start = Date.now();
   const requestId = crypto.randomUUID();
@@ -1213,7 +1219,7 @@ export async function recordEmploymentChangeAction(formData: FormData): Promise<
       return_to: optionalString(formData.get("return_to")),
     });
     employeeId = parsed.employee_id;
-    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    returnTo = safeReturnPath(parsed.return_to, "/people");
 
     const patch = Object.fromEntries(
       Object.entries({
@@ -1275,7 +1281,7 @@ export async function cancelEmploymentChangeAction(formData: FormData): Promise<
   let failed = false;
   let errorCode = "UNKNOWN";
   let employeeId = "";
-  let returnTo = "/employees";
+  let returnTo = "/people";
 
   const start = Date.now();
   const requestId = crypto.randomUUID();
@@ -1290,7 +1296,7 @@ export async function cancelEmploymentChangeAction(formData: FormData): Promise<
       return_to: optionalString(formData.get("return_to")),
     });
     employeeId = parsed.employee_id;
-    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    returnTo = safeReturnPath(parsed.return_to, "/people");
 
     await cancelEmploymentChange(actor, parsed.change_id);
   } catch (error) {
