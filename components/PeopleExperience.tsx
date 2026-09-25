@@ -80,7 +80,7 @@ const STATUS_COPY: Record<string, string> = {
   photo_updated: "Profile photo updated.",
   document_deleted: "Document deleted.",
   document_requested: "Document request created.",
-  document_reviewed: "Document evidence reviewed.",
+  document_reviewed: "Document reviewed.",
   due_diligence_pack_exported: "Due diligence pack prepared.",
   employment_change_recorded: "Employment change recorded.",
   employment_change_cancelled: "Employment change cancelled.",
@@ -107,13 +107,13 @@ const ERROR_COPY: Record<string, string> = {
   OFFBOARDING_ITEM_COMPLETE_FAILED: "Could not complete offboarding item.",
   OFFBOARDING_CANCEL_FAILED: "Could not cancel offboarding.",
   OFFBOARDING_NOT_FOUND: "No active offboarding workflow was found.",
-  EVIDENCE_REQUIRED: "This offboarding item requires configured evidence and cannot be manually completed.",
+  EVIDENCE_REQUIRED: "This offboarding item requires a document and cannot be manually completed.",
   EMPLOYEE_INVITE_TENANT_CONFLICT: "Invite blocked: this email is already linked to another company.",
   EMPLOYEE_INVITE_FAILED: "Employee saved, but invite delivery failed. Try Re-send invite.",
   EMPLOYEE_INVITE_RATE_LIMIT: "Invite rate limit reached. Wait briefly, then try Re-send invite.",
   EMPLOYEE_RESEND_COOLDOWN: "Re-send is cooling down. Wait briefly before trying again.",
-  EMPLOYEE_INVITE_REDIRECT_MISMATCH: "Invite blocked by redirect configuration. Check SITE_URL and Supabase redirect allow-list.",
-  EMPLOYEE_INVITE_PROVIDER_CONFIG: "Invite provider is not fully configured. Ask an admin to check Supabase email settings.",
+  EMPLOYEE_INVITE_REDIRECT_MISMATCH: "Invite blocked by the sign-in configuration. Ask an administrator to review the allowed sign-in address.",
+  EMPLOYEE_INVITE_PROVIDER_CONFIG: "Invite email delivery is not fully configured. Ask an administrator to review email settings.",
   EMPLOYEE_INVITE_USER_LOOKUP_FAILED: "Invite could not be linked to an existing auth user. Re-send invite.",
   EMPLOYEE_INVITE_METADATA_FAILED: "Invite was sent but metadata sync failed. Re-send invite.",
   EMPLOYEE_ACTIVATION_LINK_FAILED: "Could not generate an activation link. Re-send invite and retry.",
@@ -124,7 +124,7 @@ const ERROR_COPY: Record<string, string> = {
   DOCUMENT_LIST_FAILED: "Could not load documents for this employee.",
   DOCUMENT_REQUIREMENT_CREATE_FAILED: "Could not create document request.",
   DOCUMENT_REQUIREMENT_LIST_FAILED: "Could not load document requests.",
-  DOCUMENT_REQUIREMENT_REVIEW_FAILED: "Could not review document evidence.",
+  DOCUMENT_REQUIREMENT_REVIEW_FAILED: "Could not review the document.",
   DOCUMENT_REQUIREMENT_NOT_REVIEWABLE: "That document request is not ready for review.",
   DOCUMENT_FETCH_FAILED: "Document could not be found.",
   DOCUMENT_SIGNED_URL_FAILED: "Could not generate document download link.",
@@ -198,7 +198,7 @@ function formatChangeValue(key: string, value: unknown, lookup: Map<string, stri
   if (value === null || value === undefined) return "None";
   if (typeof value !== "string") return JSON.stringify(value);
   if (key === "manager_id" || key === "position_id") return lookup.get(value) ?? value;
-  if (key === "employment_type") return value.replace("_", " ");
+  if (key === "employment_type") return value.replaceAll("_", " ").replace(/\b\w/g, (character) => character.toUpperCase());
   if (key === "start_date" || key === "end_date") return formatDate(value);
   return value;
 }
@@ -437,21 +437,21 @@ export async function PeopleExperience({
             {inviteActivated} active · {invitePending + inviteSent} awaiting sign-in{archived > 0 ? ` · ${archived} archived` : ""}
           </p>
         </div>
-        <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
+        <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end">
         <Link href="/org-chart" className="tf-secondary-action h-9 px-4 text-[13px] font-medium">Org chart</Link>
         <Link href="/people/import" className="tf-secondary-action h-9 px-4 text-[13px] font-medium">Import CSV</Link>
         <Link href="/people/add" className="tf-primary-action h-9 px-4 text-[13px] font-medium">Add person</Link>
-        <form className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:flex-none">
+        <form className="grid w-full min-w-0 basis-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:flex sm:w-auto sm:basis-auto sm:flex-none">
           <input
             name="q"
             defaultValue={q ?? ""}
             placeholder="Search name, number, role, department"
-            className="h-9 min-w-0 flex-1 rounded-lg border border-ink-300 bg-white px-3 text-[13px] text-ink-900 sm:w-60"
+            className="col-span-2 h-9 min-w-0 flex-1 rounded-lg border border-ink-300 bg-white px-3 text-[13px] text-ink-900 sm:w-60"
           />
           <select
             name="filter"
             defaultValue={activeFilter}
-            className="h-9 rounded-lg border border-ink-300 bg-white px-3 text-[13px] text-ink-900"
+            className="h-9 w-full min-w-0 rounded-lg border border-ink-300 bg-white px-3 text-[13px] text-ink-900 sm:w-auto"
           >
             <option value="all">All</option>
             <option value="attention">Needs attention</option>
@@ -466,7 +466,7 @@ export async function PeopleExperience({
       </div>
 
       {successMessage ? (
-        <p className="mb-5 rounded-lg border border-signal-green/25 bg-signal-green/5 px-4 py-2.5 text-[13.5px] text-signal-green">
+        <p role="status" aria-live="polite" className="mb-5 rounded-lg border border-signal-green/25 bg-signal-green/5 px-4 py-2.5 text-[13.5px] text-signal-green">
           {successMessage}
         </p>
       ) : null}
@@ -657,7 +657,7 @@ export async function PeopleExperience({
                   <div className="mt-3 divide-y divide-ink-100 border-t border-ink-100">
                     {documentRequirements.filter((item) => item.state !== "accepted").slice(0, 3).map((item) => (
                       <a key={item.id} href="#documents" className="flex items-center justify-between gap-3 py-3 text-[12px] hover:text-ink-900">
-                        <span>{item.document_type.replaceAll("_", " ")} is still needed</span><span className="font-semibold">Open documents</span>
+                        <span>{item.document_type.replaceAll("_", " ").replace(/\b\w/g, (character) => character.toUpperCase())} is still needed</span><span className="font-semibold">Open documents</span>
                       </a>
                     ))}
                     {(onboardingByEmployee.get(employee.id) ?? []).filter((task) => task.status !== "completed").slice(0, 3).map((task) => (
@@ -714,7 +714,7 @@ export async function PeopleExperience({
                   <div className="mt-4 divide-y divide-ink-100 border-t border-ink-100">
                     {(leaveOverview?.requests ?? []).slice(0, 8).map((request) => (
                       <div key={request.id} className="flex flex-wrap items-center justify-between gap-2 py-3 text-[12px]">
-                        <span className="font-medium text-ink-800">{request.leave_type.replaceAll("_", " ")} · {formatDate(request.start_date)}–{formatDate(request.end_date)}</span>
+                        <span className="font-medium text-ink-800">{request.leave_type.replaceAll("_", " ").replace(/\b\w/g, (character) => character.toUpperCase())} · {formatDate(request.start_date)}–{formatDate(request.end_date)}</span>
                         <StatusPill tone={request.status === "approved" ? "green" : request.status === "pending" ? "amber" : "neutral"}>{request.status}</StatusPill>
                       </div>
                     ))}
@@ -754,7 +754,7 @@ export async function PeopleExperience({
                   <h3 className="text-[14px] font-semibold text-ink-900">Recent history</h3>
                   <div className="mt-3 divide-y divide-ink-100 border-t border-ink-100">
                     {changes.slice(0, 6).map((change) => <p key={change.id} className="py-3 text-[12px] text-ink-700">Employment change · {formatDate(change.effective_date)} · {change.status}</p>)}
-                    {documentRequirements.filter((item) => item.state === "accepted").slice(0, 4).map((item) => <p key={item.id} className="py-3 text-[12px] text-ink-700">Document accepted · {item.document_type.replaceAll("_", " ")}</p>)}
+                    {documentRequirements.filter((item) => item.state === "accepted").slice(0, 4).map((item) => <p key={item.id} className="py-3 text-[12px] text-ink-700">Document accepted · {item.document_type.replaceAll("_", " ").replace(/\b\w/g, (character) => character.toUpperCase())}</p>)}
                     {(onboardingByEmployee.get(employee.id) ?? []).filter((task) => task.status === "completed").slice(0, 4).map((task) => <p key={task.id} className="py-3 text-[12px] text-ink-700">Onboarding completed · {task.title}</p>)}
                     {changes.length === 0 && documentRequirements.every((item) => item.state !== "accepted") && (onboardingByEmployee.get(employee.id) ?? []).every((task) => task.status !== "completed") ? <p className="py-3 text-[12px] text-ink-500">No recent activity.</p> : null}
                   </div>
@@ -881,7 +881,7 @@ export async function PeopleExperience({
                             </form>
                           ) : (
                             <StatusPill tone={item.status === "completed" ? "green" : item.completion_mode === "document_required" ? "amber" : "neutral"}>
-                              {item.status === "pending" && item.completion_mode === "document_required" ? "Needs evidence" : item.status}
+                              {item.status === "pending" && item.completion_mode === "document_required" ? "Needs document" : item.status.replaceAll("_", " ").replace(/\b\w/g, (character) => character.toUpperCase())}
                             </StatusPill>
                           )}
                         </li>
@@ -1325,8 +1325,8 @@ export async function PeopleExperience({
                       <input name="reference_number" maxLength={120} placeholder="e.g. 784-XXXX-XXXXXXX-X" className="tf-input-sm" />
                     </label>
                     <div className="flex flex-col gap-1 text-[11px] text-ink-500">
-                      Evidence file
-                      <FileInput name="file" required label="Choose evidence file" className="mt-0.5" />
+                      Document
+                      <FileInput name="file" required label="Choose document" className="mt-0.5" />
                     </div>
                     <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                       Issue date (optional)
@@ -1571,7 +1571,7 @@ export async function PeopleExperience({
           <label className="text-xs text-ink-600">Accepted offer ID<input className="tf-input mt-1" name="offer_id" type="number" min="1" required /></label>
           <label className="text-xs text-ink-600">Candidate status in HirePass<select className="tf-select mt-1" name="candidate_status" required defaultValue=""><option value="" disabled>Choose observed status</option><option value="hired">Hired</option><option value="other">Not hired</option></select></label>
           <label className="text-xs text-ink-600">Offer status in HirePass<select className="tf-select mt-1" name="offer_status" required defaultValue=""><option value="" disabled>Choose observed status</option><option value="accepted">Accepted</option><option value="other">Not accepted</option></select></label>
-          <label className="text-xs text-ink-600">Review evidence/reference<input className="tf-input mt-1" name="approval_reference" required /></label>
+          <label className="text-xs text-ink-600">Approval reference<input className="tf-input mt-1" name="approval_reference" required /></label>
           <label className="text-xs text-ink-600">Full name<input className="tf-input mt-1" name="full_name" required /></label>
           <label className="text-xs text-ink-600">Work email<input className="tf-input mt-1" name="email" type="email" required /></label>
           <label className="text-xs text-ink-600">Role title<input className="tf-input mt-1" name="role_title" required /></label>

@@ -162,10 +162,10 @@ export function LeaveCalendar({
             <form action={downloadLeaveEvidenceAction} className="mt-3">
               <input type="hidden" name="document_id" value={selected.attachment_document_id} />
               <input type="hidden" name="return_to" value={monthHref(basePath, year, month)} />
-              <PendingSubmitButton idleLabel="Evidence attached — view" pendingLabel="Opening…" className="text-[12px] text-accent underline underline-offset-2 disabled:cursor-not-allowed disabled:text-ink-400" />
+              <PendingSubmitButton idleLabel="View supporting document" pendingLabel="Opening…" className="text-[12px] text-accent underline underline-offset-2 disabled:cursor-not-allowed disabled:text-ink-400" />
             </form>
           ) : (
-            <p className="mt-3 text-[12px] text-ink-400">No supporting evidence attached.</p>
+            <p className="mt-3 text-[12px] text-ink-400">No supporting document attached.</p>
           )}
         </div>
       ) : null}

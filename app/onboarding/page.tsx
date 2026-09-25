@@ -88,7 +88,7 @@ function TaskStatusBadge({ status }: { status: OnboardingTask["status"] }) {
 function completionModeLabel(mode: OnboardingTask["completion_mode"]): string {
   switch (mode) {
     case "document_required":
-      return "Requires evidence";
+      return "Requires document";
     case "policy_acknowledgement":
       return "Awaiting acknowledgement";
     case "form_or_data_required":
@@ -150,7 +150,7 @@ export default async function OnboardingPage({
         </div>
 
         {successMessage ? (
-          <p className="mt-6 rounded-lg border border-signal-green/25 bg-signal-green/5 px-4 py-2.5 text-[13.5px] text-signal-green">
+          <p role="status" aria-live="polite" className="mt-6 rounded-lg border border-signal-green/25 bg-signal-green/5 px-4 py-2.5 text-[13.5px] text-signal-green">
             {successMessage}
           </p>
         ) : null}

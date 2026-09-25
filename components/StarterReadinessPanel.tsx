@@ -15,7 +15,7 @@ export function StarterReadinessPanel({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h4 className="tf-h3">Ready to start?</h4>
-          <p className="mt-1 text-[12px] text-ink-500">Only tasks and evidence requests due by the start date. This does not prove legal compliance or invite delivery.</p>
+          <p className="mt-1 text-[12px] text-ink-500">Only tasks and document requests due by the start date. Account activation is shown separately.</p>
         </div>
         <StatusPill tone={ready ? "green" : "amber"}>{ready ? "Ready" : `${blockers.length} ${blockers.length === 1 ? "thing" : "things"} to do`}</StatusPill>
       </div>

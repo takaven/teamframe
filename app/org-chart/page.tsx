@@ -579,7 +579,7 @@ export default async function OrgChartPage({
       </div>
 
       {successMessage ? (
-        <p className="mb-5 rounded-lg border border-signal-green/25 bg-signal-green/5 px-4 py-2.5 text-[13.5px] text-signal-green">
+        <p role="status" aria-live="polite" className="mb-5 rounded-lg border border-signal-green/25 bg-signal-green/5 px-4 py-2.5 text-[13.5px] text-signal-green">
           {successMessage}
         </p>
       ) : null}

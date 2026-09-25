@@ -146,7 +146,7 @@ export async function AppShell({
 
       <header className="tf-mobile-bar bg-brand-charcoal text-white">
         <details className="group">
-          <summary className="flex h-14 cursor-pointer list-none items-center justify-between px-[18px] marker:hidden">
+          <summary aria-label="Open navigation" className="flex h-14 cursor-pointer list-none items-center justify-between px-[18px] marker:hidden">
             <span className="flex min-w-0 items-center gap-2">
               <BrandLogo variant="lockup" reversed className="h-auto w-32 shrink-0" priority />
               <span className="ml-1 min-w-0 truncate border-l border-white/20 pl-2 text-[12.5px] font-medium text-white/60">{identity.name}</span>

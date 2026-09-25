@@ -307,7 +307,7 @@ function signalTitle(kind: string): string {
   if (kind === "missing_contract") return "Missing signed contract";
   if (kind === "active_access_after_exit") return "Active access after exit";
   if (kind === "unreturned_asset") return "Unreturned asset";
-  if (kind === "incomplete_offboarding") return "Offboarding exception";
+  if (kind === "incomplete_offboarding") return "Offboarding needs attention";
   if (kind === "leave_conflict") return "Leave conflict";
   if (kind === "onboarding_check_in_follow_up") return "30-day check-in follow-up";
   if (kind === "missing_jurisdiction_requirement") return "Missing jurisdiction document";

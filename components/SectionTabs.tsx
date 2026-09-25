@@ -41,6 +41,11 @@ export function SectionTabs({
     return props["data-tab"] === active;
   });
 
+  const selectTab = (id: string) => {
+    setActive(id);
+    window.history.replaceState(null, "", `#${id}`);
+  };
+
   return (
     <div className="grid items-start gap-5 md:grid-cols-[190px_minmax(0,1fr)]">
       <div role="tablist" aria-label={ariaLabel} className="grid grid-cols-2 gap-1 rounded-xl bg-ink-100/55 p-2 sm:grid-cols-4 md:sticky md:top-6 md:grid-cols-1">
@@ -51,10 +56,23 @@ export function SectionTabs({
               key={t.id}
               type="button"
               role="tab"
+              id={`record-tab-${t.id}`}
+              aria-controls={`record-panel-${t.id}`}
               aria-selected={isActive}
-              onClick={() => {
-                setActive(t.id);
-                window.history.replaceState(null, "", `#${t.id}`);
+              tabIndex={isActive ? 0 : -1}
+              onClick={() => selectTab(t.id)}
+              onKeyDown={(event) => {
+                const current = tabs.findIndex((tab) => tab.id === t.id);
+                const next = event.key === "ArrowDown" || event.key === "ArrowRight"
+                  ? (current + 1) % tabs.length
+                  : event.key === "ArrowUp" || event.key === "ArrowLeft"
+                    ? (current - 1 + tabs.length) % tabs.length
+                    : event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : -1;
+                if (next < 0) return;
+                event.preventDefault();
+                const nextId = tabs[next]!.id;
+                selectTab(nextId);
+                document.getElementById(`record-tab-${nextId}`)?.focus();
               }}
               className={[
                 "inline-flex min-h-10 items-center gap-1.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition",
@@ -71,7 +89,7 @@ export function SectionTabs({
           );
         })}
       </div>
-      <div id={active} role="tabpanel" className="min-w-0 space-y-4 scroll-mt-6">
+      <div id={`record-panel-${active}`} role="tabpanel" aria-labelledby={`record-tab-${active}`} tabIndex={0} className="min-w-0 space-y-4 scroll-mt-6">
         {panels}
       </div>
     </div>

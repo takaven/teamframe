@@ -48,6 +48,7 @@ export const dynamic = "force-dynamic";
 
 const SECTIONS = [
   { key: "company", label: "Company" },
+  { key: "people", label: "People fields" },
   { key: "organisation", label: "Organisation" },
   { key: "timeoff", label: "Time off" },
   { key: "onboarding", label: "Onboarding" },
@@ -69,6 +70,14 @@ const ERROR_COPY: Record<string, string> = {
   FORBIDDEN: "You do not have permission for that action.",
   TENANT_EXPORT_FAILED: "The export could not be prepared. Try again.",
   UNKNOWN: "Something went wrong. Try again.",
+};
+
+const SUCCESS_COPY: Record<string, string> = {
+  saved: "Settings updated.",
+  holiday_saved: "Company holiday saved.",
+  holiday_removed: "Company holiday removed.",
+  custom_field_created: "People field added.",
+  custom_field_updated: "People field updated.",
 };
 
 const DAYS = [
@@ -141,7 +150,7 @@ export default async function SetupPage({
         <p className="tf-meta mt-1">Configure your TeamFrame workspace.</p>
       </div>
 
-      {status ? <p className="mb-5 rounded-lg border border-signal-green/25 bg-signal-green/5 px-4 py-2.5 text-[13.5px] text-signal-green">Saved.</p> : null}
+      {status ? <p role="status" aria-live="polite" className="mb-5 rounded-lg border border-signal-green/25 bg-signal-green/5 px-4 py-2.5 text-[13.5px] text-signal-green">{SUCCESS_COPY[status] ?? "Settings updated."}</p> : null}
       {errorMessage ? <p role="alert" className="mb-5 rounded-lg border border-signal-red/25 bg-signal-red/5 px-4 py-2.5 text-[13.5px] text-signal-red">{errorMessage}</p> : null}
 
       <div className="grid gap-8 lg:grid-cols-[196px_minmax(0,1fr)]">
@@ -219,17 +228,20 @@ export default async function SetupPage({
                   ) : null}
                 </div>
               </div>
-              <div className="mt-6 border-t border-ink-200 pt-5">
-                <h3 className="text-[14px] font-bold text-ink-800">Employee custom fields</h3>
-                <p className="mt-1 text-[13px] text-ink-500">Add simple company-specific fields without changing the standard employee record.</p>
-                <form action={createCustomFieldAction} className="mt-4 grid gap-2 sm:grid-cols-[1fr_180px_1fr_auto] sm:items-end">
-                  <label className="text-[12px] text-ink-600">Label<input name="label" required className={input}/></label>
-                  <label className="text-[12px] text-ink-600">Type<select name="field_type" className={selectCls}><option value="text">Text</option><option value="number">Number</option><option value="date">Date</option><option value="yes_no">Yes / No</option><option value="single_select">Single select</option></select></label>
-                  <label className="text-[12px] text-ink-600">Choices (single select)<input name="choices" className={input} placeholder="Option A, Option B"/></label>
-                  <PendingSubmitButton idleLabel="Add field" pendingLabel="Adding…" className={btn}/>
-                </form>
-                <ul className="mt-4 divide-y divide-ink-100 rounded-lg border border-ink-200">{customFields.length === 0 ? <li className="px-3 py-3 text-[13px] text-ink-500">No custom fields yet.</li> : customFields.map((field) => <li key={field.id} className="flex items-center justify-between px-3 py-2 text-[13px]"><span><strong>{field.label}</strong> · {field.field_type.replaceAll("_", " ")}</span><form action={toggleCustomFieldAction}><input type="hidden" name="id" value={field.id}/><input type="hidden" name="active" value={String(!field.active)}/><PendingSubmitButton idleLabel={field.active ? "Deactivate" : "Reactivate"} pendingLabel="Saving…" className={btnGhost}/></form></li>)}</ul>
-              </div>
+            </section>
+          ) : null}
+
+          {section === "people" ? (
+            <section className="tf-surface-flat p-6">
+              <h2 className="tf-h2">People fields</h2>
+              <p className="mt-1 text-[13px] text-ink-500">Add simple company-specific fields to employee records.</p>
+              <form action={createCustomFieldAction} className="mt-5 grid gap-3 sm:grid-cols-[1fr_180px_1fr_auto] sm:items-end">
+                <label className="text-[12px] text-ink-600">Label<input name="label" required className={input}/></label>
+                <label className="text-[12px] text-ink-600">Type<select name="field_type" className={selectCls}><option value="text">Text</option><option value="number">Number</option><option value="date">Date</option><option value="yes_no">Yes / No</option><option value="single_select">Single select</option></select></label>
+                <label className="text-[12px] text-ink-600">Choices (single select)<input name="choices" className={input} placeholder="Option A, Option B"/></label>
+                <PendingSubmitButton idleLabel="Add field" pendingLabel="Adding…" className={btn}/>
+              </form>
+              <ul className="mt-5 divide-y divide-ink-100 rounded-lg border border-ink-200">{customFields.length === 0 ? <li className="px-3 py-3 text-[13px] text-ink-500">No people fields yet. Add one when your company needs information beyond the standard employee record.</li> : customFields.map((field) => <li key={field.id} className="flex items-center justify-between gap-3 px-3 py-2 text-[13px]"><span><strong>{field.label}</strong> · {field.field_type.replaceAll("_", " ").replace(/\b\w/g, (character) => character.toUpperCase())}</span><form action={toggleCustomFieldAction}><input type="hidden" name="id" value={field.id}/><input type="hidden" name="active" value={String(!field.active)}/><PendingSubmitButton idleLabel={field.active ? "Deactivate" : "Reactivate"} pendingLabel="Saving…" className={btnGhost}/></form></li>)}</ul>
             </section>
           ) : null}
 

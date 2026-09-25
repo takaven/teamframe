@@ -148,7 +148,7 @@ export default async function LeavesPage({
           <div><div className="tf-summary-label">Oldest request</div><div className="tf-summary-value">{pending[0] ? `${Math.max(1, Math.ceil((Date.now() - new Date(pending[0].created_at).getTime()) / 86_400_000))}d` : "0d"}</div></div>
         </div>
 
-        {successMessage ? <p className="mt-6 rounded-lg border border-signal-green/25 bg-signal-green/5 px-4 py-2.5 text-[13.5px] text-signal-green">{successMessage}</p> : null}
+        {successMessage ? <p role="status" aria-live="polite" className="mt-6 rounded-lg border border-signal-green/25 bg-signal-green/5 px-4 py-2.5 text-[13.5px] text-signal-green">{successMessage}</p> : null}
         {errorMessage ? (
           <p role="alert" className="mt-7 rounded-lg border border-signal-red/30 bg-signal-red/10 px-4 py-3 text-[14px] text-signal-red">
             {errorMessage}
@@ -248,7 +248,7 @@ export default async function LeavesPage({
                         <form action={downloadLeaveEvidenceAction}>
                           <input type="hidden" name="document_id" value={leave.attachment_document_id} />
                           <input type="hidden" name="return_to" value="/leaves" />
-                          <PendingSubmitButton idleLabel="Evidence attached — view" pendingLabel="Opening…" className="text-[12px] text-accent underline underline-offset-2 disabled:cursor-not-allowed disabled:text-ink-400" />
+                          <PendingSubmitButton idleLabel="View supporting document" pendingLabel="Opening…" className="text-[12px] text-accent underline underline-offset-2 disabled:cursor-not-allowed disabled:text-ink-400" />
                         </form>
                       ) : null}
                     </div>
@@ -399,7 +399,7 @@ export default async function LeavesPage({
                   {activeDefinitions.map((d) => (
                     <option key={d.id} value={d.id}>
                       {d.display_name} ({d.counting_basis === "calendar_days" ? "calendar days" : "working days"}
-                      {d.attachment_requirement === "required" ? ", evidence required" : ""})
+                      {d.attachment_requirement === "required" ? ", supporting document required" : ""})
                     </option>
                   ))}
                 </select>
@@ -449,7 +449,7 @@ export default async function LeavesPage({
                         <form action={downloadLeaveEvidenceAction}>
                           <input type="hidden" name="document_id" value={leave.attachment_document_id} />
                           <input type="hidden" name="return_to" value="/leaves" />
-                          <PendingSubmitButton idleLabel="Evidence attached — view" pendingLabel="Opening…" className="text-[12px] text-accent underline underline-offset-2 disabled:cursor-not-allowed disabled:text-ink-400" />
+                          <PendingSubmitButton idleLabel="View supporting document" pendingLabel="Opening…" className="text-[12px] text-accent underline underline-offset-2 disabled:cursor-not-allowed disabled:text-ink-400" />
                         </form>
                       ) : null}
                     </div>

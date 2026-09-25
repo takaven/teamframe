@@ -780,10 +780,10 @@ main:has(> .tf-app-shell) { background: var(--tf-canvas); }
 
 /* Inset inner architecture: queue wells, grouped detail regions and empties. */
 .tf-surface-flat {
-  border: 0;
+  border: 1px solid var(--tf-line);
   border-radius: 12px;
   background: var(--tf-material);
-  box-shadow: var(--tf-inset);
+  box-shadow: none;
 }
 
 .tf-summary {
@@ -799,8 +799,7 @@ main:has(> .tf-app-shell) { background: var(--tf-canvas); }
 
 /* Physical buttons: raised, charcoal hover/focus with a restrained lime edge,
    then pressed into the material. */
-:where(.tf-primary-action, .tf-secondary-action, .tf-brand-action, .tf-auth-submit),
-main:has(> .tf-app-shell) :where(button, a)[class*="rounded"][class*="border"] {
+:where(.tf-secondary-action, .tf-auth-submit) {
   border: 0;
   border-radius: var(--tf-radius-control);
   background: var(--tf-material);
@@ -808,15 +807,27 @@ main:has(> .tf-app-shell) :where(button, a)[class*="rounded"][class*="border"] {
   box-shadow: var(--tf-raised);
   transition: background-color 170ms ease, color 170ms ease, box-shadow 170ms ease, transform 150ms ease;
 }
+.tf-primary-action {
+  border: 0;
+  border-radius: var(--tf-radius-control);
+  background: var(--tf-charcoal);
+  color: #fff;
+  box-shadow: var(--tf-raised);
+}
+.tf-brand-action {
+  border: 0;
+  border-radius: var(--tf-radius-control);
+  background: var(--tf-lime);
+  color: var(--tf-charcoal);
+  box-shadow: var(--tf-raised);
+}
 :where(.tf-primary-action, .tf-secondary-action, .tf-brand-action, .tf-auth-submit):hover,
-:where(.tf-primary-action, .tf-secondary-action, .tf-brand-action, .tf-auth-submit):focus-visible,
-main:has(> .tf-app-shell) :where(button, a)[class*="rounded"][class*="border"]:hover {
+:where(.tf-primary-action, .tf-secondary-action, .tf-brand-action, .tf-auth-submit):focus-visible {
   background: var(--tf-charcoal);
   color: #fff;
   box-shadow: var(--tf-raised-hover), inset 3px 0 0 var(--tf-lime);
 }
-:where(.tf-primary-action, .tf-secondary-action, .tf-brand-action, .tf-auth-submit):active,
-main:has(> .tf-app-shell) :where(button, a)[class*="rounded"][class*="border"]:active {
+:where(.tf-primary-action, .tf-secondary-action, .tf-brand-action, .tf-auth-submit):active {
   background: var(--tf-material);
   color: var(--tf-charcoal);
   box-shadow: var(--tf-pressed);

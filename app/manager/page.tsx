@@ -27,7 +27,7 @@ const ERROR_COPY: Record<string, string> = {
   MANAGER_NOT_ACTIVE: "Manager access is not active for this account.",
   MANAGER_LEAVE_OVERRIDE_FORBIDDEN: "Managers cannot override insufficient annual leave. Ask an admin to review it.",
   LEAVE_INSUFFICIENT_BALANCE: "Annual leave balance is insufficient. Ask an admin to review an override if needed.",
-  EVIDENCE_REQUIRED: "This task needs configured evidence and cannot be manually completed.",
+  EVIDENCE_REQUIRED: "This task requires a document and cannot be manually completed.",
   STALE_WRITE: "This item changed. Refresh and try again.",
   INVALID_INPUT: "Check the details and try again.",
   UNKNOWN: "Something went wrong. Refresh and try again.",
@@ -111,7 +111,7 @@ export default async function ManagerPage({
                 <div><dt className="text-ink-500">Role / job title</dt><dd className="text-ink-900">{reportRecord.employment.role_title}</dd></div>
                 <div><dt className="text-ink-500">Department</dt><dd className="text-ink-900">{reportRecord.employment.department}</dd></div>
                 <div><dt className="text-ink-500">Work location</dt><dd className="text-ink-900">{reportRecord.employment.work_location ?? "—"}</dd></div>
-                <div><dt className="text-ink-500">Employment type</dt><dd className="text-ink-900">{reportRecord.employment.employment_type.replace(/_/g, " ")}</dd></div>
+                <div><dt className="text-ink-500">Employment type</dt><dd className="text-ink-900">{reportRecord.employment.employment_type.replace(/_/g, " ").replace(/\b\w/g, (character) => character.toUpperCase())}</dd></div>
                 <div><dt className="text-ink-500">Status</dt><dd className="text-ink-900">{employmentStatus(reportRecord.employment.lifecycle_state, reportRecord.employment.status)}</dd></div>
                 <div><dt className="text-ink-500">Company email</dt><dd className="text-ink-900">{reportRecord.contact.company_email}</dd></div>
                 <div><dt className="text-ink-500">Company phone</dt><dd className="text-ink-900">{reportRecord.contact.company_phone ?? "—"}</dd></div>

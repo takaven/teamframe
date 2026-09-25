@@ -158,7 +158,7 @@ export function EmploymentReadPanel({
           <Field label="Country" value={employment.country} />
           <Field label="Work location" value={employment.work_location} />
           <Field label="Timezone" value={employment.timezone} />
-          <Field label="Employment type" value={employment.employment_type.replace(/_/g, " ")} />
+          <Field label="Employment type" value={employment.employment_type.replaceAll("_", " ").replace(/\b\w/g, (character) => character.toUpperCase())} />
           <Field label="Start date" value={fmtDate(employment.start_date)} />
           <Field label="End date" value={employment.end_date ? fmtDate(employment.end_date) : null} />
           <Field label="Working-days override" value={employment.working_days_override ? employment.working_days_override.join(", ") : null} />

@@ -68,7 +68,7 @@ describe("MR-7 bounded offboarding workflow", () => {
     expect(schema).toContain("raise exception 'EVIDENCE_REQUIRED'");
     expect(schema).toContain("teamframe_sync_offboarding_document_evidence_tasks");
     expect(schema).toContain("document_requirements_sync_offboarding_evidence");
-    expect(page).toContain("Needs evidence");
+    expect(page).toContain("Needs document");
   });
 
   it("uses MR-3B manager boundaries for handover work without widening manager authority", () => {

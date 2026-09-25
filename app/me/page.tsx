@@ -131,7 +131,7 @@ export default async function MePage({
 
       <section id="documents" className="mt-6 tf-surface-flat p-5">
         <h2 className="text-[15px] font-bold tracking-tight">Documents</h2>
-        <p className="mt-1 text-[13px] text-ink-500">Upload requested evidence here. TeamFrame records receipt and closes matching obligations where evidence is configured.</p>
+        <p className="mt-1 text-[13px] text-ink-500">Upload requested documents here. TeamFrame records each upload against the matching request.</p>
         <div className="mt-4">
           <DocumentsChecklist requirements={documentRequirements} />
         </div>
