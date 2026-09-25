@@ -52,4 +52,12 @@ describe("final red-team UI safeguards", () => {
     expect(manager).not.toContain("Back to my profile");
     expect(manager).not.toContain("Compensation: not visible to managers");
   });
+
+  it("describes headcount scope truthfully and humanises country exports", () => {
+    const report = read("app/reports/page.tsx");
+    const exportRoute = read("app/reports/export/route.ts");
+    expect(report).toContain("Current people, including pre-start employees");
+    expect(report).toContain("Current people");
+    expect(exportRoute).toContain("getCountryName(e.country) ?? e.country");
+  });
 });
