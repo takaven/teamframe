@@ -23,15 +23,6 @@ function maskIban(v: string | null): string {
   return t.length <= 4 ? t : `•••• ${t.slice(-4)}`;
 }
 
-function lifecycleLabel(lifecycle: string, status: string): string {
-  if (lifecycle === "preboarding") return "Pre-start";
-  if (lifecycle === "offboarding") return "Offboarding";
-  if (lifecycle === "exited" || status === "inactive") return "Former";
-  if (lifecycle === "on_leave" || status === "on_leave") return "On leave";
-  if (lifecycle === "active") return "Active";
-  return "Onboarding";
-}
-
 const inputCls = "mt-1 w-full rounded-lg border border-ink-300 bg-white px-3 py-2 text-[14px]";
 const roCls = "mt-0.5 text-[14px] text-ink-900";
 
@@ -133,7 +124,6 @@ export function EmployeeSelfRecord({ record }: { record: EmployeeMasterRecord })
           <ReadField label="Employment type" value={employment.employment_type.replace(/_/g, " ").replace(/\b\w/g, (character) => character.toUpperCase())} />
           <ReadField label="Start date" value={fmt(employment.start_date)} />
           <ReadField label="End date" value={employment.end_date ? fmt(employment.end_date) : null} />
-          <ReadField label="Employment status" value={lifecycleLabel(employment.lifecycle_state, employment.status)} />
         </dl>
       </section>
 

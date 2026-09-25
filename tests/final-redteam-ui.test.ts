@@ -30,6 +30,7 @@ describe("final red-team UI safeguards", () => {
     const selfRecord = read("components/EmployeeSelfRecord.tsx");
     expect(selfRecord).not.toContain("Working-days override");
     expect(selfRecord).not.toContain("Leave entitlement override");
+    expect(selfRecord).not.toContain("Employment status");
   });
 
   it("keeps Home filter counts scoped to the active filter", () => {
