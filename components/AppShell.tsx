@@ -22,16 +22,22 @@ const ADMIN_LINKS = [
 
 const SETUP_LINK = { href: "/setup", label: "Settings" } as const;
 
-// Documents and Policies are sections within /me, not separate destinations.
 const EMPLOYEE_LINKS = [
-  { href: "/me", label: "Home" },
-  { href: "/directory", label: "Directory" },
-  { href: "/me#profile", label: "Me" },
+  { href: "/home", label: "Home" },
+  { href: "/me", label: "Me" },
   { href: "/leaves", label: "Time off" },
-  { href: "/me#documents", label: "Documents & policies" },
+  { href: "/documents-and-policies", label: "Documents & policies" },
+  { href: "/directory", label: "Directory" },
 ] as const;
 
 const MANAGER_PRIORITIES_LINK = { href: "/manager", label: "My team" } as const;
+
+const MANAGER_LINKS = [
+  { href: "/home", label: "Home" },
+  MANAGER_PRIORITIES_LINK,
+  { href: "/leaves", label: "Time off" },
+  { href: "/me", label: "Me" },
+] as const;
 
 // Manager status = the employee currently has at least one direct report.
 async function hasDirectReports(actor: Actor): Promise<boolean> {
@@ -64,12 +70,13 @@ export async function AppShell({
   ]);
   const links = isAdminSurface
     ? [...ADMIN_LINKS, SETUP_LINK]
-    : (showManagerPriorities ? [...EMPLOYEE_LINKS, MANAGER_PRIORITIES_LINK] : [...EMPLOYEE_LINKS]);
+    : showManagerPriorities ? [...MANAGER_LINKS] : [...EMPLOYEE_LINKS];
 
-  const workspaceHome = actor.role === "admin" ? "/dashboard" : "/me";
+  const workspaceHome = actor.role === "admin" ? "/dashboard" : "/home";
 
-  const primaryLinks = isAdminSurface ? ADMIN_LINKS : (showManagerPriorities ? [...EMPLOYEE_LINKS, MANAGER_PRIORITIES_LINK] : [...EMPLOYEE_LINKS]);
-  const isActive = (href: string) => href.split(/[?#]/)[0] === activePath;
+  const primaryLinks = isAdminSurface ? ADMIN_LINKS : showManagerPriorities ? MANAGER_LINKS : EMPLOYEE_LINKS;
+  const effectiveActivePath = showManagerPriorities && activePath === "/documents-and-policies" ? "/me" : activePath;
+  const isActive = (href: string) => href === effectiveActivePath;
 
   return (
     <>
@@ -90,7 +97,7 @@ export async function AppShell({
           )}
           <span className="min-w-0">
             <span className="block text-[9.5px] font-semibold uppercase tracking-[0.16em] text-white/40">Workspace</span>
-            <span className="block min-w-0 truncate text-[13px] font-semibold text-white">{identity.name}</span>
+            <span className="block min-w-0 truncate text-[13px] font-semibold text-white" title={identity.name}>{identity.name}</span>
           </span>
         </div>
 

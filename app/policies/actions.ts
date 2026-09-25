@@ -195,7 +195,7 @@ export async function uploadPolicyAction(formData: FormData): Promise<void> {
 export async function downloadPolicyFileAction(formData: FormData): Promise<void> {
   let failed = false;
   let errorCode = "UNKNOWN";
-  let returnTo = "/me";
+  let returnTo = "/documents-and-policies#policies";
   let signedUrl = "";
 
   try {
@@ -204,7 +204,7 @@ export async function downloadPolicyFileAction(formData: FormData): Promise<void
       policy_id: formData.get("policy_id"),
       return_to: optionalString(formData.get("return_to")),
     });
-    returnTo = safeReturnPath(parsed.return_to, "/me");
+    returnTo = safeReturnPath(parsed.return_to, "/documents-and-policies#policies");
     signedUrl = await getPolicyFileSignedUrl(actor, parsed.policy_id);
   } catch (error) {
     failed = true;
@@ -361,7 +361,7 @@ export async function acknowledgePolicyAction(formData: FormData): Promise<void>
   let failed = false;
   let errorCode = "UNKNOWN";
   let policyId = "";
-  let returnTo = "/me";
+  let returnTo = "/documents-and-policies#policies";
 
   const start = Date.now();
   const requestId = crypto.randomUUID();
@@ -376,7 +376,7 @@ export async function acknowledgePolicyAction(formData: FormData): Promise<void>
       return_to: optionalString(formData.get("return_to")),
     });
     policyId = parsed.policy_id;
-    returnTo = safeReturnPath(parsed.return_to, "/me");
+    returnTo = safeReturnPath(parsed.return_to, "/documents-and-policies#policies");
     await acknowledgePolicy(actor, {
       policyId: parsed.policy_id,
       policyVersion: parsed.policy_version,

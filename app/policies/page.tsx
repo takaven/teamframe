@@ -82,7 +82,7 @@ export default async function PoliciesPage({
 
   if (actor.role !== "admin") {
     // Employees acknowledge policies from their self-service hub.
-    redirect("/me");
+    redirect("/documents-and-policies");
   }
 
   const successMessage = status ? (STATUS_COPY[status] ?? null) : null;

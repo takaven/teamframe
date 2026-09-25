@@ -57,8 +57,8 @@ async function getActiveSessionDestination(): Promise<string | null> {
       return null;
     }
 
-    await resolveIdentity(user.id);
-    return "/dashboard";
+    const identity = await resolveIdentity(user.id);
+    return identity.role === "admin" ? "/dashboard" : "/home";
   } catch {
     return null;
   }

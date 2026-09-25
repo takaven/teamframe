@@ -71,7 +71,7 @@ export async function notifyDocumentRequest(tenantId: string, requirementId: str
   const { data } = await db.from("document_requirements").select("id,employee_id,document_type,due_date").eq("tenant_id", tenantId).eq("id", requirementId).maybeSingle();
   if (!data) return;
   const label = String(data.document_type).replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
-  await notifyBestEffort({ tenantId, recipientEmployeeId: data.employee_id, type: "document_action", eventKey: `document-request:${requirementId}:requested`, subject: `${label} requested`, text: `Please upload ${label}${data.due_date ? ` by ${data.due_date}` : ""}.`, actionPath: "/me#documents", relatedEntityType: "document_requirement", relatedEntityId: requirementId });
+  await notifyBestEffort({ tenantId, recipientEmployeeId: data.employee_id, type: "document_action", eventKey: `document-request:${requirementId}:requested`, subject: `${label} requested`, text: `Please upload ${label}${data.due_date ? ` by ${data.due_date}` : ""}.`, actionPath: "/documents-and-policies#documents", relatedEntityType: "document_requirement", relatedEntityId: requirementId });
 }
 
 export async function notifyLeaveDecision(tenantId: string, leaveId: string, decision: "approved" | "rejected"): Promise<void> {
@@ -91,18 +91,18 @@ export async function notifyLeaveRequest(tenantId: string, leaveId: string): Pro
 }
 
 export async function notifyTaskAssignment(tenantId: string, employeeId: string, eventId: string, title: string): Promise<void> {
-  await notifyBestEffort({ tenantId, recipientEmployeeId: employeeId, type: "task_assignment", eventKey: `onboarding:${eventId}:assigned`, subject: "Onboarding task assigned", text: `${title} has been added to your onboarding checklist.`, actionPath: "/me", relatedEntityType: "onboarding_task", relatedEntityId: eventId });
+  await notifyBestEffort({ tenantId, recipientEmployeeId: employeeId, type: "task_assignment", eventKey: `onboarding:${eventId}:assigned`, subject: "Onboarding task assigned", text: `${title} has been added to your onboarding checklist.`, actionPath: "/onboarding", relatedEntityType: "onboarding_task", relatedEntityId: eventId });
 }
 
 export async function notifyOffboardingAssignment(tenantId: string, item: { id: string; employeeId: string; ownerEmployeeId: string | null; title: string; dueDate: string | null }): Promise<void> {
   if (!item.ownerEmployeeId) return;
-  await notifyBestEffort({ tenantId, recipientEmployeeId: item.ownerEmployeeId, type: "offboarding", eventKey: `offboarding:${item.id}:assigned`, subject: "Offboarding task assigned", text: `${item.title}${item.dueDate ? ` is due by ${item.dueDate}` : ""}.`, actionPath: item.ownerEmployeeId === item.employeeId ? "/me" : "/manager", relatedEntityType: "offboarding_item", relatedEntityId: item.id });
+  await notifyBestEffort({ tenantId, recipientEmployeeId: item.ownerEmployeeId, type: "offboarding", eventKey: `offboarding:${item.id}:assigned`, subject: "Offboarding task assigned", text: `${item.title}${item.dueDate ? ` is due by ${item.dueDate}` : ""}.`, actionPath: item.ownerEmployeeId === item.employeeId ? "/home" : "/manager", relatedEntityType: "offboarding_item", relatedEntityId: item.id });
 }
 
 export async function notifyDueMilestone(tenantId: string, input: { ruleKey: string; subjectId: string; ownerEmployeeId: string | null }): Promise<void> {
   if (!input.ownerEmployeeId) return;
   if (input.ruleKey === "onboarding.check_in.due") {
-    await notifyBestEffort({ tenantId, recipientEmployeeId: input.ownerEmployeeId, type: "probation_check_in", eventKey: `check-in:${input.subjectId}:due`, subject: "Your 30-day check-in is ready", text: "Please complete your 30-day check-in in TeamFrame.", actionPath: "/me#check-in", relatedEntityType: "onboarding_check_in", relatedEntityId: input.subjectId });
+    await notifyBestEffort({ tenantId, recipientEmployeeId: input.ownerEmployeeId, type: "probation_check_in", eventKey: `check-in:${input.subjectId}:due`, subject: "Your 30-day check-in is ready", text: "Please complete your 30-day check-in in TeamFrame.", actionPath: "/home#check-in", relatedEntityType: "onboarding_check_in", relatedEntityId: input.subjectId });
   }
   if (input.ruleKey === "probation.review_due") {
     await notifyBestEffort({ tenantId, recipientEmployeeId: input.ownerEmployeeId, type: "probation_check_in", eventKey: `probation:${input.subjectId}:manager-input-due`, subject: "Probation input is due", text: "A probation recommendation needs your input.", actionPath: "/manager", relatedEntityType: "probation_review", relatedEntityId: input.subjectId });
@@ -116,7 +116,7 @@ export async function notifyPolicyPublished(tenantId: string, policyId: string):
     db.from("employees").select("id").eq("tenant_id", tenantId).neq("lifecycle_state", "former").is("deleted_at", null),
   ]);
   if (!policy) return;
-  await Promise.all(((employees ?? []) as Array<{ id: string }>).map((employee) => notifyBestEffort({ tenantId, recipientEmployeeId: employee.id, type: "policy_acknowledgement", eventKey: `policy:${policyId}:${policy.version}:ack:${employee.id}`, subject: "Policy acknowledgement needed", text: `${policy.title} is ready for you to read and acknowledge.`, actionPath: "/me#policies", relatedEntityType: "policy", relatedEntityId: policyId })));
+  await Promise.all(((employees ?? []) as Array<{ id: string }>).map((employee) => notifyBestEffort({ tenantId, recipientEmployeeId: employee.id, type: "policy_acknowledgement", eventKey: `policy:${policyId}:${policy.version}:ack:${employee.id}`, subject: "Policy acknowledgement needed", text: `${policy.title} is ready for you to read and acknowledge.`, actionPath: "/documents-and-policies#policies", relatedEntityType: "policy", relatedEntityId: policyId })));
 }
 
 export async function retryDelivery(actor: Actor & { tenantId: string }, id: string): Promise<void> {
@@ -157,7 +157,7 @@ export async function runDailyDigests(): Promise<{ sent: number; skipped: number
     const date = localDate(timezone);
     for (const membership of ((memberships ?? []) as Array<{ tenant_id: string; auth_user_id: string; employee_id: string | null; email: string; profile: string; active: boolean }>).filter((m) => m.tenant_id === company.id)) {
       let count = 0;
-      let actionPath = "/me";
+      let actionPath = "/home";
       if (membership.profile === "full_access" || membership.profile === "admin") {
         count = (await loadControlCentreData({ tenantId: company.id })).allItems.filter((item) => !item.dueAt || item.dueAt <= new Date(Date.now() + 7 * 86400000).toISOString()).length;
         actionPath = "/dashboard";
@@ -173,7 +173,7 @@ export async function runDailyDigests(): Promise<{ sent: number; skipped: number
         const acknowledged = new Set(((acknowledgements ?? []) as Array<{ policy_id: string; policy_version: number }>).map((row) => `${row.policy_id}:${row.policy_version}`));
         const policyCount = ((policies ?? []) as Array<{ id: string; version: number }>).filter((policy) => !acknowledged.has(`${policy.id}:${policy.version}`)).length;
         count = (docs ?? 0) + policyCount + (tasks ?? 0) + manager.pendingLeaves.length + manager.onboardingTasks.length + manager.offboardingItems.length;
-        if (manager.directReports.length) actionPath = "/manager";
+        if (manager.directReports.length) actionPath = "/home";
       }
       if (count === 0) { skipped += 1; continue; }
       const result = await deliverNotification({ tenantId: company.id, recipientEmployeeId: membership.employee_id, recipientEmail: membership.email, type: "daily_digest", eventKey: `digest:${membership.auth_user_id}:${date}`, subject: `${count} ${count === 1 ? "item needs" : "items need"} your attention`, text: `TeamFrame has ${count} actionable ${count === 1 ? "item" : "items"} for you today.`, actionPath });

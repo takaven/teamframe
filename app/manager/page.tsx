@@ -188,7 +188,7 @@ export default async function ManagerPage({
                   const annual = leave.annual_balance;
                   const shortfall = leave.leave_type === "annual" && annual?.available !== null && annual ? leave.requested_days - annual.available : 0;
                   return (
-                    <li key={leave.id} className="grid gap-4 px-5 py-4 lg:grid-cols-[1fr_260px]">
+                    <li id={`leave-${leave.id}`} key={leave.id} className="scroll-mt-6 grid gap-4 px-5 py-4 lg:grid-cols-[1fr_260px]">
                       <div>
                         <p className="text-[15px] font-medium text-ink-900">{leave.employee_full_name}</p>
                         <p className="mt-1 text-[13px] text-ink-500">
@@ -244,7 +244,7 @@ export default async function ManagerPage({
               ) : (
                 <ul className="divide-y divide-ink-300/40">
                   {dashboard.onboardingTasks.map((task) => (
-                    <li key={task.id} className="space-y-3 px-5 py-4">
+                    <li id={`onboarding-${task.id}`} key={task.id} className="scroll-mt-6 space-y-3 px-5 py-4">
                       <div>
                         <p className="text-[14px] font-medium text-ink-900">{task.title}</p>
                         <p className="mt-1 text-[12px] text-ink-500">
@@ -276,7 +276,7 @@ export default async function ManagerPage({
               ) : (
                 <ul className="divide-y divide-ink-300/40">
                   {dashboard.offboardingItems.map((item) => (
-                    <li key={item.id} className="space-y-3 px-5 py-4">
+                    <li id={`offboarding-${item.id}`} key={item.id} className="scroll-mt-6 space-y-3 px-5 py-4">
                       <div>
                         <p className="text-[14px] font-medium text-ink-900">{item.title}</p>
                         <p className="mt-1 text-[12px] text-ink-500">
@@ -308,7 +308,7 @@ export default async function ManagerPage({
               ) : (
                 <ul className="divide-y divide-ink-300/40">
                   {probationInputNeeded.map((review) => (
-                    <li key={review.id} className="space-y-3 px-5 py-4">
+                    <li id={`probation-${review.id}`} key={review.id} className="scroll-mt-6 space-y-3 px-5 py-4">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
                           <p className="text-[14px] font-medium text-ink-900">

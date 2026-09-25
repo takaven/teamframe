@@ -225,7 +225,7 @@ export async function completeOnboardingTaskAction(formData: FormData): Promise<
   if (failed) {
     redirect(`/onboarding?error=${encodeURIComponent(errorCode)}`);
   }
-  redirect("/me?status=task_completed");
+  redirect("/home?status=task_completed");
 }
 
 export async function submitOnboardingCheckInAction(formData: FormData): Promise<void> {
@@ -284,7 +284,7 @@ export async function submitOnboardingCheckInAction(formData: FormData): Promise
   }
 
   if (failed) {
-    redirect(`/me?error=${encodeURIComponent(errorCode)}`);
+    redirect(`/home?error=${encodeURIComponent(errorCode)}#check-in`);
   }
-  redirect("/me?status=check_in_submitted");
+  redirect("/home?status=check_in_submitted");
 }

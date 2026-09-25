@@ -52,7 +52,7 @@ export default async function EarlyEmploymentPage({
   searchParams: Promise<{ status?: string; error?: string }>;
 }) {
   const actor = await requireTenantActor();
-  if (actor.role !== "admin") redirect("/me");
+  if (actor.role !== "admin") redirect("/home");
   const { status, error } = await searchParams;
   const successMessage = status ? (STATUS_COPY[status] ?? null) : null;
   const errorMessage = error ? (ERROR_COPY[error] ?? ERROR_COPY.UNKNOWN) : null;

@@ -47,7 +47,10 @@ describe("Phase 4 — employee self-service security", () => {
   });
 
   it("employee navigation stays simple and My team is manager-derived", () => {
-    expect(shell).toContain('{ href: "/me#documents", label: "Documents & policies" }');
+    expect(shell).toContain('{ href: "/home", label: "Home" }');
+    expect(shell).toContain('{ href: "/me", label: "Me" }');
+    expect(shell).toContain('{ href: "/documents-and-policies", label: "Documents & policies" }');
+    expect(shell).not.toContain('/me#documents');
     expect(shell).toContain('label: "My team"');
     expect(shell).toContain("hasDirectReports");
   });

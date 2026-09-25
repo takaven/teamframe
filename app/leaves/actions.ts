@@ -119,7 +119,7 @@ export async function submitLeaveAction(formData: FormData): Promise<void> {
   if (failed) {
     redirect(`/leaves?error=${encodeURIComponent(errorCode)}`);
   }
-  redirect("/me?status=leave_submitted");
+  redirect("/leaves?status=leave_submitted");
 }
 
 export async function submitLeaveForEmployeeAction(formData: FormData): Promise<void> {

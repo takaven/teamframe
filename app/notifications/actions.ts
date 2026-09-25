@@ -15,7 +15,7 @@ export async function remindDocumentAction(formData: FormData): Promise<void> {
   const db: any = createServiceRoleClient();
   const { data, error } = await db.from("document_requirements").select("id,employee_id,document_type,due_date,state").eq("tenant_id", actor.tenantId).eq("id", id).single();
   if (error || !data || ["accepted", "replaced", "cancelled"].includes(data.state)) throw new Error("DOCUMENT_REMINDER_NOT_AVAILABLE");
-  await notifyBestEffort({ tenantId: actor.tenantId, recipientEmployeeId: data.employee_id, type: "document_action", eventKey: `document-request:${id}:reminder:${day()}`, subject: `${label(data.document_type)} needed`, text: `Please upload ${label(data.document_type)}${data.due_date ? ` by ${data.due_date}` : ""}.`, actionPath: "/me#documents", relatedEntityType: "document_requirement", relatedEntityId: id });
+  await notifyBestEffort({ tenantId: actor.tenantId, recipientEmployeeId: data.employee_id, type: "document_action", eventKey: `document-request:${id}:reminder:${day()}`, subject: `${label(data.document_type)} needed`, text: `Please upload ${label(data.document_type)}${data.due_date ? ` by ${data.due_date}` : ""}.`, actionPath: "/documents-and-policies#documents", relatedEntityType: "document_requirement", relatedEntityId: id });
   revalidatePath("/documents");
 }
 
@@ -28,7 +28,7 @@ export async function remindPolicyAction(formData: FormData): Promise<void> {
   if (error || !data?.is_published) throw new Error("POLICY_REMINDER_NOT_AVAILABLE");
   const { count } = await db.from("acknowledgements").select("id", { count: "exact", head: true }).eq("tenant_id", actor.tenantId).eq("policy_id", policyId).eq("policy_version", data.version).eq("employee_id", employeeId);
   if (count) return;
-  await notifyBestEffort({ tenantId: actor.tenantId, recipientEmployeeId: employeeId, type: "policy_acknowledgement", eventKey: `policy:${policyId}:${data.version}:ack:${employeeId}:reminder:${day()}`, subject: "Policy acknowledgement needed", text: `${data.title} is ready for you to read and acknowledge.`, actionPath: "/me#policies", relatedEntityType: "policy", relatedEntityId: policyId });
+  await notifyBestEffort({ tenantId: actor.tenantId, recipientEmployeeId: employeeId, type: "policy_acknowledgement", eventKey: `policy:${policyId}:${data.version}:ack:${employeeId}:reminder:${day()}`, subject: "Policy acknowledgement needed", text: `${data.title} is ready for you to read and acknowledge.`, actionPath: "/documents-and-policies#policies", relatedEntityType: "policy", relatedEntityId: policyId });
   revalidatePath("/policies");
 }
 

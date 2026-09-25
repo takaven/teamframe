@@ -49,14 +49,14 @@ const BUCKET_TONE: Record<string, "amber" | "red" | "neutral" | "green"> = {
   "Expired · needs attention": "red", "Expiring soon": "amber", "Awaiting review": "neutral", "Accepted": "green",
 };
 
-function UploadForm({ requirement }: { requirement: Requirement }) {
+function UploadForm({ requirement, returnTo }: { requirement: Requirement; returnTo: string }) {
   if (!requirement.employee_upload_allowed) return null;
   if (!["requested", "rejected", "expired", "accepted"].includes(requirement.state)) return null;
   const label = requirement.state === "accepted" ? "Replace" : "Upload";
   return (
     <form action={uploadRequirementDocumentAction} className="mt-2 grid gap-2 sm:grid-cols-[1fr_150px_auto]" encType="multipart/form-data">
       <input type="hidden" name="requirement_id" value={requirement.id} />
-      <input type="hidden" name="return_to" value="/me" />
+      <input type="hidden" name="return_to" value={returnTo} />
       <FileInput name="file" required label="Choose a file" />
       <DateField name="expires_at" dense />
       <PendingSubmitButton idleLabel={label} pendingLabel="Uploading…" className="tf-primary-action px-3 py-1.5 text-[12px] font-medium disabled:bg-ink-300" />
@@ -64,7 +64,7 @@ function UploadForm({ requirement }: { requirement: Requirement }) {
   );
 }
 
-export function DocumentsChecklist({ requirements }: { requirements: Requirement[] }) {
+export function DocumentsChecklist({ requirements, returnTo = "/documents-and-policies#documents" }: { requirements: Requirement[]; returnTo?: string }) {
   const grouped = new Map<string, Requirement[]>();
   for (const r of requirements) {
     const b = bucketOf(r);
@@ -94,7 +94,7 @@ export function DocumentsChecklist({ requirements }: { requirements: Requirement
                   <span className="text-[13px] font-medium text-ink-900">{r.document_type.replace(/_/g, " ").replace(/\b\w/g, (character) => character.toUpperCase())}</span>
                   <span className="text-[12px] text-ink-500">{r.due_date ? `Due ${fmt(r.due_date)}` : ""}{r.review_required ? " · review required" : ""}</span>
                 </div>
-                <UploadForm requirement={r} />
+                <UploadForm requirement={r} returnTo={returnTo} />
               </li>
             ))}
           </ul>

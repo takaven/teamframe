@@ -992,7 +992,7 @@ export async function createDocumentRequirementAction(formData: FormData): Promi
 export async function uploadRequirementDocumentAction(formData: FormData): Promise<void> {
   let failed = false;
   let errorCode = "UNKNOWN";
-  let returnTo = "/me";
+  let returnTo = "/documents-and-policies#documents";
 
   try {
     const actor = await requireTenantActor();
@@ -1003,7 +1003,7 @@ export async function uploadRequirementDocumentAction(formData: FormData): Promi
       expires_at: optionalString(formData.get("expires_at")),
       return_to: optionalString(formData.get("return_to")),
     });
-    returnTo = safeReturnPath(parsed.return_to, "/me");
+    returnTo = safeReturnPath(parsed.return_to, "/documents-and-policies#documents");
 
     await uploadDocumentForRequirement(actor, {
       requirementId: parsed.requirement_id,

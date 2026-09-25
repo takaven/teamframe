@@ -24,7 +24,7 @@ function isReviewLoginEnabled(): boolean {
 }
 
 function roleDestination(role: Role): string {
-  return role === "admin" ? "/dashboard" : "/me";
+  return role === "admin" ? "/dashboard" : "/home";
 }
 
 async function reviewSignInAction(formData: FormData): Promise<void> {
