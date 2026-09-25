@@ -81,8 +81,32 @@ export async function notifyLeaveDecision(tenantId: string, leaveId: string, dec
   await notifyBestEffort({ tenantId, recipientEmployeeId: data.employee_id, type: "leave_action", eventKey: `leave:${leaveId}:decision:${decision}`, subject: `Your time off was ${decision}`, text: `Your time-off request for ${data.start_date}${data.end_date !== data.start_date ? ` to ${data.end_date}` : ""} was ${decision}.`, actionPath: "/leaves", relatedEntityType: "leave", relatedEntityId: leaveId });
 }
 
+export async function notifyLeaveRequest(tenantId: string, leaveId: string): Promise<void> {
+  const db: any = createServiceRoleClient();
+  const { data } = await db.from("leaves").select("employee_id,start_date,end_date").eq("tenant_id", tenantId).eq("id", leaveId).maybeSingle();
+  if (!data) return;
+  const { data: employee } = await db.from("employees").select("full_name,manager_id").eq("tenant_id", tenantId).eq("id", data.employee_id).maybeSingle();
+  if (!employee?.manager_id) return;
+  await notifyBestEffort({ tenantId, recipientEmployeeId: employee.manager_id, type: "leave_action", eventKey: `leave:${leaveId}:decision-needed`, subject: "Leave request needs your decision", text: `${employee.full_name} requested time off from ${data.start_date}${data.end_date !== data.start_date ? ` to ${data.end_date}` : ""}.`, actionPath: "/manager", relatedEntityType: "leave", relatedEntityId: leaveId });
+}
+
 export async function notifyTaskAssignment(tenantId: string, employeeId: string, eventId: string, title: string): Promise<void> {
   await notifyBestEffort({ tenantId, recipientEmployeeId: employeeId, type: "task_assignment", eventKey: `onboarding:${eventId}:assigned`, subject: "Onboarding task assigned", text: `${title} has been added to your onboarding checklist.`, actionPath: "/me", relatedEntityType: "onboarding_task", relatedEntityId: eventId });
+}
+
+export async function notifyOffboardingAssignment(tenantId: string, item: { id: string; employeeId: string; ownerEmployeeId: string | null; title: string; dueDate: string | null }): Promise<void> {
+  if (!item.ownerEmployeeId) return;
+  await notifyBestEffort({ tenantId, recipientEmployeeId: item.ownerEmployeeId, type: "offboarding", eventKey: `offboarding:${item.id}:assigned`, subject: "Offboarding task assigned", text: `${item.title}${item.dueDate ? ` is due by ${item.dueDate}` : ""}.`, actionPath: item.ownerEmployeeId === item.employeeId ? "/me" : "/manager", relatedEntityType: "offboarding_item", relatedEntityId: item.id });
+}
+
+export async function notifyDueMilestone(tenantId: string, input: { ruleKey: string; subjectId: string; ownerEmployeeId: string | null }): Promise<void> {
+  if (!input.ownerEmployeeId) return;
+  if (input.ruleKey === "onboarding.check_in.due") {
+    await notifyBestEffort({ tenantId, recipientEmployeeId: input.ownerEmployeeId, type: "probation_check_in", eventKey: `check-in:${input.subjectId}:due`, subject: "Your 30-day check-in is ready", text: "Please complete your 30-day check-in in TeamFrame.", actionPath: "/me#check-in", relatedEntityType: "onboarding_check_in", relatedEntityId: input.subjectId });
+  }
+  if (input.ruleKey === "probation.review_due") {
+    await notifyBestEffort({ tenantId, recipientEmployeeId: input.ownerEmployeeId, type: "probation_check_in", eventKey: `probation:${input.subjectId}:manager-input-due`, subject: "Probation input is due", text: "A probation recommendation needs your input.", actionPath: "/manager", relatedEntityType: "probation_review", relatedEntityId: input.subjectId });
+  }
 }
 
 export async function notifyPolicyPublished(tenantId: string, policyId: string): Promise<void> {

@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { notifyLeaveDecision } from "@/services/notificationService";
+import { notifyLeaveDecision, notifyLeaveRequest } from "@/services/notificationService";
 import { requireTenantActor } from "@/middleware/rbac";
 import { cancelApprovedLeave, decideLeaveRequest, submitLeaveRequest, submitLeaveRequestForEmployee, withdrawPendingLeave } from "@/services/leaveService";
 import { getSignedDownloadUrl } from "@/services/documentService";
@@ -76,13 +76,14 @@ export async function submitLeaveAction(formData: FormData): Promise<void> {
       reason: optionalString(formData.get("reason")),
     });
     const file = formData.get("attachment");
-    await submitLeaveRequest(actor, {
+    const leave = await submitLeaveRequest(actor, {
       startDate: parsed.start_date,
       endDate: parsed.end_date,
       leaveDefinitionId: parsed.leave_definition_id,
       reason: parsed.reason,
       attachment: file instanceof File ? file : null,
     });
+    await notifyLeaveRequest(actor.tenantId, leave.id);
   } catch (error) {
     failed = true;
     errorCode = getErrorCode(error);

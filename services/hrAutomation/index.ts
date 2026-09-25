@@ -2,6 +2,7 @@ import "server-only";
 
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 import { evaluateOffboardingClosure } from "@/services/offboardingService";
+import { notifyDueMilestone } from "@/services/notificationService";
 
 export type AutomationNotificationLevel =
   | "background"
@@ -53,6 +54,7 @@ export type AutomationDueItem = {
   tenant_id: string;
   rule_key: string;
   subject_id: string | null;
+  owner_employee_id: string | null;
   due_at: string;
   status: "scheduled" | "due" | "failed" | "escalated" | "completed" | "suppressed";
   next_attempt_at: string | null;
@@ -139,7 +141,7 @@ export async function listDueAutomationItemsForTenant(input: {
 
   const { data, error } = await supabase
     .from("hr_automation_items")
-    .select("id, tenant_id, rule_key, subject_id, due_at, status, next_attempt_at")
+    .select("id, tenant_id, rule_key, subject_id, owner_employee_id, due_at, status, next_attempt_at")
     .eq("tenant_id", input.tenantId)
     .in("status", ["scheduled", "due", "failed"])
     .or(`due_at.lte.${now},next_attempt_at.lte.${now}`)
@@ -272,6 +274,10 @@ export async function runDueAutomationForTenant(input: {
           tenantId: input.tenantId,
           reviewId: item.subject_id,
         });
+      }
+
+      if ((item.rule_key === "probation.review_due" || item.rule_key === "onboarding.check_in.due") && item.subject_id) {
+        await notifyDueMilestone(input.tenantId, { ruleKey: item.rule_key, subjectId: item.subject_id, ownerEmployeeId: item.owner_employee_id });
       }
 
       if (item.rule_key === "document.expiry_due") {

@@ -20,8 +20,12 @@ describe("Group D bounded notifications", () => {
   });
 
   it("uses stable event keys for transactions and daily digest", () => {
-    for (const key of ["document-request:", "leave:", "policy:", "onboarding:", "digest:"]) expect(service).toContain(key);
+    for (const key of ["document-request:", "leave:", "policy:", "onboarding:", "offboarding:", "probation:", "check-in:", "digest:"]) expect(service).toContain(key);
     expect(service).toContain('.eq("event_key", input.eventKey)');
+  });
+
+  it("covers the bounded transactional families", () => {
+    for (const helper of ["notifyDocumentRequest", "notifyTaskAssignment", "notifyLeaveRequest", "notifyLeaveDecision", "notifyPolicyPublished", "notifyDueMilestone", "notifyOffboardingAssignment"]) expect(service).toContain(helper);
   });
 
   it("never sends reserved synthetic review addresses externally", () => {

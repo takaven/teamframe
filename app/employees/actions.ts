@@ -21,6 +21,7 @@ import {
   completeOffboardingItem,
   startOffboarding,
 } from "@/services/offboardingService";
+import { notifyOffboardingAssignment } from "@/services/notificationService";
 import {
   exportFinanceHandoffUrl,
   exportEmployeeDueDiligencePackUrl,
@@ -527,11 +528,12 @@ export async function startOffboardingAction(formData: FormData): Promise<void> 
     employeeId = parsed.employee_id;
     returnTo = safeReturnPath(parsed.return_to, "/employees");
 
-    await startOffboarding(actor, {
+    const workflow = await startOffboarding(actor, {
       employeeId: parsed.employee_id,
       effectiveEndDate: parsed.effective_end_date,
       expectedUpdatedAt: parsed.expected_updated_at,
     });
+    await Promise.all(workflow.items.map((item) => notifyOffboardingAssignment(actor!.tenantId, { id: item.id, employeeId: item.employee_id, ownerEmployeeId: item.owner_employee_id, title: item.title, dueDate: item.due_date })));
   } catch (error) {
     failed = true;
     errorCode = getErrorCode(error);
