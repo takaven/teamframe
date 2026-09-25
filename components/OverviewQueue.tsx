@@ -88,7 +88,7 @@ export function OverviewQueue({
               className="inline-flex items-center gap-1.5 transition"
             >
               {f.label}
-              <span className="tabular-nums text-[11px] text-ink-400">{count}</span>
+              <span className="tf-count-accent tabular-nums text-[11px]">{count}</span>
             </button>
           );
         })}

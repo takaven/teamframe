@@ -37,6 +37,17 @@ describe("final red-team UI safeguards", () => {
     const queue = read("components/OverviewQueue.tsx");
     expect(queue).toContain("Showing {scoped.length} of {counts[filter]}");
     expect(queue).toContain('aria-selected={active}');
+    expect(queue).toContain("tf-count-accent");
+  });
+
+  it("keeps the final control polish shared, legible and outside Org Chart", () => {
+    const styles = read("app/globals.css");
+    const select = read("components/SelectField.tsx");
+    expect(styles).toContain('.tf-app-shell:not([data-active="/org-chart"])');
+    expect(styles).toContain(".tf-secondary-action :where(span, svg) { color: inherit; }");
+    expect(styles).toContain(".tf-select-trigger");
+    expect(styles).toContain(".tf-count-accent::before");
+    expect(select).toContain('className="tf-select-trigger');
   });
 
   it("makes document-required onboarding work actionable", () => {

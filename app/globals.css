@@ -788,7 +788,8 @@ main:has(> .tf-app-shell) { background: var(--tf-canvas); }
 }
 .tf-summary > *:first-child { border-left: 0; }
 .tf-summary-label { color: var(--tf-titanium); font-size: 12px; font-weight: 600; }
-.tf-summary-value { margin-top: 3px; color: var(--tf-charcoal); font-size: 23px; font-weight: 750; line-height: 1.1; }
+.tf-summary-value { display: inline-flex; align-items: baseline; gap: 7px; margin-top: 3px; color: var(--tf-charcoal); font-size: 23px; font-weight: 750; line-height: 1.1; }
+.tf-summary-value::before { content: ""; width: 3px; height: .72em; border-radius: 999px; background: var(--tf-lime); box-shadow: 0 0 0 1px rgba(32,36,43,.1); }
 
 /* Explicit surface vocabulary. Elevation follows visual meaning, never incidental markup. */
 .tf-page-section { border-top: 1px solid var(--tf-line); padding: 24px 0 4px; }
@@ -829,6 +830,8 @@ main:has(> .tf-app-shell) { background: var(--tf-canvas); }
 .tf-secondary-nav::-webkit-scrollbar { display: none; }
 .tf-secondary-nav a, .tf-secondary-nav button { flex: none; border: 0; border-bottom: 2px solid transparent; background: transparent; padding: 11px 1px 10px; color: var(--tf-titanium); font-size: 13px; font-weight: 650; white-space: nowrap; }
 .tf-secondary-nav :where([aria-current="page"],[aria-selected="true"]) { border-bottom-color: var(--tf-charcoal); color: var(--tf-charcoal); }
+.tf-count-accent { display: inline-flex; align-items: center; gap: 5px; color: var(--tf-charcoal); font-weight: 750; }
+.tf-count-accent::before { content: ""; width: 4px; height: 4px; border-radius: 999px; background: var(--tf-lime); box-shadow: 0 0 0 1px rgba(32,36,43,.12); }
 .tf-secondary-nav.tf-reports-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 20px; overflow: visible; }
 @media (max-width: 640px) {
   .tf-secondary-nav.tf-reports-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; }
@@ -888,6 +891,43 @@ main:has(> .tf-app-shell) { background: var(--tf-canvas); }
   opacity: .62;
 }
 
+/* The in-app light action is a quiet raised tool, not a white library button.
+   Org Chart remains on its accepted styling during this bounded polish pass. */
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-secondary-action {
+  min-height: 36px;
+  border: 1px solid rgba(66,73,77,.13);
+  background: linear-gradient(145deg, rgba(255,255,255,.56), rgba(220,222,222,.68));
+  color: var(--tf-charcoal);
+  box-shadow: 4px 4px 10px rgba(32,36,43,.11), -3px -3px 8px rgba(255,255,255,.68), inset 0 1px 0 rgba(255,255,255,.54);
+  line-height: 1.2;
+}
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-secondary-action :where(span, svg) { color: inherit; }
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-secondary-action:hover {
+  border-color: rgba(66,73,77,.24);
+  background: linear-gradient(145deg, rgba(255,255,255,.68), rgba(212,215,215,.76));
+  color: var(--tf-charcoal);
+  box-shadow: 5px 5px 12px rgba(32,36,43,.14), -3px -3px 9px rgba(255,255,255,.74), inset 3px 0 0 var(--tf-lime);
+}
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-secondary-action:focus-visible {
+  background: linear-gradient(145deg, rgba(255,255,255,.66), rgba(216,219,219,.72));
+  color: var(--tf-charcoal);
+  box-shadow: 4px 4px 10px rgba(32,36,43,.11), -3px -3px 8px rgba(255,255,255,.7), inset 3px 0 0 var(--tf-lime);
+}
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-secondary-action:active {
+  border-color: rgba(66,73,77,.2);
+  background: rgba(224,226,226,.72);
+  color: var(--tf-charcoal);
+  box-shadow: inset 2px 2px 5px rgba(32,36,43,.13), inset -2px -2px 5px rgba(255,255,255,.5);
+  transform: translateY(1px);
+}
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-secondary-action:disabled {
+  border-color: rgba(66,73,77,.08);
+  background: rgba(222,224,224,.52);
+  color: var(--tf-titanium);
+  box-shadow: none;
+  opacity: .62;
+}
+
 /* Recess every real portal field into the common material. */
 :where(main:has(> .tf-app-shell)) :where(
   input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]),
@@ -910,6 +950,47 @@ main:has(> .tf-app-shell) { background: var(--tf-canvas); }
   box-shadow: inset 2px 2px 5px rgba(32,36,43,.05), inset -2px -2px 5px rgba(255,255,255,.34);
   outline: 2px solid var(--tf-lime);
   outline-offset: 2px;
+}
+
+/* Refined native and custom select surfaces. The native control remains intact
+   for keyboard, mobile and assistive technology reliability. */
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) select,
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-select,
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-select-sm,
+.tf-select-trigger {
+  border: 1px solid rgba(66,73,77,.13);
+  border-left: 1px solid rgba(66,73,77,.13);
+  border-bottom: 1px solid rgba(66,73,77,.16);
+  border-radius: var(--tf-radius-control);
+  background-color: rgba(250,250,249,.42);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2342494d' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='m8 10 4 4 4-4'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-left: 13px;
+  padding-right: 40px;
+  box-shadow: inset 2px 2px 5px rgba(32,36,43,.055), inset -2px -2px 5px rgba(255,255,255,.48), 0 1px 0 rgba(255,255,255,.5);
+}
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) select:hover,
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-select:hover,
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-select-sm:hover,
+.tf-select-trigger:hover {
+  border-color: rgba(66,73,77,.26);
+  background-color: rgba(255,255,255,.56);
+}
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) select:focus,
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-select:focus,
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-select-sm:focus,
+.tf-select-trigger:focus-visible {
+  border-color: rgba(66,73,77,.3);
+  background-color: var(--tf-material-light);
+  box-shadow: inset 2px 2px 5px rgba(32,36,43,.05), inset -2px -2px 5px rgba(255,255,255,.42), 0 0 0 2px rgba(1,255,34,.32);
+  outline: 0;
+}
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) select:disabled {
+  border-color: rgba(66,73,77,.08);
+  background-color: rgba(222,224,224,.48);
+  color: var(--tf-titanium);
+  box-shadow: none;
 }
 
 /* Canonical floating field: open geometry at rest, complete contour when the
