@@ -56,8 +56,11 @@ describe("final red-team UI safeguards", () => {
   it("describes headcount scope truthfully and humanises country exports", () => {
     const report = read("app/reports/page.tsx");
     const exportRoute = read("app/reports/export/route.ts");
+    const styles = read("app/globals.css");
     expect(report).toContain("Current people, including pre-start employees");
     expect(report).toContain("Current people");
+    expect(report).toContain("tf-reports-nav");
+    expect(styles).toContain(".tf-secondary-nav.tf-reports-nav");
     expect(exportRoute).toContain("getCountryName(e.country) ?? e.country");
   });
 });

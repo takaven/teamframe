@@ -829,6 +829,11 @@ main:has(> .tf-app-shell) { background: var(--tf-canvas); }
 .tf-secondary-nav::-webkit-scrollbar { display: none; }
 .tf-secondary-nav a, .tf-secondary-nav button { flex: none; border: 0; border-bottom: 2px solid transparent; background: transparent; padding: 11px 1px 10px; color: var(--tf-titanium); font-size: 13px; font-weight: 650; white-space: nowrap; }
 .tf-secondary-nav :where([aria-current="page"],[aria-selected="true"]) { border-bottom-color: var(--tf-charcoal); color: var(--tf-charcoal); }
+.tf-secondary-nav.tf-reports-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 20px; overflow: visible; }
+@media (max-width: 640px) {
+  .tf-secondary-nav.tf-reports-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; }
+  .tf-secondary-nav.tf-reports-nav a { white-space: normal; }
+}
 .tf-section-tabs { display: grid; gap: 4px; padding: 0; background: transparent; }
 .tf-section-tab { border-radius: 8px; }
 .tf-section-tab[aria-selected="true"] { background: rgba(255,255,255,.42); color: var(--tf-charcoal); box-shadow: inset 3px 0 0 var(--tf-lime); }
