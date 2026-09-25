@@ -24,8 +24,9 @@ describe("Group D bounded notifications", () => {
     expect(service).toContain('.eq("event_key", input.eventKey)');
   });
 
-  it("never sends .invalid review addresses externally", () => {
-    expect(service).toContain('email.endsWith(".invalid")');
+  it("never sends reserved synthetic review addresses externally", () => {
+    expect(service).toContain("invalid|example|test");
+    expect(service).toContain('domain === "localhost"');
     expect(service).toContain("preview-sink:");
   });
 
@@ -46,6 +47,7 @@ describe("Group D bounded notifications", () => {
     expect(home).toContain("Email delivery needs review");
     expect(home).toContain("retryNotificationAction");
     expect(service).toContain("row.attempt_count >= 3");
+    expect(service).toContain('.eq("id", row.id).eq("status", "failed")');
   });
 
   it("provides only the approved reminder actions", () => {

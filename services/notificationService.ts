@@ -30,7 +30,8 @@ async function resolveEmail(input: NotificationInput): Promise<string | null> {
 }
 
 async function transport(input: NotificationInput, email: string): Promise<string> {
-  if (email.endsWith(".invalid") || email.endsWith("@teamframe.invalid")) return `preview-sink:${crypto.randomUUID()}`;
+  const domain = email.split("@").at(-1) ?? "";
+  if (domain === "localhost" || /(?:^|\.)(?:invalid|example|test)$/.test(domain)) return `preview-sink:${crypto.randomUUID()}`;
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.TEAMFRAME_EMAIL_FROM;
   if (!apiKey || !from) throw new Error("EMAIL_NOT_CONFIGURED");
@@ -101,8 +102,14 @@ export async function retryDelivery(actor: Actor & { tenantId: string }, id: str
   if (error || !data) throw new Error("NOTIFICATION_NOT_FOUND");
   const row = data as DeliveryRow;
   if (row.status !== "failed" || row.attempt_count >= 3 || !row.recipient_email) throw new Error("NOTIFICATION_RETRY_NOT_ALLOWED");
-  const input: NotificationInput = { tenantId: row.tenant_id, recipientEmployeeId: row.recipient_employee_id, recipientEmail: row.recipient_email, type: row.notification_type, eventKey: `${row.event_key}:retry:${row.attempt_count}`, subject: "TeamFrame notification", text: "You have an item that needs your attention.", actionPath: row.action_path ?? "/dashboard", relatedEntityType: row.related_entity_type ?? undefined, relatedEntityId: row.related_entity_id };
-  await deliverNotification(input);
+  const input: NotificationInput = { tenantId: row.tenant_id, recipientEmployeeId: row.recipient_employee_id, recipientEmail: row.recipient_email, type: row.notification_type, eventKey: row.event_key, subject: "TeamFrame notification", text: "You have an item that needs your attention.", actionPath: row.action_path ?? "/dashboard", relatedEntityType: row.related_entity_type ?? undefined, relatedEntityId: row.related_entity_id };
+  try {
+    const providerId = await transport(input, row.recipient_email);
+    const { error: updateError } = await db.from("notification_deliveries").update({ status: "sent", provider_message_id: providerId, attempt_count: row.attempt_count + 1, attempted_at: new Date().toISOString(), sent_at: new Date().toISOString(), last_error_summary: null }).eq("tenant_id", actor.tenantId).eq("id", row.id).eq("status", "failed");
+    if (updateError) throw new Error(`NOTIFICATION_RETRY_UPDATE_FAILED: ${updateError.message}`);
+  } catch (error) {
+    await db.from("notification_deliveries").update({ attempt_count: row.attempt_count + 1, attempted_at: new Date().toISOString(), last_error_summary: safeError(error) }).eq("tenant_id", actor.tenantId).eq("id", row.id).eq("status", "failed");
+  }
 }
 
 export async function listFailedDeliveries(tenantId: string): Promise<DeliveryRow[]> {
