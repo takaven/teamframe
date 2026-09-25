@@ -437,16 +437,18 @@ export async function PeopleExperience({
             {inviteActivated} active · {invitePending + inviteSent} awaiting sign-in{archived > 0 ? ` · ${archived} archived` : ""}
           </p>
         </div>
-        <div className="flex w-full flex-wrap items-center justify-start gap-x-4 gap-y-3 sm:w-auto sm:justify-end">
-        <Link href="/org-chart" className="tf-tertiary-action">Org chart</Link>
-        <Link href="/people/import" className="tf-secondary-action h-9 px-4 text-[13px] font-medium">Import CSV</Link>
-        <Link href="/people/add" className="tf-primary-action h-9 px-4 text-[13px] font-medium">Add person</Link>
-        <form className="grid w-full min-w-0 basis-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-xl bg-white/20 p-2 sm:flex sm:w-auto sm:basis-auto sm:flex-none">
+        <div className="flex w-full flex-col gap-3 lg:w-auto lg:min-w-[680px]">
+        <div className="flex flex-wrap items-center justify-start gap-3 lg:justify-end">
+          <Link href="/org-chart" className="tf-tertiary-action">Org chart</Link>
+          <Link href="/people/import" className="tf-secondary-action h-9 px-4 text-[13px] font-medium">Import CSV</Link>
+          <Link href="/people/add" className="tf-primary-action h-9 px-4 text-[13px] font-medium">Add person</Link>
+        </div>
+        <form className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-xl bg-white/20 p-2 sm:grid-cols-[minmax(260px,1fr)_minmax(150px,auto)_auto]">
           <input
             name="q"
             defaultValue={q ?? ""}
             placeholder="Search name, number, role, department"
-            className="tf-input col-span-2 h-9 min-w-0 flex-1 sm:w-64"
+            className="tf-input col-span-2 h-9 min-w-0 sm:col-span-1"
           />
           <select
             name="filter"
