@@ -27,8 +27,6 @@ import {
   toggleDepartmentAction,
   createWorkLocationAction,
   updateWorkLocationAction,
-  createLeaveDefinitionAction,
-  updateLeaveDefinitionAction,
   setCompensationModeAction,
   createCompensationComponentAction,
   renameCompensationComponentAction,
@@ -40,9 +38,10 @@ import {
 import { listCompanyHolidays } from "@/services/companyHolidayService";
 import { deleteHolidayAction, saveHolidayAction } from "@/app/company/actions";
 import { listCustomFieldDefinitions } from "@/services/customFieldService";
-import { createCustomFieldAction, toggleCustomFieldAction } from "./custom-field-actions";
 import { listChecklistTemplates } from "@/services/onboardingService/checklistTemplates";
 import { ONBOARDING_TEMPLATE_PACKS, dueOffsetLabel } from "@/services/onboardingService/templates";
+import { PeopleFieldsSettings } from "@/components/PeopleFieldsSettings";
+import { LeaveDefinitionsSettings } from "@/components/LeaveDefinitionsSettings";
 
 export const dynamic = "force-dynamic";
 
@@ -232,17 +231,7 @@ export default async function SetupPage({
           ) : null}
 
           {section === "people" ? (
-            <section className="tf-surface-flat p-6">
-              <h2 className="tf-h2">People fields</h2>
-              <p className="mt-1 text-[13px] text-ink-500">Add simple company-specific fields to employee records.</p>
-              <form action={createCustomFieldAction} className="mt-5 grid gap-3 sm:grid-cols-[1fr_180px_1fr_auto] sm:items-end">
-                <label className="text-[12px] text-ink-600">Label<input name="label" required className={input}/></label>
-                <label className="text-[12px] text-ink-600">Type<select name="field_type" className={selectCls}><option value="text">Text</option><option value="number">Number</option><option value="date">Date</option><option value="yes_no">Yes / No</option><option value="single_select">Single select</option></select></label>
-                <label className="text-[12px] text-ink-600">Choices (single select)<input name="choices" className={input} placeholder="Option A, Option B"/></label>
-                <PendingSubmitButton idleLabel="Add field" pendingLabel="Adding…" className={btn}/>
-              </form>
-              <ul className="mt-5 divide-y divide-ink-100 rounded-lg border border-ink-200">{customFields.length === 0 ? <li className="px-3 py-3 text-[13px] text-ink-500">No people fields yet. Add one when your company needs information beyond the standard employee record.</li> : customFields.map((field) => <li key={field.id} className="flex items-center justify-between gap-3 px-3 py-2 text-[13px]"><span><strong>{field.label}</strong> · {field.field_type.replaceAll("_", " ").replace(/\b\w/g, (character) => character.toUpperCase())}</span><form action={toggleCustomFieldAction}><input type="hidden" name="id" value={field.id}/><input type="hidden" name="active" value={String(!field.active)}/><PendingSubmitButton idleLabel={field.active ? "Deactivate" : "Reactivate"} pendingLabel="Saving…" className={btnGhost}/></form></li>)}</ul>
-            </section>
+            <PeopleFieldsSettings fields={customFields} />
           ) : null}
 
           {section === "organisation" ? (
@@ -317,38 +306,7 @@ export default async function SetupPage({
           ) : null}
 
           {section === "timeoff" ? (
-            <section className="tf-surface-flat p-6">
-              <h2 className="tf-h2">Leave definitions</h2>
-              <p className="mt-1 text-[13px] text-ink-500">Configure the leave types offered. These drive the employee leave dropdown (a later phase). The underlying leave engine is unchanged.</p>
-              <details className="mt-4 rounded-lg border border-ink-200 bg-ink-50/40 p-4">
-                <summary className="cursor-pointer text-[13px] font-medium text-ink-800">Add custom leave type (e.g. Maternity, Study)</summary>
-                <form action={createLeaveDefinitionAction} className="mt-3 grid gap-3 sm:grid-cols-2">
-                  <label className="text-[13px] text-ink-700">Display name<input name="display_name" required className={input} placeholder="Maternity Leave" /></label>
-                  <label className="text-[13px] text-ink-700">Underlying category<select name="system_leave_type" defaultValue="other" className={selectCls}><option value="annual">annual</option><option value="sick">sick</option><option value="unpaid">unpaid</option><option value="other">other</option></select></label>
-                  <label className="text-[13px] text-ink-700">Default entitlement (days, optional)<input name="default_entitlement_days" type="number" min="0" max="365" className={input} /></label>
-                  <label className="text-[13px] text-ink-700">Counting basis<select name="counting_basis" defaultValue="working_days" className={selectCls}><option value="working_days">Working days</option><option value="calendar_days">Calendar days</option></select></label>
-                  <label className="text-[13px] text-ink-700">Attachment<select name="attachment_requirement" defaultValue="not_required" className={selectCls}><option value="not_required">Not required</option><option value="optional">Optional</option><option value="required">Required</option></select></label>
-                  <label className="flex items-center gap-2 text-[13px] text-ink-700"><input type="checkbox" name="active" defaultChecked /> Active</label>
-                  <div className="sm:col-span-2"><PendingSubmitButton idleLabel="Add leave type" pendingLabel="Adding…" className={btn} /></div>
-                </form>
-              </details>
-              <ul className="mt-4 space-y-2">
-                {leaveDefinitions.map((d) => (
-                  <li key={d.id} className="rounded-lg border border-ink-200 p-3">
-                    <form action={updateLeaveDefinitionAction} className="grid gap-2 sm:grid-cols-[1.4fr_1fr_1fr_1fr_auto_auto] sm:items-end">
-                      <input type="hidden" name="id" value={d.id} />
-                      <input type="hidden" name="system_leave_type" value={d.system_leave_type} />
-                      <label className="text-[12px] text-ink-600">Name{d.is_system ? " (system)" : ""}<input name="display_name" defaultValue={d.display_name} className="tf-select-sm mt-1 w-full" /></label>
-                      <label className="text-[12px] text-ink-600">Entitlement<input name="default_entitlement_days" type="number" min="0" max="365" defaultValue={d.default_entitlement_days ?? ""} className="tf-select-sm mt-1 w-full" /></label>
-                      <label className="text-[12px] text-ink-600">Basis<select name="counting_basis" defaultValue={d.counting_basis} className="tf-select-sm mt-1 w-full"><option value="working_days">Working days</option><option value="calendar_days">Calendar days</option></select></label>
-                      <label className="text-[12px] text-ink-600">Attachment<select name="attachment_requirement" defaultValue={d.attachment_requirement} className="tf-select-sm mt-1 w-full"><option value="not_required">Not required</option><option value="optional">Optional</option><option value="required">Required</option></select></label>
-                      <label className="flex items-center gap-1.5 text-[12px] text-ink-600"><input type="checkbox" name="active" defaultChecked={d.active} /> Active</label>
-                      <PendingSubmitButton idleLabel="Save" pendingLabel="Saving…" className={btnGhost} />
-                    </form>
-                  </li>
-                ))}
-              </ul>
-            </section>
+            <LeaveDefinitionsSettings definitions={leaveDefinitions} />
           ) : null}
 
           {section === "compensation" ? (
