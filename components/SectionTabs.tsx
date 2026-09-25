@@ -48,7 +48,7 @@ export function SectionTabs({
 
   return (
     <div className="grid items-start gap-5 md:grid-cols-[190px_minmax(0,1fr)]">
-      <div role="tablist" aria-label={ariaLabel} className="grid grid-cols-2 gap-1 rounded-xl bg-ink-100/55 p-2 sm:grid-cols-4 md:sticky md:top-6 md:grid-cols-1">
+      <div role="tablist" aria-label={ariaLabel} className="tf-section-tabs grid grid-cols-2 sm:grid-cols-4 md:sticky md:top-6 md:grid-cols-1">
         {tabs.map((t) => {
           const isActive = t.id === active;
           return (
@@ -75,8 +75,8 @@ export function SectionTabs({
                 document.getElementById(`record-tab-${nextId}`)?.focus();
               }}
               className={[
-                "inline-flex min-h-10 items-center gap-1.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition",
-                isActive ? "bg-white font-semibold text-ink-900 shadow-sm" : "text-ink-500 hover:bg-white/60 hover:text-ink-800",
+                "tf-section-tab inline-flex min-h-10 items-center gap-1.5 px-3 py-2 text-left text-[13px] font-medium transition",
+                isActive ? "font-semibold text-ink-900" : "text-ink-500 hover:bg-white/30 hover:text-ink-800",
               ].join(" ")}
             >
               {t.label}

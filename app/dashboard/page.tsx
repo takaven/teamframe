@@ -137,18 +137,18 @@ export default async function DashboardPage() {
           )}
         </section>
 
-        <section className="tf-surface-flat p-5" aria-labelledby="your-team-heading">
+        <section className="py-1" aria-labelledby="your-team-heading">
           <h2 id="your-team-heading" className="tf-h2">Your team</h2>
-          <div className="mt-4 grid grid-cols-2 gap-3">
+          <div className="tf-metric-strip mt-4">
             {[
               ["Active", activeEmployeeCount, "/people?filter=active"],
               ["Starting this month", teamSummary.startingThisMonth, "/people?filter=pre_start"],
               ["Leaving this month", teamSummary.leavingThisMonth, "/people?filter=offboarding"],
               ["Away today", teamSummary.awayToday, "/leaves?view=calendar"],
             ].map(([label, value, href]) => (
-              <Link key={String(label)} href={String(href)} className="rounded-xl border border-ink-200 bg-white/60 p-3 transition hover:border-ink-400">
-                <span className="block text-[22px] font-semibold tabular-nums text-ink-900">{value}</span>
-                <span className="mt-0.5 block text-[11.5px] text-ink-500">{label}</span>
+              <Link key={String(label)} href={String(href)} className="group transition hover:bg-white/25">
+                <span className="tf-metric-strip-value tabular-nums">{value}</span>
+                <span className="tf-metric-strip-label group-hover:text-ink-800">{label}</span>
               </Link>
             ))}
           </div>

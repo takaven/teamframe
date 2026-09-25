@@ -85,7 +85,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
                 <td className="px-4 py-3"><div className="flex justify-end gap-2">{item.state === "received" ? <>
                   <form action={reviewDocumentRequirementAction}><input type="hidden" name="requirement_id" value={item.id}/><input type="hidden" name="decision" value="accepted"/><input type="hidden" name="return_to" value="/documents"/><PendingSubmitButton idleLabel="Accept" pendingLabel="Accepting…" className="tf-primary-action h-9 px-3 text-[12px]"/></form>
                   <form action={reviewDocumentRequirementAction}><input type="hidden" name="requirement_id" value={item.id}/><input type="hidden" name="decision" value="rejected"/><input type="hidden" name="return_to" value="/documents"/><PendingSubmitButton idleLabel="Reject" pendingLabel="Rejecting…" className="tf-secondary-action h-9 px-3 text-[12px]"/></form>
-                </> : <><form action={remindDocumentAction}><input type="hidden" name="requirement_id" value={item.id}/><PendingSubmitButton idleLabel="Remind" pendingLabel="Sending…" className="tf-secondary-action h-9 px-3 text-[12px]"/></form><Link href={`/people/${item.employee_id}#documents`} className="tf-secondary-action h-9 px-3 py-2 text-[12px]">Open record</Link></>}</div></td>
+                </> : <><Link href={`/people/${item.employee_id}#documents`} className="tf-quiet-action">Open record</Link><form action={remindDocumentAction}><input type="hidden" name="requirement_id" value={item.id}/><PendingSubmitButton idleLabel="Remind" pendingLabel="Sending…" className="tf-tertiary-action h-8 px-2 text-[12px]"/></form></>}</div></td>
               </tr>)}</tbody>
             </table></div>
           )}

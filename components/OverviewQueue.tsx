@@ -48,7 +48,7 @@ function Row({ item }: { item: OverviewQueueItem }) {
   return (
     <Link
       href={item.href}
-      className="group grid gap-2 px-4 py-3 transition hover:bg-ink-50/70 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,.7fr)_90px_150px] lg:items-center lg:gap-4"
+      className="group grid gap-2 px-4 py-3 transition hover:bg-white/28 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,.7fr)_90px_130px] lg:items-center lg:gap-4"
     >
       <span className="min-w-0">
         <span className="flex items-start gap-2 text-[13.5px] font-medium text-ink-800"><span className={`tf-dot ${dotClass(item.class)} mt-1 shrink-0`} aria-hidden />{item.title}</span>
@@ -57,7 +57,7 @@ function Row({ item }: { item: OverviewQueueItem }) {
       </span>
       <span className="text-[12.5px] text-ink-700"><span className="font-semibold lg:hidden">Owner: </span>{item.owner}</span>
       <span className="text-[12.5px] tabular-nums text-ink-600"><span className="font-semibold lg:hidden">Due: </span>{formatDue(item.dueAt)}</span>
-      <span className="inline-flex h-9 max-w-full items-center justify-center justify-self-start whitespace-nowrap rounded-lg border border-ink-300 bg-white px-3 text-[12px] font-semibold text-ink-700 shadow-[0_5px_12px_-10px_rgba(15,17,21,.45)] transition group-hover:border-ink-700 group-hover:bg-ink-900 group-hover:text-white group-active:translate-y-px group-active:shadow-inner">{actionLabel}</span>
+      <span className="tf-quiet-action justify-self-start">{actionLabel}</span>
     </Link>
   );
 }
@@ -74,7 +74,7 @@ export function OverviewQueue({
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap gap-1.5" role="tablist" aria-label="Filter work that needs attention">
+      <div className="tf-secondary-nav mb-4" role="tablist" aria-label="Filter work that needs attention">
         {FILTERS.map((f) => {
           const active = filter === f.key;
           const count = counts[f.key];
@@ -85,13 +85,10 @@ export function OverviewQueue({
               role="tab"
               aria-selected={active}
               onClick={() => setFilter(f.key)}
-              className={[
-                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium transition",
-                active ? "bg-ink-900 text-white" : "text-ink-600 hover:bg-ink-100",
-              ].join(" ")}
+              className="inline-flex items-center gap-1.5 transition"
             >
               {f.label}
-              <span className={`tabular-nums text-[11px] ${active ? "text-white/60" : "text-ink-400"}`}>{count}</span>
+              <span className="tabular-nums text-[11px] text-ink-400">{count}</span>
             </button>
           );
         })}
@@ -103,14 +100,14 @@ export function OverviewQueue({
         </div>
       ) : filter === "all" ? (
         <div className="tf-surface overflow-hidden">
-          <div className="hidden grid-cols-[minmax(0,1.7fr)_minmax(0,.7fr)_90px_150px] gap-4 border-b border-ink-100 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-500 lg:grid">
+          <div className="hidden grid-cols-[minmax(0,1.7fr)_minmax(0,.7fr)_90px_130px] gap-4 border-b border-ink-100 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-500 lg:grid">
             <span>What</span><span>Owner</span><span>Due</span><span>Action</span>
           </div>
           <div className="tf-divide">{items.map((item) => <Row key={item.id} item={item} />)}</div>
         </div>
       ) : (
         <div className="tf-surface overflow-hidden">
-          <div className="hidden grid-cols-[minmax(0,1.7fr)_minmax(0,.7fr)_90px_150px] gap-4 border-b border-ink-100 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-500 lg:grid">
+          <div className="hidden grid-cols-[minmax(0,1.7fr)_minmax(0,.7fr)_90px_130px] gap-4 border-b border-ink-100 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-500 lg:grid">
             <span>What</span><span>Owner</span><span>Due</span><span>Action</span>
           </div>
           <div className="tf-divide">{scoped.map((item) => <Row key={item.id} item={item} />)}</div>

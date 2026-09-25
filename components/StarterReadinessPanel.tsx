@@ -10,27 +10,29 @@ export function StarterReadinessPanel({
   accountState: string;
   blockers: ReadinessBlocker[];
 }) {
+  const startLabel = startDate
+    ? new Date(`${startDate}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" })
+    : null;
   return (
-    <section data-tab="employment" className="rounded-xl border border-ink-200 bg-white/70 p-5">
+    <section data-tab="employment" className="tf-product-section">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h4 className="tf-h3">Ready to start?</h4>
-          <p className="mt-1 text-[12px] text-ink-500">Only tasks and document requests due by the start date. Account activation is shown separately.</p>
+          <p className="mt-1 text-[13px] text-ink-500">{ready ? "Everything due before the start date is complete." : `${blockers.length} ${blockers.length === 1 ? "thing" : "things"} to do${startLabel ? ` before ${startLabel}` : " before this person starts"}.`}</p>
         </div>
         <StatusPill tone={ready ? "green" : "amber"}>{ready ? "Ready" : `${blockers.length} ${blockers.length === 1 ? "thing" : "things"} to do`}</StatusPill>
       </div>
-      <p className="mt-2 text-[12px] text-ink-600">{checked} configured pre-start checks · Start date: {startDate ?? "Missing"}</p>
-      <p className="mt-1 text-[12px] text-ink-600">Account: {accountState}. This is separate from pre-start checks.</p>
       {blockers.length > 0 ? (
-        <ul className="mt-3 divide-y divide-ink-100 rounded-lg border border-ink-200">
+        <ul className="mt-4 divide-y divide-ink-100 border-y border-ink-100">
           {blockers.map((blocker, index) => (
             <li key={`${blocker.label}-${index}`} className="px-3 py-2 text-[12px]">
               <p className="font-medium text-ink-900">{blocker.label}</p>
-              <p className="text-ink-600">Owner: {blocker.owner} · Next: {blocker.nextAction}</p>
+              <p className="text-ink-600">{blocker.owner} · {blocker.nextAction}</p>
             </li>
           ))}
         </ul>
-      ) : <p className="mt-3 text-[12px] text-ink-600">All configured due-by-start checks are complete.</p>}
+      ) : null}
+      <p className="mt-4 text-[11.5px] text-ink-500">Account: {accountState} · {checked} checks reviewed</p>
     </section>
   );
 }

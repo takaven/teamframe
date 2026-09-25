@@ -422,7 +422,7 @@ export async function PeopleExperience({
       <AppShell actor={actor} activePath="/people" />
       {view === "record" && detailEmployees.length > 0 ? (
         <div className="tf-print-hide mb-5 flex flex-wrap items-center justify-between gap-3">
-          <Link href="/people" className="text-[13px] font-semibold text-ink-600 hover:text-ink-900">← Back to People</Link>
+          <Link href="/people" className="tf-context-back">← Back to People</Link>
           <div className="flex flex-wrap gap-2">
             <a href="#employment" className="tf-primary-action px-4 py-2 text-[12px]">Change employment</a>
             <a href="#documents" className="tf-secondary-action px-4 py-2 text-[12px]">Request document</a>
@@ -430,28 +430,28 @@ export async function PeopleExperience({
         </div>
       ) : null}
       {view === "directory" ? <>
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-5">
+      <div className="flex flex-wrap items-end justify-between gap-5 border-b border-ink-300/50 pb-5">
         <div>
           <h1 className="tf-h1">People</h1>
           <p className="tf-meta mt-1 tf-num">
             {inviteActivated} active · {invitePending + inviteSent} awaiting sign-in{archived > 0 ? ` · ${archived} archived` : ""}
           </p>
         </div>
-        <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end">
-        <Link href="/org-chart" className="tf-secondary-action h-9 px-4 text-[13px] font-medium">Org chart</Link>
+        <div className="flex w-full flex-wrap items-center justify-start gap-x-4 gap-y-3 sm:w-auto sm:justify-end">
+        <Link href="/org-chart" className="tf-tertiary-action">Org chart</Link>
         <Link href="/people/import" className="tf-secondary-action h-9 px-4 text-[13px] font-medium">Import CSV</Link>
         <Link href="/people/add" className="tf-primary-action h-9 px-4 text-[13px] font-medium">Add person</Link>
-        <form className="grid w-full min-w-0 basis-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:flex sm:w-auto sm:basis-auto sm:flex-none">
+        <form className="grid w-full min-w-0 basis-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-xl bg-white/20 p-2 sm:flex sm:w-auto sm:basis-auto sm:flex-none">
           <input
             name="q"
             defaultValue={q ?? ""}
             placeholder="Search name, number, role, department"
-            className="col-span-2 h-9 min-w-0 flex-1 rounded-lg border border-ink-300 bg-white px-3 text-[13px] text-ink-900 sm:w-60"
+            className="tf-input col-span-2 h-9 min-w-0 flex-1 sm:w-64"
           />
           <select
             name="filter"
             defaultValue={activeFilter}
-            className="h-9 w-full min-w-0 rounded-lg border border-ink-300 bg-white px-3 text-[13px] text-ink-900 sm:w-auto"
+            className="tf-select h-9 w-full min-w-0 sm:w-auto"
           >
             <option value="all">All</option>
             <option value="attention">Needs attention</option>
@@ -460,7 +460,7 @@ export async function PeopleExperience({
             <option value="offboarding">Leaving</option>
             <option value="archived">Archived</option>
           </select>
-          <button type="submit" className="tf-secondary-action h-9 px-4 text-[13px] font-medium">Search</button>
+          <button type="submit" className="tf-tertiary-action h-9 px-2 text-[13px] font-medium">Search</button>
         </form>
         </div>
       </div>
@@ -721,7 +721,7 @@ export async function PeopleExperience({
                     {(leaveOverview?.requests.length ?? 0) === 0 ? <p className="py-4 text-[12px] text-ink-500">No time-off requests recorded.</p> : null}
                   </div>
                 </section>
-                <section data-tab="onboarding-offboarding" className="rounded-xl border border-ink-200 bg-white/70 p-5">
+                <section data-tab="onboarding-offboarding" className="tf-product-section">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div><h3 className="text-[14px] font-semibold text-ink-900">Onboarding &amp; early employment</h3><p className="mt-1 text-[12px] text-ink-500">Tasks, check-ins and probation for this person.</p></div>
                     <Link href={`/onboarding?employee=${encodeURIComponent(employee.id)}`} className="tf-secondary-action px-3 py-1.5 text-[12px]">Open onboarding</Link>
@@ -837,7 +837,7 @@ export async function PeopleExperience({
                 </div>
               </form>
 
-              <section data-tab="onboarding-offboarding" className="rounded-xl border border-ink-200 bg-white/70 p-5">
+              <section data-tab="onboarding-offboarding" className="tf-product-section">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h4 className="text-[13px] font-medium text-ink-900">Offboarding</h4>
@@ -918,12 +918,12 @@ export async function PeopleExperience({
                 )}
               </section>
 
-              <section data-tab="employment" className="rounded-xl border border-ink-200 bg-white/70 p-5">
+              <section data-tab="employment" className="tf-product-section">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <h4 className="text-[13px] font-medium text-ink-900">Employment changes</h4>
+                    <h4 className="text-[15px] font-semibold text-ink-900">Employment</h4>
                     <p className="mt-1 text-[12px] text-ink-500">
-                      Record effective-dated changes without overwriting the previous employment facts.
+                      Current facts, scheduled changes and recent employment history.
                     </p>
                   </div>
                   <StatusPill tone={changes.some((change) => change.status === "pending") ? "amber" : "neutral"}>
@@ -931,7 +931,17 @@ export async function PeopleExperience({
                   </StatusPill>
                 </div>
 
-                <form action={recordEmploymentChangeAction} className="mt-3 grid gap-2 md:grid-cols-3">
+                <dl className="mt-5 grid gap-x-6 gap-y-4 text-[12.5px] sm:grid-cols-2 lg:grid-cols-3">
+                  <div><dt className="text-ink-500">Role</dt><dd className="mt-1 font-semibold text-ink-900">{employee.role_title}</dd></div>
+                  <div><dt className="text-ink-500">Department</dt><dd className="mt-1 font-semibold text-ink-900">{employee.department}</dd></div>
+                  <div><dt className="text-ink-500">Employment type</dt><dd className="mt-1 font-semibold text-ink-900">{employee.employment_type.replaceAll("_", " ")}</dd></div>
+                  <div><dt className="text-ink-500">Location</dt><dd className="mt-1 font-semibold text-ink-900">{employee.country ?? "—"}</dd></div>
+                  <div><dt className="text-ink-500">Start date</dt><dd className="mt-1 font-semibold text-ink-900">{formatDate(employee.start_date)}</dd></div>
+                </dl>
+
+                <details className="mt-5">
+                  <summary className="tf-secondary-action inline-flex cursor-pointer list-none px-4 py-2 text-[13px] marker:hidden">Change employment</summary>
+                <form action={recordEmploymentChangeAction} className="tf-edit-panel mt-4 grid gap-3 md:grid-cols-3">
                   <input type="hidden" name="employee_id" value={employee.id} />
                   <input type="hidden" name="return_to" value="/employees" />
                   <label className="flex flex-col gap-1 text-[11px] text-ink-500">
@@ -1027,10 +1037,11 @@ export async function PeopleExperience({
                     <PendingSubmitButton
                       idleLabel="Record employment change"
                       pendingLabel="Recording…"
-                      className="rounded-md border border-ink-300 bg-white px-3 py-2 text-[13px] font-medium text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:text-ink-300"
+                      className="tf-primary-action px-3 py-2 text-[13px] disabled:cursor-not-allowed disabled:text-ink-300"
                     />
                   </div>
                 </form>
+                </details>
 
                 {changes.length === 0 ? (
                   <p className="mt-3 rounded-md border border-ink-300/50 bg-ink-100/40 px-3 py-2 text-[12px] text-ink-500">
@@ -1106,8 +1117,9 @@ export async function PeopleExperience({
                 )}
               </section>
 
-              <dl data-tab="onboarding-offboarding" className="grid gap-x-6 gap-y-2 rounded-xl border border-ink-200 bg-white/70 p-5 text-[12px] sm:grid-cols-2 lg:grid-cols-4">
-                <p className="text-[13px] font-bold sm:col-span-2 lg:col-span-4">Invite diagnostics</p>
+              <details data-tab="onboarding-offboarding" className="tf-product-section text-[12px]">
+                <summary className="cursor-pointer list-none text-[13px] font-semibold text-ink-700 marker:hidden">Invitation details</summary>
+                <dl className="mt-4 grid gap-x-6 gap-y-3 border-t border-ink-100 pt-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
                   <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Invite attempts</dt>
                   <dd className="mt-0.5 tabular-nums text-ink-700">{employee.invite_attempt_count}</dd>
@@ -1124,7 +1136,8 @@ export async function PeopleExperience({
                   <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-500">Activated</dt>
                   <dd className="mt-0.5 tabular-nums text-ink-700">{formatDateTime(employee.activated_at)}</dd>
                 </div>
-              </dl>
+                </dl>
+              </details>
 
               <section data-tab="documents" className="tf-surface-flat flex flex-col p-5">
                 <div className="flex items-center justify-between">
@@ -1303,13 +1316,15 @@ export async function PeopleExperience({
               </section>
 
               {workCountryByEmployee.get(employee.id) === UAE_COUNTRY ? (
-                <section data-tab="documents" className="rounded-xl border border-ink-200 bg-white/70 p-5">
-                  <h4 className="text-[13px] font-medium text-ink-900">Country-specific records — UAE</h4>
+                <section data-tab="documents" className="tf-product-section">
+                  <h4 className="text-[15px] font-semibold text-ink-900">UAE employment records</h4>
                   <p className="mt-1 text-[12px] text-ink-500">
                     Factual record-keeping only. Store the document, its reference and dates, and evidence — TeamFrame does not assess legal compliance.
                   </p>
 
-                  <form action={uploadUaeRecordAction} className="mt-3 grid gap-2 md:grid-cols-3" encType="multipart/form-data">
+                  <details className="mt-4">
+                    <summary className="tf-secondary-action inline-flex cursor-pointer list-none px-4 py-2 text-[12px] marker:hidden">Add UAE record</summary>
+                  <form action={uploadUaeRecordAction} className="tf-edit-panel mt-3 grid gap-3 md:grid-cols-3" encType="multipart/form-data">
                     <input type="hidden" name="employee_id" value={employee.id} />
                     <input type="hidden" name="return_to" value="/employees" />
                     <label className="flex flex-col gap-1 text-[11px] text-ink-500">
@@ -1340,12 +1355,15 @@ export async function PeopleExperience({
                       <PendingSubmitButton
                         idleLabel="Save UAE record"
                         pendingLabel="Saving…"
-                        className="rounded-md border border-ink-300 px-3 py-1.5 text-[12px] font-medium text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:text-ink-300"
+                        className="tf-primary-action px-3 py-1.5 text-[12px] disabled:cursor-not-allowed disabled:text-ink-300"
                       />
                     </div>
                   </form>
+                  </details>
 
-                  <form action={createDocumentRequirementAction} className="mt-3 flex flex-wrap items-end gap-2">
+                  <details className="mt-2">
+                    <summary className="tf-tertiary-action inline-flex cursor-pointer list-none marker:hidden">Request record</summary>
+                  <form action={createDocumentRequirementAction} className="tf-edit-panel mt-3 flex flex-wrap items-end gap-3">
                     <input type="hidden" name="employee_id" value={employee.id} />
                     <input type="hidden" name="return_to" value="/employees" />
                     <label className="flex flex-col gap-1 text-[11px] text-ink-500">
@@ -1363,9 +1381,10 @@ export async function PeopleExperience({
                     <PendingSubmitButton
                       idleLabel="Request record"
                       pendingLabel="Requesting…"
-                      className="rounded-md border border-ink-300 px-3 py-1.5 text-[12px] font-medium text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:text-ink-300"
+                      className="tf-secondary-action px-3 py-1.5 text-[12px] disabled:cursor-not-allowed disabled:text-ink-300"
                     />
                   </form>
+                  </details>
 
                   {documents.filter((d) => isUaeRecordType(d.document_type)).length > 0 ? (
                     <ul className="mt-3 space-y-2">
@@ -1399,9 +1418,12 @@ export async function PeopleExperience({
                 </section>
               ) : null}
 
-              <div data-tab="onboarding-offboarding" className="rounded-xl border border-ink-200 bg-white/70 p-5">
-                <p className="mb-3 text-[13px] font-bold">Account actions</p>
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <details data-tab="onboarding-offboarding" className="tf-product-section">
+                <summary className="flex cursor-pointer list-none items-center justify-between marker:hidden">
+                  <span><span className="block text-[14px] font-semibold text-ink-900">Account</span><span className="mt-1 block text-[12px] text-ink-500">Invitation, activation and record actions</span></span>
+                  <span className="tf-tertiary-action">Manage</span>
+                </summary>
+                <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-ink-100 pt-4 sm:gap-3">
                 <div className="w-full sm:w-auto">
                   <CopyInviteEmailButton email={employee.email} />
                 </div>
@@ -1415,7 +1437,7 @@ export async function PeopleExperience({
                         pendingLabel="Sending…"
                         disabled={resendBlocked}
                         disabledLabel={`Retry in ${resendCooldownSeconds}s`}
-                        className="w-full rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300 sm:w-auto"
+                        className="tf-secondary-action w-full px-3 py-1.5 text-[12px] disabled:cursor-not-allowed disabled:text-ink-300 sm:w-auto"
                       />
                     </form>
                     <form action={generateActivationLinkAction} className="w-full sm:w-auto">
@@ -1424,7 +1446,7 @@ export async function PeopleExperience({
                       <PendingSubmitButton
                         idleLabel="Generate activation link"
                         pendingLabel="Generating…"
-                        className="w-full rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300 sm:w-auto"
+                        className="tf-secondary-action w-full px-3 py-1.5 text-[12px] disabled:cursor-not-allowed disabled:text-ink-300 sm:w-auto"
                       />
                     </form>
                   </>
@@ -1437,14 +1459,14 @@ export async function PeopleExperience({
                     idleLabel="Archive employee"
                     pendingLabel="Archiving…"
                     confirmMessage={`Archive ${employee.full_name}? This removes them from active workflows.`}
-                    className="w-full rounded-full border border-ink-300 px-3 py-1 text-[12px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300 sm:w-auto"
+                    className="w-full px-3 py-1.5 text-[12px] text-signal-red underline decoration-signal-red/30 underline-offset-4 transition hover:decoration-signal-red sm:w-auto"
                   />
                 </form>
                 </div>
                 {employee.setup_status !== "active" && employee.status !== "inactive" ? (
                   <p className="mt-3 text-[12px] text-ink-500">{resendGuidance}</p>
                 ) : null}
-              </div>
+              </details>
               </SectionTabs>
               </div>
                   </>
@@ -1457,7 +1479,7 @@ export async function PeopleExperience({
       {view === "create" ? <>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-ink-300/60 pb-5">
         <div><p className="tf-kicker">People</p><h1 className="tf-h1">Add person</h1></div>
-        <Link href="/people" className="tf-secondary-action px-4 py-2 text-[13px]">Back to directory</Link>
+        <Link href="/people" className="tf-context-back">← Back to People</Link>
       </div>
       <section id="add-person" className="rounded-xl border border-ink-300/70 bg-white/80 p-5">
         <h2 className="text-[19px] font-medium tracking-tight">New employee record</h2>
