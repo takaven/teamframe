@@ -134,8 +134,8 @@ export async function continueCurrentSessionAction(): Promise<void> {
     redirect("/auth?error=callback_failed&reason=session_mismatch");
   }
 
-  await resolveIdentity(user.id);
-  redirect("/dashboard");
+  const identity = await resolveIdentity(user.id);
+  redirect(identity.role === "admin" ? "/dashboard" : "/home");
 }
 
 export async function switchAccountAction(): Promise<void> {

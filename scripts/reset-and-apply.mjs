@@ -17,6 +17,9 @@ import pg from "pg";
 import dotenv from "dotenv";
 import { SCHEMA_ORDER } from "./schema-order.mjs";
 
+console.error("[RETIRED] Destructive database reset is disabled for the 45-day launch. No target was connected or changed.");
+process.exit(1);
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, "..");
 dotenv.config({ path: join(repoRoot, ".env.local") });

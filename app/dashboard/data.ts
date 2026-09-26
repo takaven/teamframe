@@ -2,6 +2,7 @@ import "server-only";
 
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 import { projectEmployeeLifecycle } from "@/services/employeeLifecycle";
+import { documentLabel } from "@/lib/ui/documentLabels";
 
 export type DashboardSavedDataStatus =
   | { state: "success" }
@@ -16,6 +17,8 @@ export type ControlCentreItem = {
   source: string;
   title: string;
   subjectName: string;
+  owner: string;
+  nextAction: string;
   dueAt: string | null;
   updatedAt: string;
   href: string;
@@ -49,6 +52,11 @@ export type ControlCentreData = {
   allItems: ControlCentreItem[];
   resolvedItems: ResolvedControlCentreItem[];
   activeEmployeeCount: number;
+  teamSummary: {
+    startingThisMonth: number;
+    leavingThisMonth: number;
+    awayToday: number;
+  };
 };
 
 type EmployeeRow = {
@@ -129,6 +137,7 @@ type OnboardingTaskRow = {
   title: string;
   status: "pending" | "completed";
   owner_role: "employee" | "manager" | "admin" | "system";
+  owner_employee_id: string | null;
   due_date: string | null;
   updated_at: string;
 };
@@ -155,6 +164,7 @@ type OffboardingItemRow = {
   offboarding_case_id: string;
   title: string;
   owner_role: "admin" | "manager" | "employee" | "system";
+  owner_employee_id: string | null;
   due_date: string | null;
   status: "pending" | "completed" | "cancelled";
   updated_at: string;
@@ -174,6 +184,7 @@ function savedDataTimeoutAfter(ms: number): Promise<ControlCentreData> {
           allItems: [],
           resolvedItems: [],
           activeEmployeeCount: 0,
+          teamSummary: { startingThisMonth: 0, leavingThisMonth: 0, awayToday: 0 },
         }),
       ms,
     );
@@ -236,20 +247,42 @@ function itemClassFromDue(input: {
   exception?: boolean;
 }): ControlCentreClass {
   if (input.exception) return "exception";
-  if (input.decision) return "decision";
   if (isPastDate(input.dueAt?.slice(0, 10) ?? null, input.today)) return "overdue";
+  if (input.decision) return "decision";
   return "due";
 }
 
+function taskOwner(role: string, ownerId: string | null, names: Map<string, EmployeeRow>, subjectEmployeeId?: string): string {
+  if (ownerId) return names.get(ownerId)?.full_name ?? "Owner not assigned";
+  if (role === "admin") return "Admin";
+  if (role === "manager") return "Manager";
+  if (role === "employee" && subjectEmployeeId) return employeeName(names, subjectEmployeeId);
+  return "Owner not assigned";
+}
+
 function sourcePath(source: string): string {
-  if (source.startsWith("document")) return "/employees";
+  if (source.startsWith("document")) return "/people";
   if (source.startsWith("policy")) return "/policies";
   if (source.startsWith("onboarding")) return "/onboarding";
   if (source.startsWith("probation")) return "/onboarding";
   if (source.startsWith("leave")) return "/leaves";
-  if (source.startsWith("offboarding")) return "/employees";
+  if (source.startsWith("offboarding")) return "/people";
   if (source.startsWith("automation")) return "/dashboard";
-  return "/employees";
+  return "/people";
+}
+
+function employeePath(employeeId: string, tab = "overview"): string {
+  const sections: Record<string, string> = {
+    employment: "employment",
+    personal: "personal",
+    compensation: "compensation-payment",
+    payment: "compensation-payment",
+    emergency: "personal",
+    documents: "documents",
+    account: "onboarding-offboarding",
+  };
+  const section = sections[tab] ?? tab;
+  return `/people/${encodeURIComponent(employeeId)}#${encodeURIComponent(section)}`;
 }
 
 function signalTitle(kind: string): string {
@@ -258,18 +291,18 @@ function signalTitle(kind: string): string {
   if (kind === "missing_contract") return "Missing signed contract";
   if (kind === "active_access_after_exit") return "Active access after exit";
   if (kind === "unreturned_asset") return "Unreturned asset";
-  if (kind === "incomplete_offboarding") return "Offboarding exception";
+  if (kind === "incomplete_offboarding") return "Offboarding needs attention";
   if (kind === "leave_conflict") return "Leave conflict";
   if (kind === "onboarding_check_in_follow_up") return "30-day check-in follow-up";
   if (kind === "missing_jurisdiction_requirement") return "Missing jurisdiction document";
-  return "Operational exception";
+  return "Something needs attention";
 }
 
 function signalDetail(signal: RiskSignalRow): string {
   const what = signal.evidence?.what_is_wrong;
   return typeof what === "string" && what.trim().length > 0
     ? what
-    : "A meaningful exception requires attention.";
+    : "This needs review before the record is complete.";
 }
 
 function automationTitle(row: AutomationRow): string {
@@ -291,10 +324,13 @@ function automationDetail(row: AutomationRow): string {
 }
 
 function compareItems(a: ControlCentreItem, b: ControlCentreItem): number {
-  if (a.priority !== b.priority) return a.priority - b.priority;
+  const urgency = (item: ControlCentreItem) => item.class === "overdue" ? 0 : item.class === "decision" ? 1 : item.class === "due" ? 2 : 3;
+  if (urgency(a) !== urgency(b)) return urgency(a) - urgency(b);
   const aDue = a.dueAt ?? a.updatedAt;
   const bDue = b.dueAt ?? b.updatedAt;
   if (aDue !== bDue) return aDue.localeCompare(bDue);
+  if (a.class !== b.class) return a.class === "decision" ? -1 : 1;
+  if (a.priority !== b.priority) return a.priority - b.priority;
   if (a.updatedAt !== b.updatedAt) return b.updatedAt.localeCompare(a.updatedAt);
   return a.id.localeCompare(b.id);
 }
@@ -332,9 +368,11 @@ function buildPolicyItems(input: {
         source: "policy_acknowledgement",
         title: `Acknowledge ${policy.title} v${policy.version}`,
         subjectName: employeeName(names, employeeId),
+        owner: employeeName(names, employeeId),
+        nextAction: "View policy",
         dueAt: null,
         updatedAt: policy.updated_at,
-        href: "/policies",
+        href: `/policies#policy-${policy.id}`,
         detail: "Published policy version requires acknowledgement.",
         priority: 40,
       });
@@ -360,6 +398,7 @@ function buildControlCentreItems(input: {
   allItems: ControlCentreItem[];
   resolvedItems: ResolvedControlCentreItem[];
   activeEmployeeCount: number;
+  teamSummary: ControlCentreData["teamSummary"];
 } {
   const today = dateOnly(input.now);
   const names = employeeMap(input.employees);
@@ -370,17 +409,21 @@ function buildControlCentreItems(input: {
   for (const leave of input.leaves) {
     if (leave.status !== "pending") continue;
     if (!currentIds.has(leave.employee_id)) continue;
+    const dueAt = dueDateAtStart(leave.start_date);
+    const itemClass = itemClassFromDue({ dueAt, today, decision: true });
     items.push({
       id: `leave:${leave.id}`,
-      class: "decision",
+      class: itemClass,
       source: "leave_decision",
       title: "Leave request needs decision",
       subjectName: employeeName(names, leave.employee_id),
-      dueAt: dueDateAtStart(leave.start_date),
+      owner: "Manager or Admin",
+      nextAction: "Review request",
+      dueAt,
       updatedAt: leave.updated_at,
-      href: "/leaves",
+      href: `/leaves?leave=${encodeURIComponent(leave.id)}`,
       detail: `${leave.leave_type} leave from ${leave.start_date} to ${leave.end_date}.`,
-      priority: 20,
+      priority: itemClass === "overdue" ? 10 : 20,
     });
   }
 
@@ -401,14 +444,16 @@ function buildControlCentreItems(input: {
       class: itemClass,
       source: isReviewDecision ? "document_review" : "document_request",
       title: isReviewDecision
-        ? `Review ${request.document_type} evidence`
-        : `${request.document_type} document requested`,
+        ? `${documentLabel(request.document_type)} needs review`
+        : `${documentLabel(request.document_type)} requested`,
       subjectName: employeeName(names, request.employee_id),
+      owner: isReviewDecision ? "Admin" : employeeName(names, request.employee_id),
+      nextAction: isReviewDecision ? "Review document" : "Upload document",
       dueAt,
       updatedAt: request.updated_at,
-      href: "/employees",
-      detail: isExpired ? "Document requirement expired without current replacement." : "Configured document evidence is outstanding.",
-      priority: isReviewDecision ? 20 : itemClass === "exception" ? 10 : itemClass === "overdue" ? 30 : 40,
+      href: employeePath(request.employee_id, "documents"),
+      detail: isExpired ? "This document is overdue." : "Waiting for this document.",
+      priority: itemClass === "exception" || itemClass === "overdue" ? 10 : isReviewDecision ? 20 : 40,
     });
   }
 
@@ -436,11 +481,13 @@ function buildControlCentreItems(input: {
       source: "onboarding_task",
       title: task.title,
       subjectName: employeeName(names, task.employee_id),
+      owner: taskOwner(task.owner_role, task.owner_employee_id, names, task.employee_id),
+      nextAction: "Open task",
       dueAt,
       updatedAt: task.updated_at,
-      href: "/onboarding",
-      detail: task.owner_role === "admin" ? "Admin-owned onboarding work requires a decision or confirmation." : "Onboarding work is due.",
-      priority: task.owner_role === "admin" ? 20 : itemClass === "overdue" ? 30 : 40,
+      href: employeePath(task.employee_id, "account"),
+      detail: task.owner_role === "admin" ? "This onboarding task needs an admin decision." : "This onboarding task is due.",
+      priority: itemClass === "overdue" ? 10 : task.owner_role === "admin" ? 20 : 40,
     });
   }
 
@@ -448,17 +495,20 @@ function buildControlCentreItems(input: {
     if (!["scheduled", "due"].includes(review.status)) continue;
     if (!currentIds.has(review.employee_id)) continue;
     const dueAt = dueDateAtStart(review.review_due_date);
+    const itemClass = itemClassFromDue({ dueAt, today, decision: true });
     items.push({
       id: `probation:${review.id}`,
-      class: "decision",
+      class: itemClass,
       source: "probation_review",
       title: "Probation outcome needs decision",
       subjectName: employeeName(names, review.employee_id),
+      owner: "Admin",
+      nextAction: "Review probation",
       dueAt,
       updatedAt: review.updated_at,
-      href: "/onboarding",
+      href: employeePath(review.employee_id, "account"),
       detail: "Human probation outcome is required.",
-      priority: isPastDate(review.review_due_date, today) ? 10 : 20,
+      priority: itemClass === "overdue" ? 10 : 20,
     });
   }
 
@@ -477,11 +527,13 @@ function buildControlCentreItems(input: {
       source: "offboarding_task",
       title: item.title,
       subjectName: employeeName(names, item.employee_id),
+      owner: taskOwner(item.owner_role, item.owner_employee_id, names, item.employee_id),
+      nextAction: "Open task",
       dueAt,
       updatedAt: item.updated_at,
-      href: "/employees",
+      href: employeePath(item.employee_id, "account"),
       detail: "Exit workflow item is still open.",
-      priority: item.owner_role === "admin" ? 20 : itemClass === "overdue" ? 30 : 40,
+      priority: itemClass === "overdue" ? 10 : item.owner_role === "admin" ? 20 : 40,
     });
   }
 
@@ -501,9 +553,11 @@ function buildControlCentreItems(input: {
       source: "offboarding_exception",
       title: "Offboarding overdue after end date",
       subjectName: employeeName(names, offboardingCase.employee_id),
+      owner: "Owner not assigned",
+      nextAction: "Open task",
       dueAt: dueDateAtStart(offboardingCase.effective_end_date),
       updatedAt: offboardingCase.updated_at,
-      href: "/employees",
+      href: employeePath(offboardingCase.employee_id, "account"),
       detail: "End date has passed while required exit work remains incomplete.",
       priority: 5,
     });
@@ -520,6 +574,8 @@ function buildControlCentreItems(input: {
       source: "automation_failure",
       title: automationTitle(item),
       subjectName: employeeName(names, subjectEmployeeId ?? null),
+      owner: taskOwner("system", item.owner_employee_id, names),
+      nextAction: "Check issue",
       dueAt: item.next_attempt_at ?? item.due_at,
       updatedAt: item.updated_at,
       href: "/dashboard",
@@ -537,9 +593,13 @@ function buildControlCentreItems(input: {
       source: `signal:${signal.kind}`,
       title: signalTitle(signal.kind),
       subjectName: employeeName(names, signal.subject_employee_id),
+      owner: "Owner not assigned",
+      nextAction: signal.kind.includes("document") || signal.kind === "missing_contract" ? "Open documents" : "Open employee",
       dueAt: null,
       updatedAt: signal.last_seen_at,
-      href: sourcePath(signal.kind),
+      href: signal.subject_employee_id
+        ? employeePath(signal.subject_employee_id, signal.kind.includes("document") || signal.kind === "missing_contract" ? "documents" : "employment")
+        : sourcePath(signal.kind),
       detail: signalDetail(signal),
       priority: signal.severity === "red" ? 5 : 15,
     });
@@ -556,8 +616,8 @@ function buildControlCentreItems(input: {
       title: signalTitle(signal.kind),
       subjectName: employeeName(names, signal.subject_employee_id),
       resolvedAt: signal.resolved_at!,
-      href: sourcePath(signal.kind),
-      detail: "Resolution retained in Signal and audit history.",
+      href: signal.subject_employee_id ? employeePath(signal.subject_employee_id) : sourcePath(signal.kind),
+      detail: "Completion is retained in the activity history.",
     }));
 
   const sortedItems = items.sort(compareItems);
@@ -565,6 +625,11 @@ function buildControlCentreItems(input: {
     allItems: sortedItems,
     resolvedItems,
     activeEmployeeCount: activeIds.size,
+    teamSummary: {
+      startingThisMonth: input.employees.filter((employee) => employee.start_date?.startsWith(today.slice(0, 7)) && projectEmployeeLifecycle(employee, input.now) === "PRE_START").length,
+      leavingThisMonth: input.offboardingCases.filter((item) => item.status === "active" && item.effective_end_date.startsWith(today.slice(0, 7))).length,
+      awayToday: input.leaves.filter((leave) => leave.status === "approved" && leave.start_date <= today && leave.end_date >= today).length,
+    },
   };
 }
 
@@ -625,7 +690,7 @@ export async function loadControlCentreData(params: {
         .eq("tenant_id", params.tenantId),
       supabase
         .from("onboarding_tasks")
-        .select("id, employee_id, title, status, owner_role, due_date, updated_at")
+        .select("id, employee_id, title, status, owner_role, owner_employee_id, due_date, updated_at")
         .eq("tenant_id", params.tenantId),
       supabase
         .from("probation_reviews")
@@ -637,7 +702,7 @@ export async function loadControlCentreData(params: {
         .eq("tenant_id", params.tenantId),
       supabase
         .from("offboarding_items")
-        .select("id, employee_id, offboarding_case_id, title, owner_role, due_date, status, updated_at")
+        .select("id, employee_id, offboarding_case_id, title, owner_role, owner_employee_id, due_date, status, updated_at")
         .eq("tenant_id", params.tenantId),
     ]);
 
@@ -684,6 +749,7 @@ export async function loadControlCentreData(params: {
       allItems: derived.allItems,
       resolvedItems: derived.resolvedItems,
       activeEmployeeCount: derived.activeEmployeeCount,
+      teamSummary: derived.teamSummary,
     };
   };
 
@@ -703,6 +769,7 @@ export async function loadControlCentreData(params: {
       allItems: [],
       resolvedItems: [],
       activeEmployeeCount: 0,
+      teamSummary: { startingThisMonth: 0, leavingThisMonth: 0, awayToday: 0 },
     };
   }
 }

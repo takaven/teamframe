@@ -119,7 +119,7 @@ describe("MR-3A employment changes and people truth", () => {
   });
 
   it("exposes a bounded admin UI for recording and cancelling employment changes", () => {
-    const page = read("app/employees/page.tsx");
+    const page = read("components/PeopleExperience.tsx");
     const actions = read("app/employees/actions.ts");
 
     expect(page).toContain("Employment changes");

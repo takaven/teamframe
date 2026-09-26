@@ -165,11 +165,40 @@ describe("Control Centre data", () => {
       resolved: 1,
     });
     expect(result.allItems.map((item) => item.id)).toEqual([
-      "signal:signal-open",
+      "document:doc-overdue",
       "document:doc-review",
       "leave:leave-pending",
-      "document:doc-overdue",
+      "signal:signal-open",
     ]);
+    expect(result.allItems.find((item) => item.id === "leave:leave-pending")).toMatchObject({
+      owner: "Manager or Admin",
+      nextAction: "Review request",
+      detail: "annual leave from 2026-08-15 to 2026-08-16.",
+    });
+    expect(result.allItems.find((item) => item.id === "document:doc-overdue")).toMatchObject({
+      title: "Passport requested",
+      owner: "Amina Rahman",
+      nextAction: "Upload document",
+      detail: "Waiting for this document.",
+    });
+    expect(result.allItems.find((item) => item.id === "document:doc-review")).toMatchObject({
+      title: "Employment contract needs review",
+      nextAction: "Review document",
+    });
+    expect(result.allItems.find((item) => item.id === "signal:signal-open")?.owner).toBe("Owner not assigned");
+  });
+
+  it("shows an overdue decision as overdue rather than hiding its missed deadline", async () => {
+    db.leaves = [{
+      id: "leave-late", tenant_id: "TENANT_A", employee_id: "emp-active",
+      start_date: "2026-08-10", end_date: "2026-08-11", leave_type: "annual",
+      status: "pending", updated_at: "2026-08-01T00:00:00Z",
+    }];
+    const result = await loadControlCentreData({
+      tenantId: "TENANT_A", now: new Date("2026-08-12T12:00:00Z"), savedDataTimeoutMs: 50,
+    });
+    expect(result.allItems[0]).toMatchObject({ class: "overdue", owner: "Manager or Admin" });
+    expect(result.summary).toMatchObject({ overdue: 1, decisions: 0 });
   });
 
   it("excludes former employees, archived policies, cancelled leave and replaced documents from current state", async () => {
@@ -269,6 +298,43 @@ describe("Control Centre data", () => {
     expect(result.summary.total).toBe(8);
     expect(result.previewItems).toHaveLength(6);
     expect(result.allItems).toHaveLength(8);
+  });
+
+  it("uses the employee name for employee-owned onboarding work", async () => {
+    db.onboarding_tasks = [{
+      id: "employee-task", tenant_id: "TENANT_A", employee_id: "emp-active",
+      title: "Return signed contract", status: "pending", owner_role: "employee",
+      owner_employee_id: null, due_date: "2026-08-12", updated_at: "2026-08-10T00:00:00Z",
+    }];
+
+    const result = await loadControlCentreData({
+      tenantId: "TENANT_A", now: new Date("2026-08-12T12:00:00Z"), savedDataTimeoutMs: 50,
+    });
+
+    expect(result.allItems[0]).toMatchObject({ owner: "Amina Rahman", nextAction: "Open task" });
+  });
+
+  it("places work needing a decision before ordinary future work", async () => {
+    db.onboarding_tasks = [
+      {
+        id: "december-admin", tenant_id: "TENANT_A", employee_id: "emp-active",
+        title: "December admin check", status: "pending", owner_role: "admin",
+        due_date: "2026-12-01", updated_at: "2026-09-01T00:00:00Z",
+      },
+      {
+        id: "october-employee", tenant_id: "TENANT_A", employee_id: "emp-active",
+        title: "October employee check", status: "pending", owner_role: "employee",
+        due_date: "2026-10-01", updated_at: "2026-09-01T00:00:00Z",
+      },
+    ];
+
+    const result = await loadControlCentreData({
+      tenantId: "TENANT_A", now: new Date("2026-09-22T12:00:00Z"), savedDataTimeoutMs: 50,
+    });
+
+    expect(result.allItems.map((item) => item.id)).toEqual([
+      "onboarding:december-admin", "onboarding:october-employee",
+    ]);
   });
 
   it("does not show an all-clear when the current-state read times out", async () => {

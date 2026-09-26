@@ -33,19 +33,19 @@ const FEATURES = [
 
 export default function Home() {
   return (
-    <main className="mx-auto min-h-screen max-w-5xl px-6 py-10 md:py-14">
-      <header className="flex items-center justify-between border-b border-ink-300/60 pb-5">
+    <main className="tf-public-page mx-auto min-h-screen max-w-5xl px-6 py-10 md:py-14">
+      <header className="tf-public-header flex items-center justify-between pb-5">
         <BrandLogo className="h-auto w-48" priority />
         <Link href="/auth" className="text-[14px] text-ink-700 transition hover:text-ink-900">
           Sign in
         </Link>
       </header>
 
-      <section className="mt-14 max-w-3xl space-y-6">
+      <section className="tf-public-hero mt-14 max-w-3xl space-y-6">
         <p className="text-[12px] uppercase tracking-[0.14em] text-ink-500">
           HR software
         </p>
-        <h1 className="font-display text-[34px] font-medium leading-[1.12] tracking-tight md:text-[48px]">
+        <h1 className="text-[34px] font-semibold leading-[1.08] tracking-[-0.035em] md:text-[48px]">
           Your team&apos;s HR, in one place.
         </h1>
         <p className="max-w-2xl text-[17px] leading-relaxed text-ink-700">
@@ -59,7 +59,7 @@ export default function Home() {
           {PILOT_MAILTO ? (
             <a
               href={PILOT_MAILTO}
-              className="inline-flex items-center justify-center rounded-lg bg-brand-signal px-6 py-3 text-[15px] font-medium text-ink-800 transition hover:bg-[#00E51F]"
+              className="tf-primary-action px-6 py-3 text-[15px]"
             >
               Request a pilot
             </a>
@@ -68,8 +68,8 @@ export default function Home() {
             href="/auth"
             className={
               PILOT_MAILTO
-                ? "inline-flex items-center justify-center rounded-full border border-ink-300 px-6 py-3 text-[15px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900"
-                : "inline-flex items-center justify-center rounded-lg bg-brand-signal px-6 py-3 text-[15px] font-medium text-ink-800 transition hover:bg-[#00E51F]"
+                ? "tf-secondary-action px-6 py-3 text-[15px]"
+                : "tf-primary-action px-6 py-3 text-[15px]"
             }
           >
             Sign in
@@ -79,12 +79,12 @@ export default function Home() {
 
       {/* Real product, real demo data — captured from the seeded overview. */}
       <section className="mt-14" aria-label="Product preview">
-        <figure className="overflow-hidden rounded-2xl border border-ink-300/70 bg-white/80 p-2 shadow-sm md:p-3">
+        <figure className="tf-public-preview overflow-hidden p-3 md:p-4">
           <Image
             src={dashboardShot}
             alt="TeamFrame overview: what needs attention across the team, with the next action for each item"
             priority
-            className="w-full rounded-xl border border-ink-300/50"
+            className="w-full rounded-xl"
             sizes="(max-width: 1024px) 100vw, 976px"
           />
           <figcaption className="px-2 pb-1 pt-3 text-[12px] text-ink-500">
@@ -97,7 +97,7 @@ export default function Home() {
         {FEATURES.map((feature) => (
           <article
             key={feature.title}
-            className="rounded-xl border border-ink-300/70 bg-white/75 p-5 transition hover:border-ink-900"
+            className="tf-public-feature p-5"
           >
             <p className="text-[12px] uppercase tracking-[0.12em] text-ink-500">{feature.kicker}</p>
             <h2 className="mt-2 text-[19px] leading-snug tracking-tight">{feature.title}</h2>

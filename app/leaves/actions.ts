@@ -2,8 +2,9 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { notifyLeaveDecision, notifyLeaveRequest } from "@/services/notificationService";
 import { requireTenantActor } from "@/middleware/rbac";
-import { cancelApprovedLeave, decideLeaveRequest, submitLeaveRequest, withdrawPendingLeave } from "@/services/leaveService";
+import { cancelApprovedLeave, decideLeaveRequest, submitLeaveRequest, submitLeaveRequestForEmployee, withdrawPendingLeave } from "@/services/leaveService";
 import { getSignedDownloadUrl } from "@/services/documentService";
 import { logAction } from "@/lib/telemetry/logger";
 import { captureActionError } from "@/lib/telemetry/sentry";
@@ -75,13 +76,14 @@ export async function submitLeaveAction(formData: FormData): Promise<void> {
       reason: optionalString(formData.get("reason")),
     });
     const file = formData.get("attachment");
-    await submitLeaveRequest(actor, {
+    const leave = await submitLeaveRequest(actor, {
       startDate: parsed.start_date,
       endDate: parsed.end_date,
       leaveDefinitionId: parsed.leave_definition_id,
       reason: parsed.reason,
       attachment: file instanceof File ? file : null,
     });
+    await notifyLeaveRequest(actor.tenantId, leave.id);
   } catch (error) {
     failed = true;
     errorCode = getErrorCode(error);
@@ -117,7 +119,33 @@ export async function submitLeaveAction(formData: FormData): Promise<void> {
   if (failed) {
     redirect(`/leaves?error=${encodeURIComponent(errorCode)}`);
   }
-  redirect("/me?status=leave_submitted");
+  redirect("/leaves?status=leave_submitted");
+}
+
+export async function submitLeaveForEmployeeAction(formData: FormData): Promise<void> {
+  let errorCode = "UNKNOWN";
+  try {
+    const actor = await requireTenantActor();
+    const employeeId = z.string().uuid().parse(formData.get("employee_id"));
+    const parsed = SubmitSchema.parse({
+      start_date: formData.get("start_date"),
+      end_date: formData.get("end_date"),
+      leave_definition_id: formData.get("leave_definition_id"),
+      reason: optionalString(formData.get("reason")),
+    });
+    const file = formData.get("attachment");
+    await submitLeaveRequestForEmployee(actor, employeeId, {
+      startDate: parsed.start_date,
+      endDate: parsed.end_date,
+      leaveDefinitionId: parsed.leave_definition_id,
+      reason: parsed.reason,
+      attachment: file instanceof File ? file : null,
+    });
+  } catch (error) {
+    errorCode = getErrorCode(error);
+    redirect(`/leaves?view=record&error=${encodeURIComponent(errorCode)}`);
+  }
+  redirect("/leaves?view=requests&status=leave_recorded");
 }
 
 const EvidenceSchema = z.object({
@@ -187,6 +215,7 @@ export async function decideLeaveAction(formData: FormData): Promise<void> {
         decisionNote: parsed.decision_note,
       },
     );
+    await notifyLeaveDecision(actor.tenantId, parsed.leave_id, parsed.decision);
   } catch (error) {
     failed = true;
     errorCode = getErrorCode(error);

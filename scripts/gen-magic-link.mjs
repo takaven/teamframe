@@ -2,6 +2,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
+import { APPROVED_DIRECT_MUTATION_REFS, mutationTargetRef } from "./lib/mutation-target-guard.mjs";
+mutationTargetRef("gen-magic-link", process.env, APPROVED_DIRECT_MUTATION_REFS);
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, "..", ".env.local") });
 const email = process.argv[2];

@@ -4,19 +4,36 @@ This runbook defines severity levels, first-response steps, and communication te
 
 ## Severity Definitions
 
-_S1 = auth broken or tenant data leak; S2 = feature broken for all users; S3 = feature broken for subset._
-
-Complete severity definitions to be documented here.
+- **S1 Critical:** suspected tenant/private-file exposure, credential compromise,
+  destructive data loss, or authentication unavailable for all customers. Stop
+  writes/deployments, preserve evidence, notify the product owner immediately.
+- **S2 Major:** a core workflow fails for one or more customers with no safe
+  workaround, sustained 5xx/errors, or automation/email failure affecting due work.
+- **S3 Limited:** isolated user/record failure, degraded performance or a safe
+  workaround exists without changing access boundaries.
 
 ## First-30-Minutes Checklist
 
-Steps to complete: initial triage, identify blast radius, notify stakeholders, begin mitigation.
+1. Record detection time, reporter, affected tenant/user, route/action and request ID.
+2. Classify severity; for S1, stop risky writes and page the product owner.
+3. Check public/deep health, current Vercel deployment/logs, Supabase status/logs,
+   Sentry (if configured), notification ledger and Cron history.
+4. Identify the first failing boundary and blast radius without cross-tenant queries.
+5. Choose the safest mitigation: feature/workflow pause, application rollback,
+   credential rotation, or provider recovery. Never restore over Production or
+   manually patch customer rows without specific approval.
+6. Send the first customer update for S1/S2, then update at the stated interval.
 
-## Communication Template
+## Communication Templates
 
-_One template for customer-facing communication, one for internal._
+Customer: `We are investigating an issue affecting [workflow] since [time]. We
+have [contained/not yet contained] the impact. Please avoid [specific action]
+while we verify recovery. Next update: [time]. No data-impact statement will be
+made until confirmed.`
 
-Templates to be drafted here.
+Internal: `Severity [S1/S2/S3]; detected [time]; tenant(s) [IDs only]; symptom;
+last known good deployment; first failing boundary; containment; owner; next
+decision/update time.`
 
 ## Post-Incident Review Template
 

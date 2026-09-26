@@ -4,6 +4,7 @@ import { createServerClient } from "@/lib/db/supabaseServer";
 import { resolveIdentity } from "@/lib/rbac/roles";
 import { BrandLogo } from "@/components/BrandLogo";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
+import { FloatingField } from "@/components/FloatingField";
 
 const CredentialsSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
@@ -61,9 +62,10 @@ export default async function AdminLoginPage({
   const prefillEmail = error && typeof email === "string" ? email.slice(0, 254) : "";
 
   return (
-    <main className="min-h-screen bg-white md:grid md:grid-cols-[1fr_minmax(520px,620px)]">
-      <section className="flex h-[388px] flex-col bg-brand-charcoal px-[22px] pb-[34px] pt-7 text-white md:h-auto md:px-14 md:py-14">
-        <BrandLogo variant="lockup" reversed className="h-7 w-auto" priority />
+    <main className="tf-auth-page">
+      <div className="tf-auth-panel">
+      <section className="tf-auth-brand-panel">
+        <BrandLogo variant="lockup" className="h-7 w-auto" priority />
         <div className="mt-auto max-w-[420px]">
           <h1 className="text-[30px] font-extrabold leading-[1.18] tracking-[-0.8px] md:text-[40px] md:tracking-[-1.1px]">
             Welcome to TeamFrame
@@ -74,22 +76,20 @@ export default async function AdminLoginPage({
         </div>
       </section>
 
-      <section className="-mt-[14px] rounded-t-[14px] bg-white px-[22px] pb-6 pt-7 md:mt-0 md:flex md:flex-col md:justify-center md:rounded-none md:px-16">
+      <section className="tf-auth-card">
         <div>
           <p className="text-[12px] uppercase tracking-[0.18em] text-ink-500">
             Admin access
           </p>
-          <h2 className="mt-3 text-[28px] font-extrabold leading-tight tracking-[-0.7px] text-ink-800">Sign in</h2>
+          <h2 className="tf-auth-title mt-3">Log in</h2>
           <p className="mt-2 text-[15.5px] text-ink-500">
             Use your admin email and password.
           </p>
         </div>
 
-        <form action={signInAdminAction} className="mt-[34px] space-y-[18px]">
-          <label htmlFor="email" className="block text-[13px] font-bold text-ink-800">
-            Work email
-          </label>
-          <input
+        <form action={signInAdminAction} className="mt-[34px] space-y-[22px]">
+          <FloatingField
+            label="Work email"
             id="email"
             name="email"
             type="email"
@@ -97,27 +97,20 @@ export default async function AdminLoginPage({
             required
             inputMode="email"
             defaultValue={prefillEmail}
-            placeholder="admin@company.com"
-            className="h-12 w-full rounded-lg border border-ink-300 bg-white px-[14px] text-[15px] text-ink-800 outline-none transition focus:border-ink-800"
           />
-
-          <label htmlFor="password" className="block text-[13px] font-bold text-ink-800">
-            Password
-          </label>
-          <input
+          <FloatingField
+            label="Password"
             id="password"
             name="password"
             type="password"
             autoComplete="current-password"
             required
-            placeholder="Password"
-            className="h-12 w-full rounded-lg border border-ink-300 bg-white px-[14px] text-[15px] text-ink-800 outline-none transition focus:border-ink-800"
           />
 
           <PendingSubmitButton
-            idleLabel="Sign in"
+            idleLabel="Enter"
             pendingLabel="Signing you in…"
-            className="tf-brand-action h-12 w-full px-5 text-[15px] disabled:cursor-not-allowed disabled:bg-ink-300"
+            className="tf-brand-action tf-auth-submit h-12 w-full px-5 text-[15px]"
           />
 
           {errorMessage ? (
@@ -127,6 +120,7 @@ export default async function AdminLoginPage({
           ) : null}
         </form>
       </section>
+      </div>
     </main>
   );
 }

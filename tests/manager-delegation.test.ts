@@ -29,15 +29,26 @@ describe("MR-3B bounded manager delegation", () => {
   });
 
   it("exposes manager work only from self-service when direct-report work exists", () => {
-    const mePage = read("app/me/page.tsx");
+    const homePage = read("app/home/page.tsx");
     const managerPage = read("app/manager/page.tsx");
 
-    expect(mePage).toContain("getOptionalManagerDashboard");
-    expect(mePage).toContain("managerDashboard.directReports.length > 0");
-    expect(mePage).toContain('href="/manager"');
+    expect(homePage).toContain("getManagerDashboard");
+    expect(homePage).toContain("href={`/manager#");
     expect(managerPage).toContain("No manager work is assigned to you.");
-    // Manager scope stays bounded — salary/payment/private docs/org changes restricted.
-    expect(managerPage).toContain("remain restricted");
+    // Restricted data is omitted from the manager surface rather than advertised.
+    expect(managerPage).not.toContain("Compensation: not visible to managers");
+    expect(managerPage).not.toContain("Payment details: not visible to managers");
+  });
+
+  it("leads with actionable priorities and keeps the direct-report directory separate", () => {
+    const managerPage = read("app/manager/page.tsx");
+
+    expect(managerPage).toContain("My team");
+    expect(managerPage.indexOf("My team")).toBeLessThan(managerPage.indexOf("Your current one-level direct reports"));
+    expect(managerPage).toContain("dashboard.probationReviews.filter((review) => !review.manager_input)");
+    expect(managerPage).not.toContain("dashboard.directReports.length > 0 ||");
+    expect(managerPage).toContain("No manager work is assigned to you.");
+    expect(managerPage).toContain("This directory is not a pending-work count.");
   });
 
   it("allows direct-report leave decisions while forbidding manager balance overrides", () => {
@@ -46,12 +57,12 @@ describe("MR-3B bounded manager delegation", () => {
     const mutations = read("schemas/transactional_mutations.sql");
 
     expect(leaveService).toContain("listPendingLeavesForManager");
+    expect(leaveService).toMatch(/listLeaveDefinitionBalances[\s\S]*assertCurrentDirectManager\(actor, employeeId\)/);
     expect(leaveService).toContain("decideLeaveRequestAsManager");
     expect(leaveService).toContain("assertCurrentDirectManager(actor, pendingLeave.employee_id)");
     expect(leaveService).toContain("MANAGER_LEAVE_OVERRIDE_FORBIDDEN");
     expect(leaveService).toContain("p_override_insufficient_balance: false");
     expect(managerPage).not.toContain("overrideInsufficientBalance");
-    expect(managerPage).toContain("Manager override is not available");
     expect(mutations).toContain("'leave.approval_due'");
     expect(mutations).toContain("v_employee.manager_id");
   });
@@ -87,7 +98,7 @@ describe("MR-3B bounded manager delegation", () => {
     expect(earlyService).toContain("assertCurrentDirectManager(actor, review.employee_id)");
     expect(earlyService).toContain("probation.manager_input_submitted");
     expect(managerActions).toContain("submitManagerProbationInputAction");
-    expect(managerPage).toContain("Input only. Admin records the final probation outcome.");
+    expect(managerPage).toContain("Share your recommendation; an admin records the final outcome.");
     expect(managerActions).not.toContain("completeProbationReview");
   });
 

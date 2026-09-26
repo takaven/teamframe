@@ -297,6 +297,29 @@ export async function listEmployeesForAdmin(actor: Actor): Promise<EmployeeFullR
   return ((legacyData ?? []) as EmployeeRow[]).map(toEmployeeFullRecord);
 }
 
+export type ColleagueDirectoryEntry = {
+  id: string;
+  full_name: string;
+  role_title: string;
+  department: string;
+  email: string;
+  manager_name: string | null;
+};
+
+/** Privacy-safe directory: work identity only, available to authenticated tenant members. */
+export async function listColleagueDirectory(actor: Actor): Promise<ColleagueDirectoryEntry[]> {
+  const tenantId = requireTenant(actor);
+  const supabase = createServiceRoleClient();
+  const { data, error } = await supabase.from("employees")
+    .select("id, full_name, role_title, department, email, manager_id")
+    .eq("tenant_id", tenantId).is("deleted_at", null).neq("lifecycle_state", "exited")
+    .order("full_name", { ascending: true });
+  if (error) throw new Error(`EMPLOYEE_DIRECTORY_FAILED: ${error.message}`);
+  const rows = (data ?? []) as Array<{ id: string; full_name: string; role_title: string; department: string; email: string; manager_id: string | null }>;
+  const names = new Map(rows.map((row) => [row.id, row.full_name]));
+  return rows.map((row) => ({ id: row.id, full_name: row.full_name, role_title: row.role_title, department: row.department, email: row.email, manager_name: row.manager_id ? names.get(row.manager_id) ?? null : null }));
+}
+
 const CreateEmployeeSchema = z.object({
   full_name: z.string().trim().min(1).max(200),
   email: z.string().trim().toLowerCase().email(),
@@ -1012,6 +1035,28 @@ export async function createEmployee(actor: Actor, input: unknown): Promise<Empl
   }
 
   return toEmployeeFullRecord(created);
+}
+
+export async function applyImportedEmployeeIdentity(
+  actor: Actor,
+  employeeId: string,
+  input: { employeeNumber?: string | null; workLocation?: string | null },
+): Promise<void> {
+  requireAdmin(actor);
+  const tenantId = requireTenant(actor);
+  const patch = {
+    employee_number: input.employeeNumber?.trim() || null,
+    work_location: input.workLocation?.trim() || null,
+  };
+  const { error, count } = await createServiceRoleClient()
+    .from("employees")
+    .update(patch as never, { count: "exact" })
+    .eq("tenant_id", tenantId)
+    .eq("id", employeeId)
+    .is("deleted_at", null);
+  if (error) throw new Error(`EMPLOYEE_IMPORT_IDENTITY_FAILED: ${error.message}`);
+  if (count !== 1) throw new Error("EMPLOYEE_IMPORT_IDENTITY_NOT_FOUND");
+  await writeAudit(actor, "employee.import_identity_updated", employeeId, true);
 }
 
 export async function updateEmployee(

@@ -1,22 +1,28 @@
 # TeamFrame
 
-> **TeamFrame is the essential HR system for startups without a dedicated HR team.**
+> **TeamFrame delivers technology-enabled managed People Operations for growing knowledge-work companies.**
 
-**Product status:** `Market-ready production release`
+**Product status:** `45-day managed People Operations launch execution; production trust and commercial gates remain open`
 
-TeamFrame gives founder-led teams the practical HR administration layer they need without turning into an enterprise HRIS. The current product is functionally, technically, securely and visually ready for production release; production deployment still requires an explicitly identified production Vercel target and production Supabase project.
+TeamFrame combines Hire, People, operational controls, automation and defined TAKAVEN operator work for 25–80 employee knowledge-work firms. The historical HR-system capability is real, but production trust, managed-service repeatability and buyer-visible differentiation still require live proof. See the commercial scope and execution ledger below; historical technical records remain provenance.
 
 ## Canonical Documents
 
-- [TEAMFRAME_MARKET_READY_SCOPE.md](TEAMFRAME_MARKET_READY_SCOPE.md) - controlling product definition and scope.
-- [TEAMFRAME_MARKET_READY_EXECUTION_REGISTER.md](TEAMFRAME_MARKET_READY_EXECUTION_REGISTER.md) - locked implementation register.
+- [TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE.md](TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE.md) - controlling commercial strategy.
+- [docs/launch/TEAMFRAME_45_DAY_EXECUTION_PLAN.md](docs/launch/TEAMFRAME_45_DAY_EXECUTION_PLAN.md) - locked launch execution.
+- [AGENTS.md](AGENTS.md) - agent authority, WIP and approval gates.
+- [docs/launch/EXECUTION_LEDGER.md](docs/launch/EXECUTION_LEDGER.md) - single current execution tracker.
+- [docs/launch/DECISIONS.md](docs/launch/DECISIONS.md) - material decisions.
+- [docs/launch/environment-parity.md](docs/launch/environment-parity.md) - canonical synthetic Supabase identity and safety checks.
+- [TEAMFRAME_MARKET_READY_SCOPE.md](TEAMFRAME_MARKET_READY_SCOPE.md) - historical TeamFrame People product scope; superseded for commercial positioning.
+- [TEAMFRAME_MARKET_READY_EXECUTION_REGISTER.md](TEAMFRAME_MARKET_READY_EXECUTION_REGISTER.md) - historical implementation record; not the 45-day tracker.
 - [TEAMFRAME_AUTOMATION_REGISTER.md](TEAMFRAME_AUTOMATION_REGISTER.md) - product-level automation behaviour.
 - [TEAMFRAME_DEFERRED_SCOPE.md](TEAMFRAME_DEFERRED_SCOPE.md) - deferred and out-of-scope work.
 - [TEAMFRAME_RELEASE_READINESS.md](TEAMFRAME_RELEASE_READINESS.md) - release-readiness record.
 - [TEAMFRAME_PRODUCTION_RUNBOOK.md](TEAMFRAME_PRODUCTION_RUNBOOK.md) - production release and operations runbook.
 - [TEAMFRAME_ACCESS_MODEL.md](TEAMFRAME_ACCESS_MODEL.md) - independent customer deployment, access and setup model.
 
-Older V1/readiness/finalisation documents are retained as provenance. Where they conflict with the files above, the canonical documents control.
+Older V1/readiness/finalisation documents are retained as technical provenance. The new commercial scope and locked 45-day plan supersede prior market positioning; technical details remain authoritative where not specifically superseded.
 
 ## Implemented Capability
 
@@ -37,11 +43,11 @@ Older V1/readiness/finalisation documents are retained as provenance. Where they
 
 ## Product Operating Model
 
-1. Basic HR administration is the product.
-2. Signal -> Action -> Resolution is the operating mechanism.
-3. Readiness, evidence and auditability are supporting outcomes.
+1. SEE → OWN → ACT → PROVE is the managed-service operating model.
+2. Existing HR administration is the product substrate, not the whole commercial promise.
+3. Starter Rescue, Document Recovery and Hiring Decision Rescue are the only launch controls.
 
-TeamFrame is intentionally not payroll, ATS, employee ratings/review software, enterprise RBAC, statutory leave calculation or a workflow-builder platform.
+TeamFrame People does not implement an ATS/recruiting pipeline. TeamFrame Hire is provided by the separate HirePass application and must not be rebuilt in this repository. TeamFrame is also intentionally not payroll, employee ratings/review software, enterprise RBAC, statutory leave calculation or a workflow-builder platform.
 
 ## Architecture
 
@@ -89,12 +95,16 @@ Optional names include:
 - `SENTRY_PROJECT`
 - `NEXT_PUBLIC_PILOT_CONTACT_EMAIL`
 
-### Apply Database And Storage
+### Fresh Database Installation
+
+For this launch branch, the installer accepts only the two named TAKAVEN disposable projects. Supply the exact project ref, matching public URL, database connection URI and `TEAMFRAME_INSTALL_APPROVAL=fresh:<project-ref>` in process memory. The command does not load `.env.local`; it refuses populated targets. A future first customer project requires founder approval and a reviewed allowlist addition. Existing deployments require a separately reviewed migration and must not replay the full schema pack. See the [runbook](TEAMFRAME_PRODUCTION_RUNBOOK.md).
 
 ```bash
-npm run db:apply
-npm run storage:setup
+npm run db:install:fresh -- --check-target
+npm run db:install:fresh
 ```
+
+Then provide `TEAMFRAME_INSTALL_SERVICE_ROLE_KEY` in process memory and run `npm run storage:setup:fresh -- --check-target` followed by `npm run storage:setup:fresh` on that same project. This refuses to overwrite a mismatched existing bucket. Storage access still requires separate live tests.
 
 ### Configure Supabase Auth
 
@@ -129,12 +139,11 @@ The release gate runs typecheck, lint, tests, guards and production build.
 Additional environment-specific checks include:
 
 ```bash
-npm run verify:install
 npm run verify:integration
-npm run verify:rls
+npm run verify:rls:disposable
 ```
 
-Run environment-specific checks only against an authorised disposable, staging or production target. Do not point them at founder-review or unrelated projects.
+The historical `verify:install` replay/seed helper is retired. The integration and RLS checks require one of the explicitly approved TAKAVEN disposable project refs; they are not customer-production acceptance by themselves. Do not point them at founder-review or unrelated projects.
 
 ## Deployment
 

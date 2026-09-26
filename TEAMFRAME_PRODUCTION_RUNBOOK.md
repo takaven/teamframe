@@ -1,6 +1,8 @@
 # TeamFrame Production Runbook
 
-**STATUS: CANONICAL / PRODUCTION OPERATIONS**
+> **HISTORICAL TECHNICAL RELEASE PROVENANCE — NOT CURRENT MANAGED-SERVICE LAUNCH APPROVAL.** Historical GO statements and release SHA below describe an earlier technical release. Current commercial scope and launch approval are controlled by [managed scope](TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE.md), [45-day plan](docs/launch/TEAMFRAME_45_DAY_EXECUTION_PLAN.md), and [execution ledger](docs/launch/EXECUTION_LEDGER.md). M1 production trust remains open until live security, email and restore gates pass; historical PASS rows are not current evidence.
+
+**STATUS: CURRENT OPERATIONS REFERENCE — FIRST-CUSTOMER RELEASE BLOCKED PENDING THE LIVE GATES BELOW**
 
 This runbook governs TeamFrame production release, production operations and bounded smoke verification.
 
@@ -8,17 +10,20 @@ Do not include secret values in this file.
 
 ## 1. Production Status
 
-Product readiness:
+Frozen product/UI source: `takaven/teamframe`, branch
+`launch/managed-people-ops-45-day`, SHA
+`e9790370ba1a4526cfd29553c33dc288a46e27bc` at the 2026-09-26 checkpoint.
 
-> **GO - MARKET-READY FOR PRODUCTION USE**
+First-customer backend verdict at that checkpoint:
 
-Visual readiness:
+> **NOT YET READY**
 
-> **VISUAL GO - READY FOR PRODUCTION**
-
-Final production release source:
-
-`73c3e2df701b8484632d3335ca4861c4f2ccb8a7`
+The production Vercel project exists but serves historical SHA `37bf104...`
+from a different repository/branch and has no current Git connection. Its Cron
+is `0 6 * * *`, email-provider and Sentry variables are absent, and the recorded
+Supabase ref `zylllrvcmockvfcfubkp` is not visible in the signed-in TAKAVEN
+organization. Do not promote, reconnect, rotate, or replace these resources
+without the production approval gate.
 
 Production deployment must use an explicitly identified production Vercel project and production Supabase project. Founder-review, staging, CI and disposable projects must not be treated as production.
 
@@ -50,6 +55,19 @@ Before deployment, record:
 
 The local `.vercel/project.json` must be inspected before deployment. If it points to founder-review or another non-production project, do not deploy from that link.
 
+### 2026-09-26 read-only inventory
+
+| Target | Observed state | Gate |
+| --- | --- | --- |
+| Vercel | `teamframe-production`; `https://teamframe-production.vercel.app`; Hobby | Exists |
+| Deployed source | SHA `37bf104...`; `ismaelloveexcel/TeamFrame`; `codex/market-ready-implementation` | **FAIL — not current source** |
+| Git connection | No connected repository | **FAIL** |
+| Supabase | Recorded ref `zylllrvcmockvfcfubkp`; not visible in signed-in TAKAVEN organization | **FAIL — identity/access unverified** |
+| Scheduler | Enabled, `/api/automation/run`, `0 6 * * *` | **FAIL — launch schedule is `0 4 * * *`** |
+| Domain | Default Vercel domain only | Condition for founder decision |
+| Email | Provider variables absent from Production | **FAIL** |
+| Error tracking | Sentry variables absent from Production | **FAIL unless an explicit log-only decision is accepted and tested** |
+
 ## 4. Environment Variable Register
 
 | Variable | Purpose | Required in Production | Client/Server | Source |
@@ -61,6 +79,9 @@ The local `.vercel/project.json` must be inspected before deployment. If it poin
 | `SITE_URL` | Auth redirects and absolute application URL | Yes | Server | Production application URL |
 | `DEEP_HEALTH_SECRET` | Protected `/api/health/deep` authorization | Yes | Server only | Generated fresh for production |
 | `TEAMFRAME_AUTOMATION_SECRET` | Protected automation runner authorization | Yes | Server only | Generated fresh for production |
+| `CRON_SECRET` | Vercel Cron bearer authorization; same value as automation secret | Yes when using Vercel Cron | Server only | Generated fresh for production |
+| `RESEND_API_KEY` | Transactional email delivery | Yes for customer notifications | Server only | Email provider |
+| `TEAMFRAME_EMAIL_FROM` | Verified production sender | Yes for customer notifications | Server only | Verified sending domain |
 | `SENTRY_DSN` | Server-side Sentry reporting | Production recommended | Server | Sentry project |
 | `NEXT_PUBLIC_SENTRY_DSN` | Client-side Sentry reporting | Production recommended | Client | Sentry project |
 | `SENTRY_AUTH_TOKEN` | Optional source-map upload during build | Optional | Build secret | Sentry |
@@ -76,26 +97,24 @@ Never commit `.env`, `.env.local`, production credential files, screenshots cont
 1. Identify or create the intended TeamFrame production Supabase project.
 2. Confirm it is not TeamFrame-CI, founder-review, staging or a disposable verification project.
 3. Configure production environment variables outside the repository.
-4. Apply schemas through the repository path:
+4. For a **new, empty, isolated project only**, use the guarded one-time fresh installer after exact project identity and the relevant founder/customer-deployment approval are confirmed. The current allowlist contains only named TAKAVEN disposable projects; a first customer ref requires founder approval and a separately reviewed allowlist change. Provide `TEAMFRAME_INSTALL_PROJECT_REF`, `TEAMFRAME_INSTALL_SUPABASE_URL`, `TEAMFRAME_INSTALL_DB_URL` and `TEAMFRAME_INSTALL_APPROVAL=fresh:<project-ref>` in process memory; do not commit secrets. Preflight with `--check-target` before connecting:
 
 ```bash
-npm run db:apply
+npm run db:install:fresh -- --check-target
+npm run db:install:fresh
 ```
 
-5. Re-run the schema application once to confirm idempotency where safe:
+5. **Do not replay the schema pack.** The installer requires zero public tables, auth users and stored objects, applies the canonical order once, then verifies public-table RLS and required objects. If a fresh installation fails midway **before any live/customer data exists**, treat that project as failed: confirm it contains no real data, discard/recreate the isolated project, correct the defect, and run the installer from zero on the replacement. Do not manually resume partial SQL. For an **existing customer project**, stop and use a separately reviewed, versioned migration path; none is approved by this runbook today.
+
+6. Configure and verify the private storage bucket only against the same approved project using a process-only `TEAMFRAME_INSTALL_SERVICE_ROLE_KEY`. The helper refuses to overwrite an existing bucket with different settings:
 
 ```bash
-npm run db:apply
+npm run storage:setup:fresh -- --check-target
+npm run storage:setup:fresh
 ```
 
-6. Configure the private storage bucket:
-
-```bash
-npm run storage:setup
-```
-
-7. Apply the committed Supabase auth configuration with the Supabase CLI against the production project.
-8. Run install, integration and RLS verification only when pointed at the confirmed production or approved pre-production target.
+7. Apply the committed Supabase auth configuration with the Supabase CLI against the approved project.
+8. Run live access/restore checks separately. The authorised-disposable integration/RLS scripts are not production verification commands.
 
 Do not seed synthetic tenants, employees or visual-audit fixtures into production.
 
@@ -146,11 +165,12 @@ Production scheduler requirements:
 
 Do not create a founder-facing workflow-rule editor.
 
-Initial production cadence on the available Vercel plan:
+Initial production cadence:
 
-- `0 6 * * *` daily at 06:00 UTC.
+- `0 4 * * *` daily at 04:00 UTC (approximately 08:00 UAE).
 
-This is the nearest supported production-safe cadence on the current Vercel Hobby plan. Higher-frequency automation requires a Vercel plan that supports more frequent Cron Jobs.
+Per-customer local scheduling remains a post-revenue enhancement. The daily
+cadence is compatible with the current Vercel Hobby schedule limits.
 
 ## 9. Health Checks
 
@@ -301,8 +321,47 @@ Do not include secret values.
 
 Historical deployment details above are retained as provenance. Current Takaven commercial delivery treats TeamFrame as source-ready and customer-deployment controlled.
 
-Current source:
+Current frozen product source at the 2026-09-26 checkpoint:
 
-`takaven/teamframe` on `main` at `73c3e2df701b8484632d3335ca4861c4f2ccb8a7`.
+`takaven/teamframe` on `launch/managed-people-ops-45-day` at
+`e9790370ba1a4526cfd29553c33dc288a46e27bc`.
 
 A real customer deployment requires an explicitly selected customer Vercel/Supabase target, current environment configuration, backup responsibility, post-deployment smoke verification and founder/customer-delivery approval.
+
+## 19. First-Customer Implementation Input Gate
+
+The two-business-day implementation clock starts only when the operator records
+`IMPLEMENTATION READY`. Otherwise return `CUSTOMER ACTION REQUIRED` with the
+specific row/field corrections.
+
+Required validated inputs:
+
+- Company: legal/display name, UAE country code, `Asia/Dubai`, logo, nominated administrator.
+- Organisation: departments, work locations, reporting relationships and positions where used.
+- People: TeamFrame CSV with unique emails/employee numbers, real ISO dates, supported employment types, known managers/departments/locations, and explicit starter classification.
+- Time off: leave definitions, entitlements, counting basis, attachment rules and holidays.
+- Onboarding/documents: checklist, owners, due offsets, required document categories and expiry rules.
+- Policies: final files/text, versions and acknowledgement requirement.
+- Access: Full Access, Manager, Finance and Employee users with intended scopes.
+- Delivery: verified sender/domain, auth redirect/domain and nominated handover participants.
+
+Standard activation excludes corrupt-spreadsheet cleanup, unlimited historical
+migration, scanning, policy/legal/UAE-labour advice, payroll/WPS/attendance/visa
+work, bespoke workflows, integrations and custom software.
+
+## 20. First-Customer Go-Live Checklist
+
+- [ ] Exact production Vercel project, Supabase project, owner and region recorded.
+- [ ] Current frozen SHA deployed; local and deployed SHAs match.
+- [ ] Production-only variables present; Preview/test sinks and credentials absent.
+- [ ] Domain, auth callback/reset/invite URLs and verified sender configured.
+- [ ] Private storage, tenant paths, signed download and denied direct access tested.
+- [ ] Tenant and Admin/Manager/Employee/Finance runtime isolation passed on an approved synthetic target.
+- [ ] Cron authenticated, `0 4 * * *`, idempotent and observed once successfully.
+- [ ] Transactional email success, safe failure visibility and same-ledger retry passed.
+- [ ] Error visibility, deployment logs, health and alert owner confirmed.
+- [ ] Provider daily backups active; retention, RPO/RTO and restore owner recorded.
+- [ ] Database plus Storage restore rehearsal completed against an isolated target.
+- [ ] Customer input gate says `IMPLEMENTATION READY`; QA and role handovers passed.
+- [ ] Export smoke, notification smoke, release gate and rollback check passed.
+- [ ] Product owner approves first real customer deployment and data load.

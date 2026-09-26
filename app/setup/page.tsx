@@ -4,7 +4,7 @@ import { AppShell } from "@/components/AppShell";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { FileInput } from "@/components/FileInput";
-import { SelectField } from "@/components/SelectField";
+import { DateField } from "@/components/DateField";
 import { ISO_COUNTRIES } from "@/lib/geo/countries";
 import {
   getCompanySettings,
@@ -26,28 +26,33 @@ import {
   toggleDepartmentAction,
   createWorkLocationAction,
   updateWorkLocationAction,
-  createLeaveDefinitionAction,
-  updateLeaveDefinitionAction,
   setCompensationModeAction,
   createCompensationComponentAction,
   renameCompensationComponentAction,
   toggleCompensationComponentAction,
-  exportTenantDataAction,
+  createChecklistAction, copyStarterChecklistAction, updateChecklistAction, toggleChecklistAction,
+  setDefaultChecklistAction, addChecklistItemAction, updateChecklistItemAction,
+  removeChecklistItemAction, moveChecklistItemAction,
 } from "./actions";
+import { listCompanyHolidays } from "@/services/companyHolidayService";
+import { deleteHolidayAction, saveHolidayAction } from "@/app/company/actions";
+import { listCustomFieldDefinitions } from "@/services/customFieldService";
+import { listChecklistTemplates } from "@/services/onboardingService/checklistTemplates";
+import { ONBOARDING_TEMPLATE_PACKS, dueOffsetLabel } from "@/services/onboardingService/templates";
+import { PeopleFieldsSettings } from "@/components/PeopleFieldsSettings";
+import { LeaveDefinitionsSettings } from "@/components/LeaveDefinitionsSettings";
 
 export const dynamic = "force-dynamic";
 
 const SECTIONS = [
   { key: "company", label: "Company" },
-  { key: "departments", label: "Departments" },
-  { key: "locations", label: "Work locations" },
-  { key: "workingdays", label: "Working days" },
-  { key: "holidays", label: "Holidays" },
-  { key: "leave", label: "Leave" },
+  { key: "people", label: "People fields" },
+  { key: "organisation", label: "Organisation" },
+  { key: "timeoff", label: "Time off" },
+  { key: "onboarding", label: "Onboarding" },
   { key: "compensation", label: "Compensation" },
-  { key: "checkin", label: "30-day check-in" },
   { key: "access", label: "Users & Access" },
-  { key: "installation", label: "Installation & support" },
+  { key: "data", label: "Data & Installation" },
 ] as const;
 
 const ERROR_COPY: Record<string, string> = {
@@ -65,6 +70,14 @@ const ERROR_COPY: Record<string, string> = {
   UNKNOWN: "Something went wrong. Try again.",
 };
 
+const SUCCESS_COPY: Record<string, string> = {
+  saved: "Settings updated.",
+  holiday_saved: "Company holiday saved.",
+  holiday_removed: "Company holiday removed.",
+  custom_field_created: "People field added.",
+  custom_field_updated: "People field updated.",
+};
+
 const DAYS = [
   { n: 1, label: "Mon" }, { n: 2, label: "Tue" }, { n: 3, label: "Wed" }, { n: 4, label: "Thu" },
   { n: 5, label: "Fri" }, { n: 6, label: "Sat" }, { n: 7, label: "Sun" },
@@ -76,11 +89,12 @@ const btn = "tf-primary-action px-4 py-2 text-[13px]";
 const btnGhost = "tf-secondary-action px-3 py-1.5 text-[12px]";
 
 function CountrySelect({ name, value }: { name: string; value?: string | null }) {
-  const options = [
-    { value: "", label: "— Select country" },
-    ...ISO_COUNTRIES.map((c) => ({ value: c.code, label: c.name })),
-  ];
-  return <SelectField name={name} options={options} defaultValue={value ?? ""} searchable placeholder="Select country" className="mt-1" />;
+  return (
+    <select name={name} defaultValue={value ?? ""} required className="tf-select mt-1">
+      <option value="" disabled>— Select country</option>
+      {ISO_COUNTRIES.map((country) => <option key={country.code} value={country.code}>{country.name}</option>)}
+    </select>
+  );
 }
 
 export default async function SetupPage({
@@ -102,18 +116,23 @@ export default async function SetupPage({
     );
   }
 
-  const [company, departments, workLocations, leaveDefinitions, compConfig, identity] = await Promise.all([
+  const holidayYear = new Date().getUTCFullYear();
+  const [company, departments, workLocations, leaveDefinitions, compConfig, identity, holidays, customFields, checklists] = await Promise.all([
     getCompanySettings(actor),
     listDepartments(actor),
     listWorkLocations(actor),
     listLeaveDefinitions(actor),
     getCompensationConfig(actor),
     getCompanyIdentity(actor.tenantId),
+    listCompanyHolidays(actor, holidayYear),
+    listCustomFieldDefinitions(actor),
+    listChecklistTemplates(actor),
   ]);
 
   // Full Access is the only profile holding `company_access_settings`; the
   // whole-installation export is offered to nobody else.
   const canExportInstallation = await hasCapability(actor, "company_access_settings");
+  const canExportFinance = await hasCapability(actor, "finance_payroll_exports");
   const installationFacts = buildInstallationFacts({
     productVersion: pkg.version,
     installationName: identity.name,
@@ -126,22 +145,22 @@ export default async function SetupPage({
     <main className="mx-auto max-w-6xl px-6 py-14">
       <AppShell actor={actor} activePath="/setup" />
       <div className="pb-5">
-        <h1 className="tf-h1">Setup</h1>
+        <h1 className="tf-h1">Settings</h1>
         <p className="tf-meta mt-1">Configure your TeamFrame workspace.</p>
       </div>
 
-      {status ? <p className="mb-5 rounded-lg border border-signal-green/25 bg-signal-green/5 px-4 py-2.5 text-[13.5px] text-signal-green">Saved.</p> : null}
+      {status ? <p role="status" aria-live="polite" className="mb-5 rounded-lg border border-signal-green/25 bg-signal-green/5 px-4 py-2.5 text-[13.5px] text-signal-green">{SUCCESS_COPY[status] ?? "Settings updated."}</p> : null}
       {errorMessage ? <p role="alert" className="mb-5 rounded-lg border border-signal-red/25 bg-signal-red/5 px-4 py-2.5 text-[13.5px] text-signal-red">{errorMessage}</p> : null}
 
       <div className="grid gap-8 lg:grid-cols-[196px_minmax(0,1fr)]">
         <nav aria-label="Setup sections" className="h-fit lg:sticky lg:top-10">
-          <ul className="flex gap-1 overflow-x-auto lg:flex-col lg:gap-0.5">
+          <ul className="grid grid-cols-2 gap-1 sm:grid-cols-3 lg:flex lg:flex-col lg:gap-0.5">
             {SECTIONS.map((s) => (
               <li key={s.key}>
                 <Link
                   href={`/setup?section=${s.key}`}
                   aria-current={section === s.key ? "page" : undefined}
-                  className={`block whitespace-nowrap rounded-lg px-3 py-2 text-[13.5px] transition ${section === s.key ? "bg-ink-100 font-semibold text-ink-900" : "text-ink-600 hover:bg-ink-50 hover:text-ink-900"}`}
+                  className={`block rounded-lg px-3 py-2 text-[13.5px] leading-snug transition ${section === s.key ? "bg-ink-100 font-semibold text-ink-900" : "text-ink-600 hover:bg-ink-50 hover:text-ink-900"}`}
                 >
                   {s.label}
                 </Link>
@@ -151,7 +170,7 @@ export default async function SetupPage({
         </nav>
 
         <div className="min-w-0 space-y-5">
-          {section === "company" || section === "workingdays" || section === "checkin" ? (
+          {section === "company" ? (
             <section className="tf-surface-flat p-6">
               <h2 className="tf-h2">Company</h2>
               <p className="mt-1 text-[13px] text-ink-500">Identity, country, timezone, working-day defaults and the 30-day check-in.</p>
@@ -195,7 +214,7 @@ export default async function SetupPage({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={identity.logoUrl} alt="Current company logo" className="h-12 w-12 rounded-md border border-ink-200 object-cover" />
                   ) : (
-                    <span className="flex h-12 w-12 items-center justify-center rounded-md bg-brand-signal text-[15px] font-extrabold text-ink-900">{identity.monogram}</span>
+                    <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-ink-100 text-[15px] font-extrabold text-ink-800 shadow-inner">{identity.monogram}</span>
                   )}
                   <form action={saveCompanyLogoAction} encType="multipart/form-data" className="flex flex-wrap items-center gap-3">
                     <FileInput name="logo" accept="image/png,image/jpeg,image/webp,image/svg+xml" label="Choose logo" />
@@ -211,7 +230,11 @@ export default async function SetupPage({
             </section>
           ) : null}
 
-          {section === "departments" ? (
+          {section === "people" ? (
+            <PeopleFieldsSettings fields={customFields} />
+          ) : null}
+
+          {section === "organisation" ? (
             <section className="tf-surface-flat p-6">
               <h2 className="tf-h2">Departments</h2>
               <p className="mt-1 text-[13px] text-ink-500">Company-controlled department list. Deactivate rather than delete — legacy free-text labels stay valid.</p>
@@ -240,7 +263,7 @@ export default async function SetupPage({
             </section>
           ) : null}
 
-          {section === "locations" ? (
+          {section === "organisation" ? (
             <section className="tf-surface-flat p-6">
               <h2 className="tf-h2">Work locations</h2>
               <p className="mt-1 text-[13px] text-ink-500">Company-defined work locations, each linked to a country.</p>
@@ -266,47 +289,24 @@ export default async function SetupPage({
             </section>
           ) : null}
 
-          {section === "holidays" ? (
+          {section === "timeoff" ? (
             <section className="tf-surface-flat p-6">
               <h2 className="tf-h2">Holidays</h2>
-              <p className="mt-1 text-[13px] text-ink-500">The company holiday calendar feeds working-day leave calculations. Managed here under Setup.</p>
-              <Link href="/company" className={`mt-4 inline-flex ${btn}`}>Open holiday calendar</Link>
+              <p className="mt-1 text-[13px] text-ink-500">Manual company holidays feed working-day leave calculations.</p>
+              <form action={saveHolidayAction} className="mt-4 grid gap-3 sm:grid-cols-[180px_1fr_auto] sm:items-end">
+                <input type="hidden" name="year" value={holidayYear} />
+                <label className="text-[12px] text-ink-600">Date<DateField name="holiday_date" required dense /></label>
+                <label className="text-[12px] text-ink-600">Name<input name="name" required maxLength={160} className={input} placeholder="Company holiday" /></label>
+                <PendingSubmitButton idleLabel="Add holiday" pendingLabel="Adding…" className={btn} />
+              </form>
+              <ul className="mt-4 divide-y divide-ink-100 rounded-lg border border-ink-200">
+                {holidays.length === 0 ? <li className="px-3 py-3 text-[13px] text-ink-500">No holidays recorded for {holidayYear}.</li> : holidays.map((holiday) => <li key={holiday.id} className="flex items-center justify-between gap-3 px-3 py-2"><span className="text-[13px]"><strong>{holiday.holiday_date}</strong> · {holiday.name}</span><form action={deleteHolidayAction}><input type="hidden" name="holiday_id" value={holiday.id}/><input type="hidden" name="year" value={holidayYear}/><PendingSubmitButton idleLabel="Remove" pendingLabel="Removing…" className={btnGhost}/></form></li>)}
+              </ul>
             </section>
           ) : null}
 
-          {section === "leave" ? (
-            <section className="tf-surface-flat p-6">
-              <h2 className="tf-h2">Leave definitions</h2>
-              <p className="mt-1 text-[13px] text-ink-500">Configure the leave types offered. These drive the employee leave dropdown (a later phase). The underlying leave engine is unchanged.</p>
-              <details className="mt-4 rounded-lg border border-ink-200 bg-ink-50/40 p-4">
-                <summary className="cursor-pointer text-[13px] font-medium text-ink-800">Add custom leave type (e.g. Maternity, Study)</summary>
-                <form action={createLeaveDefinitionAction} className="mt-3 grid gap-3 sm:grid-cols-2">
-                  <label className="text-[13px] text-ink-700">Display name<input name="display_name" required className={input} placeholder="Maternity Leave" /></label>
-                  <label className="text-[13px] text-ink-700">Underlying category<select name="system_leave_type" defaultValue="other" className={selectCls}><option value="annual">annual</option><option value="sick">sick</option><option value="unpaid">unpaid</option><option value="other">other</option></select></label>
-                  <label className="text-[13px] text-ink-700">Default entitlement (days, optional)<input name="default_entitlement_days" type="number" min="0" max="365" className={input} /></label>
-                  <label className="text-[13px] text-ink-700">Counting basis<select name="counting_basis" defaultValue="working_days" className={selectCls}><option value="working_days">Working days</option><option value="calendar_days">Calendar days</option></select></label>
-                  <label className="text-[13px] text-ink-700">Attachment<select name="attachment_requirement" defaultValue="not_required" className={selectCls}><option value="not_required">Not required</option><option value="optional">Optional</option><option value="required">Required</option></select></label>
-                  <label className="flex items-center gap-2 text-[13px] text-ink-700"><input type="checkbox" name="active" defaultChecked /> Active</label>
-                  <div className="sm:col-span-2"><PendingSubmitButton idleLabel="Add leave type" pendingLabel="Adding…" className={btn} /></div>
-                </form>
-              </details>
-              <ul className="mt-4 space-y-2">
-                {leaveDefinitions.map((d) => (
-                  <li key={d.id} className="rounded-lg border border-ink-200 p-3">
-                    <form action={updateLeaveDefinitionAction} className="grid gap-2 sm:grid-cols-[1.4fr_1fr_1fr_1fr_auto_auto] sm:items-end">
-                      <input type="hidden" name="id" value={d.id} />
-                      <input type="hidden" name="system_leave_type" value={d.system_leave_type} />
-                      <label className="text-[12px] text-ink-600">Name{d.is_system ? " (system)" : ""}<input name="display_name" defaultValue={d.display_name} className="tf-select-sm mt-1 w-full" /></label>
-                      <label className="text-[12px] text-ink-600">Entitlement<input name="default_entitlement_days" type="number" min="0" max="365" defaultValue={d.default_entitlement_days ?? ""} className="tf-select-sm mt-1 w-full" /></label>
-                      <label className="text-[12px] text-ink-600">Basis<select name="counting_basis" defaultValue={d.counting_basis} className="tf-select-sm mt-1 w-full"><option value="working_days">Working days</option><option value="calendar_days">Calendar days</option></select></label>
-                      <label className="text-[12px] text-ink-600">Attachment<select name="attachment_requirement" defaultValue={d.attachment_requirement} className="tf-select-sm mt-1 w-full"><option value="not_required">Not required</option><option value="optional">Optional</option><option value="required">Required</option></select></label>
-                      <label className="flex items-center gap-1.5 text-[12px] text-ink-600"><input type="checkbox" name="active" defaultChecked={d.active} /> Active</label>
-                      <PendingSubmitButton idleLabel="Save" pendingLabel="Saving…" className={btnGhost} />
-                    </form>
-                  </li>
-                ))}
-              </ul>
-            </section>
+          {section === "timeoff" ? (
+            <LeaveDefinitionsSettings definitions={leaveDefinitions} />
           ) : null}
 
           {section === "compensation" ? (
@@ -363,6 +363,76 @@ export default async function SetupPage({
             </section>
           ) : null}
 
+          {section === "onboarding" ? (
+            <div className="space-y-5">
+              <section className="tf-surface-flat p-6">
+                <h2 className="tf-h2">Onboarding checklists</h2>
+                <p className="mt-1 text-[13px] text-ink-500">Create reusable checklists for new starters. The default is assigned automatically when a person is added.</p>
+                {checklists.length === 0 ? <p className="mt-4 rounded-lg border border-ink-200 p-4 text-[13px] text-ink-600">No default checklist is configured. New people will be added without onboarding tasks.</p> : null}
+                <div className="mt-5 space-y-4">
+                  {checklists.map((checklist) => (
+                    <details key={checklist.id} className="rounded-xl border border-ink-200 p-4" open={checklist.is_default}>
+                      <summary className="cursor-pointer list-none">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div><strong className="text-[14px] text-ink-900">{checklist.name}</strong>{checklist.is_default ? <span className="ml-2 rounded-full border border-signal-green/30 px-2 py-0.5 text-[10px] font-bold uppercase text-signal-green">Default</span> : null}<p className="mt-0.5 text-[12px] text-ink-500">{checklist.items.length} tasks · {checklist.active ? "Active" : "Archived"}</p></div>
+                          <span className="text-[12px] font-semibold text-ink-600">Edit</span>
+                        </div>
+                      </summary>
+                      <div className="mt-5 space-y-5 border-t border-ink-100 pt-5">
+                        <form action={updateChecklistAction} className="grid gap-3 sm:grid-cols-[1fr_2fr_auto]">
+                          <input type="hidden" name="id" value={checklist.id} />
+                          <label className="text-[12px] text-ink-600">Name<input name="name" required defaultValue={checklist.name} className={input} /></label>
+                          <label className="text-[12px] text-ink-600">Description<input name="description" defaultValue={checklist.description ?? ""} className={input} /></label>
+                          <PendingSubmitButton idleLabel="Save" pendingLabel="Saving…" className={`${btnGhost} self-end`} />
+                        </form>
+                        <div className="flex flex-wrap gap-2">
+                          {!checklist.is_default && checklist.active ? <form action={setDefaultChecklistAction}><input type="hidden" name="id" value={checklist.id} /><PendingSubmitButton idleLabel="Make default" pendingLabel="Saving…" className={btnGhost} /></form> : null}
+                          <form action={toggleChecklistAction}><input type="hidden" name="id" value={checklist.id} /><input type="hidden" name="active" value={(!checklist.active).toString()} /><PendingSubmitButton idleLabel={checklist.active ? "Archive" : "Reactivate"} pendingLabel="Saving…" className={btnGhost} /></form>
+                        </div>
+                        <ol className="space-y-3">
+                          {checklist.items.map((item, index) => (
+                            <li key={item.id} className="rounded-lg border border-ink-200 p-3">
+                              <form action={updateChecklistItemAction} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+                                <input type="hidden" name="id" value={item.id} />
+                                <label className="text-[12px] text-ink-600 md:col-span-2">Task<input name="title" required defaultValue={item.title} className={input} /></label>
+                                <label className="text-[12px] text-ink-600">Owner<select name="owner_role" defaultValue={item.owner_role} className={selectCls}><option value="employee">Employee</option><option value="manager">Manager</option><option value="admin">Admin</option></select></label>
+                                <label className="text-[12px] text-ink-600">Days from start<input name="due_offset_days" type="number" min="-90" max="365" defaultValue={item.due_offset_days} className={input} /></label>
+                                <label className="text-[12px] text-ink-600">Completion method<select name="completion_mode" defaultValue={item.completion_mode} className={selectCls}><option value="manual_confirmation">Mark done</option><option value="document_required">Upload a document</option></select></label>
+                                <label className="text-[12px] text-ink-600">Required document<input name="required_document_type" defaultValue={item.required_document_type ?? ""} className={input} /></label>
+                                <div className="flex flex-wrap items-center gap-2 md:col-span-6"><span className="mr-auto text-[12px] text-ink-500">{index + 1}. Due {dueOffsetLabel(item.due_offset_days).toLowerCase()}</span><PendingSubmitButton idleLabel="Save task" pendingLabel="Saving…" className={btnGhost} /></div>
+                              </form>
+                              <div className="mt-2 flex gap-2">
+                                <form action={moveChecklistItemAction}><input type="hidden" name="id" value={item.id} /><input type="hidden" name="direction" value="up" /><PendingSubmitButton idleLabel="Move up" pendingLabel="Moving…" disabled={index === 0} className={btnGhost} /></form>
+                                <form action={moveChecklistItemAction}><input type="hidden" name="id" value={item.id} /><input type="hidden" name="direction" value="down" /><PendingSubmitButton idleLabel="Move down" pendingLabel="Moving…" disabled={index === checklist.items.length - 1} className={btnGhost} /></form>
+                                <form action={removeChecklistItemAction}><input type="hidden" name="id" value={item.id} /><ConfirmSubmitButton idleLabel="Remove" pendingLabel="Removing…" confirmMessage="Remove this task from future assignments?" className={btnGhost} /></form>
+                              </div>
+                            </li>
+                          ))}
+                        </ol>
+                        <form action={addChecklistItemAction} className="grid gap-3 rounded-lg bg-ink-50/60 p-3 sm:grid-cols-5">
+                          <input type="hidden" name="template_id" value={checklist.id} />
+                          <label className="text-[12px] text-ink-600 sm:col-span-2">New task<input name="title" required placeholder="e.g. First-day induction" className={input} /></label>
+                          <label className="text-[12px] text-ink-600">Owner<select name="owner_role" defaultValue="employee" className={selectCls}><option value="employee">Employee</option><option value="manager">Manager</option><option value="admin">Admin</option></select></label>
+                          <label className="text-[12px] text-ink-600">Days from start<input name="due_offset_days" type="number" min="-90" max="365" defaultValue="0" className={input} /></label>
+                          <label className="text-[12px] text-ink-600">Needs<select name="completion_mode" defaultValue="manual_confirmation" className={selectCls}><option value="manual_confirmation">Mark done</option><option value="document_required">A document</option></select></label>
+                          <label className="text-[12px] text-ink-600 sm:col-span-2">Document type (when needed)<input name="required_document_type" placeholder="e.g. passport" className={input} /></label>
+                          <div className="self-end sm:col-span-3"><PendingSubmitButton idleLabel="Add task" pendingLabel="Adding…" className={btn} /></div>
+                        </form>
+                      </div>
+                    </details>
+                  ))}
+                </div>
+              </section>
+              <section className="tf-surface-flat p-6">
+                <h3 className="text-[14px] font-bold text-ink-800">New checklist</h3>
+                <form action={createChecklistAction} className="mt-3 grid gap-3 sm:grid-cols-[1fr_2fr_auto]"><label className="text-[12px] text-ink-600">Name<input name="name" required className={input} /></label><label className="text-[12px] text-ink-600">Description<input name="description" className={input} /></label><PendingSubmitButton idleLabel="Create checklist" pendingLabel="Creating…" className={`${btn} self-end`} /></form>
+                <p className="mt-5 text-[12px] font-semibold uppercase tracking-wide text-ink-500">Or copy a TeamFrame starter</p>
+                <div className="mt-2 flex flex-wrap gap-2">{ONBOARDING_TEMPLATE_PACKS.map((pack) => <form action={copyStarterChecklistAction} key={pack.id}><input type="hidden" name="pack_id" value={pack.id} /><PendingSubmitButton idleLabel={`Copy ${pack.name}`} pendingLabel="Copying…" className={btnGhost} /></form>)}</div>
+                <Link href="/onboarding" className={`mt-5 inline-flex ${btnGhost}`}>Assign a checklist manually</Link>
+              </section>
+            </div>
+          ) : null}
+
           {section === "access" ? (
             <section className="tf-surface-flat p-6">
               <h2 className="tf-h2">Users &amp; Access</h2>
@@ -373,7 +443,7 @@ export default async function SetupPage({
             </section>
           ) : null}
 
-          {section === "installation" ? (
+          {section === "data" ? (
             <>
               <section className="tf-surface-flat p-6">
                 <h2 className="tf-h2">Installation</h2>
@@ -409,30 +479,9 @@ export default async function SetupPage({
               </section>
 
               <section className="tf-surface-flat p-6">
-                <h2 className="tf-h2">Export TeamFrame data</h2>
-                <p className="mt-1 max-w-2xl text-[13px] text-ink-500">
-                  Takes a complete, portable copy of this installation — every employee, leave,
-                  onboarding, policy, document, compensation and configuration record as a
-                  spreadsheet-readable CSV, together with the original uploaded documents. The
-                  download link is private and expires shortly after it is created.
-                </p>
-                {canExportInstallation ? (
-                  <form action={exportTenantDataAction} className="mt-4">
-                    <ConfirmSubmitButton
-                      idleLabel="Export TeamFrame data"
-                      pendingLabel="Preparing export…"
-                      className={btn}
-                      confirmMessage="This prepares a download containing all employee records held in this installation, including compensation and private documents. Continue?"
-                    />
-                    <p className="mt-2 text-[12px] text-ink-500">
-                      Large installations can take a minute to prepare.
-                    </p>
-                  </form>
-                ) : (
-                  <p className="mt-4 text-[13px] text-ink-500">
-                    Exporting the whole installation requires Full Access.
-                  </p>
-                )}
+                <h2 className="tf-h2">Organisation exports</h2>
+                <p className="mt-1 max-w-2xl text-[13px] text-ink-500">Payroll and full-data exports now have one clear home under Reports.</p>
+                {(canExportInstallation || canExportFinance) ? <Link href="/reports?view=exports" className={`mt-4 inline-flex ${btn}`}>Open Reports → Exports</Link> : <p className="mt-4 text-[13px] text-ink-500">Your access does not include organisation-wide exports.</p>}
               </section>
             </>
           ) : null}

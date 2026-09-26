@@ -19,6 +19,9 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
+import { APPROVED_DIRECT_MUTATION_REFS, mutationTargetRef } from "./lib/mutation-target-guard.mjs";
+
+mutationTargetRef("smoke-core-loop", process.env, APPROVED_DIRECT_MUTATION_REFS);
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, "..", ".env.local") });

@@ -280,6 +280,9 @@ begin
 end;
 $$;
 
+-- The import path opts out explicitly, then initializes genuine starters after
+-- reporting relationships are linked. The ordinary 15-argument RPC below
+-- preserves its historical create-and-initialize behavior.
 create or replace function teamframe_create_employee(
   p_tenant_id uuid,
   p_actor_user_id uuid,
@@ -295,7 +298,8 @@ create or replace function teamframe_create_employee(
   p_manager_id uuid,
   p_grade text,
   p_status employee_status,
-  p_setup_status employee_setup_status
+  p_setup_status employee_setup_status,
+  p_initialize_join_work boolean
 )
 returns employees
 language plpgsql
@@ -305,6 +309,10 @@ as $$
 declare
   v_employee employees;
 begin
+  if p_initialize_join_work is null then
+    raise exception 'JOIN_WORK_INTENT_REQUIRED';
+  end if;
+
   insert into employees (
     tenant_id,
     full_name,
@@ -344,10 +352,41 @@ begin
   insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)
   values (p_tenant_id, p_actor_user_id, 'employee.created', v_employee.id);
 
-  perform teamframe_initialize_join_work(p_tenant_id, p_actor_user_id, v_employee.id);
+  if p_initialize_join_work then
+    perform teamframe_initialize_join_work(p_tenant_id, p_actor_user_id, v_employee.id);
+  end if;
 
   return v_employee;
 end;
+$$;
+
+create or replace function teamframe_create_employee(
+  p_tenant_id uuid,
+  p_actor_user_id uuid,
+  p_full_name text,
+  p_email text,
+  p_role_title text,
+  p_department text,
+  p_timezone text,
+  p_employment_type employment_type,
+  p_country text,
+  p_start_date date,
+  p_end_date date,
+  p_manager_id uuid,
+  p_grade text,
+  p_status employee_status,
+  p_setup_status employee_setup_status
+)
+returns employees
+language sql
+security definer
+set search_path = public
+as $$
+  select teamframe_create_employee(
+    p_tenant_id, p_actor_user_id, p_full_name, p_email, p_role_title,
+    p_department, p_timezone, p_employment_type, p_country, p_start_date,
+    p_end_date, p_manager_id, p_grade, p_status, p_setup_status, true
+  );
 $$;
 
 create or replace function teamframe_update_employee(
@@ -1212,6 +1251,9 @@ $$;
 revoke all on function teamframe_create_employee(
   uuid, uuid, text, text, text, text, text, employment_type, text, date, date, uuid, text, employee_status, employee_setup_status
 ) from public, anon, authenticated;
+revoke all on function teamframe_create_employee(
+  uuid, uuid, text, text, text, text, text, employment_type, text, date, date, uuid, text, employee_status, employee_setup_status, boolean
+) from public, anon, authenticated;
 revoke all on function teamframe_derive_employee_lifecycle(
   employee_status, employee_setup_status, date, date, employee_lifecycle_state
 ) from public, anon, authenticated;
@@ -1233,6 +1275,9 @@ revoke all on function teamframe_delete_position(uuid, uuid, uuid, timestamptz) 
 
 grant execute on function teamframe_create_employee(
   uuid, uuid, text, text, text, text, text, employment_type, text, date, date, uuid, text, employee_status, employee_setup_status
+) to service_role;
+grant execute on function teamframe_create_employee(
+  uuid, uuid, text, text, text, text, text, employment_type, text, date, date, uuid, text, employee_status, employee_setup_status, boolean
 ) to service_role;
 grant execute on function teamframe_derive_employee_lifecycle(
   employee_status, employee_setup_status, date, date, employee_lifecycle_state

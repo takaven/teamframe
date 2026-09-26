@@ -8,21 +8,20 @@
 
 import pg from "pg";
 import { createClient } from "@supabase/supabase-js";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { APPROVED_LAUNCH_PROJECT_REFS } from "./approved-launch-projects.mjs";
+
+const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 const REQUIRED = [
   "TEAMFRAME_AUDIT_INTEGRATION",
   "AUDIT_SUPABASE_PROJECT_REF",
   "AUDIT_SUPABASE_URL",
-  "AUDIT_SUPABASE_ANON_KEY",
   "AUDIT_SUPABASE_SERVICE_ROLE_KEY",
   "AUDIT_SUPABASE_DB_URL",
-  "AUDIT_SITE_URL",
 ];
-
-const KNOWN_NON_DISPOSABLE_REFS = new Set([
-  "zydhgtmgrbdyghmvuldc",
-  "eucnsrtdjxcylknbuglw",
-]);
 
 const REQUIRED_TABLES = [
   "action_items",
@@ -75,25 +74,42 @@ function requireEnv() {
   }
 
   const projectRef = process.env.AUDIT_SUPABASE_PROJECT_REF;
-  if (KNOWN_NON_DISPOSABLE_REFS.has(projectRef)) {
-    fail(`Refusing to run against known non-disposable Supabase project ref: ${projectRef}`);
+  if (!APPROVED_LAUNCH_PROJECT_REFS.has(projectRef)) {
+    fail("AUDIT_SUPABASE_PROJECT_REF is not an approved TAKAVEN disposable project.");
   }
 
-  const url = new URL(process.env.AUDIT_SUPABASE_URL);
-  const siteUrl = new URL(process.env.AUDIT_SITE_URL);
-  if (url.protocol !== "https:") fail("AUDIT_SUPABASE_URL must use https.");
-  if (!url.hostname.includes(projectRef)) {
-    fail("AUDIT_SUPABASE_URL hostname must include AUDIT_SUPABASE_PROJECT_REF.");
+  let url;
+  let dbUrl;
+  try {
+    url = new URL(process.env.AUDIT_SUPABASE_URL);
+    dbUrl = new URL(process.env.AUDIT_SUPABASE_DB_URL.replace(/^"|"$/g, ""));
+  } catch {
+    fail("Disposable integration URLs are invalid.");
   }
-  if (!["http:", "https:"].includes(siteUrl.protocol)) {
-    fail("AUDIT_SITE_URL must be an http(s) URL.");
+  if (url.protocol !== "https:" || url.hostname !== `${projectRef}.supabase.co` || url.username || url.password || url.port || url.search || url.hash) {
+    fail("AUDIT_SUPABASE_URL must be the exact approved project origin.");
+  }
+  const directRef = dbUrl.hostname.match(/^db\.([a-z0-9]+)\.supabase\.co$/)?.[1];
+  const poolerRef = dbUrl.username.match(/^postgres\.([a-z0-9]+)$/)?.[1];
+  if (dbUrl.protocol !== "postgresql:" || dbUrl.search || dbUrl.hash ||
+      (directRef !== projectRef && poolerRef !== projectRef) ||
+      (directRef && dbUrl.username !== "postgres") ||
+      (poolerRef && !dbUrl.hostname.endsWith(".pooler.supabase.com"))) {
+    fail("AUDIT_SUPABASE_DB_URL does not identify the approved disposable project.");
+  }
+  if (process.argv.includes("--check-target")) {
+    pass(`Approved disposable target: ${projectRef}`);
+    process.exit(0);
   }
 }
 
 async function verifyDatabase() {
   const client = new pg.Client({
     connectionString: process.env.AUDIT_SUPABASE_DB_URL.replace(/^"|"$/g, ""),
-    ssl: { rejectUnauthorized: false },
+    ssl: {
+      ca: readFileSync(join(repoRoot, "certs", "supabase-root-2021-ca.crt"), "utf8"),
+      rejectUnauthorized: true,
+    },
   });
 
   await client.connect();

@@ -4,6 +4,7 @@ import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { StatusPill } from "@/components/StatusPill";
 import { requireTenantCapability } from "@/middleware/rbac";
 import { listAccessMemberships } from "@/services/accessManagementService";
+import { listEmployeesForAdmin } from "@/services/employeeService";
 import { setMembershipActiveAction, updateAccessMatrixAction, updateAccessProfileAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -32,8 +33,6 @@ const ERROR_COPY: Record<string, string> = {
   NO_TENANT_CONTEXT: "Session error — please sign out and back in.",
 };
 
-function idsValue(ids: string[]): string { return ids.join(", "); }
-
 type Membership = Awaited<ReturnType<typeof listAccessMemberships>>["memberships"][number];
 
 // Plain-English "what can this person see and do?" summary.
@@ -53,7 +52,7 @@ export default async function AccessPage({
   searchParams?: Promise<{ error?: string; status?: string }>;
 }) {
   const actor = await requireTenantCapability("company_access_settings");
-  const { memberships } = await listAccessMemberships(actor);
+  const [{ memberships }, employees] = await Promise.all([listAccessMemberships(actor), listEmployeesForAdmin(actor)]);
   const params = (await searchParams) ?? {};
 
   return (
@@ -133,8 +132,10 @@ export default async function AccessPage({
                       {PEOPLE_SCOPE_OPTIONS.map(([value, label]) => (<option key={value} value={value}>{label}</option>))}
                     </select>
                   </label>
-                  <label className="text-[12px] font-bold text-ink-700">People — selected employee IDs
-                    <input name="people_selected_employee_ids" defaultValue={idsValue(membership.people_selected_employee_ids)} placeholder="comma-separated" className="mt-1 w-full rounded-lg border border-ink-200 bg-white px-2 py-2 text-[12px]" />
+                  <label className="text-[12px] font-bold text-ink-700">People — selected people
+                    <select multiple name="people_selected_employee_ids" defaultValue={membership.people_selected_employee_ids} className="mt-1 min-h-28 w-full rounded-lg border border-ink-200 bg-white px-2 py-2 text-[12px]">
+                      {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.full_name} · {employee.role_title}</option>)}
+                    </select>
                   </label>
                   <label className="text-[12px] font-bold text-ink-700">Salary level
                     <select name="salary_access_level" defaultValue={membership.salary_access_level} className="mt-1 w-full rounded-lg border border-ink-200 bg-white px-2 py-2 text-[12px]">
@@ -146,16 +147,20 @@ export default async function AccessPage({
                       {SALARY_SCOPE_OPTIONS.map(([value, label]) => (<option key={value} value={value}>{label}</option>))}
                     </select>
                   </label>
-                  <label className="text-[12px] font-bold text-ink-700 lg:col-span-2">Salary — selected employee IDs
-                    <input name="salary_selected_employee_ids" defaultValue={idsValue(membership.salary_selected_employee_ids)} placeholder="comma-separated" className="mt-1 w-full rounded-lg border border-ink-200 bg-white px-2 py-2 text-[12px]" />
+                  <label className="text-[12px] font-bold text-ink-700 lg:col-span-2">Salary — selected people
+                    <select multiple name="salary_selected_employee_ids" defaultValue={membership.salary_selected_employee_ids} className="mt-1 min-h-28 w-full rounded-lg border border-ink-200 bg-white px-2 py-2 text-[12px]">
+                      {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.full_name} · {employee.role_title}</option>)}
+                    </select>
                   </label>
                   <label className="text-[12px] font-bold text-ink-700">Private documents
                     <select name="private_documents_scope" defaultValue={membership.private_documents_scope} className="mt-1 w-full rounded-lg border border-ink-200 bg-white px-2 py-2 text-[12px]">
                       {PRIVATE_DOCUMENT_SCOPE_OPTIONS.map(([value, label]) => (<option key={value} value={value}>{label}</option>))}
                     </select>
                   </label>
-                  <label className="text-[12px] font-bold text-ink-700">Private documents — selected IDs
-                    <input name="private_documents_selected_employee_ids" defaultValue={idsValue(membership.private_documents_selected_employee_ids)} placeholder="comma-separated" className="mt-1 w-full rounded-lg border border-ink-200 bg-white px-2 py-2 text-[12px]" />
+                  <label className="text-[12px] font-bold text-ink-700">Private documents — selected people
+                    <select multiple name="private_documents_selected_employee_ids" defaultValue={membership.private_documents_selected_employee_ids} className="mt-1 min-h-28 w-full rounded-lg border border-ink-200 bg-white px-2 py-2 text-[12px]">
+                      {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.full_name} · {employee.role_title}</option>)}
+                    </select>
                   </label>
                   <label className="flex items-center gap-2 text-[12px] font-bold text-ink-700">
                     <input name="finance_exports_access" type="checkbox" defaultChecked={membership.finance_exports_access} /> Finance / payroll exports

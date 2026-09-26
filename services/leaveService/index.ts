@@ -394,7 +394,9 @@ export async function listActiveLeaveDefinitions(actor: Actor): Promise<ActiveLe
 /** Per-configured-definition balances (Entitlement / Taken / Pending approval / Available). */
 export async function listLeaveDefinitionBalances(actor: Actor, employeeId: string): Promise<LeaveDefinitionBalance[]> {
   const tenantId = requireTenant(actor);
-  if (actor.role !== "admin" && actor.employeeId !== employeeId) throw new Error("FORBIDDEN");
+  if (actor.role !== "admin" && actor.employeeId !== employeeId) {
+    await assertCurrentDirectManager(actor, employeeId);
+  }
   const supabase = createServiceRoleClient();
   const [defsQ, leavesQ, openingQ, employeeQ] = await Promise.all([
     supabase.from("leave_definitions").select("id, display_name, system_leave_type, counting_basis, attachment_requirement, default_entitlement_days, is_system, active, archived_at, sort_order").eq("tenant_id", tenantId).eq("active", true).is("archived_at", null).order("sort_order", { ascending: true }),
@@ -739,6 +741,16 @@ export async function submitLeaveRequest(
   }
 
   return rowToRecord(created);
+}
+
+/** Admin-on-behalf entry that deliberately reuses the normal validation and leave engine. */
+export async function submitLeaveRequestForEmployee(
+  actor: Actor,
+  employeeId: string,
+  input: Parameters<typeof submitLeaveRequest>[1],
+): Promise<LeaveRecord> {
+  requireAdmin(actor);
+  return submitLeaveRequest({ ...actor, employeeId }, input);
 }
 
 export async function decideLeaveRequest(

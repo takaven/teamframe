@@ -3,6 +3,7 @@ import { z } from "zod";
 import { BrandLogo } from "@/components/BrandLogo";
 import { TakavenEndorsement } from "@/components/TakavenEndorsement";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
+import { FloatingField } from "@/components/FloatingField";
 import { createServerClient } from "@/lib/db/supabaseServer";
 import { resolveIdentity, type Role } from "@/lib/rbac/roles";
 
@@ -23,7 +24,7 @@ function isReviewLoginEnabled(): boolean {
 }
 
 function roleDestination(role: Role): string {
-  return role === "admin" ? "/dashboard" : "/me";
+  return role === "admin" ? "/dashboard" : "/home";
 }
 
 async function reviewSignInAction(formData: FormData): Promise<void> {
@@ -79,9 +80,10 @@ export default async function FounderReviewLoginPage({
   const prefillEmail = typeof email === "string" ? email.slice(0, 254) : "";
 
   return (
-    <main className="min-h-screen bg-white md:grid md:grid-cols-[1fr_minmax(520px,620px)]">
-      <section className="flex h-[388px] flex-col bg-brand-charcoal px-[22px] pb-[34px] pt-7 text-white md:h-auto md:px-14 md:py-14">
-        <BrandLogo variant="lockup" reversed className="h-7 w-auto" priority />
+    <main className="tf-auth-page">
+      <div className="tf-auth-panel">
+      <section className="tf-auth-brand-panel">
+        <BrandLogo variant="lockup" className="h-7 w-auto" priority />
         <div className="mt-auto max-w-[440px]">
           <h1 className="text-[30px] font-extrabold leading-[1.18] tracking-[-0.8px] md:text-[40px] md:tracking-[-1.1px]">
             Welcome to TeamFrame
@@ -90,25 +92,23 @@ export default async function FounderReviewLoginPage({
             A focused HR workspace for your people, roles and records.
           </p>
         </div>
-        <TakavenEndorsement reversed className="mt-10" />
+        <TakavenEndorsement className="mt-10" />
       </section>
 
-      <section className="-mt-[14px] rounded-t-[14px] bg-white px-[22px] pb-6 pt-7 md:mt-0 md:flex md:flex-col md:justify-center md:rounded-none md:px-16">
+      <section className="tf-auth-card">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-ink-500">Review environment</p>
-          <h2 className="mt-3 text-[28px] font-extrabold leading-tight tracking-[-0.7px] text-ink-800">Sign in</h2>
+          <h2 className="tf-auth-title mt-3">Log in</h2>
           <p className="mt-2 text-[15.5px] text-ink-500">
             Use your review credentials to access TeamFrame
             {requestedRole === "admin" ? " as an administrator." : "."}
           </p>
         </div>
 
-        <form action={reviewSignInAction} className="mt-[34px] space-y-[18px]">
+        <form action={reviewSignInAction} className="mt-[34px] space-y-[22px]">
           <input type="hidden" name="role" value={requestedRole} />
-          <label htmlFor="email" className="block text-[13px] font-bold text-ink-800">
-            Work email
-          </label>
-          <input
+          <FloatingField
+            label="Work email"
             id="email"
             name="email"
             type="email"
@@ -116,29 +116,22 @@ export default async function FounderReviewLoginPage({
             required
             inputMode="email"
             defaultValue={prefillEmail}
-            placeholder={requestedRole === "admin" ? "admin@example.com" : "employee@example.com"}
-            className="h-12 w-full rounded-lg border border-ink-300 bg-white px-[14px] text-[15px] text-ink-800 outline-none transition focus:border-ink-800"
           />
-
-          <label htmlFor="password" className="block text-[13px] font-bold text-ink-800">
-            Password
-          </label>
-          <input
+          <FloatingField
+            label="Password"
             id="password"
             name="password"
             type="password"
             autoComplete="current-password"
             required
-            placeholder="Password"
-            className="h-12 w-full rounded-lg border border-ink-300 bg-white px-[14px] text-[15px] text-ink-800 outline-none transition focus:border-ink-800"
           />
 
           <PendingSubmitButton
-            idleLabel="Sign in"
+            idleLabel="Enter"
             pendingLabel="Signing in…"
             disabled={!enabled}
             disabledLabel="Sign in"
-            className="tf-brand-action h-12 w-full px-5 text-[15px] disabled:cursor-not-allowed disabled:bg-ink-300"
+            className="tf-brand-action tf-auth-submit h-12 w-full px-5 text-[15px]"
           />
 
           {errorMessage || !enabled ? (
@@ -148,6 +141,7 @@ export default async function FounderReviewLoginPage({
           ) : null}
         </form>
       </section>
+      </div>
     </main>
   );
 }

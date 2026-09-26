@@ -1,118 +1,111 @@
-# TeamFrame Environment Parity
+# TeamFrame launch-test environment identity
 
-## Overview
+This is the operational source of truth for the **synthetic-data-only** launch-test Supabase target. The [execution ledger](EXECUTION_LEDGER.md) owns task state; this page owns environment identity and safety rules. It supersedes this file's earlier generic staging-setup and reset instructions.
 
-TeamFrame maintains two Supabase environments:
+## Approved target
 
-| Environment | Purpose | Writes allowed from scripts |
-|---|---|---|
-| **Existing project** (`NEXT_PUBLIC_SUPABASE_URL`) | Production-equivalent. Treat as production until formally separated. | Read-only from parity/verification scripts |
-| **Staging** (`SUPABASE_URL_STAGING`) | Isolated test environment. Full schema parity with production. Migration test bed. | All staging scripts |
+| Field | Verified value |
+| --- | --- |
+| Supabase sign-in for launch testing | `admin@takaven.com` |
+| Organization | `Takaven` (`jdlcphgoqpnztlbklkpc`), Free plan |
+| Project | `teamframe-launch-test-disposable-20260920` |
+| Project ref | `syytforaidoorrvrbqwz` |
+| Region | Mumbai / `ap-south-1` |
+| Purpose | TeamFrame synthetic security, restore, email and provisioning proof only |
 
----
+On 2026-09-22, a read-only dashboard check of this exact TAKAVEN project showed **0 company rows**, an empty Authentication Users list, and **no storage buckets**. The Users page also displayed a conflicting estimated-total footer, so the empty list alone was not a database-level auth count proof. No project had been paused at that point.
 
-## Staging project setup
+The founder then approved a temporary pause subject to final checks. On 2026-09-22, an exact-project read-only SQL count returned **0 companies, 0 auth users, 0 stored objects and 0 buckets**. The project showed `admin@takaven.com` as owner in Takaven organization `jdlcphgoqpnztlbklkpc`, no GitHub or Vercel integration connection, and no API/auth requests in the recent dashboard window; local port 3030 was not listening and repository references were test/allowlist references only. The project was **PAUSED, not deleted**; Supabase displayed the paused state after completion. It is not an active proof target until deliberately resumed.
 
-### 1. Create the staging Supabase project
+The `admin@takaven.com` account's organization list initially showed **Takaven only**, with **one project**, on 2026-09-21; a second synthetic-only project was subsequently created below. Recheck the signed-in email, organization, project name and ref before any write; a page URL alone does not prove access or account identity. Supabase's `main` or `Production` branch label on this *disposable project* does not make it a customer production deployment.
 
-1. Go to [https://supabase.com/dashboard](https://supabase.com/dashboard)
-2. Click **New project**
-3. Name: `teamframe-staging`
-4. Region: match your existing project region
-5. Database password: generate a strong password and save it — you'll need it for the connection string
-6. Wait for the project to become active (~1–2 minutes)
+## Other identities and the wrong target
 
-### 2. Collect credentials
+| Item | Current disposition |
+| --- | --- |
+| `qrsxoumymbcehtltbtgn` | Earlier disposable-named project created under an ARIE-associated Supabase account. **Never use for TeamFrame testing.** Its current content and deletion safety have not been freshly verified. |
+| `ismael@ariefinance.com` | Keep separate from TAKAVEN launch testing. No ARIE organization or project may be changed as part of this environment. |
+| `isudally@outlook.com` | Ownership/access inventory not completed. Do not infer it owns or can access either project. |
 
-From the staging project dashboard:
+The stale project ref in the execution mandate is **not** authority to connect to `qrsxoumymbcehtltbtgn`. Do not delete that project or any account until its exact organization, contents, dependencies and disposal authorization are verified. Account sign-out is not account deletion.
 
-- **URL**: Project Settings → API → Project URL → `https://XXXX.supabase.co`
-- **Anon key**: Project Settings → API → `anon public`
-- **Service role key**: Project Settings → API → `service_role`
-- **DB connection string**: Project Settings → Database → Connection string → URI mode
-  - Format: `postgresql://postgres.PROJECT_REF:PASSWORD@aws-0-REGION.pooler.supabase.com:5432/postgres`
+## Fresh-install / restore disposable target
 
-### 3. Populate `.env.staging`
+The second TAKAVEN Free project `teamframe-fresh-install-restore-disposable-20260921` has ref `xjdobcfzwluozumhnjng` in Mumbai (`ap-south-1`). It is separate from the original launch-test project and has no GitHub connection. On creation, read-only SQL verified **zero public tables, zero auth users, zero stored objects, and no TeamFrame `companies` table**. The canonical 31-file sequence then ran from zero without manual SQL repair. Follow-up read-only SQL found **39 public tables, RLS enabled on all 39**, required tenancy/leave RPC and index markers, and no auth users or stored files. A `documents` bucket was separately created and catalog-verified as **private**, 10 MB maximum, with the seven MIME types in `scripts/setup-storage.mjs`. This passes the clean schema-and-storage installation check, not live auth, document access, integration, or restore. Its database password was entered only through the secure local prompt; it is not kept in repository files.
 
-Copy `.env.staging.example` to `.env.staging` and fill in the values from step 2.
+On 2026-09-21, after a read-only check showed **0 companies, 0 auth users and 0 stored objects**, the user expressly approved temporarily pausing `xjdobcfzwluozumhnjng` to free a Free-plan slot. Supabase subsequently showed it as **PAUSED** in the Takaven project switcher; it was not deleted. Its prior install evidence above remains valid, but the paused project is unavailable until resumed.
 
-```
-cp .env.staging.example .env.staging
-# Edit .env.staging with real values
-```
+The third TAKAVEN Free project `teamframe-fresh-command-proof-disposable-20260921` has ref `nvuijkgiqqhqeqduqqgm` in Mumbai (`ap-south-1`), under `admin@takaven.com` as owner, with no GitHub repository connected. It exists solely to prove the current exact `db:install:fresh` and `storage:setup:fresh` commands. Before installation, the dashboard's read-only SQL returned **0 public tables, 0 auth users, 0 stored objects and no `public.companies` table**. The user ran both exact current commands through a masked, process-only local prompt: the schema command applied all 31 canonical files and reported 39 public tables/all RLS plus required objects; the storage command created the private `documents` bucket. A separate read-only dashboard query confirmed **39 public tables, 39 with RLS, 0 auth users, 0 stored objects, one private 10 MB `documents` bucket, and the tenant helper/view/index present**. This is fresh installation proof, not live role/document access, email, backup or restore proof. The database password and service-role key were not placed in chat or repository files.
 
-`.env.staging` is git-ignored. Never commit it.
+On the first one-shot synthetic factory bootstrap, the exact-target and empty-state checks passed, but the child stopped at `Company lookup failed: permission denied for table companies`; provisioning was not invoked. The target is **quarantined: do not retry or clean it automatically**. Follow-up read-only dashboard SQL confirmed **0 companies, 0 tenant memberships, 0 auth users and 0 stored objects**. `has_table_privilege` found `service_role` had neither SELECT nor INSERT on `public.companies`; a public-table grant inventory found only one SELECT grant each for `authenticated` and `service_role`, no INSERT or UPDATE grants, and no anon grants. This is a functional fresh-install defect despite the structural R2 proof. Determine the narrow grant remedy and independently review it before any new synthetic attempt; do not disable RLS or grant broad anon access.
 
-### 4. Apply schemas to staging
+After that zero-write verification, the quarantined `nvu...` project was **paused** to free a Free-plan slot; it was not deleted or retried. The project dashboard subsequently displayed `Project "teamframe-fresh-command-proof-disposable-20260921" is paused`. Commit `735217d` adds explicit service-role-only API grants and a post-install privilege assertion; its local tests, independent review, and PR strict/static CI passed. The fix has **not** been applied to `nvu...` and still needs a new from-zero disposable proof.
 
-```bash
-npm run db:apply:staging
-```
+The next TAKAVEN Free target is `teamframe-api-grant-proof-disposable-20260921`, ref `jxiiinglydqqhwjglxtg`, Mumbai (`ap-south-1`), with no GitHub connection and owner `admin@takaven.com`. Before any installation, read-only dashboard SQL confirmed **0 public tables, 0 auth users, 0 stored objects, and no `public.companies` table**. It is approved only for the corrected fresh-install, private-storage, and synthetic factory proof; it contains no imported or customer data. Do not confuse it with the paused/quarantined `nvu...` target. The exact current installer and runtime privileges have not yet been proven here.
 
-This applies all schemas (including `tenancy_rls_v2.sql`) to staging only.
+The first one-shot attempt on `jxii...` stopped **before installation**. Exact-target checks and the service-role read-only API request succeeded; the `--verify-key` child then hit a Windows libuv assertion on its forced successful `process.exit(0)`, causing the PowerShell helper to stop. This output is not a service-key rejection and does not verify the database password. A separate read-only SQL query after the crash returned **0 public tables, 0 auth users, 0 stored objects and 0 buckets**. The verified key path now exits naturally without entering bucket setup; focused repository-safety tests (9/9) and independent review passed. Rerun only the corrected one-shot helper against this still-empty target; quarantine it after any write failure. Current 32-file installer, storage, bootstrap and factory proof remain unpassed.
 
-### 5. Verify parity
+The corrected one-shot command then **passed** on that still-empty target. It applied the exact current 32-file `db:install:fresh` sequence including `api_privileges.sql`, asserted 39 public tables/all RLS, required objects, 39 service-role DML grants and no anon table grants, and created the private 10 MB `documents` bucket. A separate read-only dashboard query confirmed **39 public tables, 39 RLS tables and one private documents bucket**. Synthetic bootstrap created exactly one company, one Full Access member/auth user and no employees/files before the import. The unchanged 120-person importer then passed with 120 employees, 108 manager links, 121 invitations (120 linked), 116 leave-opening adjustments, two holidays, one committed batch and next employee number 121. Preview: **1.92 s**; commit: **226.04 s**; service total: **227.96 s**; command including test startup: **239.0 s**. This is an importer timing, **not** full customer activation elapsed or active operator time. It does not prove atomic failure handling, live role/document access, email, backup or restore. The project is now populated with synthetic data; never rerun its fresh installer or one-shot factory helper.
 
-```bash
-npm run verify:parity
-```
+Before a temporary pause for the separate H2 proof on 2026-09-22, the exact TAKAVEN project `jxiiinglydqqhwjglxtg` was rechecked read-only: **one company, 120 employees, one auth user, one private bucket, zero stored objects**. This matches the documented synthetic factory fixture; no real data or additional data source is known. Supabase Settings showed no GitHub repository, Vercel project or other connected integration. The previously used local UI session had moved to the separate `wafk...` buyer-baseline target; no process was listening on local port 3030, and no Codex browser tab targeted `jxii...`. The founder explicitly approved pausing this exact project, not deleting it. Supabase subsequently displayed **Project "teamframe-api-grant-proof-disposable-20260921" is paused** with a Resume action; state: **PAUSED, not deleted**. Its prior proof evidence remains valid, but it must not be used for H2 or the corrected buyer baseline.
 
-Must exit 0. Output shows RLS enabled state and policy counts for all tenant tables.
+The separate H2-only TAKAVEN Free project `teamframe-h2-handoff-disposable-20260922`, ref `euhvgedjldqzfczkzjqi`, was created in Mumbai (`ap-south-1`) under the Takaven organization (`jdlcphgoqpnztlbklkpc`), with no GitHub connection. The new-project form had Data API enabled, automatic table exposure disabled and automatic RLS enabled. The founder entered its database password privately. Before any TeamFrame write, read-only SQL in this exact project returned **0 public tables, 0 auth users, 0 storage buckets, 0 stored objects, and no `public.companies`**. Purpose: install the current H2 schema and prove one-way synthetic Hire→People atomicity, idempotency and UI without altering `wafk...` or reusing `jxii...`. On an installation/write failure, quarantine; do not replay the full schema pack or manually resume a partial installation. No real data or cross-customer credentials are permitted.
 
----
+On 2026-09-22 the one-shot guarded helper completed: the exact current fresh installer applied the H2 migration, verified 39/39 public-table RLS plus service-role grants and no anon table access, configured a private `documents` bucket, and bootstrapped one synthetic Full Access actor. A separate read-only SQL query confirmed one company, one membership, one auth user, zero employees and the H2 RPC. In this H2-only target, a synthetic accepted/hired snapshot created one employee; an identical retry returned that employee, a changed-offer retry raised `HIRE_HANDOFF_CONFLICT`, and post-checks found one employee, one handoff audit and matching source/approver provenance. An explicit transaction creating a second synthetic employee was rolled back; counts remained one employee and one handoff audit. A second synthetic candidate reusing the first offer was rejected as a conflict, and an un-hired candidate was rejected as invalid; employee count stayed one. Two simultaneous SQL Editor requests using another identical synthetic source both returned employee `c05c6f1e-fa59-434e-bf28-6a6fa6e97a94`; a post-query found exactly one row for that source. This proves the observed concurrent retry outcome, though not all possible scheduling races. A single transaction-scoped temporary trigger then forced `H2_FORCED_PROVENANCE_FAILURE` on the provenance update after verifying the intermediate employee insert existed; the function error was caught, employee/audit counts remained unchanged, and transaction rollback left zero trigger and zero fault-test employee. No persistent fault-test machinery was installed. The browser action remains unproven. Do not rerun the install/bootstrap helper.
 
-## Guard pattern (HR5) — mandatory in all staging scripts
+The local H2 browser login succeeded with the synthetic Full Access actor on the isolated target; `/employees` initially displayed exactly the two employees created by the prior SQL proofs. The form's required HirePass attestation was held until a separate local-only PostgreSQL database, `hirepass_h2_operator_synthetic_20260922`, was created empty and populated via HirePass's existing `createOffer` and `respondToCandidateOffer(..., "accept", ...)` workflow. A read-back confirmed pass `HP-H2-OP-20260922`, application/candidate ID `1` with status `hired`, offer ID `1` with status `accepted`, and the fictional name/email `H2 Browser Synthetic Candidate` / `h2-browser-source@teamframe.invalid`. No existing HirePass database or customer data was used.
 
-Every script that writes to staging must assert at startup that staging and the existing project are different:
+The operator then submitted that reviewed snapshot through the local TeamFrame browser against only `euhvgedjldqzfczkzjqi`, with stable namespace `h2-synthetic-ui-proof`, start date 2026-10-15, and no invitation. The success route and visible record identified employee `945e15bc-6faa-4539-a1bf-324d63aed395`; an identical browser retry returned that same ID and the directory remained at three employees. A read-only H2 SQL result found one source row for the candidate, offer ID `1`, approver `47d8185a-5eeb-4244-9c82-7cf02387b4a7`, the exact review reference `HP-H2-OP-20260922: local synthetic offer acceptance verified 2026-09-22`, and one `employee.created_from_hire` audit. This proves the operator path and observed identical-retry idempotency. The single forced mid-function rollback proof above was already run against this same H2 target; no second fault injection is needed.
 
-```js
-if (!process.env.SUPABASE_URL_STAGING) {
-  throw new Error("[PARITY_FAIL] SUPABASE_URL_STAGING missing");
-}
-if (process.env.SUPABASE_URL_STAGING === process.env.NEXT_PUBLIC_SUPABASE_URL) {
-  throw new Error("[PARITY_FAIL] SUPABASE_URL_STAGING must differ from NEXT_PUBLIC_SUPABASE_URL");
-}
-```
+Security containment: a later read-only browser inspection of this H2 project's legacy API-key page exposed its privileged legacy key in the browser accessibility output without a reveal/copy action. The value is not recorded here. Treat it as compromised; do not use `euhv...` for M1 security evidence or real data. H2's prior synthetic transaction/browser result remains valid, but any future use requires replacing the privileged credential, retiring the legacy key after consumers migrate, and rechecking the boundary. Do not inspect legacy-key pages through accessibility capture again.
 
-If the guard fails, the script exits immediately with a non-zero code. **Never skip this check.**
+The H2 project overview also displayed a CRITICAL Supabase Advisor finding for `public.employees_public`: the installed view runs with owner privileges and had authenticated SELECT, bypassing underlying employee RLS for its projected same-tenant directory. No cross-tenant leak was established. Canonical commit `2042d28` makes fresh installations use `security_invoker` and revokes authenticated view access, retaining service-role access. This commit was **not applied to existing populated projects**; the Advisor finding and live role/revocation proof remain open there. Do not claim M1 security acceptance from the canonical edit alone.
 
----
+On 2026-09-22, immediately before the founder-approved temporary pause, a read-only count on this exact H2 target returned **one company, three employees, one auth user and zero stored objects**. The three employees match the synthetic H2 proof above. Project settings showed only `admin@takaven.com` in the TAKAVEN organization; GitHub was unconnected, Vercel was not installed, and the Connections list was empty. The only installed project integrations were Supabase Data API and Vault. No local process listened on TeamFrame port 3030; a stale localhost browser tab was not an active server session. The H2 proof is preserved in this record, ledger row H2, and commits `53f0186` / `9c06d04`. Supabase then confirmed **Project "teamframe-h2-handoff-disposable-20260922" is paused**, with a Resume action and data-retention notice. State: **PAUSED, not deleted**. Do not use this compromised-key project for M1 security proof or the next M3 baseline.
 
-## How to switch between environments
+The next TAKAVEN Free project is `teamframe-m1-m3-proof-disposable-20260922`, ref `xqiamhwkuogcgucwmlxy`, in Mumbai (`ap-south-1`). It was created with Data API enabled, automatic table exposure disabled, automatic RLS enabled, and no GitHub repository connected. The founder kept its generated database password private. Its first read-only SQL check returned **0 public base tables, 0 auth users, 0 storage buckets and 0 stored objects**. State: **ACTIVE, CLEAN, SYNTHETIC-ONLY; no TeamFrame installer, bootstrap or proof writer has run**. This is the only candidate for the next guarded M1/M3 proof; verify exact identity, credentials, TLS and the operation-specific empty-state preflight again before the first write. Do not reuse `wafk...`, paused H2 `euhv...`, or any other populated/protected fixture. A failed write quarantines this target; do not replay an installer or manually resume a partial schema.
 
-- All `*:staging` scripts (`db:apply:staging`, `db:reset:staging`, `verify:parity`, `verify:rls`) read from `.env.staging`.
-- The main app and existing scripts read from `.env.local`.
-- Never mix the two env files. The HR5 guard is the last line of defence.
+The TAKAVEN project `teamframe-founder-review-20260924`, ref `dcfxyjrfsrkibhpbmjnw`, is the persistent **synthetic Founder Review / Staging** environment. It was verified clean before installation and contains no customer, ARIE or Baynunah data. The current workspace is `Northstar Advisory` (`northstar`), established with 17 fictional employees and one dedicated Full Access review account, `founder-review@teamframe.invalid`. The first account-bootstrap attempt used create-only mode after the demo seed had already created Northstar; the guard refused before creating an auth user or membership. Read-only revalidation then confirmed one intended company, 17 employees, zero memberships and zero auth users, after which the existing-company bootstrap completed successfully. The refusal caused no partial bootstrap mutation and this environment is **ACTIVE**, not quarantined.
 
----
+The corresponding Vercel project is `teamframe-founder-review` in the `ismaelloveexcels-projects` scope, administered through the Vercel account `isudally@gmail.com`, connected to `takaven/teamframe`. The review source branch is `launch/managed-people-ops-45-day`; pushes to that branch are intended to update the Preview review application so the founder can refresh the same app for ongoing product and visual review. Preview-only variables point to this exact Supabase project. Do not promote this configuration to Production, casually reseed/reset the fixture, or treat it as a customer environment. It is not production and is not M1, M3 or security evidence.
 
-## How to never accidentally write to the existing project
+Group C closure adds tenant-configurable onboarding checklist templates and immutable default-checklist assignments to this review environment. Stable synthetic Manager and Employee persona accounts are maintained here for deployed role verification; their passwords are delivered directly and are never committed. The Manager account must remain linked to an existing Northstar manager with real direct reports, and the Employee account to an existing ordinary employee. Together with `founder-review@teamframe.invalid`, these are synthetic review identities only—not customer users or production credentials.
 
-1. The HR5 guard is present in every staging script.
-2. The existing project's `SUPABASE_DB_URL` is **not** referenced in any staging script.
-3. `verify:parity` treats the existing project as read-only (no writes in `queryDb`).
-4. If you write a new staging script, copy the HR5 guard block from any existing staging script verbatim.
+- Manager review: `manager-review@teamframe.invalid`, linked to Jordan Vale (existing Northstar manager with direct reports).
+- Employee review: `employee-review@teamframe.invalid`, linked to Hugo Salcedo (ordinary Northstar employee).
+- Passwords are disposable review credentials delivered out of band; do not add them to the repository.
 
----
+Group D adds fixed HR reports plus a minimal notification delivery ledger to this review environment. The review personas use `.invalid` addresses, so notification verification is intentionally captured by the internal Preview sink and never transmitted externally. Production-capable delivery uses `RESEND_API_KEY` and `TEAMFRAME_EMAIL_FROM`; neither is configured or required for this synthetic review proof. Delivery failures remain separate from HR transactions and are visible with bounded retry on Home. This is template/runtime and sandbox-sink proof only, not real external email-delivery proof.
 
-## Resetting staging to a clean state
+Initial UAE launch digest scheduling uses the existing daily automation endpoint at `04:00 UTC`, approximately `08:00` UAE time (`UTC+4`). Delivery remains idempotent per recipient and local calendar date, skips empty digests, and records outcomes in the notification ledger. `POST-REVENUE / MULTI-TIMEZONE ENHANCEMENT`: per-customer local digest time is deliberately deferred until commercial need; no hourly polling, paid scheduler or second cron architecture is introduced.
 
-```bash
-ALLOW_DESTRUCTIVE_RESET=true npm run db:reset:staging
-```
+For the F2 clean buyer baseline, a separate TAKAVEN Free project `teamframe-f2-clean-baseline-disposable-20260922`, ref `wafkfvpsdhjfrxrmgksl`, was created under the `Takaven` organization (`jdlcphgoqpnztlbklkpc`) in Mumbai (`ap-south-1`), with Data API enabled, automatic table exposure disabled, automatic RLS enabled, and no GitHub connection. On 2026-09-22, a read-only SQL count in this exact project returned **0 public tables, 0 auth users, 0 storage buckets, and 0 stored objects** before any installation. It was authorized for the current-branch F2 install, private-storage setup, one guarded bootstrap, and corrected 120-person import. Its database password remains private; never place it or the project service-role key in chat, files, logs, screenshots, or commits. On any write failure, quarantine this target; do not rerun or manually resume a partial install.
 
-This drops all public-schema tables in staging and reapplies all schemas. Auth users and storage buckets are unaffected.
+The user ran the guarded one-shot helper on this target. Exact-target/key preflights passed; the current 32-file fresh installer verified **39 public tables/all RLS**, required objects, service-role grants and no anon table access; storage setup created the private 10 MB `documents` bucket. Bootstrap created one synthetic company and Full Access auth/member only. The corrected 120-person factory test passed (command elapsed **218.4 seconds**, including startup). Its assertions covered 120 employees, 108 manager links, 121 invitations and the expected import relationships. A separate read-only SQL query verified **116 historical employees with zero join initializations, onboarding tasks, check-ins or probation reviews**, and **four starters with four initializations, 24 tasks (four correctly manager-owned), four check-ins and four probation reviews**. The test additionally asserted zero historical join automation. **F2 clean-import acceptance PASS.** Do not rerun the one-shot helper or count 218.4 seconds as full customer activation; active operator time and complete activation elapsed remain unmeasured.
 
----
+`wafkfvpsdhjfrxrmgksl` is now the **active synthetic buyer-baseline target** for P2 before/after journey observation. It is populated with the F2 fixture, not empty: one synthetic company/Full Access operator, 120 employees and the verified clean join-work counts above. Permitted baseline work is read-only UI observation and read-only SQL state checks on this exact project, with the signed-in account and project identity rechecked first. Do not run another fresh install, bootstrap, factory import or one-shot helper, and do not add, edit or delete fixture rows to improve a demo. The earlier `jxiiinglydqqhwjglxtg` project remains contaminated by historical join work and is **forbidden as the corrected buyer baseline**; keep it only as prior importer/root-cause evidence. Neither project's UI observation is live security proof.
 
-## Project references
+On 2026-09-22, the loopback-only UI against this target showed the corrected Control Centre state: **28 attention items: four probation decisions, 24 upcoming onboarding tasks, zero overdue**, versus 720/696 on the contaminated fixture. The five queue fields (Attention, Owner, Required by, Next action, Reason) rendered from current data. This is a clean synthetic product baseline, not an unaided buyer test or live security proof. The header says “28 items need attention” even though all are future-dated, and the December probation decisions appear before October starter tasks; this may mislead management about urgency and remains a bounded P3 buyer-comprehension check, not grounds for a new prioritization engine. Before P5, the next starter record (Synthetic Person 117, start 15 Oct 2026) required navigation from Overview through Onboarding/Employees and separate record tabs: Onboarding showed 24 pending tasks across four starters; the employee directory said Pre-start/Pending delivery, but the selected employment card labelled the same future starter Active; Documents showed zero on file/zero requested; Account & lifecycle showed zero invite attempts and no delivered/activated timestamp. No screen assembled the configured pre-start blockers and owners. After P5, this starter's Employment tab visibly showed **ACTION REQUIRED**, two Starter-owned due-by-start blockers with next actions, and a separate no-invite state. This is configured-checks truth only, not a legal-compliance or unaided buyer verdict. The future-starter Active header remains a separate copy/state issue.
 
-| | Existing project | Staging |
-|---|---|---|
-| Dashboard URL | *(see Supabase dashboard — do not commit)* | *(fill in after creation)* |
-| Env var (URL) | `NEXT_PUBLIC_SUPABASE_URL` | `SUPABASE_URL_STAGING` |
-| Env var (anon key) | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `SUPABASE_ANON_KEY_STAGING` |
-| Env var (service role) | `SUPABASE_SERVICE_ROLE_KEY` | `SUPABASE_SERVICE_ROLE_KEY_STAGING` |
-| Env var (DB URL) | `SUPABASE_DB_URL` | `SUPABASE_DB_URL_STAGING` |
-| Schemas applied | `tenancy_rls.sql` (v1) | `tenancy_rls.sql` + `tenancy_rls_v2.sql` |
-| v2 migration status | **Pending orchestrator review** | Applied |
+Security note: while inspecting this synthetic project's legacy API-key dashboard, the browser accessibility representation included the privileged key value without a reveal/copy action. The value is not recorded here and must not be reused for any real environment. Treat this project's legacy service-role key as exposed to the assistant tool transcript. [Supabase's key guidance](https://supabase.com/docs/guides/getting-started/api-keys#rotate-a-leaked-or-compromised-key) recommends replacing a compromised legacy key with a new secret API key, confirming clients use it, then deactivating the legacy keys; a JWT-signing-key migration/revocation may also be needed to invalidate legacy-signed tokens. Do not casually rotate a shared JWT secret or assume creating a new key revokes the old one. **No live security proof or real data** on this target until the legacy credential is retired and the boundary reverified. The F2 counts are corroborated by the passing one-shot test and direct read-only SQL. Synthetic-only buyer journeys may proceed with a before/after state check, clearly marked as non-security evidence, so this incident does not stall M2 indefinitely.
+
+On 2026-09-21, a local loopback-only TeamFrame session signed in with the synthetic Full Access operator and rendered 720 attention controls: 696 overdue, four decisions and 20 due. The 116 historical employees in the fixture were incorrectly given five onboarding tasks and a probation review each; this environment is **contaminated for buyer-baseline purposes**. It remains useful as prior importer/root-cause evidence, but never delete the generated rows merely to make a demo. The local server and browser may still depend on this project; verify they are stopped before pausing it. The proposed explicit import-intent code has **not** been applied to this database, and the current UI is not post-fix evidence.
+
+## Current proof state (2026-09-21)
+
+- The TAKAVEN project was verified in its organization list. The bounded schema continuation succeeded after fixing the fresh-install ordering bug (`80dfa51`). Read-only SQL in the named project showed **39 public tables, all 39 with RLS enabled**, `leave_definitions`, `file_operations`, `tenant_memberships`, `position_assignments` and the leave-decision RPC present; the live tenant helper is membership-backed without the email fallback, and its unique index exists. Companies, auth users and stored objects remained zero. This is **schema installation proof only**; role/tenant access, document security, email, backup and restore are not yet passed.
+- The first schema attempt stopped at TLS certificate validation (`self-signed certificate in certificate chain`) before connecting. The runner now trusts the public Supabase CA supplied by this project's Database Settings while retaining certificate and hostname verification (`8a43208`). The CA file's SHA-256 matched the dashboard download. A dummy-password live probe completed TLS and received an expected authentication rejection.
+- The next attempt stopped at `password authentication failed for user "postgres"`. The runner's project ref, pooler host, port and username matched the project's official **Session pooler** connection panel. This does **not** prove which password was entered or whether it belongs to this project. Do not claim a migration passed or repeatedly reset passwords without rechecking account/project identity.
+- A subsequent secure-prompt attempt connected but stopped after `early_employment.sql`: `transactional_mutations.sql` declared a `leave_definitions` row before that table existed. Remote inspection showed 25 public tables, zero companies/auth users/files, the early-employment object present, and the failed function and next file absent. The canonical order was corrected; a one-time resume guarded to this exact empty disposable footprint applied the remaining 11 files successfully. Do not rerun that resume command now that the schema is complete.
+- The Free plan does **not** include scheduled project backups. A logical export and clean-target restore, including storage-file verification where applicable, must be executed before backup/restore is marked PASS. Do not purchase or enable a paid plan without the spend approval gate.
+
+## Before any database write
+
+1. Sign in as `admin@takaven.com`. In Supabase, verify the `Takaven` organization, exact disposable project name/ref, intended purpose and current availability against the approved-project records above and `scripts/approved-launch-projects.mjs`. Do not substitute one disposable project for another.
+2. Confirm the project still contains no real ARIE, Baynunah or customer data. Use synthetic fixtures only.
+3. Compare the DB connection details with **Connect → Direct → Session pooler** on that exact project. Do not copy connection details from another browser account or project.
+4. Use a secure interactive password prompt. Never paste passwords, service-role keys or full credential-bearing URLs into chat, docs, screenshots, logs or repository files. Keep `.env.local` and `.env.staging` out of version control.
+5. The earlier disposable installation used process-scoped staging variables. The current canonical `npm run db:install:fresh` instead requires `TEAMFRAME_INSTALL_PROJECT_REF`, `TEAMFRAME_INSTALL_SUPABASE_URL`, `TEAMFRAME_INSTALL_DB_URL`, and `TEAMFRAME_INSTALL_APPROVAL=fresh:<ref>` in process memory. It checks exact public/DB identity, rejects URL query overrides of TLS, requires an empty target, and verifies the Supabase CA. `--check-target` checks identity but does not connect or prove migration success.
+6. Inspect current schema before applying. The runner has **no migration journal** and refuses a full replay against an initialized database. The one-time partial-recovery option and its local helper have been removed following the clean-install proof. Do not rerun the installer on either populated schema. Verify actual tables/policies and record the evidence in the ledger. A terminal command alone is not proof.
+
+The historical reset/setup/replay scripts now exit before connecting and their normal package aliases are retired. `verify:rls:disposable` is available only with the exact approved TAKAVEN project ref and audit-only credentials; it seeds/cleans synthetic fixtures, so do not use it as a read-only shortcut.

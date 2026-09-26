@@ -5,6 +5,7 @@ import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { EmployeeAvatar } from "@/components/EmployeeAvatar";
 import { humaneDate } from "@/lib/ui/formatDate";
 import { updateEmployeePhotoAction } from "@/app/employees/actions";
+import { canonicalLifecycleLabel, projectEmployeeLifecycle } from "@/services/employeeLifecycle";
 
 // Structured, read-oriented employee master record, decomposed into panels the record tabs render.
 // Compensation/payment blocks only receive values when the record's capability flag (canView) is
@@ -34,16 +35,6 @@ function Grid({ children }: { children: React.ReactNode }) {
   return <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{children}</dl>;
 }
 
-function humaneStatus(lifecycle: string, status: string): string {
-  const s = (status || lifecycle || "").replace(/_/g, " ");
-  if (!s) return "Active";
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-function statusTone(status: string): "green" | "amber" | "neutral" {
-  return status === "active" ? "green" : status === "on_leave" ? "amber" : "neutral";
-}
-
 function PanelCard({ title, note, children }: { title: string; note?: string; children: React.ReactNode }) {
   return (
     <section className="tf-surface-flat p-5">
@@ -71,7 +62,16 @@ export function RecordHeader({
   const { identity, employment } = master;
   const roleDiverges = positionTitle !== null && employment.role_title.trim().toLowerCase() !== positionTitle.trim().toLowerCase();
   const displayRole = positionTitle ?? employment.role_title;
-  const tone = statusTone(employment.status);
+  const lifecycle = projectEmployeeLifecycle({
+    status: employment.status as "active" | "on_leave" | "inactive",
+    setup_status: employment.setup_status as "incomplete" | "ready" | "active",
+    lifecycle_state: employment.lifecycle_state as "preboarding" | "active" | "on_leave" | "offboarding" | "exited",
+    start_date: employment.start_date,
+    end_date: employment.end_date,
+  });
+  const onLeave = lifecycle === "ACTIVE" && employment.status === "on_leave";
+  const label = onLeave ? "On leave" : canonicalLifecycleLabel(lifecycle);
+  const tone = onLeave || lifecycle === "PRE_START" || lifecycle === "ONBOARDING" ? "amber" : lifecycle === "ACTIVE" ? "green" : "neutral";
   return (
     <section className="tf-surface p-5 sm:p-6">
       <div className="flex flex-wrap items-start gap-4">
@@ -82,7 +82,7 @@ export function RecordHeader({
           <div className="flex flex-wrap items-center gap-2.5">
             <h2 className="text-[20px] font-semibold tracking-tight text-ink-900">{identity.full_name}</h2>
             <span className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-ink-600">
-              <span className={`tf-dot tf-dot-${tone}`} aria-hidden /> {humaneStatus(employment.lifecycle_state, employment.status)}
+              <span className={`tf-dot tf-dot-${tone}`} aria-hidden /> {label}
             </span>
           </div>
           <p className="mt-1 text-[13.5px] text-ink-600">
@@ -158,11 +158,9 @@ export function EmploymentReadPanel({
           <Field label="Country" value={employment.country} />
           <Field label="Work location" value={employment.work_location} />
           <Field label="Timezone" value={employment.timezone} />
-          <Field label="Employment type" value={employment.employment_type.replace(/_/g, " ")} />
+          <Field label="Employment type" value={employment.employment_type.replaceAll("_", " ").replace(/\b\w/g, (character) => character.toUpperCase())} />
           <Field label="Start date" value={fmtDate(employment.start_date)} />
           <Field label="End date" value={employment.end_date ? fmtDate(employment.end_date) : null} />
-          <Field label="Working-days override" value={employment.working_days_override ? employment.working_days_override.join(", ") : null} />
-          <Field label="Leave entitlement override" value={employment.annual_leave_entitlement_override} />
         </Grid>
       </PanelCard>
       <PanelCard title="Position history">

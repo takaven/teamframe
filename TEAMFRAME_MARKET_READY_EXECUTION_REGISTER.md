@@ -1,5 +1,7 @@
 # TeamFrame Market-Ready Execution Register
 
+> **Historical implementation register.** Current 45-day work is tracked only in [docs/launch/EXECUTION_LEDGER.md](docs/launch/EXECUTION_LEDGER.md).
+
 **STATUS: CANONICAL / CONTROLLING IMPLEMENTATION REGISTER**
 
 This register consolidates the approved market-ready scope, Claude browser findings as behavioural evidence, and Codex technical verification into root implementation requirements. It does not use Claude AG numbering as canonical repository numbering.

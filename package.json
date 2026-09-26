@@ -11,22 +11,18 @@
     "env:check": "node scripts/validate-env.mjs build",
     "env:check:smoke": "node scripts/validate-env.mjs smoke",
     "env:check:db": "node scripts/validate-env.mjs db",
+    "env:check:production": "node scripts/validate-env.mjs production",
     "lint": "next lint",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "db:apply": "node scripts/apply-schemas.mjs",
-    "db:reset": "node scripts/reset-and-apply.mjs",
+    "db:install:fresh": "node scripts/apply-schemas-fresh.mjs",
     "db:inspect": "node scripts/inspect-db.mjs",
-    "setup:staging": "node scripts/setup-staging-project.mjs",
-    "db:apply:staging": "node scripts/apply-schemas-staging.mjs",
-    "db:reset:staging": "node scripts/reset-and-apply-staging.mjs",
     "verify:parity": "node scripts/verify-parity.mjs",
-    "verify:rls": "node scripts/verify-rls.mjs",
-    "verify:install": "node scripts/verify-install.mjs",
+    "verify:rls:disposable": "node scripts/verify-rls.mjs",
     "seed:admin": "node scripts/seed-admin.mjs",
     "access:bootstrap": "node scripts/bootstrap-full-access.mjs",
     "seed:demo": "node scripts/seed-demo.mjs",
-    "storage:setup": "node scripts/setup-storage.mjs",
+    "storage:setup:fresh": "node scripts/setup-storage.mjs",
     "smoke:core-loop": "node scripts/smoke-core-loop.mjs",
     "sentry:test-event": "node scripts/sentry-test-event.mjs",
     "exports:cleanup": "node scripts/cleanup-expired-exports.mjs",
@@ -36,13 +32,14 @@
     "guard:tenancy-filter": "node scripts/guard-tenancy-filter.mjs",
     "guards": "npm run guard:instrumentation && npm run guard:health-contract && npm run guard:telemetry && npm run guard:tenancy-filter",
     "verify:release": "npm run typecheck && npm run lint && npm test && npm run guards && npm run build",
-    "verify:integration": "node scripts/verify-integration.mjs"
+    "verify:integration": "node scripts/verify-integration.mjs",
+    "factory:measure:disposable": "node scripts/measure-customer-factory-disposable.mjs"
   },
   "dependencies": {
     "@sentry/nextjs": "^9.47.1",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.46.0",
-    "next": "15.5.22",
+    "next": "15.5.25",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "zod": "^3.23.8"
@@ -56,17 +53,24 @@
     "@types/react-dom": "^19.0.0",
     "dotenv": "^17.4.2",
     "eslint": "^9.15.0",
-    "eslint-config-next": "15.5.22",
+    "eslint-config-next": "15.5.25",
     "pg": "^8.21.0",
-    "postcss": "^8.4.49",
+    "postcss": "8.5.28",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.6.3",
     "vitest": "^4.1.7"
   },
+  "optionalDependencies": {
+    "sharp": "0.35.4"
+  },
   "overrides": {
     "ajv": {
-      "fast-uri": "3.1.5"
+      "fast-uri": "3.1.8"
     },
+    "browserslist": "4.29.0",
+    "nanoid": "3.3.19",
+    "postcss": "$postcss",
+    "sharp": "$sharp",
     "minimatch@8.0.7": {
       "brace-expansion": "2.1.4"
     },

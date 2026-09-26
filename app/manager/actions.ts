@@ -7,6 +7,7 @@ import { decideLeaveRequestAsManager } from "@/services/leaveService";
 import { completeManagerOnboardingTask } from "@/services/onboardingService";
 import { submitManagerProbationInput } from "@/services/earlyEmploymentService";
 import { completeOffboardingItem } from "@/services/offboardingService";
+import { notifyLeaveDecision } from "@/services/notificationService";
 
 const DecideLeaveSchema = z.object({
   leave_id: z.string().uuid(),
@@ -53,6 +54,7 @@ export async function decideManagerLeaveAction(formData: FormData): Promise<void
     await decideLeaveRequestAsManager(actor, parsed.leave_id, parsed.decision, parsed.expected_updated_at, {
       decisionNote: parsed.decision_note,
     });
+    await notifyLeaveDecision(actor.tenantId, parsed.leave_id, parsed.decision);
   } catch (error) {
     redirect(`/manager?error=${encodeURIComponent(getErrorCode(error))}`);
   }

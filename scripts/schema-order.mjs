@@ -23,18 +23,20 @@ export const SCHEMA_ORDER = [
   "document_requirements.sql",
   "employment_changes.sql",
   "early_employment.sql",
-  "transactional_mutations.sql",
   "file_lifecycle.sql",
   "tenancy_rls.sql",
   "tenancy_rls_v2.sql",
-  "access_model.sql",
-  "offboarding.sql",
   // Phase 1 config foundations. Applied after the tenancy helper functions
   // (current_actor_tenant_id / is_current_actor_admin) so their RLS policies resolve.
   // Each file only FKs to companies, which is applied first.
   "departments.sql",
   "work_locations.sql",
   "leave_definitions.sql",
+  // The leave RPC declares a leave_definitions row, so this table must exist
+  // before transactional_mutations.sql is parsed on a fresh database.
+  "transactional_mutations.sql",
+  "access_model.sql",
+  "offboarding.sql",
   // Phase 2: position occupancy history + positions→config FKs. Applies last so it
   // can reference departments, work_locations, positions and employees.
   "position_assignments.sql",
@@ -43,4 +45,14 @@ export const SCHEMA_ORDER = [
   // compensation (components/amounts/history). Applies last — references every table above
   // and the access-model capability helpers.
   "phase8_corrections.sql",
+  // Group C: bounded tenant-defined employee fields, with isolated tables and RLS.
+  "20260924_custom_fields.sql",
+  // Group C closure: tenant-configurable onboarding checklist blueprints.
+  "20260924_onboarding_checklists.sql",
+  // Group D: bounded notification delivery/idempotency ledger.
+  "20260924_notification_deliveries.sql",
+  // Explicit service-layer API privileges follow the last table-creating file.
+  "api_privileges.sql",
+  // One-way HirePass provenance depends on the ordinary employee RPC and grants.
+  "hire_people_handoff.sql",
 ];

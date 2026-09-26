@@ -18,6 +18,9 @@ import pg from "pg";
 import dotenv from "dotenv";
 import { SCHEMA_ORDER } from "./schema-order.mjs";
 
+console.error("[RETIRED] Full-schema replay is disabled. Use db:install:fresh on a verified empty isolated project; existing deployments require a separately reviewed migration.");
+process.exit(1);
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, "..");
 

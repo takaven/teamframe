@@ -87,6 +87,18 @@ const ALLOWLIST = [
     enclosingFn: "runDueAutomation",
   },
   {
+    file: "services/notificationService.ts",
+    table: "companies",
+    enclosingFn: "runDailyDigests",
+    reason: "The existing global scheduler enumerates tenant roots so each company digest can then be processed within its verified tenant scope.",
+  },
+  {
+    file: "services/notificationService.ts",
+    table: "tenant_memberships",
+    enclosingFn: "runDailyDigests",
+    reason: "The existing global scheduler enumerates active memberships once, then filters them by the current company id before any per-tenant digest query or write.",
+  },
+  {
     file: "services/customerProvisioningService.ts",
     table: "setup_import_batches",
     enclosingFn: "commitSetupPack",
