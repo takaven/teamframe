@@ -81,14 +81,13 @@ export function DocumentsChecklist({ requirements, returnTo = "/documents-and-po
 
   return (
     <div className="space-y-4">
-      <StatusPill tone={outstanding > 0 ? "amber" : "green"}>{outstanding} outstanding</StatusPill>
+      <p className="text-[13px] font-medium text-ink-700">
+        {outstanding > 0 ? `${outstanding} document${outstanding === 1 ? "" : "s"} required` : "Documents complete"}
+      </p>
       {BUCKET_ORDER.filter((b) => grouped.has(b)).map((bucket) => (
         <div key={bucket}>
-          <div className="flex items-center gap-2">
-            <StatusPill tone={BUCKET_TONE[bucket] ?? "neutral"}>{bucket}</StatusPill>
-            <span className="text-[12px] text-ink-500">{grouped.get(bucket)!.length}</span>
-          </div>
-          <ul className="mt-2 divide-y divide-ink-100 rounded-lg border border-ink-200">
+          {grouped.size > 1 ? <div className="flex items-center gap-2"><StatusPill tone={BUCKET_TONE[bucket] ?? "neutral"}>{bucket}</StatusPill><span className="text-[12px] text-ink-600">{grouped.get(bucket)!.length}</span></div> : null}
+          <ul className={`${grouped.size > 1 ? "mt-2" : ""} divide-y divide-ink-100 rounded-lg border border-ink-200`}>
             {grouped.get(bucket)!.map((r) => (
               <li key={r.id} className="px-3 py-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">

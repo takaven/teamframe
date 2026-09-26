@@ -117,7 +117,7 @@ export async function AppShell({
                 aria-current={active ? "page" : undefined}
                 className={[
                   "relative mx-3 flex items-center rounded-lg px-3 py-2 text-[14px] transition",
-                  active ? "bg-white/[0.08] font-semibold text-white before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[2.5px] before:rounded-full before:bg-brand-signal" : "font-medium text-ink-400 hover:bg-white/[0.04] hover:text-white",
+                  active ? "bg-white/[0.08] font-semibold text-white before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[2.5px] before:rounded-full before:bg-brand-signal" : "font-medium text-white/70 hover:bg-white/[0.04] hover:text-white",
                 ].join(" ")}
               >
                 {link.label}
@@ -133,7 +133,7 @@ export async function AppShell({
                 aria-current={isActive(SETUP_LINK.href) ? "page" : undefined}
                 className={[
                   "relative mx-3 flex items-center rounded-lg px-3 py-2 text-[13.5px] transition",
-                  isActive(SETUP_LINK.href) ? "bg-white/[0.08] font-semibold text-white before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[2.5px] before:rounded-full before:bg-brand-signal" : "font-medium text-ink-500 hover:bg-white/[0.04] hover:text-white",
+                  isActive(SETUP_LINK.href) ? "bg-white/[0.08] font-semibold text-white before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[2.5px] before:rounded-full before:bg-brand-signal" : "font-medium text-white/70 hover:bg-white/[0.04] hover:text-white",
                 ].join(" ")}
               >
                 {SETUP_LINK.label}

@@ -10,7 +10,7 @@
   --color-ink-900: #0f1115;
   --color-ink-800: #2a2f37;
   --color-ink-700: #2a2f37;
-  --color-ink-500: #68707d;
+  --color-ink-500: #5d6570;
   --color-ink-400: #b9c0c9;
   --color-ink-300: #ccd1d8;
   --color-ink-100: #e9edf1;
@@ -798,7 +798,7 @@ main:has(> .tf-app-shell) input[type="file"]::file-selector-button {
   --tf-white: #ffffff;
   --tf-graphite: #42494d;
   --tf-charcoal: #20242b;
-  --tf-titanium: #68707d;
+  --tf-titanium: #5d6570;
   --tf-lime: #01ff22;
   --tf-material: #e8e8e8;
   --tf-material-light: #eeeeef;
@@ -909,6 +909,12 @@ main:has(> .tf-app-shell) { background: var(--tf-canvas); }
 .tf-count-accent { display: inline-flex; align-items: center; gap: 5px; color: var(--tf-charcoal); font-weight: 750; }
 .tf-count-accent::before { content: ""; width: 4px; height: 4px; border-radius: 999px; background: var(--tf-lime); box-shadow: 0 0 0 1px rgba(32,36,43,.12); }
 .tf-secondary-nav.tf-reports-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 20px; overflow: visible; }
+.tf-reports-nav [aria-current="page"] { border-radius: 8px 8px 0 0; background: rgba(255,255,255,.32); padding-inline: 10px; }
+.tf-profile-completion { border-left: 2px solid var(--tf-lime); padding-left: 10px; }
+.tf-profile-section { border-top: 1px solid var(--tf-line); padding: 22px 0; }
+.tf-profile-section:first-of-type { margin-top: 18px; }
+.tf-profile-edit[open] > summary { color: var(--tf-charcoal); }
+.tf-attention-filters { flex-wrap: wrap; overflow: visible; }
 @media (max-width: 640px) {
   .tf-secondary-nav.tf-reports-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; }
   .tf-secondary-nav.tf-reports-nav a { white-space: normal; }
@@ -1367,8 +1373,11 @@ main > section[class*="bg-white"][class*="border"] {
     --tf-floating: 0 12px 30px -20px rgba(15,17,21,.3);
   }
   .tf-auth-page { grid-template-columns: minmax(0, 1fr); }
-  .tf-summary { width: 100%; }
+  .tf-summary { width: 100%; grid-template-columns: repeat(2,minmax(0,1fr)); }
   .tf-summary > * { padding: 12px; }
+  .tf-summary > * { border-left: 0; }
+  .tf-summary > *:nth-child(even) { border-left: 1px solid var(--tf-line); }
+  .tf-summary > *:nth-child(n+3) { border-top: 1px solid var(--tf-line); }
   .tf-metric-strip { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .tf-metric-strip > * { padding: 16px 12px; }
   .tf-metric-strip > * + * { border-left: 0; }

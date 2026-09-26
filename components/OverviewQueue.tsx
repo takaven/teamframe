@@ -27,7 +27,7 @@ function sourceLabel(source: string): string {
   return "People";
 }
 function formatDue(iso: string | null): string {
-  if (!iso) return "Not set";
+  if (!iso) return "No due date";
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
@@ -40,8 +40,8 @@ function Row({ item }: { item: OverviewQueueItem }) {
     >
       <span className="min-w-0">
         <span className="flex items-start gap-2 text-[13.5px] font-medium text-ink-800"><span className={`tf-dot ${dotClass(item.class)} mt-1 shrink-0`} aria-hidden />{item.title}</span>
-        <span className="mt-0.5 block pl-5 text-[12px] text-ink-500">{item.subjectName} · {sourceLabel(item.source)}</span>
-        <span className="mt-1 block pl-5 text-[11.5px] leading-snug text-ink-400">{item.detail}</span>
+        <span className="mt-0.5 block pl-5 text-[12px] text-ink-600">{item.subjectName} · {sourceLabel(item.source)}</span>
+        <span className="mt-1 block pl-5 text-[11.5px] leading-snug text-ink-600">{item.detail}</span>
       </span>
       <span className="text-[12.5px] text-ink-700"><span className="font-semibold lg:hidden">Owner: </span>{item.owner}</span>
       <span className="text-[12.5px] tabular-nums text-ink-600"><span className="font-semibold lg:hidden">Due: </span>{formatDue(item.dueAt)}</span>
@@ -57,7 +57,7 @@ export function OverviewQueue({ items }: { items: OverviewQueueItem[] }) {
 
   return (
     <div>
-      <div className="tf-secondary-nav mb-4" role="tablist" aria-label="Filter work that needs attention">
+      <div className="tf-secondary-nav tf-attention-filters mb-4" role="tablist" aria-label="Filter work that needs attention">
         {FILTERS.map((f) => {
           const active = filter === f.key;
           const count = counts[f.key];

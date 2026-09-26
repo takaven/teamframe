@@ -365,8 +365,17 @@ export default async function LeavesPage({
 
       {overview ? (
         <>
-          <section className="mt-8 overflow-x-auto rounded-xl border border-ink-300/70 bg-white/80">
-            <table className="min-w-full text-left text-[13px]">
+          <section className="mt-8 rounded-xl border border-ink-300/70 bg-white/80">
+            <div className="grid divide-y divide-ink-200 sm:hidden">
+              {definitionBalances.map((balance) => (
+                <div key={`mobile-${balance.definition_id}`} className="px-4 py-4">
+                  <p className="text-[14px] font-semibold text-ink-900">{balance.display_name}</p>
+                  <p className="mt-1 text-[13px] text-ink-700"><span className="font-semibold tabular-nums">{balance.available ?? "—"}</span> available · <span className="tabular-nums">{balance.taken}</span> taken · <span className="tabular-nums">{balance.pending}</span> pending</p>
+                  <p className="mt-1 text-[12px] text-ink-600">Entitlement: <span className="tabular-nums">{balance.entitlement ?? "—"}</span></p>
+                </div>
+              ))}
+            </div>
+            <div className="hidden overflow-x-auto sm:block"><table className="min-w-full text-left text-[13px]">
               <thead className="border-b border-ink-200 text-[11px] uppercase tracking-[0.1em] text-ink-500">
                 <tr>
                   <th className="px-4 py-3 font-medium">Leave type</th>
@@ -387,7 +396,7 @@ export default async function LeavesPage({
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </section>
 
           <section className="mt-8 rounded-xl border border-ink-300/70 bg-white/80 p-5">

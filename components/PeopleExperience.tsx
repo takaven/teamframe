@@ -436,6 +436,14 @@ export async function PeopleExperience({
           <div className="flex flex-wrap gap-2">
             <a href="#employment" className="tf-primary-action px-4 py-2 text-[12px]">Change employment</a>
             <a href="#documents" className="tf-secondary-action px-4 py-2 text-[12px]">Request document</a>
+            <details className="relative">
+              <summary className="tf-secondary-action inline-flex cursor-pointer list-none px-4 py-2 text-[12px] marker:hidden">More</summary>
+              <div className="tf-overlay absolute right-0 z-20 mt-2 min-w-48 p-2">
+                <PrintRecordButton className="tf-quiet-action w-full justify-start px-2" />
+                <a href="#history" className="tf-quiet-action w-full justify-start px-2">View history</a>
+                <a href="#onboarding-offboarding" className="tf-quiet-action w-full justify-start px-2">Account actions</a>
+              </div>
+            </details>
           </div>
         </div>
       ) : null}
@@ -538,7 +546,7 @@ export async function PeopleExperience({
                     </div>
                     <div className="hidden min-w-0 md:block">
                       <p className="truncate text-[13px] text-ink-700">{employee.department || "—"}</p>
-                      <p className="truncate text-[12px] text-ink-500">{employee.work_location || "No work location"}</p>
+                      {employee.work_location ? <p className="truncate text-[12px] text-ink-600">{employee.work_location}</p> : null}
                     </div>
                     <div className="flex items-center justify-end gap-2.5">
                       <span className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-ink-600">
@@ -587,9 +595,6 @@ export async function PeopleExperience({
                 const master = masterByEmployee.get(employee.id);
                 return (
                   <>
-              <div className="tf-print-hide flex justify-end">
-                <PrintRecordButton className="tf-secondary-action px-3 py-1.5 text-[12px]" />
-              </div>
               <div className="tf-print-only mb-4 border-b border-ink-200 pb-3">
                 <p className="text-[15px] font-semibold text-ink-900">{identity.name}</p>
                 <p className="mt-0.5 text-[12px] text-ink-600">
@@ -947,7 +952,7 @@ export async function PeopleExperience({
                   <div><dt className="text-ink-500">Role</dt><dd className="mt-1 font-semibold text-ink-900">{employee.role_title}</dd></div>
                   <div><dt className="text-ink-500">Department</dt><dd className="mt-1 font-semibold text-ink-900">{employee.department}</dd></div>
                   <div><dt className="text-ink-500">Employment type</dt><dd className="mt-1 font-semibold text-ink-900">{employee.employment_type.replaceAll("_", " ")}</dd></div>
-                  <div><dt className="text-ink-500">Location</dt><dd className="mt-1 font-semibold text-ink-900">{employee.country ?? "—"}</dd></div>
+                  <div><dt className="text-ink-600">Location</dt><dd className="mt-1 font-semibold text-ink-900">{ISO_COUNTRIES.find((country) => country.code === normalizeCountryCode(employee.country))?.name ?? employee.country ?? "—"}</dd></div>
                   <div><dt className="text-ink-500">Start date</dt><dd className="mt-1 font-semibold text-ink-900">{formatDate(employee.start_date)}</dd></div>
                 </dl>
 

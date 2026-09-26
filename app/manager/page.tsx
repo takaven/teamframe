@@ -113,35 +113,42 @@ export default async function ManagerPage({
             </header>
             <section className="mt-7 tf-surface-flat p-5">
               <h2 className="tf-h2">Current employment</h2>
-              <dl className="mt-4 grid gap-4 text-[13px] sm:grid-cols-2 lg:grid-cols-4">
+              <dl className="mt-4 grid gap-4 text-[13px] sm:grid-cols-2 lg:grid-cols-3">
+                <div><dt className="text-ink-600">Role</dt><dd className="mt-1 font-medium text-ink-900">{reportRecord.employment.role_title || "—"}</dd></div>
+                <div><dt className="text-ink-600">Department</dt><dd className="mt-1 font-medium text-ink-900">{reportRecord.employment.department || "—"}</dd></div>
                 <div><dt className="text-ink-500">Status</dt><dd className="mt-1 font-medium text-ink-900">{employmentStatus(reportRecord.employment.lifecycle_state, reportRecord.employment.status)}</dd></div>
                 <div><dt className="text-ink-500">Start date</dt><dd className="mt-1 font-medium text-ink-900">{formatDate(reportRecord.employment.start_date)}</dd></div>
                 <div><dt className="text-ink-500">Work location</dt><dd className="mt-1 font-medium text-ink-900">{reportRecord.employment.work_location ?? "—"}</dd></div>
                 <div><dt className="text-ink-500">Employment type</dt><dd className="mt-1 font-medium text-ink-900">{reportRecord.employment.employment_type.replace(/_/g, " ").replace(/\b\w/g, (character) => character.toUpperCase())}</dd></div>
               </dl>
             </section>
+            <section className="mt-5 tf-surface-flat p-5">
+              <h2 className="tf-h2">Lifecycle</h2>
+              <div className="mt-3 divide-y divide-ink-300/50">
+                <div className="py-4 first:pt-0">
+                  <h3 className="text-[13px] font-semibold text-ink-900">Onboarding</h3>
+                  {personTasks.length ? <ul className="mt-2 divide-y divide-ink-100">{personTasks.map((task) => <li key={task.id} className="py-2"><p className="text-[13px] font-medium">{task.title}</p><p className="mt-1 text-[12px] text-ink-600">Manager-owned · Due {formatDate(task.due_date)}</p></li>)}</ul> : <p className="mt-2 text-[13px] text-ink-600">No manager-owned onboarding work is open.</p>}
+                </div>
+                <div className="py-4">
+                  <h3 className="text-[13px] font-semibold text-ink-900">Probation</h3>
+                  {personProbation ? <dl className="mt-3 grid gap-3 text-[13px] sm:grid-cols-2 lg:grid-cols-4"><div><dt className="text-ink-600">Review due</dt><dd>{formatDate(personProbation.review_due_date)}</dd></div><div><dt className="text-ink-600">Probation ends</dt><dd>{formatDate(personProbation.probation_end_date)}</dd></div><div><dt className="text-ink-600">Status</dt><dd>{personProbation.status.replaceAll("_", " ").replace(/\b\w/g, (character) => character.toUpperCase())}</dd></div><div><dt className="text-ink-600">Recommendation</dt><dd>{personProbation.manager_recommended_outcome ? personProbation.manager_recommended_outcome.replaceAll("_", " ").replace(/\b\w/g, (character) => character.toUpperCase()) : "Not submitted"}</dd></div></dl> : <p className="mt-2 text-[13px] text-ink-600">No probation review is scheduled.</p>}
+                </div>
+                <div className="py-4 last:pb-0">
+                  <h3 className="text-[13px] font-semibold text-ink-900">30-day check-in</h3>
+                  {personCheckIns.length ? <ul className="mt-2 divide-y divide-ink-100">{personCheckIns.map((item) => <li key={item.id} className="py-2 text-[13px]"><span className="font-medium">{item.status === "submitted" ? "Submitted" : "Scheduled"}</span><span className="ml-2 text-ink-600">{item.submitted_at ? formatDate(item.submitted_at) : `Due ${formatDate(item.due_date)}`}</span></li>)}</ul> : <p className="mt-2 text-[13px] text-ink-600">No check-in is currently available.</p>}
+                </div>
+              </div>
+            </section>
             <div className="mt-5 grid gap-5 lg:grid-cols-2">
               <section className="tf-surface-flat p-5">
-                <h2 className="tf-h2">Onboarding</h2>
-                {personTasks.length ? <ul className="mt-3 divide-y divide-ink-100">{personTasks.map((task) => <li key={task.id} className="py-3"><p className="text-[13px] font-medium">{task.title}</p><p className="mt-1 text-[12px] text-ink-500">Manager-owned · Due {formatDate(task.due_date)}</p></li>)}</ul> : <p className="mt-3 text-[13px] text-ink-500">No manager-owned onboarding work is open.</p>}
-              </section>
-              <section className="tf-surface-flat p-5">
-                <h2 className="tf-h2">Probation recommendation</h2>
-                {personProbation ? <dl className="mt-3 grid gap-3 text-[13px]"><div><dt className="text-ink-500">Review due</dt><dd>{formatDate(personProbation.review_due_date)}</dd></div><div><dt className="text-ink-500">Probation ends</dt><dd>{formatDate(personProbation.probation_end_date)}</dd></div><div><dt className="text-ink-500">Status</dt><dd>{personProbation.status.replaceAll("_", " ").replace(/\b\w/g, (character) => character.toUpperCase())}</dd></div><div><dt className="text-ink-500">Recommendation</dt><dd>{personProbation.manager_recommended_outcome ? personProbation.manager_recommended_outcome.replaceAll("_", " ").replace(/\b\w/g, (character) => character.toUpperCase()) : "Not submitted"}</dd></div></dl> : <p className="mt-3 text-[13px] text-ink-500">No probation review is scheduled.</p>}
-              </section>
-              <section className="tf-surface-flat p-5">
-                <h2 className="tf-h2">30-day check-in</h2>
-                {personCheckIns.length ? <ul className="mt-3 divide-y divide-ink-100">{personCheckIns.map((item) => <li key={item.id} className="py-3 text-[13px]"><span className="font-medium">{item.status === "submitted" ? "Submitted" : "Scheduled"}</span><span className="ml-2 text-ink-500">{item.submitted_at ? formatDate(item.submitted_at) : `Due ${formatDate(item.due_date)}`}</span></li>)}</ul> : <p className="mt-3 text-[13px] text-ink-500">No check-in is currently available.</p>}
-              </section>
-              <section className="tf-surface-flat p-5">
                 <h2 className="tf-h2">Time off</h2>
-                {personLeave.length ? <ul className="mt-3 divide-y divide-ink-100">{personLeave.map((item) => <li key={item.id} className="py-3 text-[13px]"><span className="font-medium">{upcomingLabel(item)}</span><span className="ml-2 text-ink-500">from {formatDate(item.date)}</span></li>)}</ul> : <p className="mt-3 text-[13px] text-ink-500">No approved time off in the next 60 days.</p>}
+                {personLeave.length ? <ul className="mt-3 divide-y divide-ink-100">{personLeave.map((item) => <li key={item.id} className="py-3 text-[13px]"><span className="font-medium">{upcomingLabel(item)}</span><span className="ml-2 text-ink-600">from {formatDate(item.date)}</span></li>)}</ul> : <p className="mt-3 text-[13px] text-ink-600">No approved time off in the next 60 days.</p>}
+              </section>
+              <section className="tf-surface-flat p-5">
+                <h2 className="tf-h2">Contact</h2>
+                <dl className="mt-4 grid gap-4 text-[13px]"><div><dt className="text-ink-600">Company email</dt><dd>{reportRecord.contact.company_email}</dd></div><div><dt className="text-ink-600">Company phone</dt><dd>{reportRecord.contact.company_phone ?? "—"}</dd></div><div><dt className="text-ink-600">Emergency contact</dt><dd>{reportRecord.emergency_contact.name ?? "—"}{reportRecord.emergency_contact.phone ? ` · ${reportRecord.emergency_contact.phone}` : ""}</dd></div></dl>
               </section>
             </div>
-            <section className="mt-5 tf-surface-flat p-5">
-              <h2 className="tf-h2">Contact</h2>
-              <dl className="mt-4 grid gap-4 text-[13px] sm:grid-cols-2 lg:grid-cols-3"><div><dt className="text-ink-500">Company email</dt><dd>{reportRecord.contact.company_email}</dd></div><div><dt className="text-ink-500">Company phone</dt><dd>{reportRecord.contact.company_phone ?? "—"}</dd></div><div><dt className="text-ink-500">Emergency contact</dt><dd>{reportRecord.emergency_contact.name ?? "—"}{reportRecord.emergency_contact.phone ? ` · ${reportRecord.emergency_contact.phone}` : ""}</dd></div></dl>
-            </section>
           </>
         ) : <p className="mt-7 rounded-lg border border-signal-red/30 bg-signal-red/10 px-4 py-3 text-[14px] text-signal-red">{reportError ? "You can only open current direct reports." : "Employee not found."}</p>}
       </main>
@@ -222,7 +229,7 @@ export default async function ManagerPage({
                       <div>
                         <p className="text-[15px] font-medium text-ink-900">{leave.employee_full_name}</p>
                         <p className="mt-1 text-[13px] text-ink-500">
-                          {formatDate(leave.start_date)} to {formatDate(leave.end_date)} · {leave.leave_type.replace("_", " ")} · {days(leave.requested_days)}
+                          {formatDate(leave.start_date)} to {formatDate(leave.end_date)} · {leave.leave_type === "annual" ? "Annual Leave" : leave.leave_type.replaceAll("_", " ").replace(/\b\w/g, (character) => character.toUpperCase())} · {days(leave.requested_days)}
                         </p>
                         {annual && leave.leave_type === "annual" ? (
                           <p className="mt-1 text-[12px] text-ink-500">

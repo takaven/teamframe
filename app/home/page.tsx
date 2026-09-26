@@ -39,6 +39,10 @@ function upcomingLabel(item: { label: string; date: string; end_date?: string })
     : item.label;
 }
 
+function obligationKey(value: string): string {
+  return value.toLocaleLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
 async function optionalManagerDashboard(actor: Awaited<ReturnType<typeof requireTenantActor>>) {
   try {
     return await getManagerDashboard(actor);
@@ -66,11 +70,21 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   ]);
   const documents = requirements.filter((item) => !["accepted", "replaced", "cancelled"].includes(item.state));
   const onboardingTasks = onboarding.filter((item) => item.status === "pending");
+  // Presentation-only grouping: when an onboarding task clearly names the same
+  // requested document, show the direct upload obligation once. Both records and
+  // their independent completion semantics remain unchanged.
+  const visibleOnboardingTasks = onboardingTasks.filter((task) => {
+    const taskKey = obligationKey(task.title);
+    return !documents.some((document) => {
+      const labelKey = obligationKey(documentLabel(document.document_type));
+      return labelKey.length > 3 && taskKey.includes(labelKey);
+    });
+  });
   const today = new Date().toISOString().slice(0, 10);
   const isManager = Boolean(manager && manager.directReports.length > 0);
   const managerProbation = manager?.probationReviews.filter((item) => !item.manager_input) ?? [];
   const managerWorkCount = isManager && manager ? manager.pendingLeaves.length + manager.onboardingTasks.length + managerProbation.length + manager.offboardingItems.length : 0;
-  const personalCount = documents.length + policies.length + onboardingTasks.length + (checkIn.state === "available" ? 1 : 0);
+  const personalCount = documents.length + policies.length + visibleOnboardingTasks.length + (checkIn.state === "available" ? 1 : 0);
   const total = personalCount + managerWorkCount;
   const successMessage = status ? (STATUS_COPY[status] ?? null) : null;
   const errorMessage = error ? (ERROR_COPY[error] ?? ERROR_COPY.UNKNOWN) : null;
@@ -99,7 +113,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             {manager?.offboardingItems.map((item) => <li key={`offboarding-${item.id}`} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3"><div><p className="text-[14px] font-medium">{item.title}</p><p className="text-[12px] text-ink-500">Handover{item.due_date ? ` · Due ${formatDay(item.due_date)}` : ""}</p></div><Link href={`/manager#offboarding-${item.id}`} className="tf-secondary-action px-3 py-1.5 text-[12px]">Open task</Link></li>)}
             {documents.map((document) => <li key={`document-${document.id}`} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3"><div><p className="text-[14px] font-medium">Upload {documentLabel(document.document_type)}</p><p className={`text-[12px] ${document.due_date && document.due_date < today ? "text-signal-red" : "text-ink-500"}`}>{document.due_date ? (document.due_date < today ? `Overdue — was due ${formatDay(document.due_date)}` : `Due ${formatDay(document.due_date)}`) : "Requested by your HR team"}</p></div><Link href={`/documents-and-policies#documents`} className="tf-secondary-action px-3 py-1.5 text-[12px]">Upload document</Link></li>)}
             {policies.map((policy) => <li key={`policy-${policy.id}`} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3"><div><p className="text-[14px] font-medium">Acknowledge {policy.title}</p><p className="text-[12px] text-ink-500">Version {policy.version}{policy.effective_date ? ` · Effective ${formatDay(policy.effective_date)}` : ""}</p></div><Link href="/documents-and-policies#policies" className="tf-secondary-action px-3 py-1.5 text-[12px]">View policy</Link></li>)}
-            {onboardingTasks.map((task) => <li key={`own-task-${task.id}`} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3"><div><p className="text-[14px] font-medium">{task.title}</p><p className={`text-[12px] ${task.due_date && task.due_date < today ? "text-signal-red" : "text-ink-500"}`}>Onboarding{task.due_date ? (task.due_date < today ? ` · Overdue — was due ${formatDay(task.due_date)}` : ` · Due ${formatDay(task.due_date)}`) : ""}</p></div><Link href="/onboarding" className="tf-secondary-action px-3 py-1.5 text-[12px]">Open task</Link></li>)}
+            {visibleOnboardingTasks.map((task) => <li key={`own-task-${task.id}`} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3"><div><p className="text-[14px] font-medium">{task.title}</p><p className={`text-[12px] ${task.due_date && task.due_date < today ? "text-signal-red" : "text-ink-600"}`}>Onboarding{task.due_date ? (task.due_date < today ? ` · Overdue — was due ${formatDay(task.due_date)}` : ` · Due ${formatDay(task.due_date)}`) : ""}</p></div><Link href="/onboarding" className="tf-secondary-action px-3 py-1.5 text-[12px]">Open task</Link></li>)}
             {checkIn.state === "available" ? <li className="flex flex-wrap items-center justify-between gap-3 px-5 py-3"><div><p className="text-[14px] font-medium">Complete your 30-day check-in</p><p className="text-[12px] text-ink-500">Share your first-month feedback.</p></div><a href="#check-in" className="tf-secondary-action px-3 py-1.5 text-[12px]">Start check-in</a></li> : null}
           </ul>
         )}

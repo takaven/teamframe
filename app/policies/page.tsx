@@ -240,7 +240,9 @@ export default async function PoliciesPage({
                         Created <span className="tabular-nums">{formatDate(policy.created_at)}</span> · Updated{" "}
                         <span className="tabular-nums">{formatDate(policy.updated_at)}</span>
                       </p>
-                      <div className="mt-2 rounded-md border border-ink-300/50 bg-ink-100/30 px-3 py-2">
+                      <details className="mt-3">
+                        <summary className="tf-secondary-action inline-flex cursor-pointer list-none px-3 py-1.5 text-[12px] marker:hidden">More</summary>
+                        <div className="mt-2 rounded-md border border-ink-300/50 bg-ink-100/30 px-3 py-2">
                         <p className="text-[12px] font-medium text-ink-900">
                           Policy file: {policy.file_original_name ?? "No file attached"}
                         </p>
@@ -274,7 +276,28 @@ export default async function PoliciesPage({
                             />
                           </form>
                         ) : null}
-                      </div>
+                        </div>
+                        {!policy.archived_at ? (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <a
+                              href={`/policies?nv_title=${encodeURIComponent(policy.title)}&nv_version=${policy.version + 1}#upload`}
+                              className="tf-secondary-action px-3 py-1.5 text-[12px]"
+                            >
+                              New version
+                            </a>
+                            <form action={archivePolicyAction}>
+                              <input type="hidden" name="policy_id" value={policy.id} />
+                              <input type="hidden" name="expected_updated_at" value={policy.updated_at} />
+                              <ConfirmSubmitButton
+                                idleLabel="Archive"
+                                pendingLabel="Archiving…"
+                                confirmMessage={`Archive "${policy.title}" v${policy.version}? Employees will no longer be asked to acknowledge it.`}
+                                className="tf-secondary-action px-3 py-1.5 text-[12px]"
+                              />
+                            </form>
+                          </div>
+                        ) : null}
+                      </details>
                       {policy.is_published && !policy.archived_at ? (
                         <details className="mt-3 rounded-md border border-ink-300/50 bg-white">
                           <summary className="cursor-pointer px-3 py-2 text-[12px] font-medium hover:text-ink-900">
@@ -308,9 +331,9 @@ export default async function PoliciesPage({
                           )}
                         </details>
                       ) : null}
-                      <details className="mt-1">
-                        <summary className="cursor-pointer text-[12px] text-ink-500 hover:text-ink-900 transition">
-                          Read policy text
+                      <details className="mt-3">
+                        <summary className="tf-secondary-action inline-flex cursor-pointer list-none px-3 py-1.5 text-[12px] marker:hidden">
+                          View policy
                         </summary>
                         <p className="mt-2 whitespace-pre-wrap rounded-md border border-ink-300/50 bg-ink-100/40 px-3 py-2 text-[13px] text-ink-700">
                           {policy.body}
@@ -318,14 +341,6 @@ export default async function PoliciesPage({
                       </details>
                     </div>
                     <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:flex-nowrap">
-                      {!policy.archived_at ? (
-                        <a
-                          href={`/policies?nv_title=${encodeURIComponent(policy.title)}&nv_version=${policy.version + 1}#upload`}
-                          className="w-full rounded-full border border-ink-300 px-4 py-1.5 text-center text-[13px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 sm:w-auto"
-                        >
-                          New version
-                        </a>
-                      ) : null}
                       {!policy.is_published && !policy.archived_at ? (
                         <form action={publishPolicyAction} className="w-full sm:w-auto">
                           <input type="hidden" name="policy_id" value={policy.id} />
@@ -334,18 +349,6 @@ export default async function PoliciesPage({
                             idleLabel="Publish"
                             pendingLabel="Publishing…"
                             className="w-full tf-primary-action px-4 py-1.5 text-[13px] font-medium disabled:cursor-not-allowed disabled:bg-ink-300 sm:w-auto"
-                          />
-                        </form>
-                      ) : null}
-                      {!policy.archived_at ? (
-                        <form action={archivePolicyAction} className="w-full sm:w-auto">
-                          <input type="hidden" name="policy_id" value={policy.id} />
-                          <input type="hidden" name="expected_updated_at" value={policy.updated_at} />
-                          <ConfirmSubmitButton
-                            idleLabel="Archive"
-                            pendingLabel="Archiving…"
-                            confirmMessage={`Archive "${policy.title}" v${policy.version}? Employees will no longer be asked to acknowledge it.`}
-                            className="w-full rounded-full border border-ink-300 px-4 py-1.5 text-[13px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300 sm:w-auto"
                           />
                         </form>
                       ) : null}

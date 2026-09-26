@@ -6,6 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { EmptyState } from "@/components/EmptyState";
 import { EmployeeSelfRecord } from "@/components/EmployeeSelfRecord";
 import { LegacyMeHashRedirect } from "@/components/LegacyMeHashRedirect";
+import { EmployeeAvatar } from "@/components/EmployeeAvatar";
 
 export const dynamic = "force-dynamic";
 
@@ -56,9 +57,12 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
       {successMessage ? <p role="status" aria-live="polite" className="mt-6 rounded-lg border border-accent/70 bg-white/80 px-4 py-3 text-[14px] text-accent">{successMessage}</p> : null}
       {errorMessage ? <p role="alert" className="mt-6 rounded-lg border border-signal-red/30 bg-signal-red/10 px-4 py-3 text-[14px] text-signal-red">{errorMessage}</p> : null}
       <section className="mt-7">
-        <div className="border-b border-ink-200 pb-3">
-          <h2 className="text-[24px] font-semibold tracking-tight">{record.identity.full_name}</h2>
-          <p className="mt-1 text-[14px] text-ink-600">{record.employment.role_title} · {record.employment.department}</p>
+        <div className="flex items-center gap-4 border-b border-ink-200 pb-5">
+          <EmployeeAvatar name={record.identity.full_name} photoUrl={record.identity.photo_url} size={56} />
+          <div>
+            <h2 className="text-[24px] font-semibold tracking-tight">{record.identity.full_name}</h2>
+            <p className="mt-1 text-[14px] text-ink-700">{record.employment.role_title} · {record.employment.department}</p>
+          </div>
         </div>
         <div className="mt-5"><EmployeeSelfRecord record={record} /></div>
       </section>
