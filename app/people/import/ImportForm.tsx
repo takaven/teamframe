@@ -3,13 +3,13 @@
 import { useMemo, useState } from "react";
 import { importEmployeesAction } from "./actions";
 import { getCountryName, normalizeCountryCode } from "@/lib/geo/countries";
-import { parseEmployeeCsv } from "@/lib/people/importCsv";
+import { parseEmployeeCsv, type EmployeeImportValidationContext } from "@/lib/people/importCsv";
 
 const columns = ["full_name", "email", "employee_number", "role_title", "department", "manager_email", "start_date", "employment_type", "country", "timezone", "work_location"];
 
-export function ImportForm({ defaultCountry, defaultTimezone }: { defaultCountry: string | null; defaultTimezone: string | null }) {
+export function ImportForm({ defaultCountry, defaultTimezone, validationContext }: { defaultCountry: string | null; defaultTimezone: string | null; validationContext: EmployeeImportValidationContext }) {
   const [text, setText] = useState("");
-  const preview = useMemo(() => parseEmployeeCsv(text, defaultCountry, defaultTimezone), [text, defaultCountry, defaultTimezone]);
+  const preview = useMemo(() => parseEmployeeCsv(text, defaultCountry, defaultTimezone, validationContext), [text, defaultCountry, defaultTimezone, validationContext]);
   return (
     <div className="space-y-5">
       <label className="block text-[13px] text-ink-600">Upload CSV<input type="file" accept=".csv,text/csv" className="tf-input mt-2 w-full" onChange={(event) => { const file = event.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => setText(String(reader.result ?? "")); reader.readAsText(file); }} /></label>

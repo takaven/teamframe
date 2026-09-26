@@ -11,6 +11,7 @@
     "env:check": "node scripts/validate-env.mjs build",
     "env:check:smoke": "node scripts/validate-env.mjs smoke",
     "env:check:db": "node scripts/validate-env.mjs db",
+    "env:check:production": "node scripts/validate-env.mjs production",
     "lint": "next lint",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
