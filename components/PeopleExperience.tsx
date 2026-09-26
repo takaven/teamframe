@@ -440,30 +440,30 @@ export async function PeopleExperience({
         </div>
       ) : null}
       {view === "directory" ? <>
-      <div className="flex flex-wrap items-end justify-between gap-5 border-b border-ink-300/50 pb-5">
+      <div className="tf-people-header flex flex-wrap items-end justify-between gap-5 border-b border-ink-300/50 pb-5">
         <div>
           <h1 className="tf-h1">People</h1>
           <p className="tf-meta mt-1 tf-num">
             {inviteActivated} active · {invitePending + inviteSent} awaiting sign-in{archived > 0 ? ` · ${archived} archived` : ""}
           </p>
         </div>
-        <div className="flex w-full flex-col gap-3 lg:w-auto lg:min-w-[680px]">
-        <div className="flex flex-wrap items-center justify-start gap-3 lg:justify-end">
-          <Link href="/org-chart" className="tf-tertiary-action">Org chart</Link>
-          <Link href="/people/import" className="tf-secondary-action h-9 px-4 text-[13px] font-medium">Import CSV</Link>
-          <Link href="/people/add" className="tf-primary-action h-9 px-4 text-[13px] font-medium">Add person</Link>
+        <div className="tf-people-tools">
+        <div className="tf-people-actions">
+          <Link href="/org-chart" className="tf-secondary-action tf-people-action px-4 text-[13px] font-medium">Organisation</Link>
+          <Link href="/people/import" className="tf-secondary-action tf-people-action px-4 text-[13px] font-medium">Import CSV</Link>
+          <Link href="/people/add" className="tf-primary-action tf-people-action px-4 text-[13px] font-medium">Add person</Link>
         </div>
-        <form className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-xl bg-white/20 p-2 sm:grid-cols-[minmax(260px,1fr)_minmax(150px,auto)_auto]">
+        <form className="tf-people-filters">
           <input
             name="q"
             defaultValue={q ?? ""}
             placeholder="Search name, number, role, department"
-            className="tf-input col-span-2 h-9 min-w-0 sm:col-span-1"
+            className="tf-input tf-people-search h-9 min-w-0"
           />
           <select
             name="filter"
             defaultValue={activeFilter}
-            className="tf-select h-9 w-full min-w-0 sm:w-auto"
+            className="tf-select tf-people-filter h-9 w-full min-w-0"
           >
             <option value="all">All</option>
             <option value="attention">Needs attention</option>
@@ -472,7 +472,7 @@ export async function PeopleExperience({
             <option value="offboarding">Leaving</option>
             <option value="archived">Archived</option>
           </select>
-          <button type="submit" className="tf-tertiary-action h-9 px-2 text-[13px] font-medium">Search</button>
+          <button type="submit" className="tf-secondary-action tf-people-action px-4 text-[13px] font-medium">Search</button>
         </form>
         </div>
       </div>
@@ -680,10 +680,10 @@ export async function PeopleExperience({
                     {documentRequirements.every((item) => item.state === "accepted") && (onboardingByEmployee.get(employee.id) ?? []).every((task) => task.status === "completed") ? <p className="py-3 text-[12px] text-ink-500">Nothing needs attention.</p> : null}
                   </div>
                   <h3 className="mt-5 text-[14px] font-semibold text-ink-900">Coming up</h3>
-                  <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                    <div className="rounded-lg bg-ink-50/70 p-3"><p className="text-[11px] text-ink-500">Start date</p><p className="mt-1 text-[13px] font-semibold">{formatDate(employee.start_date)}</p></div>
-                    <div className="rounded-lg bg-ink-50/70 p-3"><p className="text-[11px] text-ink-500">Probation review</p><p className="mt-1 text-[13px] font-semibold">{formatDate(earlyEmployment.probationReviews.find((item) => item.employee_id === employee.id)?.review_due_date ?? null)}</p></div>
-                    <div className="rounded-lg bg-ink-50/70 p-3"><p className="text-[11px] text-ink-500">End date</p><p className="mt-1 text-[13px] font-semibold">{formatDate(employee.end_date)}</p></div>
+                  <div className="tf-value-strip mt-3">
+                    <div className="tf-value-cell"><p className="tf-value-label">Start date</p><p className="tf-value-text">{formatDate(employee.start_date)}</p></div>
+                    <div className="tf-value-cell"><p className="tf-value-label">Probation review</p><p className="tf-value-text">{formatDate(earlyEmployment.probationReviews.find((item) => item.employee_id === employee.id)?.review_due_date ?? null)}</p></div>
+                    <div className="tf-value-cell"><p className="tf-value-label">End date</p><p className="tf-value-text">{formatDate(employee.end_date)}</p></div>
                   </div>
                 </section>
                 {master ? <div data-tab="personal" className="space-y-4"><PersonalPanel master={master.record} /><EmergencyReadPanel master={master.record} />
@@ -738,10 +738,10 @@ export async function PeopleExperience({
                     <div><h3 className="text-[14px] font-semibold text-ink-900">Onboarding &amp; early employment</h3><p className="mt-1 text-[12px] text-ink-500">Tasks, check-ins and probation for this person.</p></div>
                     <Link href={`/onboarding?employee=${encodeURIComponent(employee.id)}`} className="tf-secondary-action px-3 py-1.5 text-[12px]">Open onboarding</Link>
                   </div>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                    <div className="rounded-lg bg-ink-50/70 p-3"><p className="text-[11px] uppercase tracking-[0.08em] text-ink-500">Onboarding</p><p className="mt-1 text-[14px] font-semibold text-ink-900">{(onboardingByEmployee.get(employee.id) ?? []).filter((task) => task.status === "completed").length} of {(onboardingByEmployee.get(employee.id) ?? []).length} done</p></div>
-                    <div className="rounded-lg bg-ink-50/70 p-3"><p className="text-[11px] uppercase tracking-[0.08em] text-ink-500">30-day check-in</p><p className="mt-1 text-[14px] font-semibold text-ink-900">{earlyEmployment.checkIns.find((item) => item.employee_id === employee.id)?.status ?? "Not scheduled"}</p></div>
-                    <div className="rounded-lg bg-ink-50/70 p-3"><p className="text-[11px] uppercase tracking-[0.08em] text-ink-500">Probation</p><p className="mt-1 text-[14px] font-semibold text-ink-900">{earlyEmployment.probationReviews.find((item) => item.employee_id === employee.id)?.status ?? "Not scheduled"}</p></div>
+                  <div className="tf-value-strip mt-4">
+                    <div className="tf-value-cell"><p className="tf-value-label">Onboarding</p><p className="tf-value-text">{(onboardingByEmployee.get(employee.id) ?? []).filter((task) => task.status === "completed").length} of {(onboardingByEmployee.get(employee.id) ?? []).length} done</p></div>
+                    <div className="tf-value-cell"><p className="tf-value-label">30-day check-in</p><p className="tf-value-text">{earlyEmployment.checkIns.find((item) => item.employee_id === employee.id)?.status ?? "Not scheduled"}</p></div>
+                    <div className="tf-value-cell"><p className="tf-value-label">Probation</p><p className="tf-value-text">{earlyEmployment.probationReviews.find((item) => item.employee_id === employee.id)?.status ?? "Not scheduled"}</p></div>
                   </div>
                 </section>
 

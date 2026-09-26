@@ -459,6 +459,7 @@ main:has(> .tf-app-shell) input[type="file"]::file-selector-button {
 .tf-org-disclosure-placeholder { width: 30px; height: 30px; }
 .tf-org-avatar-link { display: inline-flex; border-radius: 999px; }
 .tf-org-vacancy-avatar {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -469,6 +470,19 @@ main:has(> .tf-app-shell) input[type="file"]::file-selector-button {
   color: var(--color-ink-500);
   font-size: 14px;
 }
+.tf-org-vacancy-avatar::after {
+  content: "";
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  width: 5px;
+  height: 5px;
+  border: 1px solid var(--tf-material);
+  border-radius: 999px;
+  background: var(--tf-lime);
+  box-sizing: content-box;
+}
+.tf-org-node[data-selected="true"] .tf-org-vacancy-avatar::after { opacity: .58; }
 .tf-org-identity { display: block; min-width: 0; }
 .tf-org-person-name,
 .tf-org-position-title { display: block; width: fit-content; max-width: 100%; text-decoration: none; }
@@ -788,11 +802,11 @@ main:has(> .tf-app-shell) input[type="file"]::file-selector-button {
   --tf-lime: #01ff22;
   --tf-material: #e8e8e8;
   --tf-material-light: #eeeeef;
-  --tf-raised: 6px 6px 15px rgba(32, 36, 43, 0.12), -6px -6px 15px rgba(255, 255, 255, 0.72);
-  --tf-raised-hover: 8px 8px 18px rgba(32, 36, 43, 0.15), -8px -8px 18px rgba(255, 255, 255, 0.8);
-  --tf-inset: inset 3px 3px 8px rgba(32, 36, 43, 0.11), inset -3px -3px 8px rgba(255, 255, 255, 0.72);
-  --tf-pressed: inset 3px 3px 7px rgba(32, 36, 43, 0.15), inset -3px -3px 7px rgba(255, 255, 255, 0.7);
-  --tf-floating: 12px 12px 28px rgba(32, 36, 43, 0.17), -12px -12px 28px rgba(255, 255, 255, 0.82);
+  --tf-raised: 0 1px 2px rgba(15, 17, 21, 0.04), 0 8px 22px -18px rgba(15, 17, 21, 0.2);
+  --tf-raised-hover: 0 2px 4px rgba(15, 17, 21, 0.06), 0 10px 24px -18px rgba(15, 17, 21, 0.28);
+  --tf-inset: inset 0 1px 3px rgba(15, 17, 21, 0.1);
+  --tf-pressed: inset 0 2px 5px rgba(15, 17, 21, 0.14);
+  --tf-floating: 0 12px 34px -20px rgba(15, 17, 21, 0.3);
   --tf-line: rgba(66, 73, 77, 0.2);
   --tf-radius-panel: 15px;
   --tf-radius-control: 9px;
@@ -840,9 +854,9 @@ main:has(> .tf-app-shell) { background: var(--tf-canvas); }
   padding: 14px 16px;
 }
 .tf-summary > *:first-child { border-left: 0; }
-.tf-summary-label { color: var(--tf-titanium); font-size: 12px; font-weight: 600; }
-.tf-summary-value { display: inline-flex; align-items: baseline; gap: 7px; margin-top: 3px; color: var(--tf-charcoal); font-size: 23px; font-weight: 750; line-height: 1.1; }
-.tf-summary-value::before { content: ""; width: 3px; height: .72em; border-radius: 999px; background: var(--tf-lime); box-shadow: 0 0 0 1px rgba(32,36,43,.1); }
+.tf-summary-label { display: inline-flex; align-items: center; gap: 6px; color: var(--tf-titanium); font-size: 12px; font-weight: 600; }
+.tf-summary-label::after { content: ""; width: 4px; height: 4px; border-radius: 999px; background: var(--tf-lime); box-shadow: 0 0 0 1px rgba(32,36,43,.1); }
+.tf-summary-value { display: block; margin-top: 3px; color: var(--tf-charcoal); font-size: 23px; font-weight: 750; line-height: 1.1; }
 
 /* Explicit surface vocabulary. Elevation follows visual meaning, never incidental markup. */
 .tf-page-section { border-top: 1px solid var(--tf-line); padding: 24px 0 4px; }
@@ -879,6 +893,15 @@ main:has(> .tf-app-shell) { background: var(--tf-canvas); }
 .tf-product-section { border-top: 1px solid rgba(66,73,77,.14); padding: 22px 0; }
 .tf-product-section:first-child { border-top: 0; padding-top: 0; }
 .tf-filter-strip { display: grid; gap: 12px; padding: 14px 0; border-block: 1px solid rgba(66,73,77,.13); }
+.tf-people-tools { display: flex; width: min(100%, 680px); flex-direction: column; gap: 12px; }
+.tf-people-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; }
+.tf-people-action { display: inline-flex; min-height: 36px; align-items: center; justify-content: center; white-space: nowrap; }
+.tf-people-filters { display: grid; width: 100%; min-width: 0; grid-template-columns: minmax(0,1fr) minmax(160px,180px) auto; align-items: center; gap: 8px; }
+.tf-value-strip { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); overflow: hidden; border-block: 1px solid rgba(66,73,77,.14); background: rgba(66,73,77,.025); }
+.tf-value-cell { min-width: 0; padding: 14px 16px; }
+.tf-value-cell + .tf-value-cell { border-left: 1px solid rgba(66,73,77,.13); }
+.tf-value-label { color: var(--tf-titanium); font-size: 11px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; }
+.tf-value-text { margin-top: 5px; color: var(--tf-charcoal); font-size: 13.5px; font-weight: 700; }
 .tf-secondary-nav { display: flex; gap: 24px; overflow-x: auto; border-bottom: 1px solid rgba(66,73,77,.16); scrollbar-width: none; }
 .tf-secondary-nav::-webkit-scrollbar { display: none; }
 .tf-secondary-nav a, .tf-secondary-nav button { flex: none; border: 0; border-bottom: 2px solid transparent; background: transparent; padding: 11px 1px 10px; color: var(--tf-titanium); font-size: 13px; font-weight: 650; white-space: nowrap; }
@@ -949,28 +972,28 @@ main:has(> .tf-app-shell) { background: var(--tf-canvas); }
 main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-secondary-action {
   min-height: 36px;
   border: 1px solid rgba(66,73,77,.13);
-  background: linear-gradient(145deg, rgba(255,255,255,.56), rgba(220,222,222,.68));
+  background: rgba(235,236,236,.82);
   color: var(--tf-charcoal);
-  box-shadow: 4px 4px 10px rgba(32,36,43,.11), -3px -3px 8px rgba(255,255,255,.68), inset 0 1px 0 rgba(255,255,255,.54);
+  box-shadow: 0 1px 2px rgba(15,17,21,.05), 0 6px 16px -14px rgba(15,17,21,.24);
   line-height: 1.2;
 }
 main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-secondary-action :where(span, svg) { color: inherit; }
 main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-secondary-action:hover {
   border-color: rgba(66,73,77,.24);
-  background: linear-gradient(145deg, rgba(255,255,255,.68), rgba(212,215,215,.76));
+  background: rgba(229,231,231,.94);
   color: var(--tf-charcoal);
-  box-shadow: 5px 5px 12px rgba(32,36,43,.14), -3px -3px 9px rgba(255,255,255,.74), inset 3px 0 0 var(--tf-lime);
+  box-shadow: 0 2px 4px rgba(15,17,21,.06), 0 8px 18px -16px rgba(15,17,21,.3), inset 3px 0 0 var(--tf-lime);
 }
 main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-secondary-action:focus-visible {
-  background: linear-gradient(145deg, rgba(255,255,255,.66), rgba(216,219,219,.72));
+  background: rgba(229,231,231,.94);
   color: var(--tf-charcoal);
-  box-shadow: 4px 4px 10px rgba(32,36,43,.11), -3px -3px 8px rgba(255,255,255,.7), inset 3px 0 0 var(--tf-lime);
+  box-shadow: 0 2px 4px rgba(15,17,21,.06), 0 8px 18px -16px rgba(15,17,21,.3), inset 3px 0 0 var(--tf-lime);
 }
 main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-secondary-action:active {
   border-color: rgba(66,73,77,.2);
   background: rgba(224,226,226,.72);
   color: var(--tf-charcoal);
-  box-shadow: inset 2px 2px 5px rgba(32,36,43,.13), inset -2px -2px 5px rgba(255,255,255,.5);
+  box-shadow: inset 0 2px 5px rgba(15,17,21,.13);
   transform: translateY(1px);
 }
 main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-secondary-action:disabled {
@@ -996,11 +1019,11 @@ main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-secondary-action:d
   border-bottom: 2px solid var(--tf-graphite);
   border-radius: 0 0 0 8px;
   background-color: rgba(255, 255, 255, .14);
-  box-shadow: inset 2px 2px 5px rgba(32, 36, 43, .05), inset -2px -2px 5px rgba(255, 255, 255, .34);
+  box-shadow: inset 0 1px 3px rgba(15,17,21,.075);
 }
 :where(main:has(> .tf-app-shell)) :where(input, select, textarea, .tf-input, .tf-select, .tf-date, .tf-textarea):focus {
   background-color: var(--tf-material-light);
-  box-shadow: inset 2px 2px 5px rgba(32,36,43,.05), inset -2px -2px 5px rgba(255,255,255,.34);
+  box-shadow: inset 0 1px 3px rgba(15,17,21,.075);
   outline: 2px solid var(--tf-lime);
   outline-offset: 2px;
 }
@@ -1020,7 +1043,7 @@ main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-select-sm {
   background-position: right 12px center;
   padding-left: 13px;
   padding-right: 40px;
-  box-shadow: inset 2px 2px 5px rgba(32,36,43,.055), inset -2px -2px 5px rgba(255,255,255,.48), 0 1px 0 rgba(255,255,255,.5);
+  box-shadow: inset 0 1px 3px rgba(15,17,21,.07);
 }
 main:has(> .tf-app-shell:not([data-active="/org-chart"])) select:hover,
 main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-select:hover,
@@ -1033,7 +1056,7 @@ main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-select:focus,
 main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-select-sm:focus {
   border-color: rgba(66,73,77,.3);
   background-color: var(--tf-material-light);
-  box-shadow: inset 2px 2px 5px rgba(32,36,43,.05), inset -2px -2px 5px rgba(255,255,255,.42), 0 0 0 2px rgba(1,255,34,.32);
+  box-shadow: inset 0 1px 3px rgba(15,17,21,.07), 0 0 0 2px rgba(1,255,34,.32);
   outline: 0;
 }
 main:has(> .tf-app-shell:not([data-active="/org-chart"])) select:disabled {
@@ -1094,7 +1117,7 @@ main:has(> .tf-app-shell:not([data-active="/org-chart"])) select:disabled {
   padding: 5px 8px;
   border-radius: 7px;
   background: var(--tf-material);
-  box-shadow: 4px 4px 9px rgba(32,36,43,.12), -4px -4px 9px rgba(255,255,255,.86);
+  box-shadow: 0 2px 8px -6px rgba(15,17,21,.28);
   color: var(--tf-charcoal);
 }
 .tf-floating-field-error .tf-floating-input,
@@ -1320,7 +1343,7 @@ main > section[class*="bg-white"][class*="border"] {
   overflow: hidden;
   border-radius: 50%;
   background: var(--tf-lime);
-  box-shadow: 5px 5px 10px rgba(32,36,43,.24), -3px -3px 8px rgba(255,255,255,.72);
+  box-shadow: 0 4px 10px -6px rgba(15,17,21,.34);
   animation: tf-loader-travel 4s ease-in-out infinite alternate;
 }
 .tf-loader-stripes { position: absolute; inset: 0 auto 0 -16px; display: flex; width: 60px; animation: tf-loader-stripes 650ms linear infinite; }
@@ -1340,8 +1363,8 @@ main > section[class*="bg-white"][class*="border"] {
 
 @media (max-width: 767px) {
   :root {
-    --tf-raised: 7px 7px 16px rgba(32,36,43,.13), -7px -7px 16px rgba(255,255,255,.8);
-    --tf-floating: 11px 11px 24px rgba(32,36,43,.17), -11px -11px 24px rgba(255,255,255,.86);
+    --tf-raised: 0 1px 2px rgba(15,17,21,.04), 0 8px 20px -18px rgba(15,17,21,.2);
+    --tf-floating: 0 12px 30px -20px rgba(15,17,21,.3);
   }
   .tf-auth-page { grid-template-columns: minmax(0, 1fr); }
   .tf-summary { width: 100%; }
@@ -1355,6 +1378,16 @@ main > section[class*="bg-white"][class*="border"] {
   .tf-config-row form, .tf-config-row > .tf-tertiary-action { grid-column: 2; }
   .tf-section-heading { align-items: center; }
   .tf-edit-panel { padding: 15px; }
+  .tf-people-header { align-items: flex-start; }
+  .tf-people-tools { width: 100%; }
+  .tf-people-actions { justify-content: flex-start; gap: 8px; }
+  .tf-people-filters { grid-template-columns: minmax(0,1fr) auto; }
+  .tf-people-search { grid-column: 1 / -1; }
+  .tf-people-filter { min-width: 0; }
+  .tf-value-strip { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .tf-value-cell + .tf-value-cell { border-left: 0; }
+  .tf-value-cell:nth-child(even) { border-left: 1px solid rgba(66,73,77,.13); }
+  .tf-value-cell:nth-child(n+3) { border-top: 1px solid rgba(66,73,77,.13); }
   .tf-mobile-bar nav { position: fixed; inset: 56px 0 0; overflow-y: auto; border-radius: 0 !important; }
   .tf-auth-brand-panel { padding: 24px 24px 15px; }
   .tf-auth-card { padding: 18px 24px 30px; }

@@ -33,4 +33,19 @@ describe("People architecture", () => {
     expect(setup).toContain('/reports?view=exports');
     expect(reports).toContain("Export payroll data");
   });
+
+  it("keeps every People toolbar destination and GET filter contract intact", () => {
+    const people = read("components/PeopleExperience.tsx");
+    expect(people).toContain('href="/org-chart"');
+    expect(people).toContain('href="/people/import"');
+    expect(people).toContain('href="/people/add"');
+    expect(people).toContain('name="q"');
+    expect(people).toContain('name="filter"');
+    for (const value of ["all", "attention", "active", "pre_start", "offboarding", "archived"]) {
+      expect(people).toContain(`value="${value}"`);
+    }
+    expect(people).toContain('className="tf-people-filters"');
+    expect(people).toContain(">Organisation</Link>");
+    expect(people).not.toContain(">Org chart</Link>");
+  });
 });

@@ -80,4 +80,13 @@ describe("Premium craft pass", () => {
     expect(cal).not.toContain("min-w-[720px]");
     expect(cal).not.toContain("overflow-x-auto");
   });
+
+  it("uses neutral ambient depth and keeps lime metric signals away from values", () => {
+    const css = read("app/globals.css");
+    const canonicalTokens = css.slice(css.indexOf("TEAMFRAME NEUMORPHIC UI"), css.indexOf("html,\nbody", css.indexOf("TEAMFRAME NEUMORPHIC UI")));
+    expect(canonicalTokens).not.toMatch(/-[0-9]+px\s+-[0-9]+px[^;]*rgba\(255/);
+    expect(css).toContain(".tf-summary-label::after");
+    expect(css).not.toContain(".tf-summary-value::before");
+    expect(css).toContain(".tf-value-strip");
+  });
 });

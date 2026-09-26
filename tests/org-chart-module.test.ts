@@ -168,6 +168,10 @@ describe("Org Chart schema and UI contracts", () => {
     expect(tree).toContain("aria-expanded={expanded}");
     expect(tree).toContain("/people/${node.assignedEmployeeId}");
     expect(tree).toContain("/org-chart?position=${node.id}");
+    expect(tree).toContain('data-vacant={vacant ? "true" : undefined}');
+    const css = read("app/globals.css");
+    expect(css).toContain(".tf-org-vacancy-avatar::after");
+    expect(css).toContain("background: var(--tf-lime)");
   });
 
   it("keeps the selected position path expanded and roots visible by default", () => {
