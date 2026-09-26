@@ -1,17 +1,17 @@
 import Link from "next/link";
 import { requireTenantActor } from "@/middleware/rbac";
 import { AppShell } from "@/components/AppShell";
-import { EmployeeAvatar } from "@/components/EmployeeAvatar";
 import { EmptyState } from "@/components/EmptyState";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { FileInput } from "@/components/FileInput";
 import { listEmployeesForAdmin } from "@/services/employeeService";
-import { buildPositionTree, listPositions, type PositionRecord, type PositionTreeNode } from "@/services/positionService";
+import { buildPositionTree, listPositions, type PositionRecord } from "@/services/positionService";
 import { listPositionAssignments } from "@/services/positionAssignmentService";
 import { listDepartments, listWorkLocations, type DepartmentOption, type WorkLocationOption } from "@/services/configurationService";
 import { resolveAvatar, listEmployeePhotoUrls } from "@/services/employeeMasterService";
 import { OccupancyHistory, type OccupancyRow } from "@/components/OccupancyHistory";
+import { OrganisationTree, type OrganisationTreeItem } from "@/components/OrganisationTree";
 import {
   createPositionAction,
   deletePositionAction,
@@ -81,7 +81,7 @@ function PositionSelect({
         .filter((position) => position.id !== currentId)
         .map((position) => (
           <option key={position.id} value={position.id}>
-            {position.title}
+            {position.assigned_employee_name ? `${position.assigned_employee_name} — ${position.title}` : `${position.title} — Vacant`}
           </option>
         ))}
     </select>
@@ -241,95 +241,6 @@ function JobDescriptionControls({ position }: { position: PositionRecord }) {
 }
 
 
-function PositionNode({
-  position,
-  selected,
-  display,
-}: {
-  position: PositionRecord;
-  selected: boolean;
-  display?: PositionDisplay;
-}) {
-  const vacant = position.status === "Vacant";
-  const deptName = display?.deptName ?? position.department;
-  return (
-    <Link
-      href={`/org-chart?position=${position.id}`}
-      className="tf-org-node"
-      data-selected={selected ? "true" : undefined}
-      data-vacant={vacant ? "true" : undefined}
-    >
-      {vacant ? (
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-dashed border-ink-400 text-[11px] text-ink-400" aria-hidden>+</span>
-      ) : (
-        <EmployeeAvatar name={position.assigned_employee_name ?? ""} photoUrl={display?.photoUrl ?? null} size={32} />
-      )}
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-[13.5px] font-semibold text-ink-800">{position.title}</span>
-        <span className="block truncate text-[12px] text-ink-500">
-          {vacant ? <span className="font-medium text-signal-amber">Vacant</span> : position.assigned_employee_name}
-        </span>
-      </span>
-      <span className="hidden shrink-0 items-center gap-1.5 rounded-md bg-ink-50 px-2 py-1 text-[11px] font-medium text-ink-600 sm:inline-flex">
-        {deptName}
-      </span>
-    </Link>
-  );
-}
-
-function PositionBranch({
-  node,
-  selectedId,
-  displayById,
-}: {
-  node: PositionTreeNode;
-  selectedId: string | null;
-  displayById: Map<string, PositionDisplay>;
-}) {
-  return (
-    <li className="tf-org-branch">
-      <PositionNode position={node} selected={node.id === selectedId} display={displayById.get(node.id)} />
-      {node.children.length > 0 ? (
-        <ul className="tf-org-children">
-          {node.children.map((child) => (
-            <PositionBranch key={child.id} node={child} selectedId={selectedId} displayById={displayById} />
-          ))}
-        </ul>
-      ) : null}
-    </li>
-  );
-}
-
-
-function OrgTree({
-  tree,
-  selectedId,
-  displayById,
-}: {
-  tree: PositionTreeNode[];
-  selectedId: string | null;
-  displayById: Map<string, PositionDisplay>;
-}) {
-  return (
-    <div className="tf-org-tree" aria-label="Position reporting hierarchy">
-      <ul className="tf-org-roots">
-        {tree.map((node) => (
-          <li key={node.id} className="tf-org-root">
-            <PositionNode position={node} selected={node.id === selectedId} display={displayById.get(node.id)} />
-            {node.children.length > 0 ? (
-              <ul className="tf-org-children">
-                {node.children.map((child) => (
-                  <PositionBranch key={child.id} node={child} selectedId={selectedId} displayById={displayById} />
-                ))}
-              </ul>
-            ) : null}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 function AddPositionPanel({
   positions,
   employees,
@@ -402,6 +313,7 @@ function PositionDetailPanel({
   const hasChildren = positions.some((item) => item.parent_position_id === position.id);
   const canDelete = position.status === "Vacant" && !position.jd_attached && !hasChildren;
   const parent = positions.find((item) => item.id === position.parent_position_id);
+  const directReports = positions.filter((item) => item.parent_position_id === position.id);
   const deptName = display?.deptName ?? position.department;
   const budgetedLabel = position.budgeted === true ? "Budgeted" : position.budgeted === false ? "Non-budgeted" : "Unspecified";
 
@@ -445,6 +357,32 @@ function PositionDetailPanel({
           ) : null}
         </section>
 
+        {directReports.length > 0 ? (
+          <section className="py-4">
+            <div className="flex items-baseline justify-between gap-3">
+              <h3 className="text-[13px] font-bold text-ink-800">Direct reports</h3>
+              <span className="text-[12px] text-ink-500">{directReports.length}</span>
+            </div>
+            <ul className="mt-3 space-y-2">
+              {directReports.map((child) => (
+                <li key={child.id}>
+                  <Link href={`/org-chart?position=${child.id}`} className="tf-org-direct-report">
+                    <span>
+                      <span className="block text-[13.5px] font-semibold text-ink-800">
+                        {child.assigned_employee_name ?? child.title.replace(/\s*\(open\)\s*$/i, "")}
+                      </span>
+                      <span className="block text-[12.5px] text-ink-500">
+                        {child.assigned_employee_name ? child.title : "Vacant"}
+                      </span>
+                    </span>
+                    <span aria-hidden>→</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
         <section className="py-4">
           <h3 className="text-[13px] font-bold text-ink-800">Occupancy history</h3>
           <div className="mt-3">
@@ -460,22 +398,24 @@ function PositionDetailPanel({
         ) : null}
 
         <section className="py-4">
-          <h3 className="text-[13px] font-bold text-ink-800">Edit position</h3>
-          <p className="mt-1 text-[13px] text-ink-500">Changes update the position, not the person holding it.</p>
-          <form action={updatePositionAction} className="mt-4 space-y-4">
-            <input type="hidden" name="position_id" value={position.id} />
-            <input type="hidden" name="expected_updated_at" value={position.updated_at} />
-            <PositionFields position={position} positions={positions} employees={employees} departments={departments} workLocations={workLocations} />
-            <PendingSubmitButton
-              idleLabel="Save changes"
-              pendingLabel="Saving..."
-              className="tf-primary-action h-10 px-4 text-[13px]"
-            />
-          </form>
+          <JobDescriptionControls position={position} />
         </section>
 
         <section className="py-4">
-          <JobDescriptionControls position={position} />
+          <details className="tf-org-edit-disclosure">
+            <summary>Edit position</summary>
+            <p className="mt-2 text-[13px] text-ink-500">Changes update the position, not the person holding it.</p>
+            <form action={updatePositionAction} className="mt-4 space-y-4">
+              <input type="hidden" name="position_id" value={position.id} />
+              <input type="hidden" name="expected_updated_at" value={position.updated_at} />
+              <PositionFields position={position} positions={positions} employees={employees} departments={departments} workLocations={workLocations} />
+              <PendingSubmitButton
+                idleLabel="Save changes"
+                pendingLabel="Saving..."
+                className="tf-primary-action h-10 px-4 text-[13px]"
+              />
+            </form>
+          </details>
         </section>
 
         <section className="py-4">
@@ -518,7 +458,7 @@ export default async function OrgChartPage({
         <AppShell actor={actor} activePath="/org-chart" />
         <div className="space-y-2 border-b border-ink-300/60 pb-5">
           <p className="text-[12px] tracking-[0.14em] text-ink-500">Restricted</p>
-          <h1 className="text-[34px] leading-tight tracking-tight">Org chart</h1>
+          <h1 className="text-[34px] leading-tight tracking-tight">Organisation</h1>
         </div>
         <p className="mt-7 max-w-prose text-[15px] text-ink-700">
           Organisation structure is admin-only in TeamFrame.
@@ -537,7 +477,6 @@ export default async function OrgChartPage({
   const tree = buildPositionTree(positions);
   const filledCount = positions.filter((position) => position.status === "Filled").length;
   const vacantCount = positions.filter((position) => position.status === "Vacant").length;
-  const jdCount = positions.filter((position) => position.jd_attached).length;
   const selectedPosition = positions.find((position) => position.id === selectedPositionId) ?? null;
 
   // Resolve per-position display data (names from configured lists, occupant avatar).
@@ -561,6 +500,20 @@ export default async function OrgChartPage({
       ];
     }),
   );
+  const treeItems: OrganisationTreeItem[] = tree.map(function toTreeItem(node): OrganisationTreeItem {
+    const display = displayById.get(node.id);
+    return {
+      id: node.id,
+      title: node.title,
+      department: node.department,
+      status: node.status,
+      assignedEmployeeId: node.assigned_employee_id,
+      assignedEmployeeName: node.assigned_employee_name,
+      deptName: display?.deptName ?? node.department,
+      photoUrl: display?.photoUrl ?? null,
+      children: node.children.map(toTreeItem),
+    };
+  });
   const selectedAssignments = selectedPosition ? await listPositionAssignments(actor, selectedPosition.id) : [];
 
   return (
@@ -568,9 +521,9 @@ export default async function OrgChartPage({
       <AppShell actor={actor} activePath="/org-chart" />
       <div className="flex flex-wrap items-center justify-between gap-4 pb-5">
         <div>
-          <h1 className="tf-h1">Org chart</h1>
+          <h1 className="tf-h1">Organisation</h1>
           <p className="tf-meta mt-1 tf-num">
-            {positions.length} position{positions.length === 1 ? "" : "s"} · {filledCount} filled · {vacantCount} vacant{jdCount > 0 ? ` · ${jdCount} with JD` : ""}
+            {positions.length} position{positions.length === 1 ? "" : "s"} · {filledCount} filled · {vacantCount} vacant
           </p>
         </div>
         <Link href="/org-chart#add-position" className="tf-primary-action inline-flex h-9 items-center px-4 text-[13.5px]">
@@ -599,8 +552,8 @@ export default async function OrgChartPage({
             />
           </div>
         ) : (
-          <div className="tf-surface px-4 py-5 sm:px-6">
-            <OrgTree tree={tree} selectedId={selectedPosition?.id ?? null} displayById={displayById} />
+          <div className="tf-org-surface">
+            <OrganisationTree tree={treeItems} selectedId={selectedPosition?.id ?? null} />
           </div>
         )}
       </section>
