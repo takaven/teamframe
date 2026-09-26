@@ -12,6 +12,7 @@ import { listDepartments, listWorkLocations, type DepartmentOption, type WorkLoc
 import { resolveAvatar, listEmployeePhotoUrls } from "@/services/employeeMasterService";
 import { OccupancyHistory, type OccupancyRow } from "@/components/OccupancyHistory";
 import { OrganisationTree, type OrganisationTreeItem } from "@/components/OrganisationTree";
+import { positionDisplayTitle } from "@/services/positionService/model";
 import {
   createPositionAction,
   deletePositionAction,
@@ -81,7 +82,9 @@ function PositionSelect({
         .filter((position) => position.id !== currentId)
         .map((position) => (
           <option key={position.id} value={position.id}>
-            {position.assigned_employee_name ? `${position.assigned_employee_name} — ${position.title}` : `${position.title} — Vacant`}
+            {position.assigned_employee_name
+              ? `${position.assigned_employee_name} — ${position.title}`
+              : `${positionDisplayTitle(position.title, true)} — Vacant`}
           </option>
         ))}
     </select>
@@ -316,6 +319,7 @@ function PositionDetailPanel({
   const directReports = positions.filter((item) => item.parent_position_id === position.id);
   const deptName = display?.deptName ?? position.department;
   const budgetedLabel = position.budgeted === true ? "Budgeted" : position.budgeted === false ? "Non-budgeted" : "Unspecified";
+  const positionTitle = positionDisplayTitle(position.title, position.status === "Vacant");
 
   return (
     <div className="tf-drawer">
@@ -324,7 +328,7 @@ function PositionDetailPanel({
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-ink-500">Position</p>
-          <h2 className="mt-2 text-[23px] font-extrabold leading-tight tracking-[-0.5px] text-ink-800">{position.title}</h2>
+          <h2 className="mt-2 text-[23px] font-extrabold leading-tight tracking-[-0.5px] text-ink-800">{positionTitle}</h2>
           <p className="mt-2 text-[14px] text-ink-500">
             {deptName} · Reports to {parent?.title ?? "No parent position"}
           </p>
@@ -369,7 +373,7 @@ function PositionDetailPanel({
                   <Link href={`/org-chart?position=${child.id}`} className="tf-org-direct-report">
                     <span>
                       <span className="block text-[13.5px] font-semibold text-ink-800">
-                        {child.assigned_employee_name ?? child.title.replace(/\s*\(open\)\s*$/i, "")}
+                        {child.assigned_employee_name ?? positionDisplayTitle(child.title, true)}
                       </span>
                       <span className="block text-[12.5px] text-ink-500">
                         {child.assigned_employee_name ? child.title : "Vacant"}
