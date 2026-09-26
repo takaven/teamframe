@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { documentLabel } from "@/lib/ui/documentLabels";
 import { getCountryName } from "@/lib/geo/countries";
+import { getOverviewQueueCounts, getOverviewQueueView, type OverviewQueueItem } from "@/lib/ui/overviewQueue";
 
 const read = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8");
 
@@ -35,19 +36,38 @@ describe("final red-team UI safeguards", () => {
 
   it("keeps Home filter counts scoped to the active filter", () => {
     const queue = read("components/OverviewQueue.tsx");
-    expect(queue).toContain("Showing {scoped.length} of {counts[filter]}");
+    expect(queue).toContain("Showing {visible.length} of {counts[filter]}");
     expect(queue).toContain('aria-selected={active}');
     expect(queue).toContain("tf-count-accent");
   });
 
+  it("filters the full attention population before applying the ten-row display cap", () => {
+    const makeItem = (id: number, kind: OverviewQueueItem["class"]): OverviewQueueItem => ({
+      id: String(id), class: kind, source: "documents", title: `Item ${id}`, subjectName: "Person",
+      owner: "Admin", nextAction: "Review", dueAt: null, href: `/item/${id}`, detail: "Needs review.",
+    });
+    const items = [
+      ...Array.from({ length: 17 }, (_, index) => makeItem(index, "overdue")),
+      ...Array.from({ length: 33 }, (_, index) => makeItem(index + 17, "decision")),
+    ];
+
+    expect(getOverviewQueueView(items, "all").matching).toHaveLength(50);
+    expect(getOverviewQueueView(items, "all").visible).toHaveLength(10);
+    expect(getOverviewQueueView(items, "overdue").matching).toHaveLength(17);
+    expect(getOverviewQueueView(items, "overdue").visible).toHaveLength(10);
+    expect(getOverviewQueueView(items.slice(0, 4), "overdue").visible).toHaveLength(4);
+    expect(getOverviewQueueView(items, "exception")).toEqual({ matching: [], visible: [] });
+    expect(getOverviewQueueCounts(items)).toEqual({ all: 50, overdue: 17, decision: 33, due: 0, exception: 0 });
+  });
+
   it("keeps the final control polish shared, legible and outside Org Chart", () => {
     const styles = read("app/globals.css");
-    const select = read("components/SelectField.tsx");
+    const setup = read("app/setup/page.tsx");
     expect(styles).toContain('.tf-app-shell:not([data-active="/org-chart"])');
     expect(styles).toContain(".tf-secondary-action :where(span, svg) { color: inherit; }");
-    expect(styles).toContain(".tf-select-trigger");
     expect(styles).toContain(".tf-count-accent::before");
-    expect(select).toContain('className="tf-select-trigger');
+    expect(setup).toContain('<select name={name} defaultValue={value ?? ""} required className="tf-select mt-1">');
+    expect(setup).not.toContain("SelectField");
   });
 
   it("makes document-required onboarding work actionable", () => {

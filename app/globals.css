@@ -956,8 +956,7 @@ main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-secondary-action:d
    for keyboard, mobile and assistive technology reliability. */
 main:has(> .tf-app-shell:not([data-active="/org-chart"])) select,
 main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-select,
-main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-select-sm,
-.tf-select-trigger {
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-select-sm {
   border: 1px solid rgba(66,73,77,.13);
   border-left: 1px solid rgba(66,73,77,.13);
   border-bottom: 1px solid rgba(66,73,77,.16);
@@ -972,15 +971,13 @@ main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-select-sm,
 }
 main:has(> .tf-app-shell:not([data-active="/org-chart"])) select:hover,
 main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-select:hover,
-main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-select-sm:hover,
-.tf-select-trigger:hover {
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-select-sm:hover {
   border-color: rgba(66,73,77,.26);
   background-color: rgba(255,255,255,.56);
 }
 main:has(> .tf-app-shell:not([data-active="/org-chart"])) select:focus,
 main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-select:focus,
-main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-select-sm:focus,
-.tf-select-trigger:focus-visible {
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-select-sm:focus {
   border-color: rgba(66,73,77,.3);
   background-color: var(--tf-material-light);
   box-shadow: inset 2px 2px 5px rgba(32,36,43,.05), inset -2px -2px 5px rgba(255,255,255,.42), 0 0 0 2px rgba(1,255,34,.32);

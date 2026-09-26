@@ -44,12 +44,11 @@ export default async function DashboardPage() {
   const attentionCutoff = addDays(now, 7).toISOString();
   const comingUpCutoff = addDays(now, 30).toISOString();
   const attentionItems = allItems.filter((item) => !item.dueAt || item.dueAt <= attentionCutoff || item.class !== "due");
-  const needsAttention = attentionItems.slice(0, 10);
   const attentionIds = new Set(attentionItems.map((item) => item.id));
   const comingUp = allItems
     .filter((item) => !attentionIds.has(item.id) && item.dueAt && item.dueAt > attentionCutoff && item.dueAt <= comingUpCutoff)
     .slice(0, 8);
-  const queueItems: OverviewQueueItem[] = needsAttention.map((item) => ({
+  const queueItems: OverviewQueueItem[] = attentionItems.map((item) => ({
     id: item.id,
     class: item.class,
     source: item.source,
@@ -61,14 +60,6 @@ export default async function DashboardPage() {
     href: item.href,
     detail: item.detail,
   }));
-  const counts = {
-    all: needsAttention.length,
-    decision: needsAttention.filter((item) => item.class === "decision").length,
-    overdue: needsAttention.filter((item) => item.class === "overdue").length,
-    due: needsAttention.filter((item) => item.class === "due").length,
-    exception: needsAttention.filter((item) => item.class === "exception").length,
-  };
-
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">
       <AppShell actor={actor} activePath="/dashboard" />
@@ -79,8 +70,8 @@ export default async function DashboardPage() {
           <p className="tf-meta mt-1">{identity.name} · {dateLabel}</p>
         </div>
         <p className="tf-meta">
-          {needsAttention.length === 0 ? "Nothing needs your attention" : (
-            <><span className="font-semibold text-ink-900 tf-num">{needsAttention.length}</span> need your attention</>
+          {attentionItems.length === 0 ? "Nothing needs your attention" : (
+            <><span className="font-semibold text-ink-900 tf-num">{attentionItems.length}</span> need your attention</>
           )}
           <span className="mx-2 text-ink-300">·</span>
           <span className="tf-num">{activeEmployeeCount}</span> active
@@ -111,7 +102,7 @@ export default async function DashboardPage() {
             <h2 id="needs-attention-heading" className="tf-h2 mt-1">Needs your attention</h2>
           </div>
         </div>
-        <OverviewQueue items={queueItems} counts={counts} />
+        <OverviewQueue items={queueItems} />
       </section>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1.35fr_.9fr]">

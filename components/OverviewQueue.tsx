@@ -2,23 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { getOverviewQueueCounts, getOverviewQueueView, type OverviewQueueFilter, type OverviewQueueItem } from "@/lib/ui/overviewQueue";
 
-export type OverviewQueueItem = {
-  id: string;
-  class: "decision" | "overdue" | "due" | "exception";
-  source: string;
-  title: string;
-  subjectName: string;
-  owner: string;
-  nextAction: string;
-  dueAt: string | null;
-  href: string;
-  detail: string;
-};
+export type { OverviewQueueItem } from "@/lib/ui/overviewQueue";
 
-type Filter = "all" | "decision" | "overdue" | "due" | "exception";
-
-const FILTERS: { key: Filter; label: string }[] = [
+const FILTERS: { key: OverviewQueueFilter; label: string }[] = [
   { key: "all", label: "All" },
   { key: "exception", label: "Problems" },
   { key: "overdue", label: "Overdue" },
@@ -62,15 +50,10 @@ function Row({ item }: { item: OverviewQueueItem }) {
   );
 }
 
-export function OverviewQueue({
-  items,
-  counts,
-}: {
-  items: OverviewQueueItem[];
-  counts: { all: number; decision: number; overdue: number; due: number; exception: number };
-}) {
-  const [filter, setFilter] = useState<Filter>("all");
-  const scoped = filter === "all" ? items : items.filter((i) => i.class === filter);
+export function OverviewQueue({ items }: { items: OverviewQueueItem[] }) {
+  const [filter, setFilter] = useState<OverviewQueueFilter>("all");
+  const counts = getOverviewQueueCounts(items);
+  const { matching, visible } = getOverviewQueueView(items, filter);
 
   return (
     <div>
@@ -94,10 +77,10 @@ export function OverviewQueue({
         })}
       </div>
       <p className="mb-3 text-[12px] text-ink-500" aria-live="polite">
-        Showing {scoped.length} of {counts[filter]} {filter === "all" ? "items needing attention" : FILTERS.find((item) => item.key === filter)?.label.toLocaleLowerCase()}
+        Showing {visible.length} of {counts[filter]} {filter === "all" ? "items needing attention" : FILTERS.find((item) => item.key === filter)?.label.toLocaleLowerCase()}
       </p>
 
-      {scoped.length === 0 ? (
+      {matching.length === 0 ? (
         <div className="tf-surface-flat px-4 py-8 text-center text-[13.5px] text-ink-500">
           {filter === "all" ? "Nothing needs attention right now." : "No items in this view."}
         </div>
@@ -106,14 +89,14 @@ export function OverviewQueue({
           <div className="hidden grid-cols-[minmax(0,1.7fr)_minmax(0,.7fr)_90px_130px] gap-4 border-b border-ink-100 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-500 lg:grid">
             <span>What</span><span>Owner</span><span>Due</span><span>Action</span>
           </div>
-          <div className="tf-divide">{scoped.map((item) => <Row key={item.id} item={item} />)}</div>
+          <div className="tf-divide">{visible.map((item) => <Row key={item.id} item={item} />)}</div>
         </div>
       ) : (
         <div className="tf-surface overflow-hidden">
           <div className="hidden grid-cols-[minmax(0,1.7fr)_minmax(0,.7fr)_90px_130px] gap-4 border-b border-ink-100 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-500 lg:grid">
             <span>What</span><span>Owner</span><span>Due</span><span>Action</span>
           </div>
-          <div className="tf-divide">{scoped.map((item) => <Row key={item.id} item={item} />)}</div>
+          <div className="tf-divide">{visible.map((item) => <Row key={item.id} item={item} />)}</div>
         </div>
       )}
     </div>
