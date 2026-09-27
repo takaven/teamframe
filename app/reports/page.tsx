@@ -1,12 +1,10 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
-import { PendingSubmitButton } from "@/components/PendingSubmitButton";
-import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
+import { ReportsExports } from "@/components/ReportsExports";
 import { requireTenantActor } from "@/middleware/rbac";
 import { hasCapability } from "@/lib/rbac/access";
 import { getReports } from "@/services/reportingService";
-import { exportFinanceHandoffAction } from "@/app/employees/actions";
-import { exportTenantDataAction } from "@/app/setup/actions";
 import { getCountryName } from "@/lib/geo/countries";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +32,7 @@ function WorkforceMovement({ joiners, leavers }: { joiners: Array<{ start_date: 
 
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<{ view?: string; from?: string; to?: string; department?: string; location?: string }> }) {
   const actor = await requireTenantActor();
-  if (actor.role !== "admin") return null;
+  if (actor.role !== "admin") redirect("/home");
   const params = await searchParams;
   const view = views.some(([id]) => id === params.view) ? params.view! : "headcount";
   const filters = { from: params.from ?? yearAgo(), to: params.to ?? today(), department: params.department || undefined, location: params.location || undefined };
@@ -55,7 +53,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       {view === "documents" ? <><div className="flex justify-between"><div><h2 className="tf-h2">Documents</h2><p className="mt-1 text-[13px] text-ink-500">Complete means every configured required document is accepted.</p></div><a className="tf-secondary-action px-3 py-2 text-[12px]" href={csvLink}>Download CSV</a></div><Table heads={["Person", "Required", "Approved", "Completeness", "Outstanding", "Awaiting review", "Expired"]} rows={report.requirementRows.map((r) => [<Link className="font-semibold underline" href={`/people/${r.employee.id}#documents`} key={r.employee.id}>{r.employee.full_name}</Link>, r.required, r.accepted, r.required ? `${Math.round(r.accepted / r.required * 100)}%` : "—", r.outstanding, r.review, r.expired])}/><p className="mt-4 text-[12px] text-ink-500">{report.expiry.length} documents expire within 90 days.</p></> : null}
       {view === "onboarding" ? <><div className="flex justify-between"><div><h2 className="tf-h2">Onboarding &amp; probation</h2><p className="mt-1 text-[13px] text-ink-500">Checklist progress, overdue work, check-ins and probation.</p></div><a className="tf-secondary-action px-3 py-2 text-[12px]" href={csvLink}>Download CSV</a></div><Table heads={["Person", "Checklist", "Overdue", "Check-ins", "Probation"]} rows={report.onboardingRows.filter((r) => r.tasks || r.checkIns.length || r.probation.length).map((r) => [<Link className="font-semibold underline" href={`/people/${r.employee.id}#onboarding-offboarding`} key={r.employee.id}>{r.employee.full_name}</Link>, r.tasks ? `${Math.round(r.complete / r.tasks * 100)}%` : "—", r.overdue, r.checkIns.map((c) => human(c.status)).join(", ") || "—", r.probation.map((p) => p.outcome ? human(p.outcome) : human(p.status)).join(", ") || "—"])}/></> : null}
       {view === "policies" ? <><div className="flex justify-between"><div><h2 className="tf-h2">Policy acknowledgements</h2><p className="mt-1 text-[13px] text-ink-500">Published policy versions and each active person&apos;s acknowledgement.</p></div><a className="tf-secondary-action px-3 py-2 text-[12px]" href={csvLink}>Download CSV</a></div><div className="tf-summary mt-5"><div><div className="tf-summary-label">Required</div><div className="tf-summary-value">{report.policyRows.length}</div></div><div><div className="tf-summary-label">Outstanding</div><div className="tf-summary-value">{report.policyRows.filter((r) => !r.acknowledgement).length}</div></div></div><Table heads={["Policy", "Version", "Person", "Status", "Date"]} rows={report.policyRows.map((r) => [r.policy.title, r.policy.version, r.employee.full_name, r.acknowledgement ? "Acknowledged" : "Outstanding", r.acknowledgement?.acknowledged_at.slice(0, 10) ?? "—"])}/></> : null}
-      {view === "exports" ? <><h2 className="tf-h2">Exports</h2><p className="mt-1 text-[13px] text-ink-500">The single home for organisation-wide exports.</p><div className="mt-6 grid gap-4 md:grid-cols-2"><section className="rounded-xl border border-ink-200 p-5"><h3 className="font-bold">Payroll export</h3><p className="mt-1 text-[13px] text-ink-500">Finance handoff in spreadsheet-friendly formats.</p>{canFinance ? <form action={exportFinanceHandoffAction} className="mt-4"><input type="hidden" name="return_to" value="/reports?view=exports"/><PendingSubmitButton idleLabel="Export payroll data" pendingLabel="Preparing…" className="tf-primary-action px-4 py-2 text-[13px]"/></form> : <p className="mt-4 text-[13px] text-ink-500">Finance export access is required.</p>}</section><section className="rounded-xl border border-ink-200 p-5"><h3 className="font-bold">Full data export</h3><p className="mt-1 text-[13px] text-ink-500">Portable tenant records and uploaded documents.</p>{canFull ? <form action={exportTenantDataAction} className="mt-4"><ConfirmSubmitButton idleLabel="Export all TeamFrame data" pendingLabel="Preparing…" className="tf-primary-action px-4 py-2 text-[13px]" confirmMessage="Prepare a private full installation export?"/></form> : <p className="mt-4 text-[13px] text-ink-500">Full Access is required.</p>}</section></div></> : null}
+      {view === "exports" ? <ReportsExports canFinance={canFinance} canFull={canFull} returnTo="/reports?view=exports" /> : null}
     </section>
   </main>;
 }

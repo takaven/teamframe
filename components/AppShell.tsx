@@ -5,6 +5,7 @@ import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 import { SignOutButton } from "@/components/SignOutButton";
 import { BrandLogo } from "@/components/BrandLogo";
 import { getCompanyIdentity } from "@/lib/company/identity";
+import { hasCapability } from "@/lib/rbac/access";
 
 // Primary operational modules. Company (holidays) and Access are re-homed under
 // Setup / Administration; Setup sits last as a secondary admin destination.
@@ -31,6 +32,7 @@ const EMPLOYEE_LINKS = [
 ] as const;
 
 const MANAGER_PRIORITIES_LINK = { href: "/manager", label: "My team" } as const;
+const FINANCE_EXPORT_LINK = { href: "/reports/exports", label: "Exports" } as const;
 
 const MANAGER_LINKS = [
   { href: "/home", label: "Home" },
@@ -64,17 +66,18 @@ export async function AppShell({
   activePath: string;
 }) {
   const isAdminSurface = actor.role === "admin";
-  const [showManagerPriorities, identity] = await Promise.all([
+  const [showManagerPriorities, identity, canExportFinance] = await Promise.all([
     isAdminSurface ? Promise.resolve(false) : hasDirectReports(actor),
     getCompanyIdentity(actor.tenantId),
+    isAdminSurface ? Promise.resolve(false) : hasCapability(actor, "finance_payroll_exports"),
   ]);
   const links = isAdminSurface
     ? [...ADMIN_LINKS, SETUP_LINK]
-    : showManagerPriorities ? [...MANAGER_LINKS] : [...EMPLOYEE_LINKS];
+    : [...(showManagerPriorities ? MANAGER_LINKS : EMPLOYEE_LINKS), ...(canExportFinance ? [FINANCE_EXPORT_LINK] : [])];
 
   const workspaceHome = actor.role === "admin" ? "/dashboard" : "/home";
 
-  const primaryLinks = isAdminSurface ? ADMIN_LINKS : showManagerPriorities ? MANAGER_LINKS : EMPLOYEE_LINKS;
+  const primaryLinks = isAdminSurface ? ADMIN_LINKS : links;
   const effectiveActivePath = showManagerPriorities && activePath === "/documents-and-policies" ? "/me" : activePath;
   const isActive = (href: string) => href === effectiveActivePath;
 

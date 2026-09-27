@@ -28,7 +28,7 @@ describe("People architecture", () => {
   it("does not advertise finance export from the People surface", () => {
     const people = read("components/PeopleExperience.tsx");
     const setup = read("app/setup/page.tsx");
-    const reports = read("app/reports/page.tsx");
+    const reports = read("components/ReportsExports.tsx");
     expect(people).not.toContain("Export finance handoff");
     expect(setup).toContain('/reports?view=exports');
     expect(reports).toContain("Export payroll data");

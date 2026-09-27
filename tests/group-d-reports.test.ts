@@ -20,9 +20,11 @@ describe("Group D fixed reports", () => {
 
   it("keeps payroll and full export actions in Reports and removes them from Settings", () => {
     const reports = read("app/reports/page.tsx");
+    const exports = read("components/ReportsExports.tsx");
     const setup = read("app/setup/page.tsx");
-    expect(reports).toContain("exportFinanceHandoffAction");
-    expect(reports).toContain("exportTenantDataAction");
+    expect(reports).toContain("ReportsExports");
+    expect(exports).toContain("exportFinanceHandoffAction");
+    expect(exports).toContain("exportTenantDataAction");
     expect(setup).not.toContain("exportFinanceHandoffAction");
     expect(setup).not.toContain("exportTenantDataAction");
   });

@@ -1,0 +1,36 @@
+{
+  "setupPack": {
+    "companyCsv": "Example Advisory LLC,AE,Dubai,25,15,Asia/Dubai,Mon Tue Wed Thu Fri,EX,-,4,1",
+    "usersCsv": "Implementation Operator,operator@example.invalid,no,full_access\nFinance Reviewer,finance@example.invalid,yes,finance",
+    "employeesCsv": "EX-0001,Example Managing Director,,director@example.invalid,,,,,AE,Managing Director,Leadership,,2025-01-01,full_time,existing,Dubai,AE,,,,,,,,,,,,,,,,\nEX-0002,Example Finance Lead,,finance@example.invalid,,,,,AE,Finance Lead,Finance,director@example.invalid,2025-02-01,full_time,existing,Dubai,AE,,,,,,,,,,,,,,,,",
+    "holidaysCsv": "2026-01-01,New Year’s Day\n2026-12-02,UAE National Day",
+    "accessExceptionsCsv": "finance@example.invalid,none,view,all,none,yes,no,"
+  },
+  "departments": ["Leadership", "Finance"],
+  "workLocations": [
+    { "name": "Dubai", "country": "AE" },
+    { "name": "Abu Dhabi", "country": "AE" }
+  ],
+  "positions": [
+    { "key": "managing-director", "title": "Managing Director", "department": "Leadership", "workLocation": "Dubai", "employeeEmail": "director@example.invalid", "budgeted": true },
+    { "key": "finance-lead", "title": "Finance Lead", "department": "Finance", "workLocation": "Dubai", "parentKey": "managing-director", "employeeEmail": "finance@example.invalid", "budgeted": true }
+  ],
+  "leaveDefinitions": [
+    { "display_name": "Annual Leave", "system_leave_type": "annual", "active": true, "default_entitlement_days": 25, "counting_basis": "working_days", "attachment_requirement": "not_required" },
+    { "display_name": "Sick Leave", "system_leave_type": "sick", "active": true, "default_entitlement_days": 15, "counting_basis": "calendar_days", "attachment_requirement": "optional" }
+  ],
+  "onboarding": {
+    "name": "Standard UAE onboarding",
+    "description": "Standard starter tasks.",
+    "tasks": [
+      { "title": "Read employee handbook", "ownerRole": "employee", "dueOffsetDays": 0, "completionMode": "manual_confirmation" },
+      { "title": "Upload passport", "ownerRole": "employee", "dueOffsetDays": -7, "completionMode": "document_required", "requiredDocumentType": "passport" }
+    ]
+  },
+  "documentRequirements": [
+    { "employeeEmail": "finance@example.invalid", "documentType": "passport", "dueDate": "2026-10-01", "expiryRequired": true, "reviewRequired": true, "employeeUploadAllowed": true }
+  ],
+  "policies": [
+    { "title": "Employee handbook", "body": "Replace this synthetic text with the approved customer policy.", "version": 1, "effectiveDate": "2026-01-01", "publish": true }
+  ]
+}
