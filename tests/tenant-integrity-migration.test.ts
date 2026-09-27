@@ -1,10 +1,10 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { EXPECTED_PUBLIC_TABLES } from "../scripts/schema-order.mjs";
 
 const migration = readFileSync(join(process.cwd(), "schemas", "tenant_integrity.sql"), "utf8");
 const schemaOrder = readFileSync(join(process.cwd(), "scripts", "schema-order.mjs"), "utf8");
-const verifyInstall = readFileSync(join(process.cwd(), "scripts", "verify-install.mjs"), "utf8");
 
 const requiredPreflights = [
   "documents.employee_id",
@@ -64,8 +64,9 @@ describe("tenant integrity migration", () => {
   });
 
   it("keeps non-table migrations out of install table checks", () => {
-    expect(verifyInstall).toContain('"tenant_integrity.sql"');
-    expect(verifyInstall).toContain("NON_TABLE_MIGRATIONS");
-    expect(verifyInstall).toContain('"file_lifecycle.sql": ["file_operations", "export_files"]');
+    expect(EXPECTED_PUBLIC_TABLES).toEqual(expect.arrayContaining(["file_operations", "export_files"]));
+    expect(EXPECTED_PUBLIC_TABLES).not.toEqual(
+      expect.arrayContaining(["tenant_integrity", "tenancy_rls", "transactional_mutations"]),
+    );
   });
 });

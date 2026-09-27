@@ -12,6 +12,7 @@ vi.mock("@/services/hrAutomation", () => ({
 
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 import { completeOnboardingTask } from "@/services/onboardingService";
+import { EXPECTED_PUBLIC_TABLES } from "../scripts/schema-order.mjs";
 
 const root = process.cwd();
 
@@ -28,10 +29,8 @@ const actor = {
 };
 
 describe("MR-5 documents, evidence and policies", () => {
-  it("registers document requirements in schema apply, install and integration verification", () => {
+  it("registers document requirements in schema apply and the canonical install inventory", () => {
     const schemaOrder = read("scripts/schema-order.mjs");
-    const verifyInstall = read("scripts/verify-install.mjs");
-    const verifyIntegration = read("scripts/verify-integration.mjs");
 
     expect(schemaOrder.indexOf('"hr_automation.sql"')).toBeLessThan(
       schemaOrder.indexOf('"document_requirements.sql"'),
@@ -39,8 +38,7 @@ describe("MR-5 documents, evidence and policies", () => {
     expect(schemaOrder.indexOf('"document_requirements.sql"')).toBeLessThan(
       schemaOrder.indexOf('"tenancy_rls.sql"'),
     );
-    expect(verifyInstall).toContain('"document_requirements.sql": ["document_requirements"]');
-    expect(verifyIntegration).toContain('"document_requirements"');
+    expect(EXPECTED_PUBLIC_TABLES).toContain("document_requirements");
   });
 
   it("adds tenant-scoped document requirement state and evidence sync hooks", () => {
