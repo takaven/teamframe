@@ -74,7 +74,7 @@ describe("repository execution safety", () => {
   });
 
   it("preflights only the exact new synthetic install and storage target", () => {
-    const freshRef = "xqiamhwkuogcgucwmlxy";
+    const freshRef = "tosrbylwchodbeaculgi";
     const target = {
       TEAMFRAME_INSTALL_PROJECT_REF: freshRef,
       TEAMFRAME_INSTALL_SUPABASE_URL: `https://${freshRef}.supabase.co`,

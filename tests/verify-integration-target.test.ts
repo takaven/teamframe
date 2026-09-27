@@ -103,7 +103,7 @@ describe("access provisioning target guard", () => {
   });
 
   it("rejects the protected buyer fixture and paused or quarantined projects", () => {
-    for (const ref of ["xqiamhwkuogcgucwmlxy", "wafkfvpsdhjfrxrmgksl", "euhvgedjldqzfczkzjqi", "syytforaidoorrvrbqwz", "xjdobcfzwluozumhnjng", "nvuijkgiqqhqeqduqqgm", "jxiiinglydqqhwjglxtg"]) {
+    for (const ref of ["wafkfvpsdhjfrxrmgksl", "euhvgedjldqzfczkzjqi", "syytforaidoorrvrbqwz", "xjdobcfzwluozumhnjng", "nvuijkgiqqhqeqduqqgm", "jxiiinglydqqhwjglxtg"]) {
       const result = checkAccessTarget({
         AUDIT_SUPABASE_PROJECT_REF: ref,
         AUDIT_SUPABASE_URL: `https://${ref}.supabase.co`,
@@ -113,6 +113,17 @@ describe("access provisioning target guard", () => {
       expect(result.stderr).toContain("not approved for access-proof writes");
     }
   }, 15_000);
+
+  it("rejects the deleted rehearsal project", () => {
+    const ref = "xqiamhwkuogcgucwmlxy";
+    const result = checkAccessTarget({
+      AUDIT_SUPABASE_PROJECT_REF: ref,
+      AUDIT_SUPABASE_URL: `https://${ref}.supabase.co`,
+      AUDIT_SUPABASE_DB_URL: `postgresql://postgres.${ref}:test-only@aws-0-ap-south-1.pooler.supabase.com:5432/postgres`,
+    });
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain("not an approved TAKAVEN disposable project");
+  });
 
   it("rejects unapproved and mismatched targets", () => {
     expect(checkAccessTarget({ AUDIT_SUPABASE_PROJECT_REF: "qrsxoumymbcehtltbtgn" }).status).not.toBe(0);
