@@ -6,6 +6,7 @@ import pg from "pg";
 import { expect, it, vi } from "vitest";
 import { customerFactory120Pack } from "./fixtures/customer-factory-120";
 import { APPROVED_LAUNCH_PROJECT_REFS } from "../scripts/approved-launch-projects.mjs";
+import { EXPECTED_PUBLIC_TABLES } from "../scripts/schema-order.mjs";
 
 vi.mock("server-only", () => ({}));
 
@@ -55,6 +56,7 @@ it.skipIf(process.env.TEAMFRAME_FACTORY_INVOKED !== "1")("measures the unchanged
     throw new Error("FACTORY_ACTOR_AUTH_MISMATCH");
   }
   const { rows: publicTables } = await db.query("select tablename from pg_tables where schemaname = 'public'");
+  const installedTableNames = publicTables.map(({ tablename }) => String(tablename)).sort();
   const allowedRows: Record<string, number> = { companies: 1, tenant_memberships: 1 };
   const publicCounts: Record<string, number> = {};
   for (const { tablename } of publicTables) {
@@ -65,8 +67,8 @@ it.skipIf(process.env.TEAMFRAME_FACTORY_INVOKED !== "1")("measures the unchanged
       throw new Error(`FACTORY_PUBLIC_TABLE_DIRTY:${tablename}:${row.count}`);
     }
   }
-  if (publicTables.length !== 39 || !("companies" in publicCounts) || !("tenant_memberships" in publicCounts)) {
-    throw new Error(`FACTORY_SCHEMA_UNEXPECTED:${publicTables.length}`);
+  if (JSON.stringify(installedTableNames) !== JSON.stringify(EXPECTED_PUBLIC_TABLES)) {
+    throw new Error(`FACTORY_SCHEMA_UNEXPECTED:${JSON.stringify(installedTableNames)}`);
   }
   const tables = ["employees", "setup_import_batches", "tenant_access_invitations", "leave_opening_adjustments", "company_holidays"];
   const before = Object.fromEntries(await Promise.all(tables.map(async (table) => [table, await count(table, company.id)])));

@@ -24,7 +24,7 @@ describe("fresh API privilege contract", () => {
     const order = read("scripts/schema-order.mjs");
     expect(order.indexOf('"api_privileges.sql"')).toBeGreaterThan(order.indexOf('"phase8_corrections.sql"'));
     const installer = read("scripts/apply-schemas-fresh.mjs");
-    expect(installer).toContain("privileges.service_tables !== installed.tables");
+    expect(installer).toContain("privileges.service_tables !== installedTables.length");
     expect(installer).toContain("privileges.anon_tables !== 0");
     expect(installer).toContain("has_table_privilege('service_role'");
   });

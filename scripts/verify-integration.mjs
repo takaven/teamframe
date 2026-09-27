@@ -12,6 +12,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { APPROVED_LAUNCH_PROJECT_REFS } from "./approved-launch-projects.mjs";
+import { EXPECTED_PUBLIC_TABLES } from "./schema-order.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -21,29 +22,6 @@ const REQUIRED = [
   "AUDIT_SUPABASE_URL",
   "AUDIT_SUPABASE_SERVICE_ROLE_KEY",
   "AUDIT_SUPABASE_DB_URL",
-];
-
-const REQUIRED_TABLES = [
-  "action_items",
-  "analytics_events",
-  "audit_logs",
-  "companies",
-  "compensation",
-  "documents",
-  "document_requirements",
-  "employee_profiles",
-  "employees",
-  "employment_changes",
-  "employee_join_initializations",
-  "hr_automation_events",
-  "hr_automation_items",
-  "leaves",
-  "onboarding_check_ins",
-  "onboarding_tasks",
-  "policies",
-  "probation_reviews",
-  "acknowledgements",
-  "risk_signals",
 ];
 
 function fail(message) {
@@ -121,20 +99,20 @@ async function verifyDatabase() {
         join pg_namespace n on n.oid = c.relnamespace
         where n.nspname = 'public'
           and c.relkind = 'r'
-          and c.relname = any($1::text[])
         order by c.relname;
       `,
-      [REQUIRED_TABLES],
     );
 
     const found = new Map(rows.map((row) => [row.relname, row.relrowsecurity]));
-    const missing = REQUIRED_TABLES.filter((table) => !found.has(table));
+    const missing = EXPECTED_PUBLIC_TABLES.filter((table) => !found.has(table));
     if (missing.length > 0) fail(`Missing required tables: ${missing.join(", ")}`);
+    const unexpected = rows.map((row) => row.relname).filter((table) => !EXPECTED_PUBLIC_TABLES.includes(table));
+    if (unexpected.length > 0) fail(`Unexpected public tables: ${unexpected.join(", ")}`);
 
-    const withoutRls = REQUIRED_TABLES.filter((table) => found.get(table) !== true);
+    const withoutRls = EXPECTED_PUBLIC_TABLES.filter((table) => found.get(table) !== true);
     if (withoutRls.length > 0) fail(`RLS is not enabled on: ${withoutRls.join(", ")}`);
 
-    pass(`Database schema present with RLS enabled on ${REQUIRED_TABLES.length} required tables`);
+    pass(`Exact canonical database inventory present with RLS enabled on ${EXPECTED_PUBLIC_TABLES.length} tables`);
   } finally {
     await client.end();
   }

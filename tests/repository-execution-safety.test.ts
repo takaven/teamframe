@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { EXPECTED_PUBLIC_TABLES, SCHEMA_ORDER } from "../scripts/schema-order.mjs";
 
 const ref = "syytforaidoorrvrbqwz";
 const root = process.cwd();
@@ -29,6 +30,31 @@ function run(script: string, extra: Record<string, string> = {}, args: string[] 
 }
 
 describe("repository execution safety", () => {
+  it("keeps one exact canonical public-table inventory for fresh and rehearsal verification", () => {
+    const tablesFromSchemas = new Set<string>();
+    for (const file of SCHEMA_ORDER) {
+      const sql = readFileSync(join(root, "schemas", file), "utf8");
+      for (const match of sql.matchAll(/create\s+table\s+if\s+not\s+exists\s+(?:public\.)?([a-z_][a-z0-9_]*)/gi)) {
+        const tableName = match[1];
+        if (tableName) tablesFromSchemas.add(tableName.toLowerCase());
+      }
+    }
+    expect(EXPECTED_PUBLIC_TABLES).toHaveLength(45);
+    expect([...EXPECTED_PUBLIC_TABLES].sort()).toEqual(EXPECTED_PUBLIC_TABLES);
+    expect([...tablesFromSchemas].sort()).toEqual(EXPECTED_PUBLIC_TABLES);
+
+    const installer = readFileSync(join(root, "scripts", "apply-schemas-fresh.mjs"), "utf8");
+    const rehearsalBootstrap = readFileSync(join(root, "scripts", "bootstrap-factory-disposable.mjs"), "utf8");
+    const integrationGate = readFileSync(join(root, "scripts", "verify-integration.mjs"), "utf8");
+    const parityGate = readFileSync(join(root, "scripts", "verify-parity.mjs"), "utf8");
+    expect(installer).toContain("EXPECTED_PUBLIC_TABLES");
+    expect(rehearsalBootstrap).toContain("EXPECTED_PUBLIC_TABLES");
+    expect(integrationGate).toContain("EXPECTED_PUBLIC_TABLES");
+    expect(parityGate).toContain("EXPECTED_PUBLIC_TABLES");
+    expect(installer).not.toMatch(/installed\.tables\s*!==\s*\d+/);
+    expect(rehearsalBootstrap).not.toMatch(/tables\.length\s*!==\s*\d+/);
+  });
+
   it("retires direct legacy destructive, setup and replay entry points", () => {
     for (const script of ["reset-and-apply.mjs", "reset-and-apply-staging.mjs", "setup-staging-project.mjs", "apply-schemas.mjs", "verify-install.mjs"]) {
       const result = run(script);

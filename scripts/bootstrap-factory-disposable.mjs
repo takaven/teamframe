@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { createClient } from "@supabase/supabase-js";
 import { APPROVED_LAUNCH_PROJECT_REFS } from "./approved-launch-projects.mjs";
+import { EXPECTED_PUBLIC_TABLES } from "./schema-order.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const ref = process.env.TEAMFRAME_FACTORY_PROJECT_REF;
@@ -51,7 +52,13 @@ let writeAttempted = false;
 
 async function counts() {
   const { rows: tables } = await db.query(`select tablename from pg_tables where schemaname = 'public' order by tablename`);
-  if (tables.length !== 39) throw new Error(`expected 39 installed public tables, found ${tables.length}`);
+  const installedTables = tables.map(({ tablename }) => tablename);
+  const installedSet = new Set(installedTables);
+  const missing = EXPECTED_PUBLIC_TABLES.filter((table) => !installedSet.has(table));
+  const unexpected = installedTables.filter((table) => !EXPECTED_PUBLIC_TABLES.includes(table));
+  if (missing.length || unexpected.length) {
+    throw new Error(`schema inventory mismatch; missing [${missing.join(", ")}], unexpected [${unexpected.join(", ")}]`);
+  }
   const publicCounts = new Map();
   for (const { tablename } of tables) {
     if (!/^[a-z_]+$/.test(tablename)) throw new Error("unexpected public table identifier");

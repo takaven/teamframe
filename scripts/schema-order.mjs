@@ -56,3 +56,59 @@ export const SCHEMA_ORDER = [
   // One-way HirePass provenance depends on the ordinary employee RPC and grants.
   "hire_people_handoff.sql",
 ];
+
+/**
+ * Exact public-table inventory produced by a current fresh installation.
+ *
+ * Keep this explicit: install and disposable-environment verification must
+ * detect both missing and unexpected tables, not merely compare a stale
+ * numeric total. The repository safety test reconciles this list against the
+ * CREATE TABLE statements in every file in SCHEMA_ORDER.
+ */
+export const EXPECTED_PUBLIC_TABLES = [
+  "acknowledgements",
+  "action_items",
+  "analytics_events",
+  "audit_logs",
+  "companies",
+  "company_holidays",
+  "compensation",
+  "compensation_component_amounts",
+  "compensation_components",
+  "compensation_history",
+  "custom_field_definitions",
+  "custom_field_values",
+  "departments",
+  "document_requirements",
+  "documents",
+  "employee_join_initializations",
+  "employee_payment_details",
+  "employee_profiles",
+  "employees",
+  "employment_changes",
+  "export_files",
+  "file_operations",
+  "hr_automation_events",
+  "hr_automation_items",
+  "leave_definitions",
+  "leave_opening_adjustments",
+  "leaves",
+  "notification_deliveries",
+  "offboarding_cases",
+  "offboarding_items",
+  "onboarding_check_ins",
+  "onboarding_checklist_assignments",
+  "onboarding_checklist_template_items",
+  "onboarding_checklist_templates",
+  "onboarding_tasks",
+  "policies",
+  "position_assignments",
+  "positions",
+  "probation_reviews",
+  "procedures",
+  "risk_signals",
+  "setup_import_batches",
+  "tenant_access_invitations",
+  "tenant_memberships",
+  "work_locations",
+];

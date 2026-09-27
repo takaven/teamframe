@@ -20,7 +20,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
-import { SCHEMA_ORDER } from "./schema-order.mjs";
+import { EXPECTED_PUBLIC_TABLES, SCHEMA_ORDER } from "./schema-order.mjs";
 import { APPROVED_LAUNCH_PROJECT_REFS } from "./approved-launch-projects.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -118,15 +118,25 @@ async function main() {
     }
   }
 
-  const { rows: [installed] } = await client.query(`
+  const { rows: installedRows } = await client.query(`
     select
-      count(*)::int as tables,
-      count(*) filter (where c.relrowsecurity)::int as rls_tables
+      c.relname as table_name,
+      c.relrowsecurity as rls_enabled
     from pg_class c join pg_namespace n on n.oid = c.relnamespace
     where n.nspname = 'public' and c.relkind = 'r'
+    order by c.relname
   `);
-  if (installed.tables !== 41 || installed.rls_tables !== installed.tables) {
-    throw new Error(`[PARITY_FAIL] Post-install verification failed: ${installed.tables} public tables, ${installed.rls_tables} with RLS.`);
+  const installedTables = installedRows.map((row) => row.table_name);
+  const installedSet = new Set(installedTables);
+  const missingTables = EXPECTED_PUBLIC_TABLES.filter((table) => !installedSet.has(table));
+  const unexpectedTables = installedTables.filter((table) => !EXPECTED_PUBLIC_TABLES.includes(table));
+  const tablesWithoutRls = installedRows.filter((row) => !row.rls_enabled).map((row) => row.table_name);
+  if (missingTables.length || unexpectedTables.length || tablesWithoutRls.length) {
+    throw new Error(
+      `[PARITY_FAIL] Post-install inventory failed: ${installedTables.length}/${EXPECTED_PUBLIC_TABLES.length} public tables; ` +
+      `missing [${missingTables.join(", ")}]; unexpected [${unexpectedTables.join(", ")}]; ` +
+      `RLS disabled [${tablesWithoutRls.join(", ")}].`,
+    );
   }
   const { rows: [objects] } = await client.query(`
     select
@@ -153,10 +163,10 @@ async function main() {
       )::int as anon_tables
     from pg_tables where schemaname = 'public'
   `);
-  if (privileges.service_tables !== installed.tables || privileges.anon_tables !== 0) {
-    throw new Error(`[PARITY_FAIL] Post-install API privileges failed: ${privileges.service_tables}/${installed.tables} service-role tables, ${privileges.anon_tables} anon-accessible tables.`);
+  if (privileges.service_tables !== installedTables.length || privileges.anon_tables !== 0) {
+    throw new Error(`[PARITY_FAIL] Post-install API privileges failed: ${privileges.service_tables}/${installedTables.length} service-role tables, ${privileges.anon_tables} anon-accessible tables.`);
   }
-  console.log(`\n✓ Fresh schema installation verified: ${installed.tables} public tables, all RLS enabled; required objects and service-role privileges present; no anon table access.`);
+  console.log(`\n✓ Fresh schema installation verified: ${installedTables.length} expected public tables, all RLS enabled; required objects and service-role privileges present; no anon table access.`);
   console.log(`  Applied this run: ${FRESH_SCHEMA_ORDER.join(", ")}`);
 }
 
