@@ -23,8 +23,8 @@ Last verified: 2026-09-28 after the founder-approved cleanup. Two historical Ver
 | Default branch | `main` |
 | Default-branch head at inventory | `45e63bfd85c05d65b4fd935dd4ba61081b6799af` |
 | Launch branch | `launch/managed-people-ops-45-day` |
-| Current verified launch head | `878cf8d91c490c7bc4ca46e78d63d49c2afb1cab` |
-| Current launch divergence | 125 commits ahead of `main`, 0 behind |
+| Security release head verified before this registry refresh | `878cf8d91c490c7bc4ca46e78d63d49c2afb1cab` |
+| Launch divergence before this registry refresh | 125 commits ahead of `main`, 0 behind |
 | Integration path | Draft PR #6 into `main`; do not deploy Production directly from an unmerged working branch |
 | Branch protection | The two surviving branches are `main` and the launch branch; `main` was unprotected at inventory time and the repository policy file was not enforced |
 
