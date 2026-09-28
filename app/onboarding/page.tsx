@@ -88,7 +88,7 @@ function TaskStatusBadge({ status }: { status: OnboardingTask["status"] }) {
 function completionModeLabel(mode: OnboardingTask["completion_mode"]): string {
   switch (mode) {
     case "document_required":
-      return "Requires evidence";
+      return "Requires document";
     case "policy_acknowledgement":
       return "Awaiting acknowledgement";
     case "form_or_data_required":
@@ -150,7 +150,7 @@ export default async function OnboardingPage({
         </div>
 
         {successMessage ? (
-          <p className="mt-6 rounded-lg border border-signal-green/25 bg-signal-green/5 px-4 py-2.5 text-[13.5px] text-signal-green">
+          <p role="status" aria-live="polite" className="mt-6 rounded-lg border border-signal-green/25 bg-signal-green/5 px-4 py-2.5 text-[13.5px] text-signal-green">
             {successMessage}
           </p>
         ) : null}
@@ -168,7 +168,7 @@ export default async function OnboardingPage({
           {employees.length === 0 ? (
             <p className="mt-3 text-[14px] text-ink-500">
               You do not have employees to assign yet.{" "}
-              <Link href="/employees" className="underline hover:text-ink-900">Add an employee</Link> first.
+              <Link href="/people/add" className="underline hover:text-ink-900">Add a person</Link> first.
             </p>
           ) : (
             <AssignPackForm
@@ -188,7 +188,7 @@ export default async function OnboardingPage({
           {employees.length === 0 ? (
             <p className="mt-3 text-[14px] text-ink-500">
               You do not have employees to assign yet.{" "}
-              <Link href="/employees" className="underline hover:text-ink-900">Add an employee</Link> first.
+              <Link href="/people/add" className="underline hover:text-ink-900">Add a person</Link> first.
             </p>
           ) : (
             <form action={assignOnboardingTaskAction} className="mt-4 flex flex-wrap items-end gap-3">
@@ -249,7 +249,7 @@ export default async function OnboardingPage({
             </div>
             <ul className="divide-y divide-ink-300/40">
               {pending.map((task) => (
-                <li key={task.id} className="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
+                <li id={`task-${task.id}`} key={task.id} className="scroll-mt-6 flex flex-wrap items-center justify-between gap-4 px-5 py-4">
                   <div className="min-w-0 flex-1 space-y-0.5">
                     <p className="text-[15px] text-ink-900">{task.title}</p>
                     <p className="text-[12px] text-ink-500">
@@ -409,7 +409,13 @@ export default async function OnboardingPage({
                         Added <span className="tabular-nums">{formatDate(task.created_at)}</span>
                       </p>
                       <DueDateBadge task={task} />
-                      <p className="text-[12px] text-ink-500">Complete this once the step is finished.</p>
+                      <p className="text-[12px] text-ink-500">
+                        {task.completion_mode === "document_required"
+                          ? "Upload the requested document to complete this step."
+                          : task.completion_mode === "policy_acknowledgement"
+                            ? "Read and acknowledge the policy to complete this step."
+                            : "Mark this done when you've completed the step."}
+                      </p>
                     </div>
                     {task.completion_mode === "manual_confirmation" ? (
                       <form action={completeOnboardingTaskAction}>
@@ -421,11 +427,11 @@ export default async function OnboardingPage({
                           className="tf-primary-action px-4 py-1.5 text-[13px] font-medium disabled:cursor-not-allowed disabled:bg-ink-300"
                         />
                       </form>
-                    ) : (
-                      <span className="rounded-lg border border-ink-300 bg-ink-50 px-4 py-1.5 text-[13px] font-medium text-ink-700">
-                        {completionModeLabel(task.completion_mode)}
-                      </span>
-                    )}
+                    ) : task.completion_mode === "document_required" ? (
+                      <Link href="/documents-and-policies#documents" className="tf-secondary-action px-4 py-1.5 text-[13px]">Upload document</Link>
+                    ) : task.completion_mode === "policy_acknowledgement" ? (
+                      <Link href="/documents-and-policies#policies" className="tf-secondary-action px-4 py-1.5 text-[13px]">View policy</Link>
+                    ) : <span className="tf-secondary-action px-4 py-1.5 text-[13px]">{completionModeLabel(task.completion_mode)}</span>}
                   </li>
                 ))}
               </ul>

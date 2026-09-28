@@ -29,8 +29,9 @@ export function StatusPill({
 }) {
   return (
     <span
-      className={`inline-flex items-center whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-medium transition ${TONE_CLASSES[tone]} ${className}`}
+      className={`tf-status-pill inline-flex items-center whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-medium transition ${TONE_CLASSES[tone]} ${className}`}
     >
+      <span className="tf-status-dot" aria-hidden="true" />
       {children}
     </span>
   );

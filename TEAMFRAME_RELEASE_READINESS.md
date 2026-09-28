@@ -1,6 +1,8 @@
 # TeamFrame Release Readiness
 
-**STATUS: CANONICAL / CONTROLLING RELEASE GATE**
+> **HISTORICAL TECHNICAL RELEASE PROVENANCE — NOT CURRENT MANAGED-SERVICE LAUNCH APPROVAL.** The prior verdict and PASS rows below are retained as evidence of an earlier technical release, not proof of today's managed launch. Current scope and approval are controlled by [managed scope](TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE.md), [45-day plan](docs/launch/TEAMFRAME_45_DAY_EXECUTION_PLAN.md), and [execution ledger](docs/launch/EXECUTION_LEDGER.md). M1 production trust remains open until live security, email and restore gates pass.
+
+**STATUS: HISTORICAL RELEASE-READINESS RECORD**
 
 Current product verdict:
 
@@ -10,7 +12,7 @@ Current visual verdict:
 
 > **VISUAL GO - READY FOR PRODUCTION**
 
-Current authoritative application source:
+Historical application source at this record's close:
 
 `73c3e2df701b8484632d3335ca4861c4f2ccb8a7`
 
@@ -232,7 +234,7 @@ These are intentional release boundaries, not defects:
 
 Historical deployment details above are retained for provenance. Current Takaven commercial delivery treats TeamFrame as source-ready and customer-deployment controlled: a real customer deployment requires an explicitly selected customer Vercel/Supabase target, current environment configuration, backup responsibility, post-deployment smoke verification and founder/customer-delivery approval.
 
-The current GitHub source is merged and source-locked on `takaven/teamframe` main at `73c3e2df701b8484632d3335ca4861c4f2ccb8a7`. Older notes about a paused production branch merge or account billing lock are superseded by this source-locked state.
+This sentence was a historical release statement and is not current branch authority. The live repository inventory and branch relationship are maintained in `docs/operations/ENVIRONMENTS.md`; Production release remains gated by `docs/operations/DEPLOYMENT.md`.
 
 ## Final Product Verdict
 

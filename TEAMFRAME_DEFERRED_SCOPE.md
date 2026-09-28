@@ -1,5 +1,7 @@
 # TeamFrame Deferred Scope
 
+> This document limits implementation inside **TeamFrame People**. TeamFrame People does not implement an ATS/recruiting pipeline. TeamFrame Hire is provided by the separate HirePass application and must not be rebuilt in this repository.
+
 **STATUS: CANONICAL / CONTROLLING SCOPE-CREEP BOUNDARY**
 
 This file prevents market-ready implementation from expanding merely because a feature is useful or common in another HRIS.
@@ -25,7 +27,7 @@ These ideas may be useful after the market-ready production release, but they ar
 
 Do not build these for the market-ready release:
 
-- ATS/recruiting pipeline.
+- ATS/recruiting pipeline inside TeamFrame People (TeamFrame Hire remains in HirePass).
 - Offer management.
 - Payroll calculation.
 - Tax filing.

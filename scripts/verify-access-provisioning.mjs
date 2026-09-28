@@ -2,12 +2,21 @@
  * TeamFrame independent-installation access/provisioning runtime gate.
  *
  * Requires AUDIT_* disposable Supabase variables. Does not load .env.local and
- * refuses known persistent refs. Synthetic data only.
+ * refuses all writes until a separately verified synthetic target is admitted.
  */
 
 import crypto from "node:crypto";
 import pg from "pg";
 import { createClient } from "@supabase/supabase-js";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { APPROVED_LAUNCH_PROJECT_REFS } from "./approved-launch-projects.mjs";
+
+const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
+// Populate only after an empty, active synthetic target has been independently
+// verified for this destructive writer. The general launch list is not consent.
+const APPROVED_ACCESS_WRITE_PROJECT_REFS = new Set();
 
 const REQUIRED = [
   "TEAMFRAME_AUDIT_INTEGRATION",
@@ -17,13 +26,6 @@ const REQUIRED = [
   "AUDIT_SUPABASE_SERVICE_ROLE_KEY",
   "AUDIT_SUPABASE_DB_URL",
 ];
-
-const KNOWN_NON_DISPOSABLE_REFS = new Set([
-  "zylllrvcmockvfcfubkp",
-  "jjsvkvkvhowofmdtpztb",
-  "eucnsrtdjxcylknbuglw",
-  "zydhgtmgrbdyghmvuldc",
-]);
 
 const PASSWORD = `Tf-${crypto.randomBytes(18).toString("base64url")}1!`;
 const RUN = `access-${Date.now()}`;
@@ -46,18 +48,40 @@ function requireEnv() {
   if (process.env.TEAMFRAME_AUDIT_INTEGRATION !== "authorised-disposable") {
     fail("TEAMFRAME_AUDIT_INTEGRATION must be authorised-disposable");
   }
-  if (KNOWN_NON_DISPOSABLE_REFS.has(process.env.AUDIT_SUPABASE_PROJECT_REF)) {
-    fail(`Refusing known non-disposable ref ${process.env.AUDIT_SUPABASE_PROJECT_REF}`);
+  const projectRef = process.env.AUDIT_SUPABASE_PROJECT_REF;
+  if (!APPROVED_LAUNCH_PROJECT_REFS.has(projectRef)) {
+    fail("AUDIT_SUPABASE_PROJECT_REF is not an approved TAKAVEN disposable project");
   }
-  const url = new URL(process.env.AUDIT_SUPABASE_URL);
-  if (!url.hostname.includes(process.env.AUDIT_SUPABASE_PROJECT_REF)) {
-    fail("AUDIT_SUPABASE_URL does not match AUDIT_SUPABASE_PROJECT_REF");
+  let url;
+  let dbUrl;
+  try {
+    url = new URL(process.env.AUDIT_SUPABASE_URL);
+    dbUrl = new URL(process.env.AUDIT_SUPABASE_DB_URL.replace(/^"|"$/g, ""));
+  } catch {
+    fail("Disposable access URLs are invalid");
   }
+  if (url.protocol !== "https:" || url.hostname !== `${projectRef}.supabase.co` || url.pathname !== "/" || url.username || url.password || url.port || url.search || url.hash) {
+    fail("AUDIT_SUPABASE_URL must be the exact approved project origin");
+  }
+  const directRef = dbUrl.hostname.match(/^db\.([a-z0-9]+)\.supabase\.co$/)?.[1];
+  const poolerRef = dbUrl.username.match(/^postgres\.([a-z0-9]+)$/)?.[1];
+  if (dbUrl.protocol !== "postgresql:" || dbUrl.search || dbUrl.hash ||
+      (directRef !== projectRef && poolerRef !== projectRef) ||
+      (directRef && dbUrl.username !== "postgres") ||
+      (poolerRef && !dbUrl.hostname.endsWith(".pooler.supabase.com"))) {
+    fail("AUDIT_SUPABASE_DB_URL does not identify the approved disposable project");
+  }
+  if (!APPROVED_ACCESS_WRITE_PROJECT_REFS.has(projectRef)) {
+    fail("AUDIT_SUPABASE_PROJECT_REF is not approved for access-proof writes");
+  }
+  if (process.argv.includes("--check-target")) {
+    pass(`Approved disposable target: ${projectRef}`);
+    return false;
+  }
+  return true;
 }
 
-const admin = createClient(process.env.AUDIT_SUPABASE_URL, process.env.AUDIT_SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
+let admin;
 
 function anonClient() {
   return createClient(process.env.AUDIT_SUPABASE_URL, process.env.AUDIT_SUPABASE_ANON_KEY, {
@@ -96,12 +120,18 @@ async function maybeInsert(table, payload, select = "id") {
 }
 
 async function main() {
-  requireEnv();
+  if (!requireEnv()) return;
+  admin = createClient(process.env.AUDIT_SUPABASE_URL, process.env.AUDIT_SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
   console.log(`TeamFrame independent access runtime gate: ${process.env.AUDIT_SUPABASE_PROJECT_REF}`);
 
   const db = new pg.Client({
     connectionString: process.env.AUDIT_SUPABASE_DB_URL.replace(/^"|"$/g, ""),
-    ssl: { rejectUnauthorized: false },
+    ssl: {
+      ca: readFileSync(join(repoRoot, "certs", "supabase-root-2021-ca.crt"), "utf8"),
+      rejectUnauthorized: true,
+    },
   });
   await db.connect();
 

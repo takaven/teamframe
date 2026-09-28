@@ -41,9 +41,9 @@ export async function saveHolidayAction(formData: FormData): Promise<void> {
       await createCompanyHoliday(actor, input);
     }
   } catch (error) {
-    redirect(`/company?year=${encodeURIComponent(String(year))}&error=${encodeURIComponent(errorCode(error))}`);
+    redirect(`/setup?section=timeoff&error=${encodeURIComponent(errorCode(error))}`);
   }
-  redirect(`/company?year=${encodeURIComponent(String(year))}&status=holiday_saved`);
+  redirect("/setup?section=timeoff&status=holiday_saved");
 }
 
 export async function deleteHolidayAction(formData: FormData): Promise<void> {
@@ -57,7 +57,7 @@ export async function deleteHolidayAction(formData: FormData): Promise<void> {
     year = parsed.year;
     await deleteCompanyHoliday(actor, parsed.holiday_id);
   } catch (error) {
-    redirect(`/company?year=${encodeURIComponent(String(year))}&error=${encodeURIComponent(errorCode(error))}`);
+    redirect(`/setup?section=timeoff&error=${encodeURIComponent(errorCode(error))}`);
   }
-  redirect(`/company?year=${encodeURIComponent(String(year))}&status=holiday_removed`);
+  redirect("/setup?section=timeoff&status=holiday_removed");
 }

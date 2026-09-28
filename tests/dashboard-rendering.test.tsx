@@ -35,7 +35,7 @@ beforeEach(() => {
 });
 
 describe("dashboard rendered states", () => {
-  it("renders a truthful empty Control Centre state", async () => {
+  it("renders a truthful empty Home state", async () => {
     mocks.loadControlCentreData.mockResolvedValue({
       savedDataStatus: { state: "success" },
       summary: { total: 0, due: 0, overdue: 0, decisions: 0, exceptions: 0, resolved: 0 },
@@ -47,20 +47,27 @@ describe("dashboard rendered states", () => {
 
     const html = renderToStaticMarkup(await DashboardPage());
 
-    expect(html).toContain("HR Control Centre");
-    expect(html).toContain("No HR actions need your attention right now.");
-    expect(html).toContain("Decisions");
-    expect(html).toContain("Active");
+    expect(html).toContain("Needs your attention");
+    expect(html).toContain("Nothing needs attention right now.");
+    expect(html).toContain("Coming up");
+    expect(html).toContain("Quick actions");
   });
 
-  it("shows preview count separately from the full current list", async () => {
+  it("limits the primary list and separates future work", async () => {
+    const now = new Date();
+    const currentDue = new Date(now);
+    currentDue.setDate(currentDue.getDate() + 2);
+    const futureDue = new Date(now);
+    futureDue.setDate(futureDue.getDate() + 14);
     const allItems = Array.from({ length: 8 }, (_, index) => ({
       id: `item-${index}`,
       class: "due",
       source: "onboarding_task",
-      title: `Task ${index}`,
+      title: index === 7 ? "Future-only task" : `Task ${index}`,
       subjectName: "Amina Rahman",
-      dueAt: "2026-08-12T00:00:00.000Z",
+      owner: "Amina Rahman",
+      nextAction: "Open task",
+      dueAt: index === 7 ? futureDue.toISOString() : currentDue.toISOString(),
       updatedAt: `2026-08-12T00:00:0${index}Z`,
       href: "/onboarding",
       detail: "Onboarding work is due.",
@@ -87,10 +94,12 @@ describe("dashboard rendered states", () => {
 
     const html = renderToStaticMarkup(await DashboardPage());
 
-    expect(html).toContain("Showing 6 of 8 current items");
-    expect(html).toContain("View all");
-    expect(html).toContain("8 total");
-    expect(html).toContain("Recent resolutions");
+    expect(html).toContain("Needs your attention");
+    expect(html).toContain("Recently done");
+    expect(html).toContain("Add person");
+    expect(html).not.toContain("Request document");
+    expect(html).not.toContain("Record time off");
+    expect(html.match(/Future-only task/g)).toHaveLength(1);
   });
 
   it("does not show all-clear when the current-state read fails", async () => {
@@ -105,8 +114,8 @@ describe("dashboard rendered states", () => {
 
     const html = renderToStaticMarkup(await DashboardPage());
 
-    expect(html).toContain("Control Centre data could not load yet.");
+    expect(html).toContain("Your attention list could not load just now.");
     expect(html).toContain("Retry");
-    expect(html).toContain("The current-state read failed safely.");
+    expect(html).not.toContain("All clear");
   });
 });

@@ -3,7 +3,7 @@ import { createServerClient } from "@/lib/db/supabaseServer";
 import { resolveIdentity } from "@/lib/rbac/roles";
 import { track } from "@/lib/telemetry/track";
 
-const NEXT_ALLOWLIST = ["/dashboard", "/employees", "/leaves", "/onboarding", "/me", "/access", "/setup", "/company"] as const;
+const NEXT_ALLOWLIST = ["/dashboard", "/home", "/people", "/employees", "/directory", "/documents-and-policies", "/leaves", "/onboarding", "/manager", "/me", "/reports", "/access", "/setup", "/company"] as const;
 
 function safeNext(raw: string | null): string {
   if (!raw) return "";
@@ -34,7 +34,7 @@ function callbackErrorRedirect(url: URL, reason: string): NextResponse {
 }
 
 function roleDefaultPath(role: string): string {
-  return role === "employee" ? "/me" : "/dashboard";
+  return role === "employee" ? "/home" : "/dashboard";
 }
 
 function successRedirect(url: URL, next: string, role = "admin"): NextResponse {

@@ -106,7 +106,7 @@ describe("auth callback", () => {
       new Request("https://teamframe.example/auth/callback?token_hash=fresh&type=magiclink"),
     );
 
-    expect(redirectLocation(response)).toBe("https://teamframe.example/me");
+    expect(redirectLocation(response)).toBe("https://teamframe.example/home");
     expect(mocks.track).toHaveBeenCalledWith({
       tenantId: "TENANT_A",
       userId: "auth-user-1",

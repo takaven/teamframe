@@ -22,6 +22,11 @@ import {
 import { exportTenantData } from "@/services/documentService";
 import { captureActionError } from "@/lib/telemetry/sentry";
 import { logAction } from "@/lib/telemetry/logger";
+import {
+  addChecklistItem, copyStarterChecklist, createChecklistTemplate, moveChecklistItem,
+  removeChecklistItem, setChecklistActive, setDefaultChecklist, updateChecklistItem,
+  updateChecklistTemplate,
+} from "@/services/onboardingService/checklistTemplates";
 
 function code(error: unknown): string {
   if (error instanceof z.ZodError) return "INVALID_INPUT";
@@ -88,6 +93,41 @@ export async function renameCompensationComponentAction(formData: FormData): Pro
 }
 export async function toggleCompensationComponentAction(formData: FormData): Promise<void> {
   await run("toggleCompensationComponent", "compensation", (actor) => setCompensationComponentActive(actor, s(formData.get("id")), formData.get("active") === "true"));
+}
+
+export async function createChecklistAction(formData: FormData): Promise<void> {
+  await run("createChecklist", "onboarding", async (actor) => { await createChecklistTemplate(actor, { name: s(formData.get("name")), description: s(formData.get("description")) }); });
+}
+export async function copyStarterChecklistAction(formData: FormData): Promise<void> {
+  await run("copyStarterChecklist", "onboarding", async (actor) => { await copyStarterChecklist(actor, s(formData.get("pack_id"))); });
+}
+export async function updateChecklistAction(formData: FormData): Promise<void> {
+  await run("updateChecklist", "onboarding", (actor) => updateChecklistTemplate(actor, s(formData.get("id")), { name: s(formData.get("name")), description: s(formData.get("description")) }));
+}
+export async function toggleChecklistAction(formData: FormData): Promise<void> {
+  await run("toggleChecklist", "onboarding", (actor) => setChecklistActive(actor, s(formData.get("id")), formData.get("active") === "true"));
+}
+export async function setDefaultChecklistAction(formData: FormData): Promise<void> {
+  await run("setDefaultChecklist", "onboarding", (actor) => setDefaultChecklist(actor, s(formData.get("id"))));
+}
+function checklistItemInput(formData: FormData) {
+  return {
+    title: s(formData.get("title")), description: s(formData.get("description")), ownerRole: s(formData.get("owner_role")),
+    dueOffsetDays: Number(s(formData.get("due_offset_days")) || "0"), completionMode: s(formData.get("completion_mode")),
+    requiredDocumentType: s(formData.get("required_document_type")),
+  };
+}
+export async function addChecklistItemAction(formData: FormData): Promise<void> {
+  await run("addChecklistItem", "onboarding", (actor) => addChecklistItem(actor, s(formData.get("template_id")), checklistItemInput(formData)));
+}
+export async function updateChecklistItemAction(formData: FormData): Promise<void> {
+  await run("updateChecklistItem", "onboarding", (actor) => updateChecklistItem(actor, s(formData.get("id")), checklistItemInput(formData)));
+}
+export async function removeChecklistItemAction(formData: FormData): Promise<void> {
+  await run("removeChecklistItem", "onboarding", (actor) => removeChecklistItem(actor, s(formData.get("id"))));
+}
+export async function moveChecklistItemAction(formData: FormData): Promise<void> {
+  await run("moveChecklistItem", "onboarding", (actor) => moveChecklistItem(actor, s(formData.get("id")), s(formData.get("direction")) === "up" ? "up" : "down"));
 }
 
 export async function createDepartmentAction(formData: FormData): Promise<void> {

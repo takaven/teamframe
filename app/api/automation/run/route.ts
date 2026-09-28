@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { runDueAutomation } from "@/services/hrAutomation";
+import { runDailyDigests } from "@/services/notificationService";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ async function handleAutomationRun(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ status: "unauthorized" }, { status: 401 });
   }
 
-  const result = await runDueAutomation();
+  const [result, digest] = await Promise.all([runDueAutomation(), runDailyDigests()]);
   return NextResponse.json({
     status: result.failed === 0 ? "ok" : "degraded",
     checked: result.checked,
@@ -32,6 +33,7 @@ async function handleAutomationRun(req: NextRequest): Promise<NextResponse> {
     skipped: result.skipped,
     failed: result.failed,
     tenants: result.tenants,
+    digest,
   });
 }
 

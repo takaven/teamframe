@@ -23,6 +23,9 @@ import pg from "pg";
 import dotenv from "dotenv";
 import { SCHEMA_ORDER } from "./schema-order.mjs";
 
+console.error("[RETIRED] Destructive staging reset is disabled for the 45-day launch. No target was connected or changed.");
+process.exit(1);
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, "..");
 
@@ -68,7 +71,7 @@ const TEAMFRAME_ENUMS = [
   "onboarding_check_in_status", "probation_review_status", "probation_review_outcome",
 ];
 
-const STAGING_SCHEMA_ORDER = [...SCHEMA_ORDER, "tenancy_rls_v2.sql"];
+const STAGING_SCHEMA_ORDER = SCHEMA_ORDER;
 
 const { Client } = pg;
 const client = new Client({ connectionString, ssl: { rejectUnauthorized: false } });

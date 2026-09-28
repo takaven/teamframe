@@ -38,7 +38,10 @@ import { fileURLToPath } from "node:url";
 import pg from "pg";
 import dotenv from "dotenv";
 import { createClient } from "@supabase/supabase-js";
-import { SCHEMA_ORDER } from "./schema-order.mjs";
+import { EXPECTED_PUBLIC_TABLES, SCHEMA_ORDER } from "./schema-order.mjs";
+
+console.error("[RETIRED] Historical verify:install replays the full schema and seeds auth/data. Use the guarded fresh installer and separate authorised-disposable checks.");
+process.exit(1);
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, "..");
@@ -53,29 +56,7 @@ const REQUIRED_FUNCTIONS = [
   "is_current_actor_admin",
 ];
 const REQUIRED_VIEWS = ["employees_public"];
-const NON_TABLE_MIGRATIONS = new Set([
-  "tenant_integrity.sql",
-  "transactional_mutations.sql",
-  "tenancy_rls.sql",
-  "tenancy_rls_v2.sql",
-]);
-const TABLES_BY_MIGRATION = {
-  "file_lifecycle.sql": ["file_operations", "export_files"],
-  "hr_automation.sql": ["hr_automation_items", "hr_automation_events"],
-  "document_requirements.sql": ["document_requirements"],
-  "employment_changes.sql": ["employment_changes"],
-  "early_employment.sql": ["employee_join_initializations", "onboarding_check_ins", "probation_reviews"],
-  "access_model.sql": [
-    "tenant_memberships",
-    "tenant_access_invitations",
-    "setup_import_batches",
-    "leave_opening_adjustments",
-  ],
-  "offboarding.sql": ["offboarding_cases", "offboarding_items"],
-};
-const REQUIRED_TABLES = SCHEMA_ORDER.flatMap((f) =>
-  NON_TABLE_MIGRATIONS.has(f) ? [] : TABLES_BY_MIGRATION[f] ?? [f.replace(/\.sql$/, "")],
-);
+const REQUIRED_TABLES = EXPECTED_PUBLIC_TABLES;
 
 const connectionString = process.env.SUPABASE_DB_URL?.replace(/^"|"$/g, "");
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

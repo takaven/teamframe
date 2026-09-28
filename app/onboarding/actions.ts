@@ -11,6 +11,7 @@ import {
 import { submitMyOnboardingCheckIn } from "@/services/earlyEmploymentService";
 import { logAction } from "@/lib/telemetry/logger";
 import { captureActionError } from "@/lib/telemetry/sentry";
+import { notifyTaskAssignment } from "@/services/notificationService";
 
 const AssignSchema = z.object({
   employee_id: z.string().uuid(),
@@ -67,11 +68,12 @@ export async function assignOnboardingTaskAction(formData: FormData): Promise<vo
       title: formData.get("title"),
       owner_role: formData.get("owner_role") || undefined,
     });
-    await assignOnboardingTask(actor, {
+    const task = await assignOnboardingTask(actor, {
       employeeId: parsed.employee_id,
       title: parsed.title,
       ownerRole: parsed.owner_role,
     });
+    await notifyTaskAssignment(actor.tenantId, parsed.employee_id, task.id, task.title);
   } catch (error) {
     failed = true;
     errorCode = getErrorCode(error);
@@ -127,11 +129,12 @@ export async function assignOnboardingPackAction(formData: FormData): Promise<vo
       pack_id: formData.get("pack_id"),
       task_indexes: formData.getAll("task_index"),
     });
-    await assignOnboardingPack(actor, {
+    const tasks = await assignOnboardingPack(actor, {
       employeeId: parsed.employee_id,
       packId: parsed.pack_id,
       keptIndexes: parsed.task_indexes,
     });
+    if (tasks[0]) await notifyTaskAssignment(actor.tenantId, parsed.employee_id, tasks[0].id, `${tasks.length} onboarding tasks`);
   } catch (error) {
     failed = true;
     errorCode = getErrorCode(error);
@@ -222,7 +225,7 @@ export async function completeOnboardingTaskAction(formData: FormData): Promise<
   if (failed) {
     redirect(`/onboarding?error=${encodeURIComponent(errorCode)}`);
   }
-  redirect("/me?status=task_completed");
+  redirect("/home?status=task_completed");
 }
 
 export async function submitOnboardingCheckInAction(formData: FormData): Promise<void> {
@@ -281,8 +284,7 @@ export async function submitOnboardingCheckInAction(formData: FormData): Promise
   }
 
   if (failed) {
-    redirect(`/me?error=${encodeURIComponent(errorCode)}`);
+    redirect(`/home?error=${encodeURIComponent(errorCode)}#check-in`);
   }
-  redirect("/me?status=check_in_submitted");
+  redirect("/home?status=check_in_submitted");
 }
-

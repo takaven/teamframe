@@ -19,6 +19,30 @@ export type PositionTreeNode = PositionRecord & {
   children: PositionTreeNode[];
 };
 
+export type PositionHierarchyNode = {
+  id: string;
+  children: PositionHierarchyNode[];
+};
+
+export function positionDisplayTitle(title: string, vacant: boolean): string {
+  return vacant ? title.replace(/\s*\(open\)\s*$/i, "").trim() : title;
+}
+
+export function findPositionPath(tree: PositionHierarchyNode[], selectedId: string | null): Set<string> {
+  const path = new Set<string>();
+
+  function visit(node: PositionHierarchyNode): boolean {
+    if (node.id === selectedId || node.children.some(visit)) {
+      path.add(node.id);
+      return true;
+    }
+    return false;
+  }
+
+  tree.forEach(visit);
+  return path;
+}
+
 export function buildPositionTree(positions: PositionRecord[]): PositionTreeNode[] {
   const nodes = new Map<string, PositionTreeNode>();
   for (const position of positions) {

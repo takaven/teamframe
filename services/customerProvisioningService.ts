@@ -4,6 +4,7 @@ import type { Actor } from "@/middleware/rbac";
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 import type { AccessProfile } from "@/lib/rbac/roles";
 import { hasCapability } from "@/lib/rbac/access";
+import { normalizeCountryCode } from "@/lib/geo/countries";
 
 type ParsedUser = {
   name: string;
@@ -192,6 +193,11 @@ function emailKey(value: string): string {
 
 function assertDate(value: string): string {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error(`invalid date: ${value}`);
+  const [year, month, day] = value.split("-").map(Number);
+  const parsed = new Date(Date.UTC(year!, month! - 1, day!));
+  if (parsed.getUTCFullYear() !== year || parsed.getUTCMonth() !== month! - 1 || parsed.getUTCDate() !== day) {
+    throw new Error(`invalid date: ${value}`);
+  }
   return value;
 }
 
@@ -255,7 +261,7 @@ export function parseSetupPack(input: {
   if (!companyRow || companyRow.length < 5) throw new Error("SETUP_PACK_COMPANY_INVALID");
   const company = CompanySchema.parse({
     name: companyRow[0],
-    country: companyRow[1],
+    country: normalizeCountryCode(companyRow[1]) ?? (() => { throw new Error(`invalid country: ${companyRow[1] ?? ""}`); })(),
     location: companyRow[2],
     annualLeaveDefaultDays: companyRow[3],
     sickLeaveDefaultDays: companyRow[4],
@@ -275,6 +281,13 @@ export function parseSetupPack(input: {
     if (salary != null && (!currency || !payBasis)) throw new Error(`compensation missing currency/pay basis: ${row[3] ?? ""}`);
     if (payBasis && !["annual", "monthly", "hourly"].includes(payBasis)) throw new Error(`invalid pay basis: ${payBasis}`);
     const starterType: ParsedEmployee["starterType"] = (row[14] ?? "existing") === "new_starter" ? "new_starter" : "existing";
+    const employmentType = row[13] || "full_time";
+    if (!["full_time", "part_time", "contractor", "intern"].includes(employmentType)) {
+      throw new Error(`invalid employment type: ${employmentType}`);
+    }
+    const employeeCountry = text(row[16]) ?? company.country;
+    const country = normalizeCountryCode(employeeCountry);
+    if (!country) throw new Error(`invalid country: ${employeeCountry}`);
     return {
       employeeNumber: text(row[0]),
       name: row[1] ?? "",
@@ -289,10 +302,10 @@ export function parseSetupPack(input: {
       department: row[10] ?? "",
       managerEmail: text(row[11]) ? emailKey(row[11] ?? "") : null,
       startDate: assertDate(row[12] ?? ""),
-      employmentType: ((row[13] || "full_time") as ParsedEmployee["employmentType"]),
+      employmentType: employmentType as ParsedEmployee["employmentType"],
       starterType,
       workLocation: text(row[15]) ?? company.location,
-      country: text(row[16]) ?? company.country,
+      country,
       workingDaysOverride: text(row[17]) ? parseWorkingDays(row[17], company.defaultWorkingDays) : null,
       annualLeaveEntitlementOverride: parseOptionalNumber(row[18]),
       openingAnnualUsed: parseRequiredNumber(row[19], 0),
@@ -539,6 +552,9 @@ export async function commitSetupPack(actor: Actor, batchId: string): Promise<st
           p_grade: null,
           p_status: "active",
           p_setup_status: employee.starterType === "existing" ? "active" : "incomplete",
+          // Setup-pack employees are linked to managers below. Initialize only
+          // genuine starters after those relationships are established.
+          p_initialize_join_work: false,
         } as never)
         .single();
       if (error || !created) throw new Error(`SETUP_EMPLOYEE_CREATE_FAILED: ${error?.message ?? employee.email}`);
@@ -606,6 +622,18 @@ export async function commitSetupPack(actor: Actor, batchId: string): Promise<st
       if (!employeeId || !managerId) throw new Error("SETUP_MANAGER_LINK_FAILED");
       const { error } = await supabase.from("employees").update({ manager_id: managerId } as never).eq("tenant_id", tenantId).eq("id", employeeId);
       if (error) throw new Error(`SETUP_MANAGER_LINK_FAILED: ${error.message}`);
+    }
+
+    for (const employee of preview.employees) {
+      if (employee.starterType !== "new_starter") continue;
+      const employeeId = employeeIds.get(employee.email);
+      if (!employeeId) throw new Error("SETUP_STARTER_LINK_FAILED");
+      const { error } = await supabase.rpc("teamframe_initialize_join_work", {
+        p_tenant_id: tenantId,
+        p_actor_user_id: actor.authUserId,
+        p_employee_id: employeeId,
+      } as never);
+      if (error) throw new Error(`SETUP_STARTER_INITIALIZE_FAILED: ${error.message}`);
     }
 
     for (const holiday of preview.holidays) {

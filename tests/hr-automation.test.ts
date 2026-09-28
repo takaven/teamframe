@@ -7,6 +7,7 @@ vi.mock("@/lib/db/supabaseServer", () => ({ createServiceRoleClient: vi.fn() }))
 
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 import { ensureAutomationItem, runAutomationItem } from "@/services/hrAutomation";
+import { EXPECTED_PUBLIC_TABLES } from "../scripts/schema-order.mjs";
 
 const root = process.cwd();
 
@@ -18,8 +19,6 @@ describe("MR-2 HR automation operating layer", () => {
   it("adds a durable tenant-scoped automation schema with idempotent work and event records", () => {
     const schema = read("schemas/hr_automation.sql");
     const schemaOrder = read("scripts/schema-order.mjs");
-    const verifyInstall = read("scripts/verify-install.mjs");
-    const verifyIntegration = read("scripts/verify-integration.mjs");
 
     expect(schemaOrder.indexOf('"hr_automation.sql"')).toBeLessThan(
       schemaOrder.indexOf('"onboarding_tasks.sql"'),
@@ -33,9 +32,7 @@ describe("MR-2 HR automation operating layer", () => {
     expect(schema).toContain("on hr_automation_items(tenant_id, rule_key, idempotency_key)");
     expect(schema).toContain("hr_automation_events_key_idx");
     expect(schema).toContain("references employees(tenant_id, id)");
-    expect(verifyInstall).toContain('"hr_automation.sql": ["hr_automation_items", "hr_automation_events"]');
-    expect(verifyIntegration).toContain('"hr_automation_items"');
-    expect(verifyIntegration).toContain('"hr_automation_events"');
+    expect(EXPECTED_PUBLIC_TABLES).toEqual(expect.arrayContaining(["hr_automation_items", "hr_automation_events"]));
   });
 
   it("keeps notification levels bounded to the approved MR-2 semantics", () => {

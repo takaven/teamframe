@@ -8,6 +8,7 @@ vi.mock("@/lib/db/supabaseServer", () => ({ createServiceRoleClient: vi.fn() }))
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 import { recordEmploymentChange } from "@/services/employmentChangeService";
 import { runDueAutomationForTenant } from "@/services/hrAutomation";
+import { EXPECTED_PUBLIC_TABLES } from "../scripts/schema-order.mjs";
 
 const root = process.cwd();
 
@@ -19,8 +20,6 @@ describe("MR-3A employment changes and people truth", () => {
   it("adds effective-dated employment-change storage in the schema order before transactional mutations", () => {
     const schema = read("schemas/employment_changes.sql");
     const schemaOrder = read("scripts/schema-order.mjs");
-    const verifyInstall = read("scripts/verify-install.mjs");
-    const verifyIntegration = read("scripts/verify-integration.mjs");
 
     expect(schemaOrder.indexOf('"hr_automation.sql"')).toBeLessThan(
       schemaOrder.indexOf('"employment_changes.sql"'),
@@ -32,8 +31,7 @@ describe("MR-3A employment changes and people truth", () => {
     expect(schema).toContain("employment_changes_idempotency_idx");
     expect(schema).toContain("references employees(tenant_id, id)");
     expect(schema).toContain("references hr_automation_items(tenant_id, id)");
-    expect(verifyInstall).toContain('"employment_changes.sql": ["employment_changes"]');
-    expect(verifyIntegration).toContain('"employment_changes"');
+    expect(EXPECTED_PUBLIC_TABLES).toContain("employment_changes");
   });
 
   it("keeps the model bounded to approved employment facts", () => {
@@ -119,7 +117,7 @@ describe("MR-3A employment changes and people truth", () => {
   });
 
   it("exposes a bounded admin UI for recording and cancelling employment changes", () => {
-    const page = read("app/employees/page.tsx");
+    const page = read("components/PeopleExperience.tsx");
     const actions = read("app/employees/actions.ts");
 
     expect(page).toContain("Employment changes");

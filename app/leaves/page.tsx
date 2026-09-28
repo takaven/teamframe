@@ -16,9 +16,10 @@ import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { FileInput } from "@/components/FileInput";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { AppShell } from "@/components/AppShell";
+import { listEmployeesForAdmin } from "@/services/employeeService";
 import { EmptyState } from "@/components/EmptyState";
 import { StatusPill, type StatusPillTone } from "@/components/StatusPill";
-import { cancelLeaveAction, decideLeaveAction, downloadLeaveEvidenceAction, submitLeaveAction, withdrawLeaveAction } from "./actions";
+import { cancelLeaveAction, decideLeaveAction, downloadLeaveEvidenceAction, submitLeaveAction, submitLeaveForEmployeeAction, withdrawLeaveAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -98,28 +99,35 @@ function parseMonth(raw: string | undefined): { year: number; month: number } {
 export default async function LeavesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; error?: string; view?: string; month?: string; leave?: string }>;
+  searchParams: Promise<{ status?: string; error?: string; view?: string; month?: string; leave?: string; employee?: string }>;
 }) {
   const actor = await requireTenantActor();
-  const { status, error, view: viewParam, month: monthParam, leave: leaveParam } = await searchParams;
+  const { status, error, view: viewParam, month: monthParam, leave: leaveParam, employee: employeeParam } = await searchParams;
   const successMessage = status ? (STATUS_COPY[status] ?? null) : null;
   const errorMessage = error ? (ERROR_COPY[error] ?? ERROR_COPY.UNKNOWN) : null;
 
   if (actor.role === "admin") {
-    const view = viewParam === "calendar" ? "calendar" : "requests";
+    const view = viewParam === "calendar" || viewParam === "away" || viewParam === "balances" || viewParam === "record" ? viewParam : "requests";
     const { year, month } = parseMonth(monthParam);
     const monthFrom = `${year}-${String(month).padStart(2, "0")}-01`;
     const monthTo = `${year}-${String(month).padStart(2, "0")}-${String(new Date(Date.UTC(year, month, 0)).getUTCDate()).padStart(2, "0")}`;
 
-    const [pending, away, calendarLeaves]: [
+    const [pending, away, calendarLeaves, employees, activeDefinitions]: [
       PendingLeaveWithEmployee[],
       Awaited<ReturnType<typeof listWhoIsAway>>,
       Awaited<ReturnType<typeof listApprovedLeaveInRange>>,
+      Awaited<ReturnType<typeof listEmployeesForAdmin>>,
+      Awaited<ReturnType<typeof listActiveLeaveDefinitions>>,
     ] = await Promise.all([
       listPendingLeavesWithEmployee(actor),
       listWhoIsAway(actor),
       view === "calendar" ? listApprovedLeaveInRange(actor, monthFrom, monthTo) : Promise.resolve([]),
+      listEmployeesForAdmin(actor),
+      listActiveLeaveDefinitions(actor),
     ]);
+    const employeeBalances = view === "balances"
+      ? await Promise.all(employees.map(async (employee) => ({ employee, balances: await listLeaveDefinitionBalances(actor, employee.id) })))
+      : [];
 
     return (
       <main className="mx-auto max-w-6xl px-6 py-14">
@@ -127,10 +135,11 @@ export default async function LeavesPage({
 
         <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink-300/60 pb-5">
           <div className="space-y-2">
-            <p className="text-[12px] tracking-[0.14em] text-ink-500">Leave administration</p>
-            <h1 className="text-[34px] leading-tight tracking-tight">Leave</h1>
+            <p className="text-[12px] tracking-[0.14em] text-ink-500">Team availability</p>
+            <h1 className="text-[34px] leading-tight tracking-tight">Time off</h1>
             <p className="text-[14px] text-ink-500">Review requests, protect balances and keep absence records truthful.</p>
           </div>
+          <a href="/leaves?view=record" className="tf-primary-action px-4 py-2 text-[13px]">Record time off</a>
         </div>
 
         <div className="tf-summary mt-6 max-w-xl">
@@ -139,7 +148,7 @@ export default async function LeavesPage({
           <div><div className="tf-summary-label">Oldest request</div><div className="tf-summary-value">{pending[0] ? `${Math.max(1, Math.ceil((Date.now() - new Date(pending[0].created_at).getTime()) / 86_400_000))}d` : "0d"}</div></div>
         </div>
 
-        {successMessage ? <p className="mt-6 rounded-lg border border-signal-green/25 bg-signal-green/5 px-4 py-2.5 text-[13.5px] text-signal-green">{successMessage}</p> : null}
+        {successMessage ? <p role="status" aria-live="polite" className="mt-6 rounded-lg border border-signal-green/25 bg-signal-green/5 px-4 py-2.5 text-[13.5px] text-signal-green">{successMessage}</p> : null}
         {errorMessage ? (
           <p role="alert" className="mt-7 rounded-lg border border-signal-red/30 bg-signal-red/10 px-4 py-3 text-[14px] text-signal-red">
             {errorMessage}
@@ -161,10 +170,36 @@ export default async function LeavesPage({
           >
             Calendar
           </a>
+          <a href="/leaves?view=away" aria-current={view === "away" ? "page" : undefined} className={`-mb-px border-b-2 px-4 py-2 text-[14px] ${view === "away" ? "border-ink-900 font-medium text-ink-900" : "border-transparent text-ink-500 hover:text-ink-900"}`}>Who&apos;s Away</a>
+          <a href="/leaves?view=balances" aria-current={view === "balances" ? "page" : undefined} className={`-mb-px border-b-2 px-4 py-2 text-[14px] ${view === "balances" ? "border-ink-900 font-medium text-ink-900" : "border-transparent text-ink-500 hover:text-ink-900"}`}>Balances</a>
         </nav>
 
         {view === "calendar" ? (
           <LeaveCalendar leaves={calendarLeaves} year={year} month={month} selectedLeaveId={leaveParam} basePath="/leaves" />
+        ) : view === "record" ? (
+          <section className="mt-8 tf-surface-flat p-5">
+            <h2 className="text-[18px] font-semibold">Record time off</h2>
+            <p className="mt-1 text-[13px] text-ink-500">Use the same validation, balance and overlap rules as an employee request.</p>
+            <form action={submitLeaveForEmployeeAction} encType="multipart/form-data" className="mt-5 grid gap-3 md:grid-cols-2">
+              <label className="text-[12px] text-ink-500">Person<select name="employee_id" required defaultValue={employeeParam ?? ""} className="tf-select-sm mt-1 w-full"><option value="">Select person</option>{employees.filter((employee) => employee.canonical_lifecycle !== "FORMER").map((employee) => <option key={employee.id} value={employee.id}>{employee.full_name}</option>)}</select></label>
+              <label className="text-[12px] text-ink-500">Time-off type<select name="leave_definition_id" required className="tf-select-sm mt-1 w-full">{activeDefinitions.map((definition) => <option key={definition.id} value={definition.id}>{definition.display_name}</option>)}</select></label>
+              <label className="text-[12px] text-ink-500">Starts<DateField name="start_date" dense required /></label>
+              <label className="text-[12px] text-ink-500">Ends<DateField name="end_date" dense required /></label>
+              <label className="text-[12px] text-ink-500 md:col-span-2">Reason<textarea name="reason" maxLength={500} className="tf-input mt-1 min-h-20 w-full p-3" /></label>
+              <div className="md:col-span-2"><FileInput name="attachment" label="Add supporting file (optional)" /></div>
+              <div className="md:col-span-2"><PendingSubmitButton idleLabel="Record time off" pendingLabel="Recording…" className="tf-primary-action px-4 py-2 text-[13px]" /></div>
+            </form>
+          </section>
+        ) : view === "balances" ? (
+          <section className="mt-8 tf-surface-flat overflow-hidden"><div className="overflow-x-auto"><table className="min-w-full text-left text-[13px]">
+            <thead className="border-b border-ink-200 text-[11px] uppercase tracking-[0.1em] text-ink-500"><tr><th className="px-4 py-3">Person</th><th className="px-4 py-3">Type</th><th className="px-4 py-3 text-right">Entitlement</th><th className="px-4 py-3 text-right">Taken</th><th className="px-4 py-3 text-right">Pending</th><th className="px-4 py-3 text-right">Available</th></tr></thead>
+            <tbody className="divide-y divide-ink-100">{employeeBalances.flatMap(({ employee, balances }) => balances.map((balance) => <tr key={`${employee.id}:${balance.definition_id}`}><td className="px-4 py-3 font-semibold"><a href={`/people/${employee.id}#time-off`} className="hover:underline">{employee.full_name}</a></td><td className="px-4 py-3">{balance.display_name}</td><td className="px-4 py-3 text-right tabular-nums">{balance.entitlement ?? "—"}</td><td className="px-4 py-3 text-right tabular-nums">{balance.taken}</td><td className="px-4 py-3 text-right tabular-nums">{balance.pending}</td><td className="px-4 py-3 text-right tabular-nums">{balance.available ?? "—"}</td></tr>))}</tbody>
+          </table></div></section>
+        ) : view === "away" ? (
+          <section className="mt-8 rounded-xl border border-ink-300/70 bg-white/80">
+            <div className="border-b border-ink-300/60 px-5 py-4"><h2 className="text-[17px] font-medium">Who&apos;s away</h2><p className="mt-1 text-[13px] text-ink-500">Approved time off today and in the next 30 days.</p></div>
+            {away.length === 0 ? <EmptyState className="m-5" message="No approved absence is scheduled." /> : <ul className="divide-y divide-ink-300/40">{away.map((item) => <li key={item.leave_id} className="flex items-center justify-between gap-3 px-5 py-4"><div><p className="font-medium">{item.employee_full_name}</p><p className="text-[12px] text-ink-500">{formatDate(item.start_date)} to {formatDate(item.end_date)} · {TYPE_LABEL[item.leave_type]} · {days(item.requested_days)}</p></div><a href={`/people/${item.employee_id}#time-off`} className="tf-secondary-action px-3 py-2 text-[12px]">Open record</a></li>)}</ul>}
+          </section>
         ) : (
         <>
         <section className="mt-8 rounded-xl border border-ink-300/70 bg-white/80">
@@ -213,7 +248,7 @@ export default async function LeavesPage({
                         <form action={downloadLeaveEvidenceAction}>
                           <input type="hidden" name="document_id" value={leave.attachment_document_id} />
                           <input type="hidden" name="return_to" value="/leaves" />
-                          <PendingSubmitButton idleLabel="Evidence attached — view" pendingLabel="Opening…" className="text-[12px] text-accent underline underline-offset-2 disabled:cursor-not-allowed disabled:text-ink-400" />
+                          <PendingSubmitButton idleLabel="View supporting document" pendingLabel="Opening…" className="text-[12px] text-accent underline underline-offset-2 disabled:cursor-not-allowed disabled:text-ink-400" />
                         </form>
                       ) : null}
                     </div>
@@ -330,8 +365,17 @@ export default async function LeavesPage({
 
       {overview ? (
         <>
-          <section className="mt-8 overflow-x-auto rounded-xl border border-ink-300/70 bg-white/80">
-            <table className="min-w-full text-left text-[13px]">
+          <section className="mt-8 rounded-xl border border-ink-300/70 bg-white/80">
+            <div className="grid divide-y divide-ink-200 sm:hidden">
+              {definitionBalances.map((balance) => (
+                <div key={`mobile-${balance.definition_id}`} className="px-4 py-4">
+                  <p className="text-[14px] font-semibold text-ink-900">{balance.display_name}</p>
+                  <p className="mt-1 text-[13px] text-ink-700"><span className="font-semibold tabular-nums">{balance.available ?? "—"}</span> available · <span className="tabular-nums">{balance.taken}</span> taken · <span className="tabular-nums">{balance.pending}</span> pending</p>
+                  <p className="mt-1 text-[12px] text-ink-600">Entitlement: <span className="tabular-nums">{balance.entitlement ?? "—"}</span></p>
+                </div>
+              ))}
+            </div>
+            <div className="hidden overflow-x-auto sm:block"><table className="min-w-full text-left text-[13px]">
               <thead className="border-b border-ink-200 text-[11px] uppercase tracking-[0.1em] text-ink-500">
                 <tr>
                   <th className="px-4 py-3 font-medium">Leave type</th>
@@ -352,7 +396,7 @@ export default async function LeavesPage({
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </section>
 
           <section className="mt-8 rounded-xl border border-ink-300/70 bg-white/80 p-5">
@@ -364,7 +408,7 @@ export default async function LeavesPage({
                   {activeDefinitions.map((d) => (
                     <option key={d.id} value={d.id}>
                       {d.display_name} ({d.counting_basis === "calendar_days" ? "calendar days" : "working days"}
-                      {d.attachment_requirement === "required" ? ", evidence required" : ""})
+                      {d.attachment_requirement === "required" ? ", supporting document required" : ""})
                     </option>
                   ))}
                 </select>
@@ -414,7 +458,7 @@ export default async function LeavesPage({
                         <form action={downloadLeaveEvidenceAction}>
                           <input type="hidden" name="document_id" value={leave.attachment_document_id} />
                           <input type="hidden" name="return_to" value="/leaves" />
-                          <PendingSubmitButton idleLabel="Evidence attached — view" pendingLabel="Opening…" className="text-[12px] text-accent underline underline-offset-2 disabled:cursor-not-allowed disabled:text-ink-400" />
+                          <PendingSubmitButton idleLabel="View supporting document" pendingLabel="Opening…" className="text-[12px] text-accent underline underline-offset-2 disabled:cursor-not-allowed disabled:text-ink-400" />
                         </form>
                       ) : null}
                     </div>

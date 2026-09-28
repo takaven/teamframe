@@ -319,7 +319,7 @@ describe("Printable employee record", () => {
   });
 
   it("marks the employee record for print and offers the action", () => {
-    const page = read("app/employees/page.tsx");
+    const page = read("components/PeopleExperience.tsx");
     expect(page).toContain("tf-print-record");
     expect(page).toContain("PrintRecordButton");
     // The print action itself must not appear on the printed page.

@@ -2,7 +2,7 @@
 
 > **LOCAL INSTALL / HISTORICAL PRODUCTION NOTES**
 >
-> This file remains useful for local setup provenance. Current production release and operations instructions are governed by `TEAMFRAME_PRODUCTION_RUNBOOK.md`.
+> This file remains useful for local setup provenance. Current environment and deployment authority are governed by `docs/operations/ENVIRONMENTS.md` and `docs/operations/DEPLOYMENT.md`.
 
 This is the complete path from a fresh copy of this code to a working local
 install and a production deploy. Every command is copy-pasteable. Steps that
@@ -203,31 +203,9 @@ requires step 6c.
 
 ## Deploying to production (Vercel)
 
-Full detail: `docs/launch/deployment-runbook.md` (Option A). Summary:
+Current deployment authority and procedure: `docs/operations/DEPLOYMENT.md`. The old `docs/launch/deployment-runbook.md` is retained as historical provenance only. Summary:
 
-1. Gate chain on the release tree — all must pass:
-   ```bash
-   npm ci && npm run env:check && npm run lint && npm run typecheck && npm run guards && npm run build
-   ```
-2. Point `.env.local` at the **production** Supabase project, then repeat steps
-   4–8 above against it (`db:apply`, `storage:setup`, auth contract with the
-   production `SITE_URL`/domain, `seed:admin`, `verify:install`).
-3. Link and configure Vercel (one-time):
-   ```bash
-   npm i -g vercel
-   vercel link
-   ```
-   Then `vercel env add` for each of: `NEXT_PUBLIC_SUPABASE_URL`,
-   `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SITE_URL`
-   (your production domain), `DEEP_HEALTH_SECRET`, `TEAMFRAME_AUTOMATION_SECRET`,
-   `NEXT_PUBLIC_PILOT_CONTACT_EMAIL`, and the Sentry variables if used.
-4. Deploy:
-   ```bash
-   vercel --prod
-   ```
-5. Post-deploy verification (`docs/launch/deployment-runbook.md` §3):
-   `curl -sf https://YOUR-DOMAIN/api/health` returns `{"status":"ok"}`;
-   `/dashboard` redirects to `/auth` when signed out; admin password login
-   round-trips at `/admin/login`.
-6. Rollback: `vercel ls` then `vercel promote <previous-deployment-url>`;
-   database per `docs/launch/runbooks/rollback-procedure.md`.
+Do not use a local `.env.local`, an existing `.vercel` link, or the historical
+commands in this setup guide as Production authority. Follow the preflight,
+guarded fresh-install, environment validation, deploy, smoke-test, and rollback
+steps in `docs/operations/DEPLOYMENT.md` exactly.

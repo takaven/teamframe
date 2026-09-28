@@ -21,6 +21,9 @@ import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 import { buildDemoPlan } from "./lib/demo-plan.mjs";
+import { mutationTargetRef } from "./lib/mutation-target-guard.mjs";
+
+mutationTargetRef("seed-demo");
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, "..");

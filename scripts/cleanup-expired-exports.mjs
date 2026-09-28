@@ -7,6 +7,14 @@
 
 import { randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
+import { APPROVED_DIRECT_MUTATION_REFS, mutationTargetRef } from "./lib/mutation-target-guard.mjs";
+
+mutationTargetRef("cleanup-expired-exports", {
+  TEAMFRAME_MUTATION_PROJECT_REF: process.env.TEAMFRAME_MUTATION_PROJECT_REF,
+  TEAMFRAME_MUTATION_APPROVAL: process.env.TEAMFRAME_MUTATION_APPROVAL,
+  NEXT_PUBLIC_SUPABASE_URL: process.env.EXPORT_CLEANUP_SUPABASE_URL,
+  SUPABASE_SERVICE_ROLE_KEY: process.env.EXPORT_CLEANUP_SERVICE_ROLE_KEY,
+}, APPROVED_DIRECT_MUTATION_REFS);
 
 const execute = process.argv.includes("--execute");
 const now = new Date().toISOString();

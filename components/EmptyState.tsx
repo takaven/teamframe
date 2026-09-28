@@ -24,15 +24,15 @@ export function EmptyState({
 }) {
   return (
     <div
-      className={`rounded-xl border border-dashed border-ink-300/80 bg-white/60 px-5 py-8 text-center ${className}`}
+      className={`tf-empty-state rounded-xl border border-dashed border-ink-300/80 bg-white/60 px-5 py-6 text-center ${className}`}
     >
       {icon ? (
         <div className="mx-auto mb-3 flex h-8 w-8 items-center justify-center text-ink-500" aria-hidden="true">
           {icon}
         </div>
       ) : null}
-      <p className="text-[15px] text-ink-700">{message}</p>
-      {hint ? <p className="mt-2 text-[14px] text-ink-500">{hint}</p> : null}
+      <p className="text-[14px] font-medium text-ink-700">{message}</p>
+      {hint ? <p className="mx-auto mt-1.5 max-w-2xl text-[13px] leading-5 text-ink-500">{hint}</p> : null}
       {cta ? (
         <Link
           href={cta.href}

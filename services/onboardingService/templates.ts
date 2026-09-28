@@ -2,9 +2,9 @@
  * Onboarding template packs — static data, Wave 2 (gap audit 2026-05-30, Gap 5).
  *
  * Scope lock (docs/drift-guard.md):
- *  - three fixed packs defined in code; NOT a template-management UI
- *  - NOT stored in the database; assigning a pack simply creates ordinary
- *    onboarding_tasks rows with computed due dates
+ *  - three read-only starter packs defined in code
+ *  - admins can copy a starter into the tenant-owned configurable checklist model
+ *  - legacy direct assignment remains available for compatibility
  *  - no reminders, no notifications, no workflow states
  *
  * This module is intentionally free of "server-only" and DB imports: it is
@@ -135,7 +135,8 @@ export function expandTemplatePack(
 
 /** Human label for a relative due offset, used in the assign-form preview. */
 export function dueOffsetLabel(offsetDays: number): string {
-  if (offsetDays <= 0) return "Day 1";
+  if (offsetDays < 0) return `${Math.abs(offsetDays)} day${offsetDays === -1 ? "" : "s"} before start`;
+  if (offsetDays === 0) return "Day 1";
   if (offsetDays < 7) return `Day ${offsetDays + 1}`;
   const weeks = Math.floor(offsetDays / 7);
   return `Week ${weeks + (offsetDays % 7 === 0 ? 0 : 1)}`;

@@ -3,6 +3,8 @@ import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import {
   buildPositionTree,
+  findPositionPath,
+  positionDisplayTitle,
   validatePositionJdFileForTest,
   validateSingleAssignmentInvariant,
   wouldCreateReportingCycle,
@@ -152,15 +154,40 @@ describe("Org Chart schema and UI contracts", () => {
     expect(mutationSchema).toContain("position.vacated");
   });
 
-  it("exposes one Org Chart admin route and navigation item", () => {
+  it("preserves the Org Chart route while the simplified shell reaches it contextually", () => {
     const appShell = read("components/AppShell.tsx");
     const page = read("app/org-chart/page.tsx");
+    const tree = read("components/OrganisationTree.tsx");
 
-    expect(appShell).toContain('{ href: "/org-chart", label: "Org chart" }');
+    expect(appShell).not.toContain('{ href: "/org-chart", label: "Org chart" }');
     expect(page).toContain("Design your team structure.");
-    // Redesign: JD count now shown inline in the compact header summary ("N with JD").
-    expect(page).toContain("with JD");
+    expect(page).toContain('<h1 className="tf-h1">Organisation</h1>');
     expect(page).toContain("Open employee");
+    expect(page).toContain("Direct reports");
+    expect(page).toContain('<details className="tf-org-edit-disclosure">');
+    expect(tree).toContain("aria-expanded={expanded}");
+    expect(tree).toContain("/people/${node.assignedEmployeeId}");
+    expect(tree).toContain("/org-chart?position=${node.id}");
+    expect(tree).toContain('data-vacant={vacant ? "true" : undefined}');
+    const css = read("app/globals.css");
+    expect(css).toContain(".tf-org-vacancy-avatar::after");
+    expect(css).toContain("background: var(--tf-lime)");
+  });
+
+  it("keeps the selected position path expanded and roots visible by default", () => {
+    const tree = buildPositionTree([
+      position({ id: "root", title: "Managing Director", status: "Filled", assigned_employee_id: "e0", assigned_employee_name: "Maya Chen" }),
+      position({ id: "finance", title: "Finance Director", parent_position_id: "root", status: "Filled", assigned_employee_id: "e1", assigned_employee_name: "Stephen Ross" }),
+      position({ id: "assistant", title: "Finance Assistant", parent_position_id: "finance", status: "Filled", assigned_employee_id: "e2", assigned_employee_name: "Hugo Salcedo" }),
+    ]);
+
+    expect([...findPositionPath(tree, "assistant")]).toEqual(expect.arrayContaining(["root", "finance", "assistant"]));
+    expect([...findPositionPath(tree, null)]).toEqual([]);
+  });
+
+  it("removes a redundant open suffix only from vacant display titles", () => {
+    expect(positionDisplayTitle("Consultant (Open)", true)).toBe("Consultant");
+    expect(positionDisplayTitle("Consultant (Open)", false)).toBe("Consultant (Open)");
   });
 });
 

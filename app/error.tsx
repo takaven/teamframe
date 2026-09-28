@@ -30,14 +30,14 @@ export default function GlobalError({
             <button
               type="button"
               onClick={() => reset()}
-              className="rounded-lg bg-brand-signal px-5 py-2 text-[14px] font-medium text-ink-800 transition hover:bg-[#00E51F]"
+              className="tf-primary-action px-5 py-2 text-[14px]"
             >
               Retry
             </button>
             <form action={logoutAction}>
               <button
                 type="submit"
-                className="rounded-full border border-ink-300 px-5 py-2 text-[14px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900"
+                className="tf-secondary-action px-5 py-2 text-[14px]"
               >
                 Sign out and retry
               </button>

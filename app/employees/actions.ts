@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { notifyDocumentRequest } from "@/services/notificationService";
 import { requireTenantActor } from "@/middleware/rbac";
 import { UAE_RECORD_TYPE_VALUES } from "@/lib/countryRecords";
 import {
@@ -20,6 +21,7 @@ import {
   completeOffboardingItem,
   startOffboarding,
 } from "@/services/offboardingService";
+import { notifyOffboardingAssignment } from "@/services/notificationService";
 import {
   exportFinanceHandoffUrl,
   exportEmployeeDueDiligencePackUrl,
@@ -31,18 +33,27 @@ import {
   uploadDocumentForRequirement,
 } from "@/services/documentService";
 import { setEmployeePhoto } from "@/services/employeeMasterService";
+import { updateEmployeePersonalProfile } from "@/services/selfServiceService";
 import { saveEmployeeCompensation } from "@/services/compensationService";
 import { logAction } from "@/lib/telemetry/logger";
 import { captureActionError } from "@/lib/telemetry/sentry";
+import { createEmployeeFromReviewedHire } from "@/services/hirePeopleHandoff";
+import { assignDefaultChecklist } from "@/services/onboardingService/checklistTemplates";
+import { normalizeCountryCode } from "@/lib/geo/countries";
+import { isValidTimeZone } from "@/lib/geo/timezones";
 
 const CreateInputSchema = z.object({
   full_name: z.string().trim().min(1),
   email: z.string().trim().toLowerCase().email(),
   role_title: z.string().trim().min(1),
   department: z.string().trim().min(1),
-  timezone: z.string().trim().min(1),
+  timezone: z.string().trim().min(1).refine(isValidTimeZone),
   employment_type: z.enum(["full_time", "part_time", "contractor", "intern"]),
-  country: z.string().trim().min(2),
+  country: z.string().trim().min(2).transform((value, context) => {
+    const normalized = normalizeCountryCode(value);
+    if (!normalized) { context.addIssue({ code: "custom", message: "Invalid country" }); return z.NEVER; }
+    return normalized;
+  }),
   start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
@@ -108,9 +119,11 @@ const CreateDocumentRequirementInputSchema = z.object({
   employee_id: z.string().uuid(),
   document_type: z.string().trim().min(1).max(80),
   due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  expiry_required: z.enum(["on"]).optional(),
-  review_required: z.enum(["on"]).optional(),
-  employee_upload_allowed: z.enum(["on"]).optional(),
+  // Unchecked HTML checkboxes are absent from FormData, so FormData.get()
+  // returns null rather than undefined. Accept both as the same false state.
+  expiry_required: z.enum(["on"]).nullish(),
+  review_required: z.enum(["on"]).nullish(),
+  employee_upload_allowed: z.enum(["on"]).nullish(),
   return_to: z.string().trim().optional(),
 });
 
@@ -205,6 +218,7 @@ export async function createEmployeeAction(formData: FormData): Promise<void> {
   const requestId = crypto.randomUUID();
   let actor: Awaited<ReturnType<typeof requireTenantActor>> | null = null;
   let caughtError: unknown = null;
+  let employeeId: string | null = null;
 
   try {
     actor = await requireTenantActor();
@@ -220,7 +234,20 @@ export async function createEmployeeAction(formData: FormData): Promise<void> {
       end_date: optionalString(formData.get("end_date")),
     });
 
-    await createEmployee(actor, parsed);
+    const created = await createEmployee(actor, parsed);
+    employeeId = created.id;
+    try {
+      await assignDefaultChecklist(actor, created.id);
+    } catch (assignmentError) {
+      // Employee creation is already committed. Keep the successful record and
+      // surface the checklist failure in telemetry; an admin can assign it from
+      // Onboarding without retrying (and potentially duplicating) the person.
+      captureActionError("assignDefaultChecklistAfterCreate", assignmentError, {
+        actor_user_id: actor.authUserId,
+        actor_tenant_id: actor.tenantId,
+        employee_id: created.id,
+      });
+    }
   } catch (error) {
     failed = true;
     errorCode = getErrorCode(error);
@@ -254,10 +281,43 @@ export async function createEmployeeAction(formData: FormData): Promise<void> {
   }
 
   if (failed) {
-    redirect(`/employees?error=${encodeURIComponent(errorCode)}`);
+    redirect(`/people/add?error=${encodeURIComponent(errorCode)}`);
   }
 
-  redirect("/employees?status=created");
+  redirect(`/people/${encodeURIComponent(employeeId!)}?status=created`);
+}
+
+export async function createEmployeeFromHireAction(formData: FormData): Promise<void> {
+  let errorCode: string | null = null;
+  let employeeId: string | null = null;
+  try {
+    const actor = await requireTenantActor();
+    if (formData.get("source_reviewed") !== "yes") throw new Error("HIRE_HANDOFF_REVIEW_REQUIRED");
+    const result = await createEmployeeFromReviewedHire(actor, {
+      pass_candidate_id: Number(formData.get("pass_candidate_id")),
+      offer_id: Number(formData.get("offer_id")),
+      candidate_status: formData.get("candidate_status"),
+      offer_status: formData.get("offer_status"),
+      approval_reference: formData.get("approval_reference"),
+      full_name: formData.get("full_name"),
+      email: formData.get("email"),
+      role_title: formData.get("role_title"),
+      department: formData.get("department"),
+      timezone: formData.get("timezone"),
+      employment_type: formData.get("employment_type"),
+      country: formData.get("country"),
+      start_date: formData.get("start_date"),
+      end_date: optionalString(formData.get("end_date")) ?? null,
+      manager_id: null,
+      grade: null,
+    });
+    employeeId = result.employeeId;
+  } catch (error) {
+    captureActionError("createEmployeeFromHire", error);
+    errorCode = getErrorCode(error);
+  }
+  if (errorCode) redirect(`/people/add?error=${encodeURIComponent(errorCode)}#hire-handoff`);
+  redirect(`/people/${encodeURIComponent(employeeId!)}?status=hire_handoff_created`);
 }
 
 export async function updateEmployeeAction(formData: FormData): Promise<void> {
@@ -331,10 +391,10 @@ export async function updateEmployeeAction(formData: FormData): Promise<void> {
   }
 
   if (failed) {
-    redirect(`/employees?error=${encodeURIComponent(errorCode)}`);
+    redirect(`/people?error=${encodeURIComponent(errorCode)}`);
   }
 
-  redirect("/employees?status=updated");
+  redirect("/people?status=updated");
 }
 
 export async function saveCompensationAction(formData: FormData): Promise<void> {
@@ -394,7 +454,7 @@ export async function archiveEmployeeAction(formData: FormData): Promise<void> {
   let failed = false;
   let errorCode = "UNKNOWN";
   let employeeId = "";
-  let returnTo = "/employees";
+  let returnTo = "/people";
 
   // Observability instrumentation (Phase 1C).
   const start = Date.now();
@@ -411,7 +471,7 @@ export async function archiveEmployeeAction(formData: FormData): Promise<void> {
       return_to: optionalString(formData.get("return_to")),
     });
     employeeId = parsed.employee_id;
-    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    returnTo = safeReturnPath(parsed.return_to, "/people");
 
     await softDeleteEmployee(actor, parsed.employee_id, parsed.expected_updated_at);
   } catch (error) {
@@ -458,7 +518,7 @@ export async function startOffboardingAction(formData: FormData): Promise<void> 
   let failed = false;
   let errorCode = "UNKNOWN";
   let employeeId = "";
-  let returnTo = "/employees";
+  let returnTo = "/people";
 
   const start = Date.now();
   const requestId = crypto.randomUUID();
@@ -474,13 +534,14 @@ export async function startOffboardingAction(formData: FormData): Promise<void> 
     });
 
     employeeId = parsed.employee_id;
-    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    returnTo = safeReturnPath(parsed.return_to, "/people");
 
-    await startOffboarding(actor, {
+    const workflow = await startOffboarding(actor, {
       employeeId: parsed.employee_id,
       effectiveEndDate: parsed.effective_end_date,
       expectedUpdatedAt: parsed.expected_updated_at,
     });
+    await Promise.all(workflow.items.map((item) => notifyOffboardingAssignment(actor!.tenantId, { id: item.id, employeeId: item.employee_id, ownerEmployeeId: item.owner_employee_id, title: item.title, dueDate: item.due_date })));
   } catch (error) {
     failed = true;
     errorCode = getErrorCode(error);
@@ -525,7 +586,7 @@ export async function completeOffboardingItemAction(formData: FormData): Promise
   let failed = false;
   let errorCode = "UNKNOWN";
   let employeeId = "";
-  let returnTo = "/employees";
+  let returnTo = "/people";
 
   try {
     const actor = await requireTenantActor();
@@ -536,7 +597,7 @@ export async function completeOffboardingItemAction(formData: FormData): Promise
       return_to: optionalString(formData.get("return_to")),
     });
     employeeId = parsed.employee_id;
-    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    returnTo = safeReturnPath(parsed.return_to, "/people");
 
     await completeOffboardingItem(actor, parsed.item_id, parsed.expected_updated_at);
   } catch (error) {
@@ -555,7 +616,7 @@ export async function cancelOffboardingAction(formData: FormData): Promise<void>
   let failed = false;
   let errorCode = "UNKNOWN";
   let employeeId = "";
-  let returnTo = "/employees";
+  let returnTo = "/people";
 
   try {
     const actor = await requireTenantActor();
@@ -565,7 +626,7 @@ export async function cancelOffboardingAction(formData: FormData): Promise<void>
       return_to: optionalString(formData.get("return_to")),
     });
     employeeId = parsed.employee_id;
-    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    returnTo = safeReturnPath(parsed.return_to, "/people");
 
     await cancelOffboarding(actor, parsed.case_id);
   } catch (error) {
@@ -584,7 +645,7 @@ export async function reinviteEmployeeAction(formData: FormData): Promise<void> 
   let failed = false;
   let errorCode = "UNKNOWN";
   let employeeId = "";
-  let returnTo = "/employees";
+  let returnTo = "/people";
 
   // Observability instrumentation (Phase 1C).
   const start = Date.now();
@@ -599,7 +660,7 @@ export async function reinviteEmployeeAction(formData: FormData): Promise<void> 
       return_to: optionalString(formData.get("return_to")),
     });
     employeeId = parsed.employee_id;
-    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    returnTo = safeReturnPath(parsed.return_to, "/people");
 
     await reinviteEmployee(actor, parsed.employee_id);
   } catch (error) {
@@ -646,7 +707,7 @@ export async function generateActivationLinkAction(formData: FormData): Promise<
   let failed = false;
   let errorCode = "UNKNOWN";
   let employeeId = "";
-  let returnTo = "/employees";
+  let returnTo = "/people";
   let activationLink = "";
 
   // Observability instrumentation (Phase 1C).
@@ -662,7 +723,7 @@ export async function generateActivationLinkAction(formData: FormData): Promise<
       return_to: optionalString(formData.get("return_to")),
     });
     employeeId = parsed.employee_id;
-    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    returnTo = safeReturnPath(parsed.return_to, "/people");
 
     const result = await generateEmployeeActivationLink(actor, parsed.employee_id);
     activationLink = result.activationLink;
@@ -712,7 +773,7 @@ export async function uploadEmployeeDocumentAction(formData: FormData): Promise<
   let failed = false;
   let errorCode = "UNKNOWN";
   let employeeId = "";
-  let returnTo = "/employees";
+  let returnTo = "/people";
 
   const start = Date.now();
   const requestId = crypto.randomUUID();
@@ -735,7 +796,7 @@ export async function uploadEmployeeDocumentAction(formData: FormData): Promise<
     });
 
     employeeId = parsed.employee_id;
-    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    returnTo = safeReturnPath(parsed.return_to, "/people");
 
     await uploadDocument(actor, {
       employeeId: parsed.employee_id,
@@ -793,7 +854,7 @@ export async function uploadUaeRecordAction(formData: FormData): Promise<void> {
   let failed = false;
   let errorCode = "UNKNOWN";
   let employeeId = "";
-  let returnTo = "/employees";
+  let returnTo = "/people";
   let actor: Awaited<ReturnType<typeof requireTenantActor>> | null = null;
 
   try {
@@ -810,7 +871,7 @@ export async function uploadUaeRecordAction(formData: FormData): Promise<void> {
       return_to: optionalString(formData.get("return_to")),
     });
     employeeId = parsed.employee_id;
-    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    returnTo = safeReturnPath(parsed.return_to, "/people");
 
     await uploadDocument(
       actor,
@@ -878,11 +939,29 @@ export async function updateEmployeePhotoAction(formData: FormData): Promise<voi
   redirect(`/employees?status=photo_updated&employee=${encodeURIComponent(employeeId)}`);
 }
 
+export async function updateEmployeePersonalProfileAction(formData: FormData): Promise<void> {
+  let employeeId = "";
+  try {
+    const actor = await requireTenantActor();
+    employeeId = z.string().uuid().parse(formData.get("employee_id"));
+    const text = (name: string) => typeof formData.get(name) === "string" ? String(formData.get(name)) : "";
+    await updateEmployeePersonalProfile(actor, employeeId, {
+      preferred_name: text("preferred_name"), date_of_birth: text("date_of_birth"), gender: text("gender"), nationality: text("nationality"),
+      personal_email: text("personal_email"), mobile: text("mobile"), residential_address: text("residential_address"),
+      emergency_contact_name: text("emergency_contact_name"), emergency_contact_relationship: text("emergency_contact_relationship"),
+      emergency_contact_phone: text("emergency_contact_phone"), emergency_contact_email: text("emergency_contact_email"),
+    });
+  } catch (error) {
+    redirect(`/people/${employeeId}?error=${encodeURIComponent(getErrorCode(error))}#personal`);
+  }
+  redirect(`/people/${employeeId}?status=updated#personal`);
+}
+
 export async function createDocumentRequirementAction(formData: FormData): Promise<void> {
   let failed = false;
   let errorCode = "UNKNOWN";
   let employeeId = "";
-  let returnTo = "/employees";
+  let returnTo = "/people";
 
   try {
     const actor = await requireTenantActor();
@@ -896,9 +975,9 @@ export async function createDocumentRequirementAction(formData: FormData): Promi
       return_to: optionalString(formData.get("return_to")),
     });
     employeeId = parsed.employee_id;
-    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    returnTo = safeReturnPath(parsed.return_to, "/people");
 
-    await createDocumentRequirement(actor, {
+    const requirement = await createDocumentRequirement(actor, {
       employeeId: parsed.employee_id,
       documentType: parsed.document_type,
       dueDate: parsed.due_date ?? null,
@@ -906,6 +985,7 @@ export async function createDocumentRequirementAction(formData: FormData): Promi
       reviewRequired: parsed.review_required === "on",
       employeeUploadAllowed: parsed.employee_upload_allowed !== undefined,
     });
+    await notifyDocumentRequest(actor.tenantId, requirement.id);
   } catch (error) {
     failed = true;
     errorCode = getErrorCode(error);
@@ -920,7 +1000,7 @@ export async function createDocumentRequirementAction(formData: FormData): Promi
 export async function uploadRequirementDocumentAction(formData: FormData): Promise<void> {
   let failed = false;
   let errorCode = "UNKNOWN";
-  let returnTo = "/me";
+  let returnTo = "/documents-and-policies#documents";
 
   try {
     const actor = await requireTenantActor();
@@ -931,7 +1011,7 @@ export async function uploadRequirementDocumentAction(formData: FormData): Promi
       expires_at: optionalString(formData.get("expires_at")),
       return_to: optionalString(formData.get("return_to")),
     });
-    returnTo = safeReturnPath(parsed.return_to, "/me");
+    returnTo = safeReturnPath(parsed.return_to, "/documents-and-policies#documents");
 
     await uploadDocumentForRequirement(actor, {
       requirementId: parsed.requirement_id,
@@ -950,7 +1030,7 @@ export async function uploadRequirementDocumentAction(formData: FormData): Promi
 export async function reviewDocumentRequirementAction(formData: FormData): Promise<void> {
   let failed = false;
   let errorCode = "UNKNOWN";
-  let returnTo = "/employees";
+  let returnTo = "/people";
 
   try {
     const actor = await requireTenantActor();
@@ -959,7 +1039,7 @@ export async function reviewDocumentRequirementAction(formData: FormData): Promi
       decision: formData.get("decision"),
       return_to: optionalString(formData.get("return_to")),
     });
-    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    returnTo = safeReturnPath(parsed.return_to, "/people");
     await reviewDocumentRequirement(actor, {
       requirementId: parsed.requirement_id,
       decision: parsed.decision,
@@ -976,7 +1056,7 @@ export async function reviewDocumentRequirementAction(formData: FormData): Promi
 export async function downloadEmployeeDocumentAction(formData: FormData): Promise<void> {
   let failed = false;
   let errorCode = "UNKNOWN";
-  let returnTo = "/employees";
+  let returnTo = "/people";
   let documentId = "";
   let signedUrl = "";
 
@@ -987,7 +1067,7 @@ export async function downloadEmployeeDocumentAction(formData: FormData): Promis
       return_to: optionalString(formData.get("return_to")),
     });
     documentId = parsed.document_id;
-    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    returnTo = safeReturnPath(parsed.return_to, "/people");
     signedUrl = await getSignedDownloadUrl(actor, parsed.document_id);
   } catch (error) {
     failed = true;
@@ -1005,7 +1085,7 @@ export async function deleteEmployeeDocumentAction(formData: FormData): Promise<
   let failed = false;
   let errorCode = "UNKNOWN";
   let employeeId = "";
-  let returnTo = "/employees";
+  let returnTo = "/people";
 
   const start = Date.now();
   const requestId = crypto.randomUUID();
@@ -1020,7 +1100,7 @@ export async function deleteEmployeeDocumentAction(formData: FormData): Promise<
       return_to: optionalString(formData.get("return_to")),
     });
     employeeId = parsed.employee_id;
-    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    returnTo = safeReturnPath(parsed.return_to, "/people");
 
     await softDeleteDocument(actor, parsed.document_id);
   } catch (error) {
@@ -1067,7 +1147,7 @@ export async function exportEmployeeDueDiligencePackAction(formData: FormData): 
   let failed = false;
   let errorCode = "UNKNOWN";
   let employeeId = "";
-  let returnTo = "/employees";
+  let returnTo = "/people";
   let signedUrl = "";
 
   try {
@@ -1077,7 +1157,7 @@ export async function exportEmployeeDueDiligencePackAction(formData: FormData): 
       return_to: optionalString(formData.get("return_to")),
     });
     employeeId = parsed.employee_id;
-    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    returnTo = safeReturnPath(parsed.return_to, "/people");
     signedUrl = await exportEmployeeDueDiligencePackUrl(actor, parsed.employee_id);
   } catch (error) {
     failed = true;
@@ -1094,7 +1174,7 @@ export async function exportEmployeeDueDiligencePackAction(formData: FormData): 
 export async function exportFinanceHandoffAction(formData: FormData): Promise<void> {
   let failed = false;
   let errorCode = "UNKNOWN";
-  let returnTo = "/employees";
+  let returnTo = "/people";
   let signedUrl = "";
 
   try {
@@ -1102,7 +1182,7 @@ export async function exportFinanceHandoffAction(formData: FormData): Promise<vo
     const parsed = ExportFinanceHandoffInputSchema.parse({
       return_to: optionalString(formData.get("return_to")),
     });
-    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    returnTo = safeReturnPath(parsed.return_to, "/people");
     signedUrl = await exportFinanceHandoffUrl(actor);
   } catch (error) {
     failed = true;
@@ -1120,7 +1200,7 @@ export async function recordEmploymentChangeAction(formData: FormData): Promise<
   let failed = false;
   let errorCode = "UNKNOWN";
   let employeeId = "";
-  let returnTo = "/employees";
+  let returnTo = "/people";
 
   const start = Date.now();
   const requestId = crypto.randomUUID();
@@ -1141,7 +1221,7 @@ export async function recordEmploymentChangeAction(formData: FormData): Promise<
       return_to: optionalString(formData.get("return_to")),
     });
     employeeId = parsed.employee_id;
-    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    returnTo = safeReturnPath(parsed.return_to, "/people");
 
     const patch = Object.fromEntries(
       Object.entries({
@@ -1203,7 +1283,7 @@ export async function cancelEmploymentChangeAction(formData: FormData): Promise<
   let failed = false;
   let errorCode = "UNKNOWN";
   let employeeId = "";
-  let returnTo = "/employees";
+  let returnTo = "/people";
 
   const start = Date.now();
   const requestId = crypto.randomUUID();
@@ -1218,7 +1298,7 @@ export async function cancelEmploymentChangeAction(formData: FormData): Promise<
       return_to: optionalString(formData.get("return_to")),
     });
     employeeId = parsed.employee_id;
-    returnTo = safeReturnPath(parsed.return_to, "/employees");
+    returnTo = safeReturnPath(parsed.return_to, "/people");
 
     await cancelEmploymentChange(actor, parsed.change_id);
   } catch (error) {

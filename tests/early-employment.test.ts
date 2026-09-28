@@ -12,6 +12,7 @@ import {
   completeProbationReview,
   submitMyOnboardingCheckIn,
 } from "@/services/earlyEmploymentService";
+import { EXPECTED_PUBLIC_TABLES } from "../scripts/schema-order.mjs";
 
 const root = process.cwd();
 
@@ -39,8 +40,6 @@ describe("MR-4 join and early employment workflows", () => {
   it("adds bounded early-employment persistence after automation and before transactional employee mutations", () => {
     const schema = read("schemas/early_employment.sql");
     const schemaOrder = read("scripts/schema-order.mjs");
-    const verifyInstall = read("scripts/verify-install.mjs");
-    const verifyIntegration = read("scripts/verify-integration.mjs");
 
     expect(schemaOrder.indexOf('"hr_automation.sql"')).toBeLessThan(
       schemaOrder.indexOf('"early_employment.sql"'),
@@ -53,10 +52,9 @@ describe("MR-4 join and early employment workflows", () => {
     expect(schema).toContain("create table if not exists probation_reviews");
     expect(schema).toContain("onboarding_check_ins_employee_due_idx");
     expect(schema).toContain("probation_reviews_employee_end_date_idx");
-    expect(verifyInstall).toContain('"early_employment.sql": ["employee_join_initializations", "onboarding_check_ins", "probation_reviews"]');
-    for (const table of ["employee_join_initializations", "onboarding_check_ins", "probation_reviews"]) {
-      expect(verifyIntegration).toContain(`"${table}"`);
-    }
+    expect(EXPECTED_PUBLIC_TABLES).toEqual(
+      expect.arrayContaining(["employee_join_initializations", "onboarding_check_ins", "probation_reviews"]),
+    );
   });
 
   it("initializes ordinary onboarding work once from employee creation and guided setup", () => {
@@ -97,8 +95,8 @@ describe("MR-4 join and early employment workflows", () => {
 
   it("keeps the check-in factual and deterministic rather than performance-scored", () => {
     const schema = read("schemas/early_employment.sql");
-    // Phase 5C: the employee 30-day check-in form now lives on /me (moved off /onboarding).
-    const page = read("app/me/page.tsx");
+    // The role-aware route split keeps the employee check-in on Home, while /me is profile-only.
+    const page = read("app/home/page.tsx");
 
     for (const topic of [
       "role_clarity",

@@ -82,12 +82,12 @@ describe("TeamFrame brand system", () => {
   it("uses accurate navigation labels for the current product routes", () => {
     const appShell = read("components/AppShell.tsx");
 
-    expect(appShell).toContain('{ href: "/dashboard", label: "Overview" }');
-    expect(appShell).toContain('{ href: "/org-chart", label: "Org chart" }');
-    expect(appShell).toContain('{ href: "/employees", label: "Employees" }');
-    expect(appShell).toContain('{ href: "/onboarding", label: "Onboarding" }');
-    expect(appShell).toContain('{ href: "/leaves", label: "Leave" }');
+    expect(appShell).toContain('{ href: "/dashboard", label: "Home" }');
+    expect(appShell).toContain('{ href: "/people", label: "People" }');
+    expect(appShell).toContain('{ href: "/leaves", label: "Time off" }');
+    expect(appShell).not.toContain('{ href: "/employees?tab=documents", label: "Documents" }');
     expect(appShell).toContain('{ href: "/policies", label: "Policies" }');
+    expect(appShell).toContain('{ href: "/setup", label: "Settings" }');
     expect(appShell).not.toContain('label: "Performance"');
   });
 });

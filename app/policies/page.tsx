@@ -10,6 +10,7 @@ import { AppShell } from "@/components/AppShell";
 import { EmptyState } from "@/components/EmptyState";
 import { StatusPill, type StatusPillTone } from "@/components/StatusPill";
 import { archivePolicyAction, attachPolicyFileAction, createPolicyAction, downloadPolicyFileAction, publishPolicyAction, uploadPolicyAction } from "./actions";
+import { remindPolicyAction } from "@/app/notifications/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -81,7 +82,7 @@ export default async function PoliciesPage({
 
   if (actor.role !== "admin") {
     // Employees acknowledge policies from their self-service hub.
-    redirect("/me");
+    redirect("/documents-and-policies");
   }
 
   const successMessage = status ? (STATUS_COPY[status] ?? null) : null;
@@ -118,7 +119,7 @@ export default async function PoliciesPage({
       </div>
 
       {successMessage ? (
-        <p className="mt-6 rounded-lg border border-signal-green/25 bg-signal-green/5 px-4 py-2.5 text-[13.5px] text-signal-green">
+        <p role="status" aria-live="polite" className="mt-6 rounded-lg border border-signal-green/25 bg-signal-green/5 px-4 py-2.5 text-[13.5px] text-signal-green">
           {successMessage}
         </p>
       ) : null}
@@ -128,12 +129,12 @@ export default async function PoliciesPage({
         </p>
       ) : null}
 
-      <section id="upload" className="mt-8 tf-surface-flat p-5">
-        <h2 className="tf-h2">{isNewVersion ? "Upload new version" : "Upload policy"}</h2>
-        <p className="mt-1 text-[13px] text-ink-500">
+      <details id="upload" className="mt-8 tf-surface-flat p-5" open={isNewVersion || policies.length === 0}>
+        <summary className="cursor-pointer text-[14px] font-semibold text-ink-800">{isNewVersion ? "Add this policy version" : "Create a policy"}</summary>
+        <p className="mt-3 text-[13px] text-ink-500">
           {isNewVersion
             ? "This creates a new version as its own record. Earlier versions and their acknowledgements are preserved."
-            : "The primary way to add a policy: upload the document, set its version and effective date, then publish."}
+            : "Upload policy files here, or use the simple text option below. Publishing asks employees to acknowledge this version."}
         </p>
         <form action={uploadPolicyAction} className="mt-4 grid gap-3" encType="multipart/form-data">
           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_120px_160px]">
@@ -168,7 +169,7 @@ export default async function PoliciesPage({
           </label>
           <div>
             <PendingSubmitButton
-              idleLabel={isNewVersion ? "Upload new version" : "Upload policy"}
+              idleLabel={isNewVersion ? "Add new version" : "Create policy"}
               pendingLabel="Uploading…"
               className="tf-primary-action px-5 py-2 text-[14px] font-medium disabled:cursor-not-allowed disabled:bg-ink-300"
             />
@@ -204,7 +205,7 @@ export default async function PoliciesPage({
             </div>
           </form>
         </details>
-      </section>
+      </details>
 
       {policies.length === 0 ? (
         <EmptyState
@@ -223,7 +224,7 @@ export default async function PoliciesPage({
             {policies.map((policy) => {
               const state = policyState(policy);
               return (
-                <li key={policy.id} className="px-5 py-4">
+                <li id={`policy-${policy.id}`} key={policy.id} className="scroll-mt-6 px-5 py-4">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="min-w-0 flex-1 space-y-1">
                       <p className="text-[15px] text-ink-900 font-medium">
@@ -239,7 +240,9 @@ export default async function PoliciesPage({
                         Created <span className="tabular-nums">{formatDate(policy.created_at)}</span> · Updated{" "}
                         <span className="tabular-nums">{formatDate(policy.updated_at)}</span>
                       </p>
-                      <div className="mt-2 rounded-md border border-ink-300/50 bg-ink-100/30 px-3 py-2">
+                      <details className="mt-3">
+                        <summary className="tf-secondary-action inline-flex cursor-pointer list-none px-3 py-1.5 text-[12px] marker:hidden">More</summary>
+                        <div className="mt-2 rounded-md border border-ink-300/50 bg-ink-100/30 px-3 py-2">
                         <p className="text-[12px] font-medium text-ink-900">
                           Policy file: {policy.file_original_name ?? "No file attached"}
                         </p>
@@ -273,7 +276,28 @@ export default async function PoliciesPage({
                             />
                           </form>
                         ) : null}
-                      </div>
+                        </div>
+                        {!policy.archived_at ? (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <a
+                              href={`/policies?nv_title=${encodeURIComponent(policy.title)}&nv_version=${policy.version + 1}#upload`}
+                              className="tf-secondary-action px-3 py-1.5 text-[12px]"
+                            >
+                              New version
+                            </a>
+                            <form action={archivePolicyAction}>
+                              <input type="hidden" name="policy_id" value={policy.id} />
+                              <input type="hidden" name="expected_updated_at" value={policy.updated_at} />
+                              <ConfirmSubmitButton
+                                idleLabel="Archive"
+                                pendingLabel="Archiving…"
+                                confirmMessage={`Archive "${policy.title}" v${policy.version}? Employees will no longer be asked to acknowledge it.`}
+                                className="tf-secondary-action px-3 py-1.5 text-[12px]"
+                              />
+                            </form>
+                          </div>
+                        ) : null}
+                      </details>
                       {policy.is_published && !policy.archived_at ? (
                         <details className="mt-3 rounded-md border border-ink-300/50 bg-white">
                           <summary className="cursor-pointer px-3 py-2 text-[12px] font-medium hover:text-ink-900">
@@ -288,7 +312,7 @@ export default async function PoliciesPage({
                             </p>
                           ) : (
                             <ul className="divide-y divide-ink-300/40 border-t border-ink-300/40">
-                              {policy.acknowledgement_evidence.slice(0, 8).map((entry) => (
+                              {policy.acknowledgement_evidence.map((entry) => (
                                 <li key={entry.employee_id} className="grid gap-2 px-3 py-2 text-[12px] sm:grid-cols-[1fr_auto_auto] sm:items-center">
                                   <div>
                                     <p className="font-medium text-ink-900">{entry.full_name}</p>
@@ -300,20 +324,16 @@ export default async function PoliciesPage({
                                   <p className="tabular-nums text-ink-500">
                                     {entry.acknowledged_at ? formatDate(entry.acknowledged_at) : "-"}
                                   </p>
+                                  {entry.status !== "acknowledged" ? <form action={remindPolicyAction} className="sm:col-span-3 sm:justify-self-end"><input type="hidden" name="policy_id" value={policy.id}/><input type="hidden" name="employee_id" value={entry.employee_id}/><PendingSubmitButton idleLabel="Remind" pendingLabel="Sending…" className="tf-secondary-action px-3 py-1.5 text-[12px]"/></form> : null}
                                 </li>
                               ))}
                             </ul>
                           )}
-                          {policy.acknowledgement_evidence.length > 8 ? (
-                            <p className="border-t border-ink-300/40 px-3 py-2 text-[12px] text-ink-500">
-                              Showing first 8 records. Outstanding acknowledgements are listed first.
-                            </p>
-                          ) : null}
                         </details>
                       ) : null}
-                      <details className="mt-1">
-                        <summary className="cursor-pointer text-[12px] text-ink-500 hover:text-ink-900 transition">
-                          Read policy text
+                      <details className="mt-3">
+                        <summary className="tf-secondary-action inline-flex cursor-pointer list-none px-3 py-1.5 text-[12px] marker:hidden">
+                          View policy
                         </summary>
                         <p className="mt-2 whitespace-pre-wrap rounded-md border border-ink-300/50 bg-ink-100/40 px-3 py-2 text-[13px] text-ink-700">
                           {policy.body}
@@ -321,14 +341,6 @@ export default async function PoliciesPage({
                       </details>
                     </div>
                     <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:flex-nowrap">
-                      {!policy.archived_at ? (
-                        <a
-                          href={`/policies?nv_title=${encodeURIComponent(policy.title)}&nv_version=${policy.version + 1}#upload`}
-                          className="w-full rounded-full border border-ink-300 px-4 py-1.5 text-center text-[13px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 sm:w-auto"
-                        >
-                          New version
-                        </a>
-                      ) : null}
                       {!policy.is_published && !policy.archived_at ? (
                         <form action={publishPolicyAction} className="w-full sm:w-auto">
                           <input type="hidden" name="policy_id" value={policy.id} />
@@ -337,18 +349,6 @@ export default async function PoliciesPage({
                             idleLabel="Publish"
                             pendingLabel="Publishing…"
                             className="w-full tf-primary-action px-4 py-1.5 text-[13px] font-medium disabled:cursor-not-allowed disabled:bg-ink-300 sm:w-auto"
-                          />
-                        </form>
-                      ) : null}
-                      {!policy.archived_at ? (
-                        <form action={archivePolicyAction} className="w-full sm:w-auto">
-                          <input type="hidden" name="policy_id" value={policy.id} />
-                          <input type="hidden" name="expected_updated_at" value={policy.updated_at} />
-                          <ConfirmSubmitButton
-                            idleLabel="Archive"
-                            pendingLabel="Archiving…"
-                            confirmMessage={`Archive "${policy.title}" v${policy.version}? Employees will no longer be asked to acknowledge it.`}
-                            className="w-full rounded-full border border-ink-300 px-4 py-1.5 text-[13px] text-ink-700 transition hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:border-ink-300/50 disabled:text-ink-300 sm:w-auto"
                           />
                         </form>
                       ) : null}

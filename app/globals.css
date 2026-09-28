@@ -10,7 +10,7 @@
   --color-ink-900: #0f1115;
   --color-ink-800: #2a2f37;
   --color-ink-700: #2a2f37;
-  --color-ink-500: #68707d;
+  --color-ink-500: #5d6570;
   --color-ink-400: #b9c0c9;
   --color-ink-300: #ccd1d8;
   --color-ink-100: #e9edf1;
@@ -235,25 +235,6 @@ body { background: var(--tf-canvas); }
 }
 .tf-divide > * + * { border-top: 1px solid var(--tf-hairline); }
 
-/* ---- Compact summary bar (replaces oversized KPI card rows) --------------- */
-.tf-summary {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
-  background: var(--surface-elevated);
-  border: 1px solid var(--tf-hairline);
-  border-radius: var(--tf-radius-panel);
-  box-shadow: var(--tf-shadow-sm);
-  overflow: hidden;
-}
-.tf-summary > * {
-  padding: 12px 20px;
-  border-left: 1px solid var(--tf-hairline);
-}
-.tf-summary > *:first-child { border-left: 0; }
-.tf-summary-label { font-size: 12px; color: var(--color-ink-500); }
-.tf-summary-value { margin-top: 2px; font-size: 18px; font-weight: 600; color: var(--color-ink-900); font-variant-numeric: tabular-nums; }
-
 /* ---- Styled native form controls (behaviour preserved) ------------------- */
 /* Scoped to the authenticated app + auth surfaces so raw browser chrome is
    replaced with coherent primitives everywhere without per-field edits. */
@@ -380,68 +361,161 @@ main:has(> .tf-app-shell) input[type="file"]::file-selector-button {
   display: flex;
 }
 
-/* Indented outline hierarchy with connector rails. Scales to many positions and stays responsive
-   (no horizontal node-graph / dead canvas). Depth = nested <ul> with a left rail + branch stub. */
+/* Organisation hierarchy: the existing position tree rendered as a people-first,
+   connected outline. Departments remain metadata; reporting lines remain primary. */
+.tf-org-surface {
+  border-radius: 18px;
+  background: var(--tf-material);
+  box-shadow: var(--tf-raised);
+  padding: 22px 24px 28px;
+}
 .tf-org-tree { padding: 2px 0 8px; }
 .tf-org-tree ul { list-style: none; margin: 0; padding: 0; }
-
-/* Child levels: vertical rail + indentation. */
+.tf-org-roots { max-width: 780px; }
+.tf-org-branch { position: relative; }
+.tf-org-branch + .tf-org-branch { margin-top: 7px; }
 .tf-org-children {
   position: relative;
-  margin-left: 16px;
-  padding-left: 18px;
-  border-left: 1.5px solid var(--tf-hairline-strong);
+  margin: 8px 0 0 24px;
+  padding-left: 27px !important;
+  border-left: 1.5px solid rgba(66, 73, 77, 0.34);
 }
-/* Trim the rail so it stops at the last child's connector. */
-.tf-org-children > li { position: relative; }
-.tf-org-children > li::before {
+.tf-org-children > .tf-org-branch::before {
   content: "";
   position: absolute;
-  left: -18px;
-  top: 24px;
-  width: 14px;
-  border-top: 1.5px solid var(--tf-hairline-strong);
+  left: -27px;
+  top: 31px;
+  width: 22px;
+  border-top: 1.5px solid rgba(66, 73, 77, 0.34);
 }
-.tf-org-children > li:last-child::after {
+.tf-org-children > .tf-org-branch:last-child::after {
   content: "";
   position: absolute;
-  left: -19.5px;
-  top: 25px;
-  bottom: -8px;
-  width: 1.5px;
-  background: var(--tf-canvas);
+  left: -28.5px;
+  top: 32px;
+  bottom: -9px;
+  width: 3px;
+  background: var(--tf-material);
 }
-
-.tf-org-root { position: relative; }
-.tf-org-root + .tf-org-root { margin-top: 8px; }
-.tf-org-branch { position: relative; }
-
-/* Node card — compact, one restrained elevation on hover. */
+.tf-org-branch[data-path="true"] > .tf-org-children {
+  border-left-color: rgba(32, 36, 43, 0.62);
+}
+.tf-org-branch[data-path="true"] > .tf-org-children > .tf-org-branch::before {
+  border-top-color: rgba(32, 36, 43, 0.62);
+}
 .tf-org-node {
+  display: grid;
+  grid-template-columns: 28px auto minmax(0, 1fr) 34px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 62px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: transparent;
+  transition: background 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+}
+.tf-org-node:hover { background: rgba(255, 255, 255, 0.27); }
+.tf-org-node[data-selected="true"] {
+  border-color: rgba(66, 73, 77, 0.12);
+  background: rgba(255, 255, 255, 0.34);
+  box-shadow: var(--tf-inset), inset 3px 0 0 var(--tf-lime);
+}
+.tf-org-node[data-vacant="true"] { color: var(--color-ink-600); }
+.tf-org-branch[data-depth="0"] > .tf-org-node {
+  min-height: 74px;
+  margin-bottom: 12px;
+  padding: 11px 12px;
+  background: rgba(255, 255, 255, 0.22);
+  box-shadow: var(--tf-shadow-sm);
+}
+.tf-org-disclosure,
+.tf-org-position-open {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 9px;
+  color: var(--color-ink-600);
+  background: transparent;
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 150ms ease, color 150ms ease, box-shadow 150ms ease;
+}
+.tf-org-disclosure:hover,
+.tf-org-position-open:hover { background: rgba(255, 255, 255, 0.36); color: var(--color-ink-900); }
+.tf-org-disclosure:focus-visible,
+.tf-org-position-open:focus-visible,
+.tf-org-avatar-link:focus-visible,
+.tf-org-person-name:focus-visible,
+.tf-org-position-title:focus-visible {
+  outline: 2px solid var(--tf-lime);
+  outline-offset: 2px;
+}
+.tf-org-disclosure-placeholder { width: 30px; height: 30px; }
+.tf-org-avatar-link { display: inline-flex; border-radius: 999px; }
+.tf-org-vacancy-avatar {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1.5px dashed rgba(66, 73, 77, 0.5);
+  border-radius: 999px;
+  color: var(--color-ink-500);
+  font-size: 14px;
+}
+.tf-org-vacancy-avatar::after {
+  content: "";
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  width: 5px;
+  height: 5px;
+  border: 1px solid var(--tf-material);
+  border-radius: 999px;
+  background: var(--tf-lime);
+  box-sizing: content-box;
+}
+.tf-org-node[data-selected="true"] .tf-org-vacancy-avatar::after { opacity: .58; }
+.tf-org-identity { display: block; min-width: 0; }
+.tf-org-person-name,
+.tf-org-position-title { display: block; width: fit-content; max-width: 100%; text-decoration: none; }
+.tf-org-person-name {
+  overflow: hidden;
+  color: var(--color-ink-900);
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tf-org-position-title { margin-top: 2px; color: var(--color-ink-700); font-size: 12.5px; line-height: 1.3; }
+.tf-org-node-meta { display: block; margin-top: 3px; color: var(--color-ink-500); font-size: 11.5px; line-height: 1.25; }
+.tf-org-direct-report {
   display: flex;
   align-items: center;
-  gap: 11px;
-  width: 100%;
-  max-width: 560px;
-  margin: 4px 0;
-  padding: 9px 13px;
-  border: 1px solid var(--tf-hairline);
-  border-radius: var(--tf-radius-panel);
-  background: #ffffff;
+  justify-content: space-between;
+  gap: 12px;
+  border-radius: 10px;
+  padding: 9px 10px;
+  color: inherit;
   text-decoration: none;
-  transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
 }
-.tf-org-node:hover { border-color: var(--border-default); box-shadow: var(--tf-shadow); }
-.tf-org-node[data-selected="true"] { border-color: var(--text-primary); box-shadow: 0 0 0 1.5px var(--text-primary); }
-.tf-org-node[data-vacant="true"] { border-style: dashed; background: #fbfcfd; }
-
-/* Root node reads as the apex: heavier, brand accent rail. */
-.tf-org-root > .tf-org-node {
-  max-width: 600px;
-  border-color: var(--tf-hairline-strong);
-  box-shadow: var(--tf-shadow-sm);
-  border-left: 3px solid var(--brand-signal);
+.tf-org-direct-report:hover { background: rgba(255, 255, 255, 0.3); }
+.tf-org-edit-disclosure > summary {
+  cursor: pointer;
+  color: var(--color-ink-800);
+  font-size: 13px;
+  font-weight: 700;
+  list-style-position: outside;
 }
+.tf-org-edit-disclosure[open] > summary { margin-bottom: 6px; }
 
 @media (max-width: 1439px) and (min-width: 1366px) {
   main:has(> .tf-app-shell) {
@@ -512,13 +586,8 @@ main:has(> .tf-app-shell) input[type="file"]::file-selector-button {
 }
 
 @media (max-height: 768px) and (min-width: 768px) {
-  .tf-org-tree {
-    --tf-org-stub: 18px;
-  }
-
-  .tf-org-children {
-    margin-top: 42px;
-  }
+  .tf-org-node { min-height: 56px; }
+  .tf-org-children > .tf-org-branch::before { top: 28px; }
 }
 
 @media (max-width: 767px) {
@@ -599,57 +668,36 @@ main:has(> .tf-app-shell) input[type="file"]::file-selector-button {
     margin-top: 18px;
   }
 
-  .tf-org-detail-panel {
-    position: fixed;
-    inset: auto 0 0 0;
-    z-index: 52;
-    max-height: min(700px, calc(100vh - 72px));
-    overflow-y: auto;
-    border-radius: 14px 14px 0 0;
-    box-shadow: 0 -18px 44px -30px rgba(15, 17, 21, 0.45);
-  }
-
   .tf-org-tree {
     max-width: 100%;
     overflow-x: visible;
   }
 
-  .tf-org-roots,
+  .tf-org-surface { padding: 14px 12px 18px; }
+  .tf-org-branch { min-width: 0; width: 100%; }
+  .tf-org-branch + .tf-org-branch { margin-top: 7px; }
   .tf-org-children {
-    display: block;
-  }
-
-  .tf-org-root,
-  .tf-org-branch {
-    min-width: 0;
-    width: 100%;
-    flex-basis: auto;
-  }
-
-  .tf-org-root + .tf-org-root,
-  .tf-org-branch + .tf-org-branch {
-    margin-top: 12px;
-  }
-
-  .tf-org-children,
-  .tf-org-nested {
     box-sizing: border-box;
-    margin-top: 12px;
-    margin-left: 9px;
-    max-width: calc(100% - 9px);
-    border-left: 1px solid #dde2e8;
-    padding-left: 11px;
+    margin: 8px 0 0 10px;
+    max-width: calc(100% - 10px);
+    padding-left: 14px !important;
   }
+  .tf-org-children > .tf-org-branch::before { left: -14px; width: 10px; }
+  .tf-org-children > .tf-org-branch:last-child::after { left: -15.5px; }
+  .tf-org-node { box-sizing: border-box; grid-template-columns: 28px 28px minmax(0, 1fr) 32px; max-width: 100%; min-width: 0; min-height: 58px; gap: 8px; padding: 7px 6px; }
+  .tf-org-branch[data-depth="0"] > .tf-org-node { min-height: 64px; margin-bottom: 8px; padding: 8px 7px; }
+  .tf-org-avatar-link > *,
+  .tf-org-vacancy-avatar { width: 28px !important; height: 28px !important; font-size: 10px !important; }
+  .tf-org-person-name { font-size: 13.5px; }
+  .tf-org-position-title { font-size: 12px; }
+  .tf-org-node-meta { font-size: 11px; }
+}
 
-  .tf-org-node {
-    box-sizing: border-box;
-    max-width: 100%;
-    min-width: 0;
-  }
-
-  .tf-org-root > .tf-org-children::before,
-  .tf-org-branch::before {
-    display: none;
+@media (max-width: 640px) {
+  .tf-drawer-panel {
+    width: 100vw;
+    max-width: none;
+    border-radius: 0;
   }
 }
 
@@ -737,4 +785,631 @@ main:has(> .tf-app-shell) input[type="file"]::file-selector-button {
   .tf-print-record a[href]::after {
     content: "";
   }
+}
+
+/* ============================================================================
+   TEAMFRAME NEUMORPHIC UI — canonical prospect-facing interaction language.
+   One visual system and exactly four levels: canvas, raised, inset and floating.
+   Shared rules preserve every route, action and data contract.
+   ============================================================================ */
+:root {
+  --tf-canvas: #e8e8e8;
+  --tf-mist: #e8e8e8;
+  --tf-white: #ffffff;
+  --tf-graphite: #42494d;
+  --tf-charcoal: #20242b;
+  --tf-titanium: #5d6570;
+  --tf-lime: #01ff22;
+  --tf-material: #e8e8e8;
+  --tf-material-light: #eeeeef;
+  --tf-raised: 0 1px 2px rgba(15, 17, 21, 0.04), 0 8px 22px -18px rgba(15, 17, 21, 0.2);
+  --tf-raised-hover: 0 2px 4px rgba(15, 17, 21, 0.06), 0 10px 24px -18px rgba(15, 17, 21, 0.28);
+  --tf-inset: inset 0 1px 3px rgba(15, 17, 21, 0.1);
+  --tf-pressed: inset 0 2px 5px rgba(15, 17, 21, 0.14);
+  --tf-floating: 0 12px 34px -20px rgba(15, 17, 21, 0.3);
+  --tf-line: rgba(66, 73, 77, 0.2);
+  --tf-radius-panel: 15px;
+  --tf-radius-control: 9px;
+}
+
+html,
+body { background: var(--tf-canvas); color: var(--tf-charcoal); }
+
+main:has(> .tf-app-shell) { background: var(--tf-canvas); }
+
+/* Raised outer architecture. */
+.tf-surface {
+  border: 0;
+  border-radius: var(--tf-radius-panel);
+  background: var(--tf-material);
+  box-shadow: var(--tf-raised);
+}
+
+/* Inset inner architecture: queue wells, grouped detail regions and empties. */
+.tf-surface-flat {
+  border: 1px solid var(--tf-line);
+  border-radius: 12px;
+  background: var(--tf-material);
+  box-shadow: none;
+}
+
+.tf-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  width: 100%;
+  max-width: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--tf-line);
+  border-radius: 12px;
+  background: transparent;
+  box-shadow: none;
+}
+.tf-summary > * {
+  border: 0;
+  border-left: 1px solid var(--tf-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 14px 16px;
+}
+.tf-summary > *:first-child { border-left: 0; }
+.tf-summary-label { display: inline-flex; align-items: center; gap: 6px; color: var(--tf-titanium); font-size: 12px; font-weight: 600; }
+.tf-summary-label::after { content: ""; width: 4px; height: 4px; border-radius: 999px; background: var(--tf-lime); box-shadow: 0 0 0 1px rgba(32,36,43,.1); }
+.tf-summary-value { display: block; margin-top: 3px; color: var(--tf-charcoal); font-size: 23px; font-weight: 750; line-height: 1.1; }
+
+/* Explicit surface vocabulary. Elevation follows visual meaning, never incidental markup. */
+.tf-page-section { border-top: 1px solid var(--tf-line); padding: 24px 0 4px; }
+.tf-page-section:first-child { border-top: 0; padding-top: 0; }
+.tf-panel { border: 1px solid var(--tf-line); border-radius: 12px; background: var(--tf-material); }
+.tf-card { border: 0; border-radius: var(--tf-radius-panel); background: var(--tf-material); box-shadow: var(--tf-raised); }
+.tf-edit-panel { border: 1px solid var(--tf-line); border-radius: 12px; background: rgba(255,255,255,.2); padding: 18px; }
+.tf-overlay { border: 0; border-radius: var(--tf-radius-panel); background: var(--tf-material); box-shadow: var(--tf-floating); }
+.tf-section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.tf-section-heading p { margin-top: 4px; color: var(--tf-titanium); font-size: 13px; line-height: 1.45; }
+.tf-section-heading > :where(a, button) { flex: none; white-space: nowrap; }
+.tf-field-label { color: var(--tf-titanium); font-size: 12.5px; font-weight: 650; }
+.tf-config-list { overflow: hidden; border: 1px solid var(--tf-line); border-radius: 12px; }
+.tf-config-list-header { display: flex; justify-content: space-between; padding: 11px 14px; border-bottom: 1px solid var(--tf-line); color: var(--tf-titanium); font-size: 11px; font-weight: 750; letter-spacing: .09em; text-transform: uppercase; }
+.tf-config-item + .tf-config-item, .tf-config-row + .tf-config-row { border-top: 1px solid var(--tf-line); }
+.tf-config-row { display: grid; grid-template-columns: minmax(0,1fr) auto auto; align-items: center; gap: 16px; padding: 14px; }
+.tf-state-label { color: var(--tf-titanium); font-size: 12px; font-weight: 700; }
+.tf-state-label::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 7px; border-radius: 999px; background: currentColor; vertical-align: 1px; }
+.tf-state-label.is-active { color: #2f6c45; }
+.tf-state-label.is-active::before { background: var(--tf-lime); box-shadow: 0 0 0 1px rgba(32,36,43,.24); }
+.tf-system-label { display: inline-flex; border: 1px solid var(--tf-line); border-radius: 999px; padding: 2px 7px; color: var(--tf-titanium); font-size: 10px; font-weight: 750; letter-spacing: .07em; text-transform: uppercase; }
+.tf-tertiary-action { border: 0; background: transparent; padding: 7px 8px; color: var(--tf-charcoal); font-size: 12.5px; font-weight: 700; text-decoration: underline; text-decoration-color: rgba(66,73,77,.28); text-underline-offset: 3px; }
+.tf-tertiary-action:hover { text-decoration-color: currentColor; }
+.tf-context-back { display: inline-flex; align-items: center; gap: 6px; color: var(--tf-titanium); font-size: 13px; font-weight: 650; }
+.tf-context-back:hover { color: var(--tf-charcoal); }
+.tf-quiet-action { display: inline-flex; min-height: 32px; align-items: center; gap: 6px; border: 0; background: transparent; padding: 4px 2px; color: var(--tf-charcoal); font-size: 12.5px; font-weight: 700; text-decoration: none; }
+.tf-quiet-action::after { content: "→"; color: var(--tf-titanium); transition: transform 150ms ease, color 150ms ease; }
+.tf-quiet-action:hover::after { color: var(--tf-charcoal); transform: translateX(2px); }
+.tf-metric-strip { display: grid; grid-template-columns: repeat(auto-fit,minmax(120px,1fr)); border-block: 1px solid rgba(66,73,77,.14); }
+.tf-metric-strip > * { min-width: 0; padding: 18px 16px; }
+.tf-metric-strip > * + * { border-left: 1px solid rgba(66,73,77,.12); }
+.tf-metric-strip-value { display: block; color: var(--tf-charcoal); font-size: 26px; font-weight: 760; line-height: 1; }
+.tf-metric-strip-label { display: block; margin-top: 7px; color: var(--tf-titanium); font-size: 12px; line-height: 1.35; }
+.tf-product-section { border-top: 1px solid rgba(66,73,77,.14); padding: 22px 0; }
+.tf-product-section:first-child { border-top: 0; padding-top: 0; }
+.tf-filter-strip { display: grid; gap: 12px; padding: 14px 0; border-block: 1px solid rgba(66,73,77,.13); }
+.tf-people-tools { display: flex; width: min(100%, 680px); flex-direction: column; gap: 12px; }
+.tf-people-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; }
+.tf-people-action { display: inline-flex; min-height: 36px; align-items: center; justify-content: center; white-space: nowrap; }
+.tf-people-filters { display: grid; width: 100%; min-width: 0; grid-template-columns: minmax(0,1fr) minmax(160px,180px) auto; align-items: center; gap: 8px; }
+.tf-value-strip { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); overflow: hidden; border-block: 1px solid rgba(66,73,77,.14); background: rgba(66,73,77,.025); }
+.tf-value-cell { min-width: 0; padding: 14px 16px; }
+.tf-value-cell + .tf-value-cell { border-left: 1px solid rgba(66,73,77,.13); }
+.tf-value-label { color: var(--tf-titanium); font-size: 11px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; }
+.tf-value-text { margin-top: 5px; color: var(--tf-charcoal); font-size: 13.5px; font-weight: 700; }
+.tf-secondary-nav { display: flex; gap: 24px; overflow-x: auto; border-bottom: 1px solid rgba(66,73,77,.16); scrollbar-width: none; }
+.tf-secondary-nav::-webkit-scrollbar { display: none; }
+.tf-secondary-nav a, .tf-secondary-nav button { flex: none; border: 0; border-bottom: 2px solid transparent; background: transparent; padding: 11px 1px 10px; color: var(--tf-titanium); font-size: 13px; font-weight: 650; white-space: nowrap; }
+.tf-secondary-nav :where([aria-current="page"],[aria-selected="true"]) { border-bottom-color: var(--tf-charcoal); color: var(--tf-charcoal); }
+.tf-count-accent { display: inline-flex; align-items: center; gap: 5px; color: var(--tf-charcoal); font-weight: 750; }
+.tf-count-accent::before { content: ""; width: 4px; height: 4px; border-radius: 999px; background: var(--tf-lime); box-shadow: 0 0 0 1px rgba(32,36,43,.12); }
+.tf-secondary-nav.tf-reports-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 20px; overflow: visible; }
+.tf-reports-nav [aria-current="page"] { border-radius: 8px 8px 0 0; background: rgba(255,255,255,.32); padding-inline: 10px; }
+.tf-profile-completion { border-left: 2px solid var(--tf-lime); padding-left: 10px; }
+.tf-profile-section { border-top: 1px solid var(--tf-line); padding: 22px 0; }
+.tf-profile-section:first-of-type { margin-top: 18px; }
+.tf-profile-edit[open] > summary { color: var(--tf-charcoal); }
+.tf-attention-filters { flex-wrap: wrap; overflow: visible; }
+@media (max-width: 640px) {
+  .tf-secondary-nav.tf-reports-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; }
+  .tf-secondary-nav.tf-reports-nav a { white-space: normal; }
+}
+.tf-section-tabs { display: grid; gap: 4px; padding: 0; background: transparent; }
+.tf-section-tab { border-radius: 8px; }
+.tf-section-tab[aria-selected="true"] { background: rgba(255,255,255,.42); color: var(--tf-charcoal); box-shadow: inset 3px 0 0 var(--tf-lime); }
+.tf-toggle { display: inline-flex; min-height: 38px; align-items: center; gap: 9px; color: var(--tf-charcoal); font-size: 13px; cursor: pointer; }
+.tf-toggle input { position: absolute; width: 1px !important; height: 1px !important; opacity: 0; }
+.tf-toggle span { position: relative; width: 34px; height: 19px; flex: none; border: 1px solid var(--tf-line); border-radius: 999px; background: #d5d5d5; transition: background-color 150ms ease; }
+.tf-toggle span::after { content: ""; position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; border-radius: 50%; background: #fff; box-shadow: 1px 1px 3px rgba(32,36,43,.24); transition: transform 150ms ease; }
+.tf-toggle input:checked + span { background: var(--tf-charcoal); }
+.tf-toggle input:checked + span::after { transform: translateX(15px); background: var(--tf-lime); }
+.tf-toggle input:focus-visible + span { outline: 2px solid var(--tf-lime); outline-offset: 2px; }
+
+/* Physical buttons: raised, charcoal hover/focus with a restrained lime edge,
+   then pressed into the material. */
+:where(.tf-secondary-action, .tf-auth-submit) {
+  border: 0;
+  border-radius: var(--tf-radius-control);
+  background: var(--tf-material);
+  color: var(--tf-charcoal);
+  box-shadow: var(--tf-raised);
+  transition: background-color 170ms ease, color 170ms ease, box-shadow 170ms ease, transform 150ms ease;
+}
+.tf-primary-action {
+  border: 0;
+  border-radius: var(--tf-radius-control);
+  background: var(--tf-charcoal);
+  color: #fff;
+  box-shadow: var(--tf-raised);
+}
+.tf-brand-action {
+  border: 0;
+  border-radius: var(--tf-radius-control);
+  background: var(--tf-lime);
+  color: var(--tf-charcoal);
+  box-shadow: var(--tf-raised);
+}
+:where(.tf-primary-action, .tf-secondary-action, .tf-brand-action, .tf-auth-submit):hover,
+:where(.tf-primary-action, .tf-secondary-action, .tf-brand-action, .tf-auth-submit):focus-visible {
+  background: var(--tf-charcoal);
+  color: #fff;
+  box-shadow: var(--tf-raised-hover), inset 3px 0 0 var(--tf-lime);
+}
+:where(.tf-primary-action, .tf-secondary-action, .tf-brand-action, .tf-auth-submit):active {
+  background: var(--tf-material);
+  color: var(--tf-charcoal);
+  box-shadow: var(--tf-pressed);
+  transform: translateY(1px);
+}
+:where(.tf-primary-action, .tf-secondary-action, .tf-brand-action, .tf-auth-submit):disabled {
+  background: #e2e2e2;
+  color: var(--tf-titanium);
+  box-shadow: none;
+  opacity: .62;
+}
+
+/* The in-app light action is a quiet raised tool, not a white library button.
+   Org Chart remains on its accepted styling during this bounded polish pass. */
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-secondary-action {
+  min-height: 36px;
+  border: 1px solid rgba(66,73,77,.13);
+  background: rgba(235,236,236,.82);
+  color: var(--tf-charcoal);
+  box-shadow: 0 1px 2px rgba(15,17,21,.05), 0 6px 16px -14px rgba(15,17,21,.24);
+  line-height: 1.2;
+}
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-secondary-action :where(span, svg) { color: inherit; }
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-secondary-action:hover {
+  border-color: rgba(66,73,77,.24);
+  background: rgba(229,231,231,.94);
+  color: var(--tf-charcoal);
+  box-shadow: 0 2px 4px rgba(15,17,21,.06), 0 8px 18px -16px rgba(15,17,21,.3), inset 3px 0 0 var(--tf-lime);
+}
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-secondary-action:focus-visible {
+  background: rgba(229,231,231,.94);
+  color: var(--tf-charcoal);
+  box-shadow: 0 2px 4px rgba(15,17,21,.06), 0 8px 18px -16px rgba(15,17,21,.3), inset 3px 0 0 var(--tf-lime);
+}
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-secondary-action:active {
+  border-color: rgba(66,73,77,.2);
+  background: rgba(224,226,226,.72);
+  color: var(--tf-charcoal);
+  box-shadow: inset 0 2px 5px rgba(15,17,21,.13);
+  transform: translateY(1px);
+}
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-secondary-action:disabled {
+  border-color: rgba(66,73,77,.08);
+  background: rgba(222,224,224,.52);
+  color: var(--tf-titanium);
+  box-shadow: none;
+  opacity: .62;
+}
+
+/* Recess every real portal field into the common material. */
+:where(main:has(> .tf-app-shell)) :where(
+  input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  select,
+  textarea,
+  .tf-input,
+  .tf-select,
+  .tf-date,
+  .tf-textarea
+) {
+  border: 1px solid transparent;
+  border-left: 2px solid var(--tf-graphite);
+  border-bottom: 2px solid var(--tf-graphite);
+  border-radius: 0 0 0 8px;
+  background-color: rgba(255, 255, 255, .14);
+  box-shadow: inset 0 1px 3px rgba(15,17,21,.075);
+}
+:where(main:has(> .tf-app-shell)) :where(input, select, textarea, .tf-input, .tf-select, .tf-date, .tf-textarea):focus {
+  background-color: var(--tf-material-light);
+  box-shadow: inset 0 1px 3px rgba(15,17,21,.075);
+  outline: 2px solid var(--tf-lime);
+  outline-offset: 2px;
+}
+
+/* Refined native and custom select surfaces. The native control remains intact
+   for keyboard, mobile and assistive technology reliability. */
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) select,
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-select,
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-select-sm {
+  border: 1px solid rgba(66,73,77,.13);
+  border-left: 1px solid rgba(66,73,77,.13);
+  border-bottom: 1px solid rgba(66,73,77,.16);
+  border-radius: var(--tf-radius-control);
+  background-color: rgba(250,250,249,.42);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2342494d' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='m8 10 4 4 4-4'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-left: 13px;
+  padding-right: 40px;
+  box-shadow: inset 0 1px 3px rgba(15,17,21,.07);
+}
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) select:hover,
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-select:hover,
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-select-sm:hover {
+  border-color: rgba(66,73,77,.26);
+  background-color: rgba(255,255,255,.56);
+}
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) select:focus,
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-select:focus,
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) .tf-select-sm:focus {
+  border-color: rgba(66,73,77,.3);
+  background-color: var(--tf-material-light);
+  box-shadow: inset 0 1px 3px rgba(15,17,21,.07), 0 0 0 2px rgba(1,255,34,.32);
+  outline: 0;
+}
+main:has(> .tf-app-shell:not([data-active="/org-chart"])) select:disabled {
+  border-color: rgba(66,73,77,.08);
+  background-color: rgba(222,224,224,.48);
+  color: var(--tf-titanium);
+  box-shadow: none;
+}
+
+/* Canonical floating field: open geometry at rest, complete contour when the
+   control is focused or populated. The label always clears typed/autofill data. */
+.tf-floating-field { position: relative; display: block; padding-top: 10px; }
+.tf-floating-input {
+  width: 100%;
+  height: 54px;
+  border: 0;
+  border-left: 2px solid var(--tf-graphite);
+  border-bottom: 2px solid var(--tf-graphite);
+  border-radius: 0 0 0 9px;
+  padding: 18px 15px 8px;
+  color: var(--tf-charcoal);
+  font-size: 15px;
+  outline: 0;
+  transition: border 190ms ease, border-radius 190ms ease, box-shadow 190ms ease, background-color 190ms ease;
+}
+.tf-floating-label {
+  position: absolute;
+  left: 14px;
+  top: 31px;
+  z-index: 1;
+  transform: translateY(-50%);
+  color: var(--tf-titanium);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .16em;
+  line-height: 1;
+  text-transform: uppercase;
+  pointer-events: none;
+  transition: top 190ms ease, left 190ms ease, padding 190ms ease, color 190ms ease, background-color 190ms ease, box-shadow 190ms ease;
+}
+.tf-floating-input {
+  background: transparent;
+  box-shadow: none;
+}
+.tf-floating-input:hover { background: rgba(255,255,255,.16); box-shadow: none; }
+.tf-floating-input:focus,
+.tf-floating-input:not(:placeholder-shown),
+.tf-floating-input:-webkit-autofill {
+  background: var(--tf-material);
+  box-shadow: none;
+}
+.tf-floating-input:focus { box-shadow: 0 0 0 2px rgba(1,255,34,.16); }
+.tf-floating-input:focus + .tf-floating-label,
+.tf-floating-input:not(:placeholder-shown) + .tf-floating-label,
+.tf-floating-input:-webkit-autofill + .tf-floating-label {
+  top: 9px;
+  left: 12px;
+  padding: 5px 8px;
+  border-radius: 7px;
+  background: var(--tf-material);
+  box-shadow: 0 2px 8px -6px rgba(15,17,21,.28);
+  color: var(--tf-charcoal);
+}
+.tf-floating-field-error .tf-floating-input,
+.tf-floating-input[aria-invalid="true"] { border-color: var(--color-signal-red); }
+.tf-floating-input:disabled { opacity: .52; cursor: not-allowed; box-shadow: none; }
+.tf-floating-input:read-only { color: var(--tf-titanium); }
+.tf-floating-input:-webkit-autofill {
+  -webkit-text-fill-color: var(--tf-charcoal);
+  -webkit-box-shadow: inset 0 0 0 1000px var(--tf-material);
+}
+
+/* The shell is sculpted graphite rather than a flat dark slab. */
+.tf-app-shell {
+  background: var(--tf-graphite);
+  box-shadow: 7px 0 20px rgba(32,36,43,.22), inset -4px 0 10px rgba(20,22,26,.18), inset 1px 0 rgba(255,255,255,.12);
+}
+.tf-app-shell > div:first-of-type { box-shadow: inset 4px 4px 10px rgba(20,22,26,.24), inset -4px -4px 10px rgba(255,255,255,.06); }
+.tf-app-shell nav a { border-radius: 8px !important; }
+.tf-app-shell nav a:hover { box-shadow: inset 3px 3px 7px rgba(20,22,26,.25), inset -3px -3px 7px rgba(255,255,255,.05); }
+.tf-app-shell nav a[aria-current="page"] {
+  background: rgba(255,255,255,.08);
+  box-shadow: inset 5px 5px 12px rgba(20,22,26,.32), inset -5px -5px 12px rgba(255,255,255,.06);
+}
+.tf-mobile-bar { background: var(--tf-graphite); box-shadow: 0 8px 18px rgba(32,36,43,.24), inset 0 -3px 8px rgba(20,22,26,.18); }
+.tf-mobile-bar nav {
+  border: 0;
+  background: var(--tf-material) !important;
+  box-shadow: var(--tf-floating) !important;
+}
+
+/* Legacy utility markup remains flat by default. Elevation is opt-in through
+   the explicit surface classes above. */
+.tf-divide > * + * { border-top-color: rgba(66,73,77,.12); }
+
+/* Dense lists/tables: one raised frame, recessed header, flat compact rows. */
+main:has(> .tf-app-shell) :where(table) {
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--tf-material);
+  border: 1px solid var(--tf-line);
+  box-shadow: none;
+}
+main:has(> .tf-app-shell) :where(thead) { background: rgba(255,255,255,.18); box-shadow: none; }
+main:has(> .tf-app-shell) :where(tbody tr) { background: transparent; box-shadow: none; }
+main:has(> .tf-app-shell) :where(tbody tr:hover) { background: rgba(255,255,255,.28); }
+main:has(> .tf-app-shell) :where(tbody td) { border-bottom-color: rgba(66,73,77,.1); }
+
+/* Organisation rows stay calm and flat; selection is the only tactile emphasis. */
+.tf-org-node { border-color: transparent; background: transparent; box-shadow: none; }
+.tf-org-node[data-selected="true"] { box-shadow: var(--tf-inset), inset 3px 0 0 var(--tf-lime); }
+.tf-drawer-panel,
+.tf-org-detail-panel,
+.tf-pop {
+  border: 0 !important;
+  background: var(--tf-material) !important;
+  box-shadow: var(--tf-floating) !important;
+}
+.tf-drawer-backdrop { background: rgba(32,36,43,.3); backdrop-filter: blur(2px); }
+
+/* Empty, success and error states stay tactile without using lime as a fill. */
+.tf-status-pill { gap: 6px; border: 0 !important; background: var(--tf-material) !important; box-shadow: var(--tf-inset); }
+.tf-status-dot { width: 5px; height: 5px; flex: none; border-radius: 999px; background: currentColor; }
+.tf-status-pill.text-signal-green .tf-status-dot,
+.tf-dot-green { background: var(--tf-lime); }
+main:has(> .tf-app-shell) :where([role="alert"]) { border-radius: 10px; background: var(--tf-material); box-shadow: var(--tf-inset); }
+.tf-empty-state,
+main:has(> .tf-app-shell) :where([class*="border-dashed"]) {
+  border-color: transparent !important;
+  background: var(--tf-material) !important;
+  box-shadow: var(--tf-inset) !important;
+}
+.tf-empty-state { max-width: 720px; margin-inline: auto; }
+main:has(> .tf-app-shell) :where(input[type="file"] + *, label:has(input[type="file"])) {
+  border-color: transparent !important;
+  background: var(--tf-material) !important;
+  box-shadow: var(--tf-inset) !important;
+}
+
+/* Route-level loading and error boundaries render before AppShell. Keep those
+   legitimate product states inside the same material system without changing
+   their copy, actions or skeleton structure. */
+main:has(.animate-pulse) :where(section, article, div)[class*="bg-white"][class*="border"],
+main > section[class*="bg-white"][class*="border"] {
+  border-color: transparent;
+  background: var(--tf-material);
+  box-shadow: var(--tf-raised);
+}
+
+/* Legacy lime-filled utility actions inherit the tactile material treatment. */
+:where(button, a).bg-brand-signal { background: var(--tf-material); box-shadow: var(--tf-raised); }
+:where(button, a).bg-brand-signal:hover { background: var(--tf-charcoal); color: #fff; box-shadow: var(--tf-raised-hover), inset 3px 0 0 var(--tf-lime); }
+
+/* Auth is a single floating monochrome object. The former charcoal cap is now
+   the top material segment of the same card, with the real brand lockup. */
+.tf-auth-page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 500px);
+  grid-auto-rows: max-content;
+  align-content: center;
+  justify-content: center;
+  padding: 28px;
+  background: var(--tf-canvas);
+}
+.tf-auth-panel {
+  width: min(100%, 500px);
+  overflow: hidden;
+  border-radius: 15px;
+  background: var(--tf-material);
+  box-shadow: var(--tf-floating);
+}
+.tf-auth-brand-panel {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  width: 100%;
+  min-height: 84px;
+  margin: 0;
+  padding: 28px 42px 18px;
+  border-radius: 15px 15px 0 0;
+  background: var(--tf-material);
+  color: var(--tf-charcoal);
+  box-shadow: none;
+}
+.tf-auth-brand-panel > :first-child { margin-inline: auto; }
+.tf-auth-brand-panel > div,
+.tf-auth-brand-panel > .mt-10 { display: none; }
+.tf-auth-card {
+  box-sizing: border-box;
+  position: relative;
+  width: 100%;
+  margin-top: -1px;
+  padding: 20px 42px 38px;
+  border-radius: 0 0 15px 15px;
+  background: var(--tf-material);
+  box-shadow: none;
+}
+.tf-auth-title { font-size: 25px; letter-spacing: .17em; }
+.tf-auth-card > div:first-child { text-align: center; }
+.tf-auth-card:has(form) > div:first-child > p { display: none; }
+.tf-auth-submit {
+  display: inline-flex;
+  position: relative;
+  align-items: center;
+  justify-content: center;
+  min-width: 150px;
+  min-height: 50px;
+  width: auto !important;
+  margin-inline: auto;
+  border: 3px solid var(--tf-charcoal);
+  background: transparent;
+  box-shadow: none;
+}
+.tf-auth-submit > span:last-child {
+  display: block;
+  width: 100%;
+  text-align: center;
+}
+.tf-auth-submit > .tf-inline-loader {
+  position: absolute;
+  left: 16px;
+}
+.tf-auth-submit:hover,
+.tf-auth-submit:focus-visible { border-color: var(--tf-charcoal); }
+
+/* Public entry is the same product material, not an editorial microsite. */
+.tf-public-page { max-width: 1120px; }
+.tf-public-header {
+  padding: 16px 20px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--tf-material);
+  box-shadow: var(--tf-raised);
+}
+.tf-public-header > a { padding: 9px 16px; border-radius: 8px; box-shadow: var(--tf-raised); font-weight: 700; }
+.tf-public-header > a:hover { background: var(--tf-charcoal); color: #fff; box-shadow: var(--tf-raised-hover), inset 3px 0 var(--tf-lime); }
+.tf-public-hero {
+  max-width: none;
+  padding: 38px 40px;
+  border-radius: var(--tf-radius-panel);
+  background: var(--tf-material);
+  box-shadow: var(--tf-raised);
+}
+.tf-public-preview {
+  border-radius: var(--tf-radius-panel);
+  background: var(--tf-material);
+  box-shadow: var(--tf-floating);
+}
+.tf-public-preview img { box-shadow: var(--tf-inset); }
+.tf-public-feature {
+  border: 0;
+  border-radius: 12px;
+  background: var(--tf-material);
+  box-shadow: var(--tf-raised);
+  transition: box-shadow 170ms ease, transform 170ms ease;
+}
+.tf-public-feature:hover { box-shadow: var(--tf-raised-hover); transform: translateY(-2px); }
+.tf-public-page > section[class*="border-t"],
+.tf-public-page > footer { border-color: rgba(66,73,77,.14); }
+
+/* Loader and structured skeletons use the same physical system. */
+.tf-rolling-loader { display: inline-flex; align-items: center; justify-content: center; }
+.tf-loader-track {
+  position: relative;
+  display: block;
+  width: 180px;
+  height: 38px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--tf-material);
+  box-shadow: var(--tf-inset);
+}
+.tf-loader-ball {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  width: 28px;
+  height: 28px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--tf-lime);
+  box-shadow: 0 4px 10px -6px rgba(15,17,21,.34);
+  animation: tf-loader-travel 4s ease-in-out infinite alternate;
+}
+.tf-loader-stripes { position: absolute; inset: 0 auto 0 -16px; display: flex; width: 60px; animation: tf-loader-stripes 650ms linear infinite; }
+.tf-loader-stripes span { width: 6px; height: 100%; flex: none; background: rgba(32,36,43,.18); transform: skewX(-14deg); }
+.tf-loader-stripes span:nth-child(even) { background: rgba(255,255,255,.2); }
+.tf-rolling-loader-compact .tf-loader-track { width: 92px; height: 26px; }
+.tf-rolling-loader-compact .tf-loader-ball { width: 18px; height: 18px; top: 4px; left: 4px; }
+@keyframes tf-loader-travel { to { transform: translateX(142px) rotate(420deg); } }
+@keyframes tf-loader-stripes { to { transform: translateX(12px); } }
+.tf-inline-loader { width: 11px; height: 11px; border-radius: 50%; border: 2px solid currentColor; border-right-color: var(--tf-lime); animation: tf-inline-spin 700ms linear infinite; }
+@keyframes tf-inline-spin { to { transform: rotate(360deg); } }
+.tf-workspace-loading { min-height: 100vh; display: grid; place-items: center; background: var(--tf-canvas); color: var(--tf-titanium); text-align: center; }
+.tf-workspace-loading p { margin-top: 18px; font-size: 11px; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; }
+.animate-pulse { animation: tf-soft-pulse 1.8s ease-in-out infinite !important; }
+.animate-pulse :where([class*="bg-ink"], [class*="bg-white"]) { background: #dedede !important; box-shadow: var(--tf-inset); }
+@keyframes tf-soft-pulse { 0%,100% { opacity: .52; } 50% { opacity: .9; } }
+
+@media (max-width: 767px) {
+  :root {
+    --tf-raised: 0 1px 2px rgba(15,17,21,.04), 0 8px 20px -18px rgba(15,17,21,.2);
+    --tf-floating: 0 12px 30px -20px rgba(15,17,21,.3);
+  }
+  .tf-auth-page { grid-template-columns: minmax(0, 1fr); }
+  .tf-summary { width: 100%; grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .tf-summary > * { padding: 12px; }
+  .tf-summary > * { border-left: 0; }
+  .tf-summary > *:nth-child(even) { border-left: 1px solid var(--tf-line); }
+  .tf-summary > *:nth-child(n+3) { border-top: 1px solid var(--tf-line); }
+  .tf-metric-strip { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .tf-metric-strip > * { padding: 16px 12px; }
+  .tf-metric-strip > * + * { border-left: 0; }
+  .tf-metric-strip > *:nth-child(even) { border-left: 1px solid rgba(66,73,77,.12); }
+  .tf-metric-strip > *:nth-child(n+3) { border-top: 1px solid rgba(66,73,77,.12); }
+  .tf-config-row { grid-template-columns: minmax(0,1fr) auto; gap: 10px; }
+  .tf-config-row form, .tf-config-row > .tf-tertiary-action { grid-column: 2; }
+  .tf-section-heading { align-items: center; }
+  .tf-edit-panel { padding: 15px; }
+  .tf-people-header { align-items: flex-start; }
+  .tf-people-tools { width: 100%; }
+  .tf-people-actions { justify-content: flex-start; gap: 8px; }
+  .tf-people-filters { grid-template-columns: minmax(0,1fr) auto; }
+  .tf-people-search { grid-column: 1 / -1; }
+  .tf-people-filter { min-width: 0; }
+  .tf-value-strip { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .tf-value-cell + .tf-value-cell { border-left: 0; }
+  .tf-value-cell:nth-child(even) { border-left: 1px solid rgba(66,73,77,.13); }
+  .tf-value-cell:nth-child(n+3) { border-top: 1px solid rgba(66,73,77,.13); }
+  .tf-mobile-bar nav { position: fixed; inset: 56px 0 0; overflow-y: auto; border-radius: 0 !important; }
+  .tf-auth-brand-panel { padding: 24px 24px 15px; }
+  .tf-auth-card { padding: 18px 24px 30px; }
+  .tf-public-page { padding-left: 18px; padding-right: 18px; }
+  .tf-public-header { padding: 14px; }
+  .tf-public-hero { margin-top: 28px; padding: 28px 24px; }
+  .tf-public-preview { margin-top: 32px; }
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  .tf-loader-ball,
+  .tf-loader-stripes,
+  .tf-inline-loader,
+  .animate-pulse { animation: none !important; }
 }

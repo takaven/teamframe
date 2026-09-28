@@ -23,6 +23,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import dotenv from "dotenv";
+import { EXPECTED_PUBLIC_TABLES } from "./schema-order.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, "..");
@@ -44,23 +45,8 @@ if (process.env.SUPABASE_URL_STAGING === process.env.NEXT_PUBLIC_SUPABASE_URL) {
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
-// All tables that must have RLS enabled in both environments.
-const TENANT_TABLES = [
-  "companies",
-  "employees",
-  "employee_profiles",
-  "compensation",
-  "documents",
-  "leaves",
-  "audit_logs",
-  "risk_signals",
-  "action_items",
-  "analytics_events",
-  "onboarding_tasks",
-  "policies",
-  "procedures",
-  "acknowledgements",
-];
+// One canonical table inventory must be present with RLS in both environments.
+const TENANT_TABLES = EXPECTED_PUBLIC_TABLES;
 
 const existingConnStr = process.env.SUPABASE_DB_URL?.replace(/^"|"$/g, "");
 const stagingConnStr = process.env.SUPABASE_DB_URL_STAGING?.replace(/^"|"$/g, "");

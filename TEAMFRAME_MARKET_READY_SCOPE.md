@@ -1,4 +1,5 @@
 # TEAMFRAME — MARKET-READY CANONICAL SCOPE
+> **Historical product-scope record.** The current commercial strategy is [TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE.md](TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE.md), and 45-day execution is governed by [the locked plan](docs/launch/TEAMFRAME_45_DAY_EXECUTION_PLAN.md). This file remains technical/product provenance where not superseded.
 ## Governing Product Definition for Market-Ready Implementation
 
 **STATUS: CANONICAL / CONTROLLING**

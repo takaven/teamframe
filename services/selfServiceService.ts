@@ -43,6 +43,17 @@ const OwnProfileSchema = z.object({
   emergency_contact_email: z.preprocess(emptyToNull, z.string().trim().toLowerCase().email().max(254).nullable()),
 });
 
+export async function updateEmployeePersonalProfile(actor: Actor, employeeId: string, input: unknown): Promise<void> {
+  if (!actor.tenantId) throw new Error("NO_TENANT_CONTEXT");
+  if (actor.role !== "admin") throw new Error("FORBIDDEN");
+  const parsed = OwnProfileSchema.parse(input);
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase.from("employees").update(parsed as never)
+    .eq("tenant_id", actor.tenantId).eq("id", employeeId).is("deleted_at", null);
+  if (error) throw new Error(`EMPLOYEE_PERSONAL_UPDATE_FAILED: ${error.message}`);
+  await audit(actor, actor.tenantId, "employee.personal_profile_updated", employeeId);
+}
+
 export async function updateOwnProfile(actor: Actor, input: unknown): Promise<void> {
   const { tenantId, employeeId } = ownEmployeeId(actor);
   const parsed = OwnProfileSchema.parse(input);

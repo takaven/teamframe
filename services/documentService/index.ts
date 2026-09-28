@@ -69,6 +69,16 @@ export type DocumentRequirementRecord = {
   updated_at: string;
 };
 
+export type WorkspaceDocumentRequirement = DocumentRequirementRecord & {
+  employee_name: string;
+  employee_role_title: string;
+};
+
+export type WorkspaceDocument = DocumentRecord & {
+  employee_name: string;
+  employee_role_title: string;
+};
+
 type EmployeeExportRow = {
   id: string;
   full_name: string;
@@ -1047,17 +1057,68 @@ export async function listDocumentRequirementsForEmployee(
   // Enrich with the current document's expiry so the checklist can derive "Expiring soon".
   const currentDocIds = records.map((r) => r.current_document_id).filter((id): id is string => Boolean(id));
   if (currentDocIds.length > 0) {
-    const { data: docs } = await supabase
+    const { data: docs, error: expiryError } = await supabase
       .from("documents")
-      .select("id, expires_at")
+      .select("id, expires_at, deleted_at")
       .eq("tenant_id", tenantId)
       .in("id", currentDocIds);
-    const expiryById = new Map<string, string | null>((docs ?? []).map((d: { id: string; expires_at: string | null }) => [d.id, d.expires_at ?? null]));
+    if (expiryError) throw new Error(`DOCUMENT_REQUIREMENT_LIST_FAILED: ${expiryError.message}`);
+    const currentById = new Map<string, { expires_at: string | null; deleted_at: string | null }>((docs ?? []).map((d: { id: string; expires_at: string | null; deleted_at: string | null }) => [d.id, d]));
     for (const r of records) {
-      if (r.current_document_id) r.current_expires_at = expiryById.get(r.current_document_id) ?? null;
+      if (r.current_document_id) {
+        const current = currentById.get(r.current_document_id);
+        if (!current || current.deleted_at) r.current_document_id = null;
+        else r.current_expires_at = current.expires_at;
+      }
     }
   }
   return records;
+}
+
+/** Admin organisation-wide document workspace; tenant-scoped and capability-gated. */
+export async function listWorkspaceDocuments(actor: Actor): Promise<{
+  requirements: WorkspaceDocumentRequirement[];
+  documents: WorkspaceDocument[];
+}> {
+  const tenantId = requireTenant(actor);
+  await requireCapability(actor, "private_employee_documents");
+  const supabase: any = createServiceRoleClient();
+  const [{ data: requirementData, error: requirementError }, { data: documentData, error: documentError }] = await Promise.all([
+    supabase.from("document_requirements").select("*").eq("tenant_id", tenantId).order("created_at", { ascending: false }),
+    supabase
+      .from("documents")
+      .select("id, tenant_id, employee_id, type, document_type, file_url, signed_at, issued_at, reference_number, expires_at, replaced_at, replaced_by_document_id, subject_person_id, created_at, deleted_at")
+      .eq("tenant_id", tenantId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false }),
+  ]);
+  if (requirementError) throw new Error(`DOCUMENT_REQUIREMENT_LIST_FAILED: ${requirementError.message}`);
+  if (documentError) throw new Error(`DOCUMENT_LIST_FAILED: ${documentError.message}`);
+
+  const rawRequirements = (requirementData ?? []) as DocumentRequirementRow[];
+  const rawDocuments = (documentData ?? []) as DocumentRow[];
+  const employeeIds = [...new Set([...rawRequirements.map((row) => row.employee_id), ...rawDocuments.map((row) => row.employee_id)])];
+  const employeeById = new Map<string, { full_name: string; role_title: string }>();
+  if (employeeIds.length > 0) {
+    const { data: employeeData, error: employeeError } = await supabase
+      .from("employees")
+      .select("id, full_name, role_title")
+      .eq("tenant_id", tenantId)
+      .in("id", employeeIds);
+    if (employeeError) throw new Error(`DOCUMENT_EMPLOYEE_LIST_FAILED: ${employeeError.message}`);
+    for (const employee of employeeData ?? []) employeeById.set(employee.id, employee);
+  }
+  const requirements = rawRequirements.map((row) => ({
+    ...toRequirementRecord(row),
+    employee_name: employeeById.get(row.employee_id)?.full_name ?? "Unknown person",
+    employee_role_title: employeeById.get(row.employee_id)?.role_title ?? "",
+  }));
+  const documents = rawDocuments.map((row) => ({
+    ...toPublicRecord(row),
+    employee_name: employeeById.get(row.employee_id)?.full_name ?? "Unknown person",
+    employee_role_title: employeeById.get(row.employee_id)?.role_title ?? "",
+  }));
+  return { requirements, documents };
 }
 
 export async function uploadDocumentForRequirement(

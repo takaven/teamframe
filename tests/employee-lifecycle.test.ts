@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import {
   canonicalLifecycleLabel,
   isCurrentEmployee,
@@ -36,6 +37,15 @@ describe("canonical employee lifecycle projection", () => {
     expect(projectEmployeeLifecycle(employee({ lifecycle_state: "preboarding", setup_status: "ready" }), NOW)).toBe(
       "ONBOARDING",
     );
+  });
+
+  it("carries setup status from the master read into the record-header lifecycle projection", () => {
+    const master = readFileSync("services/employeeMasterService.ts", "utf8");
+    const header = readFileSync("components/EmployeeMasterSections.tsx", "utf8");
+    expect(master).toContain("status, setup_status, lifecycle_state");
+    expect(master).toContain("setup_status: emp.setup_status");
+    expect(header).toContain("setup_status: employment.setup_status");
+    expect(projectEmployeeLifecycle(employee({ setup_status: "incomplete" }), NOW)).toBe("ONBOARDING");
   });
 
   it("keeps active and on-leave employees in the ACTIVE lifecycle", () => {

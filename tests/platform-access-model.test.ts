@@ -144,12 +144,10 @@ describe("Independent customer access and setup architecture", () => {
     const service = read("services/companyHolidayService.ts");
     const schema = read("schemas/access_model.sql");
 
-    // Holiday maintenance is re-homed under Setup / Administration; the surface itself
-    // (the /company holiday page) is unchanged and reached from Setup.
-    expect(setupPage).toContain('href="/company"');
-    expect(page).toContain("Holiday calendar");
-    expect(page).toContain("TeamFrame does not infer statutory");
-    expect(page).toContain("View year");
+    // Holiday maintenance now lives directly in Settings; /company remains a compatibility redirect.
+    expect(setupPage).toContain("saveHolidayAction");
+    expect(setupPage).toContain("Manual company holidays");
+    expect(page).toContain('redirect("/setup?section=timeoff")');
     expect(actions).toContain("saveHolidayAction");
     expect(actions).toContain("deleteHolidayAction");
     expect(service).toContain("listCompanyHolidays");
