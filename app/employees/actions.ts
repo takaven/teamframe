@@ -119,9 +119,11 @@ const CreateDocumentRequirementInputSchema = z.object({
   employee_id: z.string().uuid(),
   document_type: z.string().trim().min(1).max(80),
   due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  expiry_required: z.enum(["on"]).optional(),
-  review_required: z.enum(["on"]).optional(),
-  employee_upload_allowed: z.enum(["on"]).optional(),
+  // Unchecked HTML checkboxes are absent from FormData, so FormData.get()
+  // returns null rather than undefined. Accept both as the same false state.
+  expiry_required: z.enum(["on"]).nullish(),
+  review_required: z.enum(["on"]).nullish(),
+  employee_upload_allowed: z.enum(["on"]).nullish(),
   return_to: z.string().trim().optional(),
 });
 

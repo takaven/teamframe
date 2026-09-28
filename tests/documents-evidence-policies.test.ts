@@ -224,4 +224,12 @@ describe("MR-5 documents, evidence and policies", () => {
     // Factual validation only (no legal/duration rules).
     expect(documentService).toContain("DOCUMENT_EXPIRY_BEFORE_ISSUE");
   });
+
+  it("accepts absent optional document-request checkboxes from native FormData", () => {
+    const actions = read("app/employees/actions.ts");
+
+    expect(actions).toContain('expiry_required: z.enum(["on"]).nullish()');
+    expect(actions).toContain('review_required: z.enum(["on"]).nullish()');
+    expect(actions).toContain('employee_upload_allowed: z.enum(["on"]).nullish()');
+  });
 });
