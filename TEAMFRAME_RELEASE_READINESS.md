@@ -12,7 +12,7 @@ Current visual verdict:
 
 > **VISUAL GO - READY FOR PRODUCTION**
 
-Current authoritative application source:
+Historical application source at this record's close:
 
 `73c3e2df701b8484632d3335ca4861c4f2ccb8a7`
 
@@ -234,7 +234,7 @@ These are intentional release boundaries, not defects:
 
 Historical deployment details above are retained for provenance. Current Takaven commercial delivery treats TeamFrame as source-ready and customer-deployment controlled: a real customer deployment requires an explicitly selected customer Vercel/Supabase target, current environment configuration, backup responsibility, post-deployment smoke verification and founder/customer-delivery approval.
 
-The current GitHub source is merged and source-locked on `takaven/teamframe` main at `73c3e2df701b8484632d3335ca4861c4f2ccb8a7`. Older notes about a paused production branch merge or account billing lock are superseded by this source-locked state.
+This sentence was a historical release statement and is not current branch authority. The live repository inventory and branch relationship are maintained in `docs/operations/ENVIRONMENTS.md`; Production release remains gated by `docs/operations/DEPLOYMENT.md`.
 
 ## Final Product Verdict
 

@@ -147,7 +147,7 @@ The historical `verify:install` replay/seed helper is retired. The integration a
 
 ## Deployment
 
-Use [TEAMFRAME_PRODUCTION_RUNBOOK.md](TEAMFRAME_PRODUCTION_RUNBOOK.md). It records the required production services, environment variables, Supabase setup, Vercel deployment, automation scheduling, health checks, backup/recovery, secret rotation and post-deployment smoke test.
+Use [docs/operations/DEPLOYMENT.md](docs/operations/DEPLOYMENT.md) with [docs/operations/ENVIRONMENTS.md](docs/operations/ENVIRONMENTS.md). `TEAMFRAME_PRODUCTION_RUNBOOK.md` retains detailed technical and historical release provenance, but the operations registry controls current target identity.
 
 The local `.vercel` link must not be treated as production unless it is explicitly confirmed to point at the intended production project.
 

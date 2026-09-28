@@ -10,20 +10,21 @@ Do not include secret values in this file.
 
 ## 1. Production Status
 
-Frozen product/UI source: `takaven/teamframe`, branch
-`launch/managed-people-ops-45-day`, SHA
-`e9790370ba1a4526cfd29553c33dc288a46e27bc` at the 2026-09-26 checkpoint.
+Current environment identity is governed by
+`docs/operations/ENVIRONMENTS.md`; current deployment procedure is governed by
+`docs/operations/DEPLOYMENT.md`. At the 2026-09-28 inventory, the authoritative
+remote launch branch was `launch/managed-people-ops-45-day` at
+`1002e51b9f77e74dad1b1fd51e4845662941f3aa`, 121 commits ahead of `main`.
 
 First-customer backend verdict at that checkpoint:
 
 > **NOT YET READY**
 
-The production Vercel project exists but serves historical SHA `37bf104...`
-from a different repository/branch and has no current Git connection. Its Cron
-is `0 6 * * *`, email-provider and Sentry variables are absent, and the recorded
-Supabase ref `zylllrvcmockvfcfubkp` is not visible in the signed-in TAKAVEN
-organization. Do not promote, reconnect, rotate, or replace these resources
-without the production approval gate.
+The production Vercel project exists but remains a disconnected historical
+shell with historical variables/deployments. The recorded Supabase ref
+`zylllrvcmockvfcfubkp` is not visible in the signed-in TAKAVEN organization and
+is abandoned for launch. Do not promote, reconnect, rotate, or replace these
+resources without the Production approval gate.
 
 Production deployment must use an explicitly identified production Vercel project and production Supabase project. Founder-review, staging, CI and disposable projects must not be treated as production.
 
@@ -42,6 +43,9 @@ Production deployment must use an explicitly identified production Vercel projec
 | Source control | GitHub repository and release tag |
 
 ## 3. Production Targets
+
+See `docs/operations/ENVIRONMENTS.md` for the canonical current registry and
+`docs/operations/ACCOUNT-OWNERSHIP.md` for provider login/ownership.
 
 Before deployment, record:
 

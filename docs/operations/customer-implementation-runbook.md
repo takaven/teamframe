@@ -2,9 +2,12 @@
 
 This is the maintained internal path for a standard TeamFrame customer implementation. It replaces one-off code harnesses. It does not install the database, create Production infrastructure, or bypass TeamFrame permissions.
 
+Environment selection and deployment authority are governed by [ENVIRONMENTS.md](ENVIRONMENTS.md), [ACCOUNT-OWNERSHIP.md](ACCOUNT-OWNERSHIP.md), and [DEPLOYMENT.md](DEPLOYMENT.md). A project appearing in a historical allowlist is not enough to authorise a run.
+
 ## Required starting state
 
 - Use a reviewed, allowlisted project recorded in `docs/launch/environment-parity.md`.
+- Confirm its current status in `docs/operations/ENVIRONMENTS.md`; historical evidence does not make a paused, quarantined, or retired target write-eligible.
 - Complete the canonical fresh database and private Storage installation first.
 - Bootstrap exactly one Full Access implementation operator and one empty company workspace.
 - Confirm the project contains no employee, configuration, file, or invitation data beyond that bootstrap identity.
@@ -51,6 +54,8 @@ Required process values:
 - `SUPABASE_SERVICE_ROLE_KEY=<matching process-only key>`
 
 The command must end with `IMPLEMENTATION READY`. It refuses non-allowlisted or mismatched targets, non-canonical schemas, dirty workspaces, missing private Storage, invalid countries/timezones/dates/employment types, duplicates, unknown departments/locations/managers, and reporting cycles.
+
+Do not replace this command with a temporary HTTP helper, browser-only harness, direct SQL sequence, or one-off script. If the maintained path cannot complete, stop and fix or classify the maintained path itself.
 
 ## 3. Execute once
 

@@ -2,6 +2,8 @@
 
 All items must be checked before public launch. Each item links to the relevant runbook or verification artifact where one exists.
 
+Current environment identity and deployment authority are governed by `docs/operations/ENVIRONMENTS.md` and `docs/operations/DEPLOYMENT.md`.
+
 Current checkpoint (2026-09-26): **NOT YET READY**. The live Production project
 is historical and disconnected from the canonical repository; the recorded
 Supabase target is not visible in the signed-in TAKAVEN organization; email,
@@ -46,6 +48,8 @@ Primary M20 evidence artifact: `docs/launch/verification/m20-backup-pitr-recover
 
 ## Security Hardening
 
+- [ ] MFA enabled for the sole Supabase organisation owner and recovery access stored safely
+- [ ] GitHub `main` branch protection enabled with required strict gate checks
 - [ ] All M1–M8 (Critical) items in audit-findings-consolidated.md marked Complete
 - [ ] All M9–M16 (High) items marked Complete or explicitly deferred to accepted-risks.md
 - [ ] `verification/rls-verification-checklist.md` fully completed and all rows Pass
