@@ -23,8 +23,8 @@ Last verified: 2026-09-28 after the founder-approved cleanup. Two historical Ver
 | Default branch | `main` |
 | Default-branch head at inventory | `45e63bfd85c05d65b4fd935dd4ba61081b6799af` |
 | Launch branch | `launch/managed-people-ops-45-day` |
-| Remote launch head before this cleanup commit | `fe224e64b861c3f230fd1a09f0bf040f47f4c616` |
-| Launch divergence before this cleanup commit | 123 commits ahead of `main`, 0 behind |
+| Current verified launch head | `878cf8d91c490c7bc4ca46e78d63d49c2afb1cab` |
+| Current launch divergence | 125 commits ahead of `main`, 0 behind |
 | Integration path | Draft PR #6 into `main`; do not deploy Production directly from an unmerged working branch |
 | Branch protection | The two surviving branches are `main` and the launch branch; `main` was unprotected at inventory time and the repository policy file was not enforced |
 
@@ -33,7 +33,7 @@ The documentation worktree may contain local documentation commits ahead of the 
 ## Founder Review rules
 
 - The branch Preview URL above is the review destination.
-- Latest verified Preview deployment before the cleanup commit: SHA `fe224e64b861c3f230fd1a09f0bf040f47f4c616`, deployment `Co45XL69xo2r5rYRT1D4mEma948r`, Ready.
+- Latest verified Preview deployment: SHA `878cf8d91c490c7bc4ca46e78d63d49c2afb1cab`, deployment `12nHBDaGQ7pgn7KHLFjeMhT3Sw8p`, Ready.
 - `teamframe-founder-review.vercel.app` currently resolves to an older Production deployment inside the same Vercel project and is **not** the approved review URL.
 - That older project Production deployment is from branch `codex/direction-b-full-system-implementation` at SHA `489c9606441618e898f21eafb0443a9ca33474ad`; it is historical, not the accepted review source.
 - Founder Review Vercel variables are Preview-scoped and point to the synthetic review database.
