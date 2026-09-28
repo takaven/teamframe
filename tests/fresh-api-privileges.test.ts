@@ -7,6 +7,7 @@ const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
 describe("fresh API privilege contract", () => {
   it("grants only the 44 named TeamFrame tables to the server-only service role", () => {
     const sql = read("schemas/api_privileges.sql");
+    const executableSql = sql.replace(/^--.*$/gm, "");
     const names = [...sql.matchAll(/public\.([a-z_]+)/g)].map((match) => match[1]);
     expect(names).toHaveLength(44);
     expect(new Set(names).size).toBe(44);
@@ -16,8 +17,10 @@ describe("fresh API privilege contract", () => {
     expect(names).toContain("custom_field_definitions");
     expect(names).toContain("custom_field_values");
     expect(sql).toMatch(/grant select, insert, update, delete on table[\s\S]+to service_role;/);
-    expect(sql).not.toMatch(/to\s+(anon|authenticated)\b/i);
-    expect(sql).not.toMatch(/alter default privileges|disable row level security|bypassrls/i);
+    expect(executableSql).not.toMatch(/grant\b[^;]*\bto\s+anon\b/i);
+    expect(sql).toMatch(/revoke\s+all\s+privileges\s+on\s+all\s+tables\s+in\s+schema\s+public\s+from\s+anon/i);
+    expect(sql).toMatch(/alter\s+default\s+privileges\s+in\s+schema\s+public\s+revoke\s+all\s+privileges\s+on\s+tables\s+from\s+anon/i);
+    expect(sql).not.toMatch(/disable row level security|bypassrls/i);
   });
 
   it("applies grants after all table creators and verifies service access", () => {

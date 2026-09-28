@@ -53,6 +53,10 @@ describe("repository execution safety", () => {
     expect(parityGate).toContain("EXPECTED_PUBLIC_TABLES");
     expect(installer).not.toMatch(/installed\.tables\s*!==\s*\d+/);
     expect(rehearsalBootstrap).not.toMatch(/tables\.length\s*!==\s*\d+/);
+
+    const apiPrivileges = readFileSync(join(root, "schemas", "api_privileges.sql"), "utf8");
+    expect(apiPrivileges).toMatch(/revoke\s+all\s+privileges\s+on\s+all\s+tables\s+in\s+schema\s+public\s+from\s+anon/i);
+    expect(apiPrivileges).toMatch(/alter\s+default\s+privileges\s+in\s+schema\s+public\s+revoke\s+all\s+privileges\s+on\s+tables\s+from\s+anon/i);
   });
 
   it("retires direct legacy destructive, setup and replay entry points", () => {

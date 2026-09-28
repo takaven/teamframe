@@ -46,6 +46,10 @@ if (process.argv.includes("--verify-key")) {
   const { error } = await supabase.storage.listBuckets();
   if (error) {
     console.error("[PARITY_FAIL] This project's service_role key did not pass the read-only API check.");
+    const safeDetail = [error.statusCode, error.error, error.message]
+      .filter(Boolean)
+      .join(" — ");
+    if (safeDetail) console.error(`Storage API response: ${safeDetail}`);
     process.exit(1);
   }
   console.log(`Verified read-only service-role API access for ${projectRef}.`);

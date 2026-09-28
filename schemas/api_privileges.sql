@@ -1,7 +1,14 @@
 -- The launch project disables automatic API grants for newly created tables.
 -- TeamFrame's service layer uses the server-only service_role key for data
--- operations. Keep the table list explicit: no anon/authenticated table grants,
--- no future-table default privileges, and no RLS or storage-policy changes.
+-- operations. Keep the table list explicit: no anonymous table grants or
+-- future-table anonymous defaults, and no RLS or storage-policy changes.
+--
+-- Fresh Supabase projects grant table API privileges to anon by default.
+-- Revoke that platform default explicitly before granting the server-only
+-- role. Authenticated grants remain owned by their feature schemas and RLS.
+revoke all privileges on all tables in schema public from anon;
+alter default privileges in schema public revoke all privileges on tables from anon;
+
 grant select, insert, update, delete on table
   public.acknowledgements,
   public.action_items,
