@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { EXPECTED_PUBLIC_TABLES, SCHEMA_ORDER } from "../scripts/schema-order.mjs";
 
-const ref = "syytforaidoorrvrbqwz";
+const ref = "dcfxyjrfsrkibhpbmjnw";
 const root = process.cwd();
 
 function run(script: string, extra: Record<string, string> = {}, args: string[] = []) {
@@ -77,7 +77,7 @@ describe("repository execution safety", () => {
     expect(result.stdout).toContain(`Verified fresh-install target: ${ref}`);
   });
 
-  it("preflights only the exact new synthetic install and storage target", () => {
+  it("rejects retired install and storage targets", () => {
     const freshRef = "tosrbylwchodbeaculgi";
     const target = {
       TEAMFRAME_INSTALL_PROJECT_REF: freshRef,
@@ -85,8 +85,8 @@ describe("repository execution safety", () => {
       TEAMFRAME_INSTALL_DB_URL: `postgresql://postgres.${freshRef}:test-only@aws-0-ap-south-1.pooler.supabase.com:5432/postgres`,
       TEAMFRAME_INSTALL_APPROVAL: `fresh:${freshRef}`,
     };
-    expect(run("apply-schemas-fresh.mjs", target, ["--check-target"]).status).toBe(0);
-    expect(run("setup-storage.mjs", target, ["--check-target"]).status).toBe(0);
+    expect(run("apply-schemas-fresh.mjs", target, ["--check-target"]).status).not.toBe(0);
+    expect(run("setup-storage.mjs", target, ["--check-target"]).status).not.toBe(0);
     expect(run("apply-schemas-fresh.mjs", { ...target, TEAMFRAME_INSTALL_DB_URL: `postgresql://postgres.${ref}:test-only@aws-0-ap-south-1.pooler.supabase.com:5432/postgres` }, ["--check-target"]).status).not.toBe(0);
     expect(run("setup-storage.mjs", { ...target, TEAMFRAME_INSTALL_SUPABASE_URL: `https://${ref}.supabase.co` }, ["--check-target"]).status).not.toBe(0);
   }, 15_000);
@@ -119,8 +119,8 @@ describe("repository execution safety", () => {
     expect(run("setup-storage.mjs", overrides, ["--check-target"]).status).not.toBe(0);
   }, 15_000);
 
-  it("keeps the destructive RLS harness closed even for a generally approved project", () => {
-    expect(run("verify-rls.mjs", {}, ["--check-target"]).status).not.toBe(0);
+  it("admits only the exact active RLS target and rejects unrelated projects", () => {
+    expect(run("verify-rls.mjs", {}, ["--check-target"]).status).toBe(0);
     expect(run("verify-rls.mjs", { AUDIT_SUPABASE_PROJECT_REF: "qrsxoumymbcehtltbtgn" }, ["--check-target"]).status).not.toBe(0);
   }, 15_000);
 
@@ -145,6 +145,7 @@ describe("repository execution safety", () => {
   });
 
   it("refuses legacy direct writers before credential loading or client creation", () => {
+    const retiredRef = "syytforaidoorrvrbqwz";
     for (const script of [
       "force-create-admin.mjs",
       "gen-magic-link.mjs",
@@ -156,11 +157,11 @@ describe("repository execution safety", () => {
       "bootstrap-full-access.mjs",
     ]) {
       const result = run(script, {
-        TEAMFRAME_MUTATION_PROJECT_REF: ref,
-        TEAMFRAME_MUTATION_APPROVAL: `${script === "bootstrap-full-access.mjs" ? "access-bootstrap" : script.replace(/\.mjs$/, "")}:${ref}`,
-        NEXT_PUBLIC_SUPABASE_URL: `https://${ref}.supabase.co`,
+        TEAMFRAME_MUTATION_PROJECT_REF: retiredRef,
+        TEAMFRAME_MUTATION_APPROVAL: `${script === "bootstrap-full-access.mjs" ? "access-bootstrap" : script.replace(/\.mjs$/, "")}:${retiredRef}`,
+        NEXT_PUBLIC_SUPABASE_URL: `https://${retiredRef}.supabase.co`,
         SUPABASE_SERVICE_ROLE_KEY: "test-only",
-        EXPORT_CLEANUP_SUPABASE_URL: `https://${ref}.supabase.co`,
+        EXPORT_CLEANUP_SUPABASE_URL: `https://${retiredRef}.supabase.co`,
         EXPORT_CLEANUP_SERVICE_ROLE_KEY: "test-only",
       }, script === "cleanup-expired-exports.mjs" ? ["--execute"] : []);
       expect(result.status, script).not.toBe(0);

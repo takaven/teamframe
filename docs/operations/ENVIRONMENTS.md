@@ -2,7 +2,7 @@
 
 This is the canonical registry for current TeamFrame infrastructure. Historical evidence may retain older names and refs, but it does not override this file.
 
-Last verified: 2026-09-28. No resource was deleted, paused, resumed, disconnected, redeployed, or otherwise changed during this inventory.
+Last verified: 2026-09-28 after the founder-approved cleanup. Two historical Vercel projects, eight disposable Supabase projects, and two stale Git branches were deleted. No retained environment was paused, resumed, disconnected, or promoted.
 
 ## Authoritative architecture
 
@@ -23,17 +23,17 @@ Last verified: 2026-09-28. No resource was deleted, paused, resumed, disconnecte
 | Default branch | `main` |
 | Default-branch head at inventory | `45e63bfd85c05d65b4fd935dd4ba61081b6799af` |
 | Launch branch | `launch/managed-people-ops-45-day` |
-| Remote launch head at inventory | `1002e51b9f77e74dad1b1fd51e4845662941f3aa` |
-| Launch divergence | 121 commits ahead of `main`, 0 behind |
+| Remote launch head before this cleanup commit | `fe224e64b861c3f230fd1a09f0bf040f47f4c616` |
+| Launch divergence before this cleanup commit | 123 commits ahead of `main`, 0 behind |
 | Integration path | Draft PR #6 into `main`; do not deploy Production directly from an unmerged working branch |
-| Branch protection | GitHub reports all four current branches, including `main`, as unprotected; the repository policy file is not enforced |
+| Branch protection | The two surviving branches are `main` and the launch branch; `main` was unprotected at inventory time and the repository policy file was not enforced |
 
 The documentation worktree may contain local documentation commits ahead of the remote launch branch. A local commit is not a deployed environment and must not be recorded as a deployed SHA until pushed and verified.
 
 ## Founder Review rules
 
 - The branch Preview URL above is the review destination.
-- Latest verified Preview deployment at inventory: SHA `1002e51b9f77e74dad1b1fd51e4845662941f3aa`, deployment `BxUAMNDGCfCDeGPsBLnoSg2e28ML`, Ready.
+- Latest verified Preview deployment before the cleanup commit: SHA `fe224e64b861c3f230fd1a09f0bf040f47f4c616`, deployment `Co45XL69xo2r5rYRT1D4mEma948r`, Ready.
 - `teamframe-founder-review.vercel.app` currently resolves to an older Production deployment inside the same Vercel project and is **not** the approved review URL.
 - That older project Production deployment is from branch `codex/direction-b-full-system-implementation` at SHA `489c9606441618e898f21eafb0443a9ca33474ad`; it is historical, not the accepted review source.
 - Founder Review Vercel variables are Preview-scoped and point to the synthetic review database.
@@ -75,7 +75,7 @@ Only one active rehearsal/proof project should exist at a time. A new proof proj
 4. a stop condition;
 5. deletion or pause decision after evidence is recorded.
 
-Do not infer mutation authority from `scripts/approved-launch-projects.mjs`. That list contains historical proof refs. Current resource status and a task-specific approval are both required.
+Do not infer mutation authority from `scripts/approved-launch-projects.mjs`. Retired refs have been removed, but current resource status and a task-specific approval are still both required.
 
 ## DO NOT USE
 
@@ -83,12 +83,11 @@ Do not infer mutation authority from `scripts/approved-launch-projects.mjs`. Tha
 | --- | --- |
 | Supabase `zylllrvcmockvfcfubkp` | Historical Production; inaccessible/owner unknown; abandoned for launch |
 | Supabase `xqiamhwkuogcgucwmlxy` | Deleted empty rehearsal project; must never be rediscovered as active |
-| Supabase `haxtsdnlcbhmwwwzjncd` | Paused quarantined failed fresh-install evidence; never repair or reuse |
-| Supabase `euhvgedjldqzfczkzjqi` | Paused H2 proof; legacy privileged key exposure was recorded; synthetic evidence only |
-| Vercel `teamframe` | Historical project connected to `ismaelloveexcel/TeamFrame`, not canonical |
-| Vercel `teamframe-visual-review-20260814061335` | Historical unconnected visual-review project |
+| Supabase retired refs listed in `RETIRED-RESOURCES.md` | Deleted disposable proofs; identifiers remain historical evidence only and must never be re-added without a new project and approval |
+| Vercel `teamframe` | Deleted historical duplicate; do not recreate as canonical TeamFrame |
+| Vercel `teamframe-visual-review-20260814061335` | Deleted superseded visual-review project |
 | Vercel `mockup-sandbox` | Historical TeamFrame V2 project connected to `ismaelloveexcel/teamframe.v2` |
-| GitHub `ismaelloveexcel/TeamFrame` | Historical source still connected to old Vercel project; not canonical |
+| GitHub `ismaelloveexcel/TeamFrame` | Historical source whose old Vercel project is now deleted; not canonical; archive only after separate approval |
 | GitHub `ismaelloveexcel/teamframe.v2` | Separate historical simulation project; not canonical TeamFrame |
 
 See [RETIRED-RESOURCES.md](RETIRED-RESOURCES.md) for the full retention/deletion inventory.

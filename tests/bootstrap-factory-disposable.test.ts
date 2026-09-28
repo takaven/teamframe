@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { createOnlyRefusal } from "../scripts/lib/create-only-bootstrap.mjs";
 
 const script = "scripts/bootstrap-factory-disposable.mjs";
-const ref = "nvuijkgiqqhqeqduqqgm";
+const ref = "dcfxyjrfsrkibhpbmjnw";
 const base = {
   TEAMFRAME_FACTORY_PROJECT_REF: ref,
   NEXT_PUBLIC_SUPABASE_URL: `https://${ref}.supabase.co`,

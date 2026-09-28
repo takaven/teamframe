@@ -39,7 +39,7 @@ describe("customer implementation operator gate", () => {
   });
 
   it("refuses a mismatched API URL", () => {
-    const ref = "tosrbylwchodbeaculgi";
+    const ref = "dcfxyjrfsrkibhpbmjnw";
     const tenant = "11111111-1111-4111-8111-111111111111";
     const result = run(["--execute", "--pack", "package.json", "--tenant-id", tenant, "--confirm-workspace", "synthetic"], {
       TEAMFRAME_IMPLEMENTATION_PROJECT_REF: ref,

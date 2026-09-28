@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const approvedRef = "syytforaidoorrvrbqwz";
+const approvedRef = "dcfxyjrfsrkibhpbmjnw";
 
 function checkTarget(overrides: Record<string, string> = {}) {
   return spawnSync(process.execPath, [join(process.cwd(), "scripts/verify-integration.mjs"), "--check-target"], {
@@ -27,14 +27,15 @@ describe("disposable integration target guard", () => {
     expect(result.stdout).toContain(`Approved disposable target: ${approvedRef}`);
   });
 
-  it("accepts the second approved disposable project", () => {
+  it("rejects a retired disposable project", () => {
     const secondRef = "xjdobcfzwluozumhnjng";
     const result = checkTarget({
       AUDIT_SUPABASE_PROJECT_REF: secondRef,
       AUDIT_SUPABASE_URL: `https://${secondRef}.supabase.co`,
       AUDIT_SUPABASE_DB_URL: `postgresql://postgres.${secondRef}:test-only@aws-0-ap-south-1.pooler.supabase.com:5432/postgres`,
     });
-    expect(result.status).toBe(0);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain("not an approved TAKAVEN disposable project");
   });
 
   it("accepts the matching direct database URL", () => {
@@ -102,7 +103,7 @@ describe("access provisioning target guard", () => {
     expect(result.stdout).not.toContain("independent access runtime gate");
   });
 
-  it("rejects the protected buyer fixture and paused or quarantined projects", () => {
+  it("rejects retired projects before the access-write gate", () => {
     for (const ref of ["wafkfvpsdhjfrxrmgksl", "euhvgedjldqzfczkzjqi", "syytforaidoorrvrbqwz", "xjdobcfzwluozumhnjng", "nvuijkgiqqhqeqduqqgm", "jxiiinglydqqhwjglxtg"]) {
       const result = checkAccessTarget({
         AUDIT_SUPABASE_PROJECT_REF: ref,
@@ -110,7 +111,7 @@ describe("access provisioning target guard", () => {
         AUDIT_SUPABASE_DB_URL: `postgresql://postgres.${ref}:test-only@aws-0-ap-south-1.pooler.supabase.com:5432/postgres`,
       });
       expect(result.status).not.toBe(0);
-      expect(result.stderr).toContain("not approved for access-proof writes");
+      expect(result.stderr).toContain("not an approved TAKAVEN disposable project");
     }
   }, 15_000);
 

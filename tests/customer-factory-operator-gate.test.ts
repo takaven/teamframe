@@ -35,10 +35,10 @@ describe("disposable customer-factory operator gate", () => {
 
   it("refuses a mismatched URL for an approved disposable ref", () => {
     const result = run({
-      TEAMFRAME_FACTORY_PROJECT_REF: "nvuijkgiqqhqeqduqqgm",
+      TEAMFRAME_FACTORY_PROJECT_REF: "dcfxyjrfsrkibhpbmjnw",
       NEXT_PUBLIC_SUPABASE_URL: "https://example.invalid",
       SUPABASE_SERVICE_ROLE_KEY: "test-only-not-real",
-      TEAMFRAME_FACTORY_APPROVAL: "measure:nvuijkgiqqhqeqduqqgm",
+      TEAMFRAME_FACTORY_APPROVAL: "measure:dcfxyjrfsrkibhpbmjnw",
     });
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("Factory measurement refused");

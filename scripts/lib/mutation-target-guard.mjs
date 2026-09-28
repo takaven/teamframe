@@ -4,7 +4,6 @@ import { APPROVED_LAUNCH_PROJECT_REFS } from "../approved-launch-projects.mjs";
 // The general launch allowlist includes populated and protected fixtures.
 export const APPROVED_DIRECT_MUTATION_REFS = new Set([
   "dcfxyjrfsrkibhpbmjnw",
-  "tosrbylwchodbeaculgi",
 ]);
 
 // Run before loading any repository env file or constructing a service-role client.

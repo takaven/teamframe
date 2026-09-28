@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { mutationTargetRef } from "../scripts/lib/mutation-target-guard.mjs";
 
-const ref = "euhvgedjldqzfczkzjqi";
+const ref = "dcfxyjrfsrkibhpbmjnw";
+const retiredRefs = [
+  "wafkfvpsdhjfrxrmgksl",
+  "euhvgedjldqzfczkzjqi",
+  "syytforaidoorrvrbqwz",
+];
 const valid = {
   TEAMFRAME_MUTATION_PROJECT_REF: ref,
   TEAMFRAME_MUTATION_APPROVAL: `seed-admin:${ref}`,
@@ -10,9 +15,9 @@ const valid = {
 };
 
 describe("mutation target guard", () => {
-  it("refuses all existing projects by default even with exact approval", () => {
-    expect(() => mutationTargetRef("seed-admin", valid)).toThrow(/refused/);
-    for (const existing of ["wafkfvpsdhjfrxrmgksl", "euhvgedjldqzfczkzjqi", "syytforaidoorrvrbqwz"]) {
+  it("accepts only the active direct-mutation target with exact approval", () => {
+    expect(mutationTargetRef("seed-admin", valid)).toBe(ref);
+    for (const existing of retiredRefs) {
       expect(() => mutationTargetRef("seed-admin", {
         ...valid,
         TEAMFRAME_MUTATION_PROJECT_REF: existing,
@@ -22,8 +27,14 @@ describe("mutation target guard", () => {
     }
   });
 
-  it("can admit a future independently verified target by exact ref", () => {
-    expect(mutationTargetRef("seed-admin", valid, new Set([ref]))).toBe(ref);
+  it("cannot re-admit a retired target through the eligible subset", () => {
+    const retired = retiredRefs[0]!;
+    expect(() => mutationTargetRef("seed-admin", {
+      ...valid,
+      TEAMFRAME_MUTATION_PROJECT_REF: retired,
+      TEAMFRAME_MUTATION_APPROVAL: `seed-admin:${retired}`,
+      NEXT_PUBLIC_SUPABASE_URL: `https://${retired}.supabase.co`,
+    }, new Set([retired]))).toThrow(/refused/);
   });
 
   it.each([
