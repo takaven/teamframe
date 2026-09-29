@@ -2,7 +2,7 @@
 
 This registry prevents historical identifiers from being mistaken for current infrastructure. It is not deletion authority.
 
-Last verified against the accessible provider accounts: 2026-09-28.
+Last verified against the accessible provider accounts: 2026-09-29.
 
 ## GitHub
 
@@ -11,8 +11,8 @@ Last verified against the accessible provider accounts: 2026-09-28.
 | `takaven/teamframe` | ACTIVE canonical repository | KEEP | Only canonical TeamFrame source |
 | `takaven/hirepass` | ACTIVE separate product repository | KEEP | Canonical HirePass source; do not merge into or retire with TeamFrame |
 | `takaven/teamframe-site` | ACTIVE separate commercial website | KEEP | Website source, not application source |
-| branch `main` | ACTIVE default, behind launch branch | KEEP; merge through approved PR | Production/default branch |
-| branch `launch/managed-people-ops-45-day` | ACTIVE; current Review/release integration branch; PR #6 open | KEEP until merge/Production acceptance; delete after merge when no deployment depends on it | Current Review/release integration branch |
+| branch `main` | ACTIVE protected default at accepted SHA `0216b7711bbc9d09a944f96f5f0d186a4d6dbf6f` | KEEP | Canonical Production/default branch after PR #6 launch consolidation |
+| branch `launch/managed-people-ops-45-day` | ACTIVE retained evidence/Founder Review branch; PR #6 merged | KEEP until Production acceptance; delete only after no deployment or rollback evidence depends on it | Accepted launch source retained deliberately |
 | branch `brand/apply-final-takaven-logos` | DELETED 2026-09-28; merged in PR #1; had 0 unique commits | RETIRED; never recreate for active work | Merged stale branch |
 | branch `codex/market-ready-implementation` | DELETED 2026-09-28; had 0 unique commits | RETIRED; never recreate for active work | Historical release branch |
 | `ismaelloveexcel/TeamFrame` | Public, unarchived, last pushed 2026-08-13; its old Vercel `teamframe` project is deleted | ARCHIVE after one final independent-reference check and approval | Historical source easily confused with canonical repo |

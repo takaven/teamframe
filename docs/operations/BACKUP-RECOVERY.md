@@ -31,6 +31,8 @@ Before real customer HR data:
 
 If the selected Supabase plan does not provide the approved database backup posture, upgrade before loading customer data. PITR is not currently required for initial launch unless the founder/customer decision changes.
 
+Plan selection, spend approval, RPO, RTO, retention and named recovery ownership are manual decisions tracked as MA-003 and MA-009 in [MANUAL-ACTIONS.md](MANUAL-ACTIONS.md). Documentation, export/restore tooling, inventory checks and synthetic restore verification may continue independently before those decisions.
+
 ## Current vs planned
 
 | Control | Current | Planned for Production |

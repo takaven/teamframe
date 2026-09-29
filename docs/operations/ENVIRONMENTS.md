@@ -2,7 +2,7 @@
 
 This is the canonical registry for current TeamFrame infrastructure. Historical evidence may retain older names and refs, but it does not override this file.
 
-Last verified: 2026-09-28 after the founder-approved cleanup. Two historical Vercel projects, eight disposable Supabase projects, and two stale Git branches were deleted. No retained environment was paused, resumed, disconnected, or promoted.
+Last verified: 2026-09-29 after main consolidation and non-destructive Production preparation. Two historical Vercel projects, eight disposable Supabase projects, and two stale Git branches were deleted during the earlier approved cleanup. No provider configuration was changed during this documentation update.
 
 ## Authoritative architecture
 
@@ -10,7 +10,7 @@ Last verified: 2026-09-28 after the founder-approved cleanup. Two historical Ver
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Local development | `takaven/teamframe` | short-lived working branch | None required | Explicitly selected non-Production target only | Target-specific | Synthetic unless customer approval says otherwise | ACTIVE | Developer/operator; no external deployment implied |
 | Founder Review | `takaven/teamframe` | `launch/managed-people-ops-45-day` | `teamframe-founder-review` (`prj_7aEgmyR1qQP8VfaFbFN7CexbWVNW`), team `ismaelloveexcels-projects`; canonical review URL `https://teamframe-founder-review-git-l-9951de-ismaelloveexcels-projects.vercel.app/` | `teamframe-founder-review-20260924`, ref `dcfxyjrfsrkibhpbmjnw`, organisation `Takaven` | `eu-west-1` | Synthetic Northstar fixture only | ACTIVE | Founder-approved Preview changes only; never Production |
-| Production | `takaven/teamframe` | `main` after approved merge/release | Existing shell `teamframe-production` (`prj_09tvdrEWbL1Ov9SFMtrhgYnJ0bNj`), team `ismaelloveexcels-projects`; currently disconnected and historical | New authoritative Production project not yet created; proposed name `teamframe-production-uae`, ref TBD | Mumbai / `ap-south-1` proposed, final approval pending | Customer data after launch approval | BLOCKED / PENDING REBUILD | Explicit Production approval only |
+| Production | `takaven/teamframe` | protected `main` | Existing shell `teamframe-production` (`prj_09tvdrEWbL1Ov9SFMtrhgYnJ0bNj`), team `ismaelloveexcels-projects`; currently disconnected and historical | New authoritative Production project not yet created; proposed name `teamframe-production-uae`, ref TBD | Mumbai / `ap-south-1` proposed, final approval pending | Customer data after launch approval | BLOCKED / PENDING REBUILD | Explicit Production approval only |
 | Temporary repeat-rehearsal proof | `takaven/teamframe` | launch branch at proof time | Local maintained operator path; no permanent Vercel environment | `teamframe-operator-repeat-rehearsal-2-20260928`, ref `drohdttbgekrmwubhala`, organisation `Takaven` | `ap-south-1` | Synthetic Crescent Ridge fixture | ACTIVE, LOCKED AGAINST REPLAY | Retain only until Production acceptance; no further mutation without fresh approval |
 
 ## Current source state
@@ -21,23 +21,22 @@ Last verified: 2026-09-28 after the founder-approved cleanup. Two historical Ver
 | Owner | GitHub organisation `takaven` |
 | Visibility | Public |
 | Default branch | `main` |
-| Default-branch head at inventory | `45e63bfd85c05d65b4fd935dd4ba61081b6799af` |
+| Accepted `main` head | `0216b7711bbc9d09a944f96f5f0d186a4d6dbf6f` |
 | Launch branch | `launch/managed-people-ops-45-day` |
-| Security release head verified before this registry refresh | `878cf8d91c490c7bc4ca46e78d63d49c2afb1cab` |
-| Launch divergence before this registry refresh | 125 commits ahead of `main`, 0 behind |
-| Integration path | Draft PR #6 into `main`; do not deploy Production directly from an unmerged working branch |
-| Branch protection | The two surviving branches are `main` and the launch branch; `main` was unprotected at inventory time and the repository policy file was not enforced |
+| Launch consolidation head retained | `ac957e11088fc453cc20cf415f92811fbcffa54f` |
+| Integration path | PR #6, `TeamFrame launch consolidation`, merged into `main` |
+| Branch protection | Active ruleset `Protect main` requires a pull request and successful `Gate Chain (Strict)` and `Static Guard Suite (Phase 1D)` checks; force pushes and deletion are blocked |
 
 The documentation worktree may contain local documentation commits ahead of the remote launch branch. A local commit is not a deployed environment and must not be recorded as a deployed SHA until pushed and verified.
 
 ## Founder Review rules
 
 - The branch Preview URL above is the review destination.
-- Latest verified Preview deployment: SHA `878cf8d91c490c7bc4ca46e78d63d49c2afb1cab`, deployment `12nHBDaGQ7pgn7KHLFjeMhT3Sw8p`, Ready.
+- Latest accepted launch-branch source: SHA `ac957e11088fc453cc20cf415f92811fbcffa54f`; canonical branch Preview remained available and Ready after main consolidation.
 - `teamframe-founder-review.vercel.app` currently resolves to an older Production deployment inside the same Vercel project and is **not** the approved review URL.
 - That older project Production deployment is from branch `codex/direction-b-full-system-implementation` at SHA `489c9606441618e898f21eafb0443a9ca33474ad`; it is historical, not the accepted review source.
 - Founder Review Vercel variables are Preview-scoped and point to the synthetic review database.
-- Vercel currently contains both a launch-branch-specific and a general Preview entry named `TEAMFRAME_AUTOMATION_SECRET`. Resolve that precedence deliberately before freeze; do not delete either until their scopes/consumers are compared.
+- Vercel contains a launch-branch-specific Preview `TEAMFRAME_AUTOMATION_SECRET` entry (`J4ZDwcFtjmxKREQy`) and a general Preview entry (`EnrT3DQSpohTVD9P`), both created/updated at `2026-09-25T05:58:38.142Z`. Vercel does not expose their plaintext for safe equality comparison; the branch-specific value takes precedence for the canonical launch Preview. Consolidation is deliberately deferred under MA-002 in [MANUAL-ACTIONS.md](MANUAL-ACTIONS.md); do not delete either blindly.
 - Deployment Retention is enabled for the project. Do not manually delete old Preview deployments merely for cosmetic cleanup.
 - Never promote Founder Review configuration to Production.
 - Do not casually reseed, reset, or use customer data in `dcfxyjrfsrkibhpbmjnw`.
@@ -91,6 +90,8 @@ Do not infer mutation authority from `scripts/approved-launch-projects.mjs`. Ret
 | GitHub `ismaelloveexcel/teamframe.v2` | Separate historical simulation project; not canonical TeamFrame |
 
 See [RETIRED-RESOURCES.md](RETIRED-RESOURCES.md) for the full retention/deletion inventory.
+
+The complete non-destructive Production target and variable manifest is in [PRODUCTION-PREPARATION.md](PRODUCTION-PREPARATION.md). Founder-interactive actions are in [MANUAL-ACTIONS.md](MANUAL-ACTIONS.md).
 
 ## Provider login map
 
