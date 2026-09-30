@@ -2,7 +2,7 @@
 
 This is the canonical registry for current TeamFrame infrastructure. Historical evidence may retain older names and refs, but it does not override this file.
 
-Last verified: 2026-09-29 after main consolidation and non-destructive Production preparation. Two historical Vercel projects, eight disposable Supabase projects, and two stale Git branches were deleted during the earlier approved cleanup. No provider configuration was changed during this documentation update.
+Last verified: 2026-09-30 after PR #7 merge and read-only Production parity audit. No provider configuration was changed during this documentation update.
 
 ## Authoritative architecture
 
@@ -21,7 +21,7 @@ Last verified: 2026-09-29 after main consolidation and non-destructive Productio
 | Owner | GitHub organisation `takaven` |
 | Visibility | Public |
 | Default branch | `main` |
-| Accepted `main` head | `0216b7711bbc9d09a944f96f5f0d186a4d6dbf6f` |
+| Accepted `main` head | `ee6507b9b7e0f500e77a1ac05a7ca27ac34e821d` |
 | Launch branch | `launch/managed-people-ops-45-day` |
 | Launch consolidation head retained | `ac957e11088fc453cc20cf415f92811fbcffa54f` |
 | Integration path | PR #6, `TeamFrame launch consolidation`, merged into `main` |
@@ -43,13 +43,14 @@ The documentation worktree may contain local documentation commits ahead of the 
 
 ## Production rules
 
-- `teamframe-production` is a reserved historical Vercel shell, not a launch-ready Production environment.
+- `teamframe-production` is a **REBUILD-ONLY HISTORICAL SHELL**, not a launch-ready Production environment. Do not redeploy its current configuration.
 - Its default domain is `https://teamframe-production.vercel.app`; its ready Aug 14 deployment is from `ismaelloveexcel/TeamFrame`, branch `codex/market-ready-implementation`, SHA `37bf104b5d72f81f9936a99ac3134c14bd2de7a5`, not the canonical repository state.
 - It has no Git connection and retains eight Production variable names whose values were not revealed during this inventory. Treat all target values as untrusted until replaced and verified.
 - Historical Supabase ref `zylllrvcmockvfcfubkp` is abandoned for launch and is not visible in the signed-in `Takaven` organisation.
 - The replacement Production Supabase project does not exist yet.
 - The Vercel team has no TeamFrame shared environment variables; the two team-shared variables observed belong to another project stack.
 - Production remains blocked until the database, private Storage, Auth/SMTP, backups, Vercel variables, Git connection, cron, health checks, and live security proof are approved and verified.
+- Read-only audit confirmed: Git disconnected; framework `Other`; Node `24.x`; Function region `iad1`; cron `/api/automation/run` at stale schedule `0 6 * * *`; default domain serves historical SHA `37bf104...`; eight Production-only variables added Aug 13 with untrusted values.
 
 ## Environment-variable inventory
 
@@ -91,7 +92,7 @@ Do not infer mutation authority from `scripts/approved-launch-projects.mjs`. Ret
 
 See [RETIRED-RESOURCES.md](RETIRED-RESOURCES.md) for the full retention/deletion inventory.
 
-The complete non-destructive Production target and variable manifest is in [PRODUCTION-PREPARATION.md](PRODUCTION-PREPARATION.md). Founder-interactive actions are in [MANUAL-ACTIONS.md](MANUAL-ACTIONS.md).
+The complete non-destructive Production target and variable manifest is in [PRODUCTION-PREPARATION.md](PRODUCTION-PREPARATION.md). The exact rebuild sequence is in [PRODUCTION-REBUILD-PLAN.md](PRODUCTION-REBUILD-PLAN.md). Founder-interactive actions are in [MANUAL-ACTIONS.md](MANUAL-ACTIONS.md).
 
 ## Provider login map
 

@@ -2,14 +2,16 @@
 
 This is the non-secret, non-destructive Production specification. It prepares the work but does not authorise infrastructure creation, spend, secret changes, DNS changes, customer data, or deployment.
 
-Last reviewed: 2026-09-29 against `main` SHA `0216b7711bbc9d09a944f96f5f0d186a4d6dbf6f`.
+Last reviewed: 2026-09-30 against `main` SHA `ee6507b9b7e0f500e77a1ac05a7ca27ac34e821d`.
+
+The parity audit is complete. The exact configuration, transition order and founder decision pack now live in [PRODUCTION-REBUILD-PLAN.md](PRODUCTION-REBUILD-PLAN.md).
 
 ## Production target specification
 
 | Layer | Intended target | Current state | Approval boundary |
 | --- | --- | --- | --- |
 | Source | `takaven/teamframe`, protected branch `main` | Active and accepted | Exact release SHA/tag still requires deployment approval |
-| Hosting | Vercel project `teamframe-production` (`prj_09tvdrEWbL1Ov9SFMtrhgYnJ0bNj`), team `ismaelloveexcels-projects` | Historical disconnected shell; all retained values are untrusted | Git connection, configuration replacement and deployment require approval |
+| Hosting | Vercel project `teamframe-production` (`prj_09tvdrEWbL1Ov9SFMtrhgYnJ0bNj`), team `ismaelloveexcels-projects` | **REBUILD-ONLY HISTORICAL SHELL**; all retained values are untrusted | Git connection, configuration replacement and deployment require approval |
 | Database | New project proposed as `teamframe-production-uae`, Supabase organisation `Takaven` | Not created | Final name, Mumbai region, plan and spend require approval |
 | Region | Mumbai / `ap-south-1` | Proposed | Confirm with project plan before creation |
 | Schema | Current canonical 45-table fresh install with RLS/security gates | Installer proof complete on disposable infrastructure | Run once on an approved empty Production target; no manual repair |
@@ -108,7 +110,6 @@ No connection or deployment is authorised by this plan.
 | MFA, billing, DNS, provider ownership, secret creation/entry, destructive approval, Production deployment approval | Founder/account-owner action |
 | Creating paid infrastructure, connecting Production hosting, deploying, or loading customer data | Explicit approval required; not performed during preparation |
 
-## Next automatable step
+## Next step
 
-Run a read-only parity review of the existing `teamframe-production` Vercel shell against this manifest, recording only project metadata, Git connection state, variable **names/scopes**, cron configuration and domain state. Do not reveal values, connect Git, replace variables, create infrastructure or deploy.
-
+Execute the grouped founder decisions in [MANUAL-ACTIONS.md](MANUAL-ACTIONS.md) only under a separate, explicit Production authority. Do not mutate the rebuild-only shell before its dependencies are ready.
