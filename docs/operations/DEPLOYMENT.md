@@ -6,8 +6,9 @@ This is the current deployment control document. Historical deployment evidence 
 
 - Repository: `takaven/teamframe`
 - Default/Production branch: `main`
-- Current pre-Production integration branch: `launch/managed-people-ops-45-day`
-- Integration vehicle: draft PR #6
+- Accepted main SHA: `0216b7711bbc9d09a944f96f5f0d186a4d6dbf6f`
+- Retained launch/evidence branch: `launch/managed-people-ops-45-day`
+- Integration vehicle: PR #6, `TeamFrame launch consolidation`, merged
 - Founder Review project: `teamframe-founder-review`
 - Production project: `teamframe-production` (reserved shell; rebuild required)
 
@@ -22,9 +23,7 @@ Never deploy from `ismaelloveexcel/TeamFrame`, `ismaelloveexcel/teamframe.v2`, a
 5. Tag the verified `main` commit for Production.
 6. Deploy the exact tag/SHA and record it in [ENVIRONMENTS.md](ENVIRONMENTS.md).
 
-`main` is currently behind the launch branch. Do not call `main` Production-ready until PR #6 is reviewed, current checks pass, and the merge is explicitly approved.
-
-GitHub reported `main` and the other current branches as unprotected during the 2026-09-28 inventory. Apply the documented `Gate Chain (Strict)` branch-protection rule before the Production merge; a policy Markdown file alone does not enforce it.
+`main` passed post-merge acceptance and is protected by the active `Protect main` ruleset. Pull requests are required; `Gate Chain (Strict)` and `Static Guard Suite (Phase 1D)` are required checks; force pushes and branch deletion are blocked.
 
 ## Founder Review Preview
 
@@ -139,3 +138,5 @@ Explicit approval is required for:
 - destructive database/project/repository cleanup;
 - database restore/cutover;
 - loading real customer data.
+
+Founder-interactive steps should be grouped rather than interrupting independent preparation. Their exact prerequisites and status are maintained in [MANUAL-ACTIONS.md](MANUAL-ACTIONS.md). The non-secret Production specification and environment-variable manifest are in [PRODUCTION-PREPARATION.md](PRODUCTION-PREPARATION.md).

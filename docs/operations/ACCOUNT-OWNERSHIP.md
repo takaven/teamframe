@@ -2,7 +2,7 @@
 
 No credentials, keys, passwords, recovery codes, or database connection strings belong in this document.
 
-Last verified: 2026-09-28.
+Last verified: 2026-09-29.
 
 ## Ownership matrix
 
@@ -10,7 +10,7 @@ Last verified: 2026-09-28.
 | --- | --- | --- | --- | --- | --- |
 | GitHub | Organisation `takaven` | Authenticated user `isudally` has ADMIN on `takaven/teamframe` | Organisation billing email is recorded as `isudally@outlook.com` | `isudally` or another explicitly authorised `takaven` admin | Personal fallback tokens for `ismaelloveexcel` and `ariefinance` were invalid during inventory; do not rely on them |
 | Vercel | Team slug `ismaelloveexcels-projects` (display name `ismael's projects`), team ID `team_LUgbx4qzGleJbDFrfMKYLjDm`, Hobby | Sole member `ismaelloveexcel` / `isudally@gmail.com`, Owner | Same sole owner is the only verified billing-capable identity; formal billing responsibility otherwise undocumented | The `ismaelloveexcel` owner in this exact team | Vercel UI reports 2FA enabled |
-| Supabase | `Takaven`, organisation ID `jdlcphgoqpnztlbklkpc`, Free | Sole member `admin@takaven.com`, Owner | UNKNOWN beyond the sole owner | `admin@takaven.com` in the `Takaven` organisation | **MFA disabled — close before Production provisioning** |
+| Supabase | `Takaven`, organisation ID `jdlcphgoqpnztlbklkpc`, Free | Sole member `admin@takaven.com`, Owner | UNKNOWN beyond the sole owner | `admin@takaven.com` in the `Takaven` organisation | **MFA disabled — deliberately deferred; launch blocker before go-live, not a blocker to independent non-destructive preparation** |
 | Resend | UNKNOWN | UNKNOWN | UNKNOWN | Must be recorded before domain/API-key work | Not inventoried; no account or sending domain should be assumed |
 | DNS | UNKNOWN | UNKNOWN | UNKNOWN | Must be recorded before SPF/DKIM/DMARC changes | Not inventoried |
 
@@ -28,10 +28,12 @@ Last verified: 2026-09-28.
 
 ## Required ownership corrections before Production
 
-1. Enable MFA for the sole Supabase organisation owner and retain recovery access safely.
+1. Enable MFA for the sole Supabase organisation owner and retain recovery access safely in the final manual-action window before go-live.
 2. Identify the Resend account/team owner and billing owner.
 3. Identify the DNS provider/account owner and who can approve records.
 4. Record a second authorised recovery path or succession owner for critical provider accounts where commercially appropriate.
 5. Confirm the Vercel billing owner rather than inferring it from sole membership.
 
 These are account-governance tasks, not product features. Do not change permissions or create credentials without the relevant approval.
+
+The authoritative status, prerequisites and verification for founder-interactive work are maintained in [MANUAL-ACTIONS.md](MANUAL-ACTIONS.md).
