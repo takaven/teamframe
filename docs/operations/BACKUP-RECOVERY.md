@@ -41,9 +41,21 @@ Plan selection, spend approval, RPO, RTO, retention and named recovery ownership
 | Storage recovery | Disposable object-copy rehearsal only | Independent private-object backup/copy with inventory verification |
 | Auth recovery | Fresh synthetic identities recreated | Document whether provider restore retains Auth for selected plan; prepare forced re-login and controlled identity recovery |
 | Restore target | Disposable project | New isolated recovery project in the same approved region/account |
-| RPO | UNDECIDED | Founder/customer approval required |
-| RTO | UNDECIDED; small synthetic execution was 47.141s | Founder/customer approval after Production-equivalent rehearsal |
-| Recovery owner | UNDECIDED | Named infrastructure owner plus recovery delegate |
+| RPO | Awaiting founder approval | Recommended: 24 hours |
+| RTO | Awaiting founder approval; small synthetic execution was 47.141s | Recommended: 8 business hours after Production-equivalent rehearsal |
+| Recovery owner | Awaiting founder approval | Primary infrastructure operator executes; recovery delegate verifies; founder approves restore/cutover |
+
+## Founder-ready recommendation
+
+- Supabase Pro automatic daily database backups with seven-day retention.
+- Weekly encrypted off-platform logical export retained for eight weeks and an export before material schema/configuration changes.
+- Daily encrypted private Storage-object copy with inventory/checksum verification, retained for 30 days.
+- Restore only to a separate approved Mumbai recovery project.
+- Complete one Production-equivalent synthetic restore before customer data and repeat quarterly.
+- Initial RPO: 24 hours.
+- Initial RTO: 8 business hours.
+
+PITR is not recommended for the first-customer baseline. At current published pricing, seven-day PITR is approximately $100/month in addition to the Pro plan; add it only if contractual or operational requirements demand a lower RPO.
 
 ## Backup procedure
 

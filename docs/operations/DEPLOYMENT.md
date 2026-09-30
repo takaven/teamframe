@@ -12,6 +12,8 @@ This is the current deployment control document. Historical deployment evidence 
 - Founder Review project: `teamframe-founder-review`
 - Production project: `teamframe-production` (reserved shell; rebuild required)
 
+The Production project is a **REBUILD-ONLY HISTORICAL SHELL**. Its current Git history, deployment, variable values, cron, framework and Function region must not be treated as launch configuration. Follow [PRODUCTION-REBUILD-PLAN.md](PRODUCTION-REBUILD-PLAN.md).
+
 Never deploy from `ismaelloveexcel/TeamFrame`, `ismaelloveexcel/teamframe.v2`, a stale local checkout, or a Vercel project selected only by name.
 
 ## Branch strategy
