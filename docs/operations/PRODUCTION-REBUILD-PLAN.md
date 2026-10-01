@@ -2,7 +2,7 @@
 
 This is the exact non-secret plan for rebuilding the existing Vercel Production shell around the canonical TeamFrame stack. It authorises no provider mutation, spend, secret creation, DNS change, deployment, or customer-data use.
 
-Last reviewed: 2026-09-30 against `main` SHA `ee6507b9b7e0f500e77a1ac05a7ca27ac34e821d`.
+Last reviewed: 2026-10-01 against `main` SHA `30a0a85ea4ce8d71ff1435179cd740f4e824c165` and the completed Free-plan Production foundation.
 
 ## Governing decision
 
@@ -85,13 +85,14 @@ Do not reuse Founder Review, rehearsal or historical Production values.
 | Organisation | `Takaven` (TAKAVEN) |
 | Project name | `teamframe-production-uae` |
 | Region | Mumbai / `ap-south-1` |
-| Plan | Pro |
-| Estimated minimum | **$25 USD/month** for the Pro organisation with one Micro project covered by the included $10 compute credit, plus taxes/usage overages |
-| Automatic backups | Daily, seven-day retention included with Pro |
+| Current build plan | Free; technical acceptance only; no customer data |
+| Required go-live plan | Pro |
+| Estimated minimum | Unverified until the final checkout after deciding whether to pause Founder Review; record plan charge, active-project compute and credits before approval |
+| Automatic backups | Not active during the Free build phase; daily, seven-day retention required after the Pro upgrade |
 | PITR | Not required initially; seven-day PITR is approximately $100/month extra if later approved |
 | Customer data | None until final Production acceptance |
 
-The current price must be reconfirmed at the purchase screen before approval. Supabase pricing reference: [Pricing & Fees](https://supabase.com/pricing).
+The current price must be reconfirmed at the purchase screen before approval. The prior checkout showed an estimated $35/month with more than one active project; do not assume a $25 estimate until a later checkout proves the active-project and credit breakdown. Supabase pricing reference: [Pricing & Fees](https://supabase.com/pricing).
 
 ### Password and connection handling
 
@@ -213,11 +214,16 @@ Recommendation: use the Vercel domain for technical acceptance only; approve and
 
 ## Clean rebuild sequence
 
-1. Founder approves Supabase Pro spend, project name, Mumbai region and backup/RPO/RTO decisions.
-2. Create `teamframe-production-uae` in organisation `Takaven` only under a separate explicit execution authority.
-3. Verify exact target and empty state; run the guarded canonical fresh installer once.
-4. Verify 45/45 schema, 45/45 RLS, service-role access and zero anonymous table access.
-5. Create and verify the private `documents` bucket and signed-object boundaries.
+Completed 2026-10-01 under explicit founder authority:
+
+1. Paused and preserved rehearsal ref `drohdttbgekrmwubhala` to free the approved Free-plan slot.
+2. Created `teamframe-production-uae`, ref `ttwsczpzjdjzuhchbyjx`, in organisation `Takaven`, Mumbai (`ap-south-1`), on Free with no customer data.
+3. Verified the exact empty target and ran the guarded canonical fresh installer once.
+4. Verified 45/45 schema, 45/45 RLS, service-role access, required objects and zero anonymous table access.
+5. Created and verified the private `documents` bucket. The guarded fresh-install allowlist entry was removed immediately after success.
+
+Remaining sequence:
+
 6. Confirm Resend/DNS ownership; verify the sending domain and configure custom SMTP.
 7. Approve the Production hostname; configure exact Supabase Auth Site URL and redirects.
 8. Create the shared automation/cron secret, separate deep-health secret and remaining fresh Production credentials privately.
@@ -229,8 +235,9 @@ Recommendation: use the Vercel domain for technical acceptance only; approve and
 14. Founder approves the exact release SHA/tag and deployment window.
 15. Deploy once and verify the deployed SHA, domain, region and Supabase ref.
 16. Run public/deep health, Admin/Manager/Employee/Finance, tenancy, private-file, email, cron, monitoring and backup acceptance checks.
-17. Enable and verify Supabase owner MFA before go-live acceptance.
-18. Approve customer-data loading only after Production acceptance passes.
+17. Pause Founder Review if operationally acceptable, recheck the exact Supabase billing breakdown, approve and complete the Production Pro upgrade, and verify daily seven-day backups.
+18. Enable and verify Supabase owner MFA before go-live acceptance.
+19. Approve customer-data loading only after Production acceptance passes.
 
 ## Historical variable transition
 
@@ -251,12 +258,12 @@ Replacement in place is safer for the seven runtime entries because the Producti
 
 ## Final founder action window
 
-### Required before Production creation
+### Completed Production foundation window
 
-1. Approve Supabase Pro at an expected minimum of $25/month plus usage/tax.
-2. Approve `teamframe-production-uae`, organisation `Takaven`, Mumbai `ap-south-1`.
-3. Approve 24-hour RPO, 8-business-hour RTO, retention and recovery ownership.
-4. Approve creation and guarded installation of the exact empty project.
+1. Approved `teamframe-production-uae`, organisation `Takaven`, Mumbai `ap-south-1`, on Free for technical acceptance only.
+2. Approved 24-hour RPO, 8-business-hour RTO and retention targets; recovery owner/delegate selection remains open.
+3. Approved and completed creation and guarded installation of the exact empty project.
+4. Deferred Pro purchase until the final go-live window; it remains mandatory before customer data.
 
 ### Required before deployment
 
@@ -269,10 +276,11 @@ Replacement in place is safer for the seven runtime entries because the Producti
 
 ### Required before go-live
 
-1. Enable Supabase TOTP MFA and preferably a second factor; verify organisation access remains intact.
-2. Review the complete pre-deploy parity result.
-3. Approve the exact protected `main` SHA/tag and deployment window.
-4. Review Production acceptance evidence and approve go-live.
-5. Separately approve first-customer data loading.
+1. Pause Founder Review if acceptable, verify Supabase checkout, approve Pro, and verify provider daily backups with seven-day retention.
+2. Enable Supabase TOTP MFA and preferably a second factor; verify organisation access remains intact.
+3. Review the complete pre-deploy parity result.
+4. Approve the exact protected `main` SHA/tag and deployment window.
+5. Review Production acceptance evidence and approve go-live.
+6. Separately approve first-customer data loading.
 
 Founder Review secret consolidation remains deferred to its own maintenance window and does not belong in the Production rebuild sequence.

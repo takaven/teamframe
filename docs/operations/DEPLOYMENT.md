@@ -6,7 +6,7 @@ This is the current deployment control document. Historical deployment evidence 
 
 - Repository: `takaven/teamframe`
 - Default/Production branch: `main`
-- Accepted main SHA: `0216b7711bbc9d09a944f96f5f0d186a4d6dbf6f`
+- Accepted main SHA: `30a0a85ea4ce8d71ff1435179cd740f4e824c165`
 - Retained launch/evidence branch: `launch/managed-people-ops-45-day`
 - Integration vehicle: PR #6, `TeamFrame launch consolidation`, merged
 - Founder Review project: `teamframe-founder-review`
@@ -48,12 +48,12 @@ Stop unless every item is explicit:
 - [ ] GitHub release SHA/tag recorded
 - [ ] `teamframe-production` connected to `takaven/teamframe`
 - [ ] Production branch is `main`
-- [ ] replacement Production Supabase project name/ref recorded
+- [x] Production Supabase project name/ref recorded: `teamframe-production-uae` / `ttwsczpzjdjzuhchbyjx`
 - [ ] Vercel and Supabase account/team verified against [ACCOUNT-OWNERSHIP.md](ACCOUNT-OWNERSHIP.md)
 - [ ] local `.vercel/project.json`, if present, points to Production; no such file existed in the inventory worktree
 - [ ] Production environment variable names and targets validated without exposing values
 - [ ] fresh secrets generated; no Preview/rehearsal secret reused
-- [ ] private `documents` bucket verified
+- [x] private `documents` bucket verified
 - [ ] Supabase Auth URL/redirect/SMTP configuration verified
 - [ ] provider-managed database backup posture approved
 - [ ] off-platform database and Storage recovery plan approved

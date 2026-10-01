@@ -2,7 +2,7 @@
 
 This is the canonical registry for current TeamFrame infrastructure. Historical evidence may retain older names and refs, but it does not override this file.
 
-Last verified: 2026-09-30 after PR #7 merge and read-only Production parity audit. No provider configuration was changed during this documentation update.
+Last verified: 2026-10-01 after the approved Free-plan Production foundation installation. No customer data was loaded and Vercel Production was not changed.
 
 ## Authoritative architecture
 
@@ -10,8 +10,8 @@ Last verified: 2026-09-30 after PR #7 merge and read-only Production parity audi
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Local development | `takaven/teamframe` | short-lived working branch | None required | Explicitly selected non-Production target only | Target-specific | Synthetic unless customer approval says otherwise | ACTIVE | Developer/operator; no external deployment implied |
 | Founder Review | `takaven/teamframe` | `launch/managed-people-ops-45-day` | `teamframe-founder-review` (`prj_7aEgmyR1qQP8VfaFbFN7CexbWVNW`), team `ismaelloveexcels-projects`; canonical review URL `https://teamframe-founder-review-git-l-9951de-ismaelloveexcels-projects.vercel.app/` | `teamframe-founder-review-20260924`, ref `dcfxyjrfsrkibhpbmjnw`, organisation `Takaven` | `eu-west-1` | Synthetic Northstar fixture only | ACTIVE | Founder-approved Preview changes only; never Production |
-| Production | `takaven/teamframe` | protected `main` | Existing shell `teamframe-production` (`prj_09tvdrEWbL1Ov9SFMtrhgYnJ0bNj`), team `ismaelloveexcels-projects`; currently disconnected and historical | New authoritative Production project not yet created; proposed name `teamframe-production-uae`, ref TBD | Mumbai / `ap-south-1` proposed, final approval pending | Customer data after launch approval | BLOCKED / PENDING REBUILD | Explicit Production approval only |
-| Temporary repeat-rehearsal proof | `takaven/teamframe` | launch branch at proof time | Local maintained operator path; no permanent Vercel environment | `teamframe-operator-repeat-rehearsal-2-20260928`, ref `drohdttbgekrmwubhala`, organisation `Takaven` | `ap-south-1` | Synthetic Crescent Ridge fixture | ACTIVE, LOCKED AGAINST REPLAY | Retain only until Production acceptance; no further mutation without fresh approval |
+| Production | `takaven/teamframe` | protected `main` | Existing shell `teamframe-production` (`prj_09tvdrEWbL1Ov9SFMtrhgYnJ0bNj`), team `ismaelloveexcels-projects`; currently disconnected and historical | `teamframe-production-uae`, ref `ttwsczpzjdjzuhchbyjx`, organisation `Takaven`, Free-plan build phase | Mumbai / `ap-south-1` | **NO CUSTOMER DATA** until Pro upgrade and go-live approval | FOUNDATION READY / GO-LIVE BLOCKED | Explicit Production approval only |
+| Temporary repeat-rehearsal proof | `takaven/teamframe` | launch branch at proof time | Local maintained operator path; no permanent Vercel environment | `teamframe-operator-repeat-rehearsal-2-20260928`, ref `drohdttbgekrmwubhala`, organisation `Takaven` | `ap-south-1` | Synthetic Crescent Ridge fixture | PAUSED, PRESERVED, LOCKED AGAINST REPLAY | Retain only until Production acceptance; no further mutation without fresh approval |
 
 ## Current source state
 
@@ -21,7 +21,7 @@ Last verified: 2026-09-30 after PR #7 merge and read-only Production parity audi
 | Owner | GitHub organisation `takaven` |
 | Visibility | Public |
 | Default branch | `main` |
-| Accepted `main` head | `ee6507b9b7e0f500e77a1ac05a7ca27ac34e821d` |
+| Accepted `main` head | `30a0a85ea4ce8d71ff1435179cd740f4e824c165` |
 | Launch branch | `launch/managed-people-ops-45-day` |
 | Launch consolidation head retained | `ac957e11088fc453cc20cf415f92811fbcffa54f` |
 | Integration path | PR #6, `TeamFrame launch consolidation`, merged into `main` |
@@ -47,7 +47,10 @@ The documentation worktree may contain local documentation commits ahead of the 
 - Its default domain is `https://teamframe-production.vercel.app`; its ready Aug 14 deployment is from `ismaelloveexcel/TeamFrame`, branch `codex/market-ready-implementation`, SHA `37bf104b5d72f81f9936a99ac3134c14bd2de7a5`, not the canonical repository state.
 - It has no Git connection and retains eight Production variable names whose values were not revealed during this inventory. Treat all target values as untrusted until replaced and verified.
 - Historical Supabase ref `zylllrvcmockvfcfubkp` is abandoned for launch and is not visible in the signed-in `Takaven` organisation.
-- The replacement Production Supabase project does not exist yet.
+- The authoritative Production Supabase foundation is `teamframe-production-uae`, ref `ttwsczpzjdjzuhchbyjx`, in Mumbai (`ap-south-1`). It currently remains on Free solely for technical acceptance and contains no customer data.
+- The guarded fresh installer completed once: 45/45 canonical public tables, RLS enabled on all 45, no missing or unexpected tables, required functions/triggers and service-role privileges present, and zero anonymous table access.
+- Private Storage bucket `documents` exists with the canonical 10 MB and MIME-type restrictions. Public access remains disallowed.
+- Free is not an accepted customer go-live posture. Upgrade to Pro, provider daily backups with seven-day retention, MFA and the remaining recovery controls are required before customer data.
 - The Vercel team has no TeamFrame shared environment variables; the two team-shared variables observed belong to another project stack.
 - Production remains blocked until the database, private Storage, Auth/SMTP, backups, Vercel variables, Git connection, cron, health checks, and live security proof are approved and verified.
 - Read-only audit confirmed: Git disconnected; framework `Other`; Node `24.x`; Function region `iad1`; cron `/api/automation/run` at stale schedule `0 6 * * *`; default domain serves historical SHA `37bf104...`; eight Production-only variables added Aug 13 with untrusted values.
