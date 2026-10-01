@@ -2,7 +2,7 @@
 
 This is the non-secret, non-destructive Production specification. It prepares the work but does not authorise infrastructure creation, spend, secret changes, DNS changes, customer data, or deployment.
 
-Last reviewed: 2026-09-30 against `main` SHA `ee6507b9b7e0f500e77a1ac05a7ca27ac34e821d`.
+Last reviewed: 2026-10-01 against `main` SHA `30a0a85ea4ce8d71ff1435179cd740f4e824c165` and the completed Free-plan Production foundation.
 
 The parity audit is complete. The exact configuration, transition order and founder decision pack now live in [PRODUCTION-REBUILD-PLAN.md](PRODUCTION-REBUILD-PLAN.md).
 
@@ -12,12 +12,12 @@ The parity audit is complete. The exact configuration, transition order and foun
 | --- | --- | --- | --- |
 | Source | `takaven/teamframe`, protected branch `main` | Active and accepted | Exact release SHA/tag still requires deployment approval |
 | Hosting | Vercel project `teamframe-production` (`prj_09tvdrEWbL1Ov9SFMtrhgYnJ0bNj`), team `ismaelloveexcels-projects` | **REBUILD-ONLY HISTORICAL SHELL**; all retained values are untrusted | Git connection, configuration replacement and deployment require approval |
-| Database | New project proposed as `teamframe-production-uae`, Supabase organisation `Takaven` | Not created | Final name, Mumbai region, plan and spend require approval |
-| Region | Mumbai / `ap-south-1` | Proposed | Confirm with project plan before creation |
-| Schema | Current canonical 45-table fresh install with RLS/security gates | Installer proof complete on disposable infrastructure | Run once on an approved empty Production target; no manual repair |
-| Storage | Private `documents` bucket and canonical policies | Specification ready | Create only with the approved Production project |
+| Database | `teamframe-production-uae`, ref `ttwsczpzjdjzuhchbyjx`, Supabase organisation `Takaven` | Created on Free for technical acceptance; **NO CUSTOMER DATA** | Upgrade to Pro before customer data/go-live |
+| Region | Mumbai / `ap-south-1` | Confirmed | Do not move or replace without a new Production decision |
+| Schema | Current canonical 45-table fresh install with RLS/security gates | Installed once; 45/45 tables and RLS, zero anon table access, required objects and service-role privileges verified | Do not replay the fresh installer or manually repair this environment |
+| Storage | Private `documents` bucket and canonical restrictions | Created and verified private | Complete signed-access application acceptance before deployment |
 | Email | Resend transactional sender plus Supabase Auth custom SMTP | Provider/account/domain not yet owned in the registry | Account, domain, DNS and credentials require founder/owner action |
-| Backups | Provider-managed database backups plus off-platform logical DB and private-object recovery | Design recorded; plan, retention, RPO/RTO and owners pending | Founder/billing approval required before customer data |
+| Backups | Provider-managed database backups plus off-platform logical DB and private-object recovery | Free build phase: automatic provider backups are not active; 24-hour RPO, 8-business-hour RTO and retention targets are approved | Pro, recovery ownership and off-platform destinations required before customer data |
 | Customer data | Real customer HR data | None | Separate implementation and data-loading approval after Production acceptance |
 
 ## Environment-variable manifest
@@ -112,4 +112,4 @@ No connection or deployment is authorised by this plan.
 
 ## Next step
 
-Execute the grouped founder decisions in [MANUAL-ACTIONS.md](MANUAL-ACTIONS.md) only under a separate, explicit Production authority. Do not mutate the rebuild-only shell before its dependencies are ready.
+Prepare the combined email, DNS, hostname, fresh-secret and Vercel configuration window. Do not connect or deploy the rebuild-only Vercel shell until its dependencies and exact deployment approval are ready. Upgrade Supabase to Pro before customer data/go-live, not during the Free technical-acceptance phase.

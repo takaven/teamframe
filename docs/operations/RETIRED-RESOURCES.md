@@ -2,7 +2,7 @@
 
 This registry prevents historical identifiers from being mistaken for current infrastructure. It is not deletion authority.
 
-Last verified against the accessible provider accounts: 2026-09-29.
+Last verified against the accessible provider accounts: 2026-10-01.
 
 ## GitHub
 
@@ -11,7 +11,7 @@ Last verified against the accessible provider accounts: 2026-09-29.
 | `takaven/teamframe` | ACTIVE canonical repository | KEEP | Only canonical TeamFrame source |
 | `takaven/hirepass` | ACTIVE separate product repository | KEEP | Canonical HirePass source; do not merge into or retire with TeamFrame |
 | `takaven/teamframe-site` | ACTIVE separate commercial website | KEEP | Website source, not application source |
-| branch `main` | ACTIVE protected default at accepted SHA `0216b7711bbc9d09a944f96f5f0d186a4d6dbf6f` | KEEP | Canonical Production/default branch after PR #6 launch consolidation |
+| branch `main` | ACTIVE protected default at accepted SHA `30a0a85ea4ce8d71ff1435179cd740f4e824c165` | KEEP | Canonical Production/default branch after PR #6 launch consolidation and PR #8 Production rebuild plan |
 | branch `launch/managed-people-ops-45-day` | ACTIVE retained evidence/Founder Review branch; PR #6 merged | KEEP until Production acceptance; delete only after no deployment or rollback evidence depends on it | Accepted launch source retained deliberately |
 | branch `brand/apply-final-takaven-logos` | DELETED 2026-09-28; merged in PR #1; had 0 unique commits | RETIRED; never recreate for active work | Merged stale branch |
 | branch `codex/market-ready-implementation` | DELETED 2026-09-28; had 0 unique commits | RETIRED; never recreate for active work | Historical release branch |
@@ -35,12 +35,13 @@ Old deployments inside retained projects need not be deleted for cosmetic reason
 
 ## Supabase — current organisation inventory
 
-All projects below are in `Takaven` (`jdlcphgoqpnztlbklkpc`), Free plan. `NANO` on the dashboard indicates an active compute project; absence of it on 2026-09-28 corresponded to paused state.
+All projects below are in `Takaven` (`jdlcphgoqpnztlbklkpc`). The authoritative Production project remains on Free only for technical acceptance and contains no customer data. `NANO` on the dashboard indicates an active compute project; absence of it corresponded to paused state.
 
 | Project / ref | Status | Known synthetic footprint | Recommendation |
 | --- | --- | --- | --- |
 | `teamframe-founder-review-20260924` / `dcfxyjrfsrkibhpbmjnw` | ACTIVE | Northstar synthetic fixture; 17 employees at original bootstrap; current Review accounts/workflows | KEEP |
-| `teamframe-operator-repeat-rehearsal-2-20260928` / `drohdttbgekrmwubhala` | ACTIVE, replay locked | Current 45-table/RLS/no-anon proof; synthetic Crescent Ridge 50-person setup and four review identities | KEEP TEMPORARILY; DELETE after Production acceptance and approval |
+| `teamframe-production-uae` / `ttwsczpzjdjzuhchbyjx` | ACTIVE, Free technical-acceptance phase | Authoritative empty Production foundation: 45/45 tables and RLS, zero anon table access, private `documents` bucket, no customer data | KEEP; upgrade to Pro before customer data/go-live |
+| `teamframe-operator-repeat-rehearsal-2-20260928` / `drohdttbgekrmwubhala` | PAUSED, preserved, replay locked | Current 45-table/RLS/no-anon proof; synthetic Crescent Ridge 50-person setup and four review identities | KEEP TEMPORARILY; DELETE after Production acceptance and approval |
 | `teamframe-s3-restore-proof-2-disposable-20260923` / `zdwhsxhpireckvqdqdkh` | PAUSED | Restore-proof purpose; final counts not present in canonical repository evidence inspected | REVIEW, then delete after exact data/reference check and approval |
 | `teamframe-northstar-demo-persistent-20260923` / `sgndpkvjrqsffwclrujp` | PAUSED | Older Northstar synthetic demo; final counts not present in canonical repository evidence inspected | REVIEW; likely delete after confirming Founder Review supersedes it |
 
