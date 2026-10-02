@@ -75,8 +75,34 @@ describe("auth callback", () => {
     expect(redirectLocation(response)).toBe("https://teamframe.example/auth/update-password");
     expect(response.headers.get("set-cookie")).toContain("tf-password-recovery=auth-user-1");
     expect(response.headers.get("set-cookie")).toContain("HttpOnly");
+    expect(mocks.verifyOtp).toHaveBeenCalledWith({
+      token_hash: "fresh",
+      type: "recovery",
+    });
     expect(mocks.resolveIdentity).not.toHaveBeenCalled();
     expect(mocks.track).not.toHaveBeenCalled();
+  });
+
+  it("rejects unsupported auth types before token verification", async () => {
+    const response = await GET(
+      new Request("https://teamframe.example/auth/callback?token_hash=fresh&type=unsupported"),
+    );
+
+    expect(redirectLocation(response)).toBe(
+      "https://teamframe.example/auth?error=callback_failed&reason=invalid_type",
+    );
+    expect(mocks.verifyOtp).not.toHaveBeenCalled();
+  });
+
+  it("rejects a recovery callback with no token", async () => {
+    const response = await GET(
+      new Request("https://teamframe.example/auth/callback?type=recovery"),
+    );
+
+    expect(redirectLocation(response)).toBe(
+      "https://teamframe.example/auth/update-password?reason=invalid_or_expired",
+    );
+    expect(mocks.verifyOtp).not.toHaveBeenCalled();
   });
 
   it("routes an expired recovery token to an explicit invalid state", async () => {
@@ -91,6 +117,21 @@ describe("auth callback", () => {
 
     expect(redirectLocation(response)).toBe(
       "https://teamframe.example/auth/update-password?reason=expired_link",
+    );
+  });
+
+  it("routes a reused recovery token to an explicit invalid state", async () => {
+    mocks.verifyOtp.mockResolvedValue({
+      data: { user: null },
+      error: { message: "Token has already been used" },
+    });
+
+    const response = await GET(
+      new Request("https://teamframe.example/auth/callback?token_hash=used&type=recovery"),
+    );
+
+    expect(redirectLocation(response)).toBe(
+      "https://teamframe.example/auth/update-password?reason=already_used_link",
     );
   });
 

@@ -5,6 +5,15 @@ import { track } from "@/lib/telemetry/track";
 import { RECOVERY_COOKIE_NAME } from "@/lib/auth/recovery";
 
 const NEXT_ALLOWLIST = ["/dashboard", "/home", "/people", "/employees", "/directory", "/documents-and-policies", "/leaves", "/onboarding", "/manager", "/me", "/reports", "/access", "/setup", "/company"] as const;
+const AUTH_TYPES = ["magiclink", "email", "signup", "invite", "recovery", "email_change"] as const;
+type AuthType = (typeof AUTH_TYPES)[number];
+
+function authType(raw: string | null): AuthType | null {
+  const candidate = raw ?? "magiclink";
+  return AUTH_TYPES.some((value) => value === candidate)
+    ? (candidate as AuthType)
+    : null;
+}
 
 function safeNext(raw: string | null): string {
   if (!raw) return "";
@@ -88,15 +97,13 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const tokenHash = url.searchParams.get("token_hash");
-  const typeParam = (url.searchParams.get("type") ?? "magiclink") as
-    | "magiclink"
-    | "email"
-    | "signup"
-    | "invite"
-    | "recovery"
-    | "email_change";
+  const typeParam = authType(url.searchParams.get("type"));
   const next = safeNext(url.searchParams.get("next"));
   const providerError = url.searchParams.get("error_description") ?? url.searchParams.get("error");
+
+  if (!typeParam) {
+    return callbackErrorRedirect(url, "invalid_type");
+  }
 
   try {
     const supabase = await createServerClient();

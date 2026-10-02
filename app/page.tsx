@@ -3,7 +3,6 @@ import Image from "next/image";
 import dashboardShot from "@/public/marketing/dashboard-risk-signals.png";
 import { BrandLogo } from "@/components/BrandLogo";
 import { TakavenEndorsement } from "@/components/TakavenEndorsement";
-import { RecoveryRedirect } from "@/components/RecoveryRedirect";
 
 // Pilot-request contact address. Set NEXT_PUBLIC_PILOT_CONTACT_EMAIL in the
 // environment (see .env.example). The founder owns this value; keep the
@@ -35,7 +34,6 @@ const FEATURES = [
 export default function Home() {
   return (
     <main className="tf-public-page mx-auto min-h-screen max-w-5xl px-6 py-10 md:py-14">
-      <RecoveryRedirect />
       <header className="tf-public-header flex items-center justify-between pb-5">
         <BrandLogo className="h-auto w-48" priority />
         <Link href="/auth" className="text-[14px] text-ink-700 transition hover:text-ink-900">
