@@ -55,9 +55,9 @@ async function signInAdminAction(formData: FormData): Promise<void> {
 export default async function AdminLoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; email?: string }>;
+  searchParams: Promise<{ error?: string; email?: string; password_updated?: string }>;
 }) {
-  const { error, email } = await searchParams;
+  const { error, email, password_updated: passwordUpdated } = await searchParams;
   const errorMessage = error ? ERROR_COPY[error] : null;
   const prefillEmail = error && typeof email === "string" ? email.slice(0, 254) : "";
 
@@ -88,6 +88,11 @@ export default async function AdminLoginPage({
         </div>
 
         <form action={signInAdminAction} className="mt-[34px] space-y-[22px]">
+          {passwordUpdated ? (
+            <p role="status" className="rounded-lg border border-ink-300/80 bg-white/80 px-4 py-3 text-[13px] text-signal-green">
+              Password updated. Sign in with your new password.
+            </p>
+          ) : null}
           <FloatingField
             label="Work email"
             id="email"
