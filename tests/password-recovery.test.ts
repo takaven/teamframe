@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { AuthSessionMissingError } from "@supabase/supabase-js";
 import { describe, expect, it, vi } from "vitest";
 import {
   isServerRecoveryBoundToUser,
@@ -31,6 +32,21 @@ describe("password recovery", () => {
   it("updates only the active user's password and clears the local recovery session", async () => {
     const updateUser = vi.fn().mockResolvedValue({ error: null });
     const signOut = vi.fn().mockResolvedValue({ error: null });
+
+    const result = await updateRecoveredPassword(
+      { auth: { updateUser, signOut } },
+      "new-password",
+      "new-password",
+    );
+
+    expect(result).toEqual({ ok: true });
+    expect(updateUser).toHaveBeenCalledWith({ password: "new-password" });
+    expect(signOut).toHaveBeenCalledWith({ scope: "local" });
+  });
+
+  it("treats an already-missing local session as successful cleanup", async () => {
+    const updateUser = vi.fn().mockResolvedValue({ error: null });
+    const signOut = vi.fn().mockResolvedValue({ error: new AuthSessionMissingError() });
 
     const result = await updateRecoveredPassword(
       { auth: { updateUser, signOut } },
