@@ -59,6 +59,41 @@ describe("auth callback", () => {
     );
   });
 
+  it("routes a valid recovery session to the password update screen", async () => {
+    mocks.verifyOtp.mockResolvedValue({
+      data: { user: { id: "auth-user-1" } },
+      error: null,
+    });
+    mocks.getUser.mockResolvedValue({
+      data: { user: { id: "auth-user-1" } },
+    });
+
+    const response = await GET(
+      new Request("https://teamframe.example/auth/callback?token_hash=fresh&type=recovery"),
+    );
+
+    expect(redirectLocation(response)).toBe("https://teamframe.example/auth/update-password");
+    expect(response.headers.get("set-cookie")).toContain("tf-password-recovery=auth-user-1");
+    expect(response.headers.get("set-cookie")).toContain("HttpOnly");
+    expect(mocks.resolveIdentity).not.toHaveBeenCalled();
+    expect(mocks.track).not.toHaveBeenCalled();
+  });
+
+  it("routes an expired recovery token to an explicit invalid state", async () => {
+    mocks.verifyOtp.mockResolvedValue({
+      data: { user: null },
+      error: { message: "Token has expired" },
+    });
+
+    const response = await GET(
+      new Request("https://teamframe.example/auth/callback?token_hash=old&type=recovery"),
+    );
+
+    expect(redirectLocation(response)).toBe(
+      "https://teamframe.example/auth/update-password?reason=expired_link",
+    );
+  });
+
   it("rejects employee sessions that are not linked to an employee and tenant", async () => {
     mocks.verifyOtp.mockResolvedValue({
       data: { user: { id: "auth-user-1" } },

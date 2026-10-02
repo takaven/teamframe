@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/db/supabaseServer";
 import { resolveIdentity } from "@/lib/rbac/roles";
 import { track } from "@/lib/telemetry/track";
+import { RECOVERY_COOKIE_NAME } from "@/lib/auth/recovery";
 
 const NEXT_ALLOWLIST = ["/dashboard", "/home", "/people", "/employees", "/directory", "/documents-and-policies", "/leaves", "/onboarding", "/manager", "/me", "/reports", "/access", "/setup", "/company"] as const;
 
@@ -31,6 +32,24 @@ function classifyAuthFailureMessage(message: string): string {
 
 function callbackErrorRedirect(url: URL, reason: string): NextResponse {
   return NextResponse.redirect(new URL(`/auth?error=callback_failed&reason=${encodeURIComponent(reason)}`, url));
+}
+
+function recoveryErrorRedirect(url: URL, reason: string): NextResponse {
+  return NextResponse.redirect(
+    new URL(`/auth/update-password?reason=${encodeURIComponent(reason)}`, url),
+  );
+}
+
+function recoverySuccessRedirect(url: URL, userId: string): NextResponse {
+  const response = NextResponse.redirect(new URL("/auth/update-password", url));
+  response.cookies.set(RECOVERY_COOKIE_NAME, userId, {
+    httpOnly: true,
+    secure: url.protocol === "https:",
+    sameSite: "lax",
+    maxAge: 120,
+    path: "/auth/update-password",
+  });
+  return response;
 }
 
 function roleDefaultPath(role: string): string {
@@ -83,6 +102,9 @@ export async function GET(request: Request) {
     const supabase = await createServerClient();
 
     if (providerError) {
+      if (typeParam === "recovery") {
+        return recoveryErrorRedirect(url, classifyAuthFailureMessage(providerError));
+      }
       const recoveredSession = await recoverExistingSession({ supabase, url, next });
       if (recoveredSession) {
         return recoveredSession;
@@ -95,7 +117,13 @@ export async function GET(request: Request) {
         data: { user: existingUser },
       } = await supabase.auth.getUser();
       if (!existingUser) {
-        return callbackErrorRedirect(url, "missing_token");
+        return typeParam === "recovery"
+          ? recoveryErrorRedirect(url, "invalid_or_expired")
+          : callbackErrorRedirect(url, "missing_token");
+      }
+
+      if (typeParam === "recovery") {
+        return recoveryErrorRedirect(url, "missing_token");
       }
 
       try {
@@ -116,6 +144,12 @@ export async function GET(request: Request) {
       });
 
       if (error || !data?.user) {
+        if (typeParam === "recovery") {
+          return recoveryErrorRedirect(
+            url,
+            classifyAuthFailureMessage(error?.message ?? "invalid_link"),
+          );
+        }
         const recoveredSession = await recoverExistingSession({ supabase, url, next });
         if (recoveredSession) {
           return recoveredSession;
@@ -125,6 +159,9 @@ export async function GET(request: Request) {
     } else {
       const { error } = await supabase.auth.exchangeCodeForSession(code ?? "");
       if (error) {
+        if (typeParam === "recovery") {
+          return recoveryErrorRedirect(url, classifyAuthFailureMessage(error.message));
+        }
         const recoveredSession = await recoverExistingSession({ supabase, url, next });
         if (recoveredSession) {
           return recoveredSession;
@@ -138,7 +175,13 @@ export async function GET(request: Request) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return callbackErrorRedirect(url, "session_not_found");
+      return typeParam === "recovery"
+        ? recoveryErrorRedirect(url, "invalid_or_expired")
+        : callbackErrorRedirect(url, "session_not_found");
+    }
+
+    if (typeParam === "recovery") {
+      return recoverySuccessRedirect(url, user.id);
     }
 
     const identity = await resolveIdentity(user.id);
