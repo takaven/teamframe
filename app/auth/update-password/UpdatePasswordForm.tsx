@@ -2,16 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import { createBrowserClient } from "@supabase/ssr";
+import { useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { FloatingField } from "@/components/FloatingField";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
-import {
-  canEnterPasswordRecovery,
-  classifyRecoveryHash,
-  updateRecoveredPassword,
-} from "@/lib/auth/recovery";
 
 type RecoveryStatus =
   | "checking"
@@ -21,13 +15,6 @@ type RecoveryStatus =
   | "invalid"
   | "cleanup_failed";
 
-function requiredPublicEnv(name: string, value: string | undefined): string {
-  if (!value) {
-    throw new Error(`Missing public authentication configuration: ${name}`);
-  }
-  return value;
-}
-
 export function UpdatePasswordForm({
   serverVerifiedRecovery,
   invalidReason,
@@ -36,98 +23,32 @@ export function UpdatePasswordForm({
   invalidReason: string | null;
 }) {
   const router = useRouter();
-  const [status, setStatus] = useState<RecoveryStatus>("checking");
+  const [status, setStatus] = useState<RecoveryStatus>(
+    invalidReason || !serverVerifiedRecovery ? "invalid" : "ready",
+  );
   const [message, setMessage] = useState<string | null>(null);
-  const supabaseRef = useRef<ReturnType<typeof createBrowserClient> | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    let recoveryEventObserved = false;
-    let invalidationTimer: number | null = null;
-    const hashState = classifyRecoveryHash(window.location.hash);
-
-    if (hashState === "invalid" || invalidReason) {
-      setStatus("invalid");
-      return;
-    }
-
-    if (hashState !== "recovery" && !serverVerifiedRecovery) {
-      setStatus("invalid");
-      return;
-    }
-
-    const supabase = createBrowserClient(
-      requiredPublicEnv("NEXT_PUBLIC_SUPABASE_URL", process.env.NEXT_PUBLIC_SUPABASE_URL),
-      requiredPublicEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
-    );
-    supabaseRef.current = supabase;
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!active || event !== "PASSWORD_RECOVERY" || !session?.user) return;
-      recoveryEventObserved = true;
-      setStatus("ready");
-    });
-
-    void supabase.auth.getSession().then(({ data, error }) => {
-      if (!active) return;
-      const hasSession = Boolean(data.session) && !error;
-      if (
-        canEnterPasswordRecovery({
-          hashState,
-          serverVerifiedRecovery,
-          recoveryEventObserved,
-          hasSession,
-        })
-      ) {
-        setStatus("ready");
-        return;
-      }
-
-      if (!hasSession) {
-        setStatus("invalid");
-        return;
-      }
-
-      // Supabase emits PASSWORD_RECOVERY just after URL-session initialization.
-      // A normal existing session never emits it and must not unlock this page.
-      invalidationTimer = window.setTimeout(() => {
-        if (active && !recoveryEventObserved) setStatus("invalid");
-      }, 1000);
-    });
-
-    return () => {
-      active = false;
-      if (invalidationTimer !== null) window.clearTimeout(invalidationTimer);
-      subscription.unsubscribe();
-    };
-  }, [invalidReason, serverVerifiedRecovery]);
 
   async function submitPassword(formData: FormData) {
     setMessage(null);
     setStatus("submitting");
 
-    const supabase = supabaseRef.current;
-    if (!supabase) {
-      setMessage("Password reset is not ready. Open a fresh recovery link and try again.");
-      setStatus("invalid");
-      return;
-    }
-
-    const result = await updateRecoveredPassword(
-      supabase,
-      String(formData.get("password") ?? ""),
-      String(formData.get("password_confirmation") ?? ""),
-      async () => {
-        const response = await fetch("/auth/update-password/complete", { method: "POST" });
-        return response.ok;
-      },
-    );
+    const response = await fetch("/auth/update-password/complete", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        password: String(formData.get("password") ?? ""),
+        confirmation: String(formData.get("password_confirmation") ?? ""),
+      }),
+    });
+    const result = (await response.json()) as {
+      ok: boolean;
+      message?: string;
+      passwordUpdated?: boolean;
+    };
 
     if (!result.ok) {
-      setMessage(result.message);
-      setStatus(result.passwordUpdated ? "cleanup_failed" : "ready");
+      setMessage(result.message ?? "Password could not be updated.");
+      setStatus(response.status === 403 ? "invalid" : result.passwordUpdated ? "cleanup_failed" : "ready");
       return;
     }
 
