@@ -1,3 +1,5 @@
+import { isAuthSessionMissingError } from "@supabase/supabase-js";
+
 export const RECOVERY_COOKIE_NAME = "tf-password-recovery";
 
 export type PasswordUpdateClient = {
@@ -45,7 +47,8 @@ export async function updateRecoveredPassword(
   }
 
   const { error: signOutError } = await client.auth.signOut({ scope: "local" });
-  if (signOutError || !markerCleared) {
+  const sessionCleared = !signOutError || isAuthSessionMissingError(signOutError);
+  if (!sessionCleared || !markerCleared) {
     return {
       ok: false,
       passwordUpdated: true,
