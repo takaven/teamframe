@@ -93,6 +93,18 @@ const ALLOWLIST = [
     reason: "The existing global scheduler enumerates tenant roots so each company digest can then be processed within its verified tenant scope.",
   },
   {
+    file: "services/performanceReviewService.ts",
+    table: "performance_review_cycles",
+    enclosingFn: "runPerformanceReviewReminders",
+    reason: "The authenticated global scheduler enumerates due cycles across tenants, then verifies each review tenant against its cycle before tenant-scoped notification and update.",
+  },
+  {
+    file: "services/performanceReviewService.ts",
+    table: "performance_reviews",
+    enclosingFn: "runPerformanceReviewReminders",
+    reason: "The authenticated global scheduler reads only reviews belonging to the enumerated due cycles and applies every notification/update with the row's verified tenant id.",
+  },
+  {
     file: "services/notificationService.ts",
     table: "tenant_memberships",
     enclosingFn: "runDailyDigests",

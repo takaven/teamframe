@@ -112,6 +112,8 @@ export type SystemLeaveType = "annual" | "sick" | "unpaid" | "other";
 export type LeaveDefinition = {
   id: string; code: string; display_name: string; system_leave_type: SystemLeaveType; active: boolean;
   default_entitlement_days: number | null; counting_basis: CountingBasis; attachment_requirement: AttachmentRequirement;
+  accrual_enabled: boolean; accrual_frequency: "monthly" | "annual"; joining_date_pro_rata: boolean;
+  carry_forward_enabled: boolean; carry_forward_cap_days: number | null;
   is_system: boolean; sort_order: number;
 };
 
@@ -122,6 +124,11 @@ const LeaveDefinitionInputSchema = z.object({
   default_entitlement_days: z.number().min(0).max(365).nullable(),
   counting_basis: z.enum(["working_days", "calendar_days"]),
   attachment_requirement: z.enum(["not_required", "optional", "required"]),
+  accrual_enabled: z.boolean(),
+  accrual_frequency: z.enum(["monthly", "annual"]),
+  joining_date_pro_rata: z.boolean(),
+  carry_forward_enabled: z.boolean(),
+  carry_forward_cap_days: z.number().min(0).max(365).nullable(),
 });
 
 function slugify(name: string): string {
@@ -134,7 +141,7 @@ export async function listLeaveDefinitions(actor: Actor): Promise<LeaveDefinitio
   const supabase = createServiceRoleClient();
   const query = await supabase
     .from("leave_definitions")
-    .select("id, code, display_name, system_leave_type, active, default_entitlement_days, counting_basis, attachment_requirement, is_system, sort_order")
+    .select("id, code, display_name, system_leave_type, active, default_entitlement_days, counting_basis, attachment_requirement, accrual_enabled, accrual_frequency, joining_date_pro_rata, carry_forward_enabled, carry_forward_cap_days, is_system, sort_order")
     .eq("tenant_id", tenantId)
     .is("archived_at", null)
     .order("sort_order", { ascending: true })
@@ -157,6 +164,9 @@ export async function createLeaveDefinition(actor: Actor, input: unknown): Promi
     tenant_id: tenantId, code, display_name: parsed.display_name, system_leave_type: parsed.system_leave_type,
     active: parsed.active, default_entitlement_days: parsed.default_entitlement_days, counting_basis: parsed.counting_basis,
     attachment_requirement: parsed.attachment_requirement, is_system: false, sort_order: 100,
+    accrual_enabled: parsed.accrual_enabled, accrual_frequency: parsed.accrual_frequency,
+    joining_date_pro_rata: parsed.joining_date_pro_rata, carry_forward_enabled: parsed.carry_forward_enabled,
+    carry_forward_cap_days: parsed.carry_forward_cap_days,
   } as never);
   if (error) throw new Error(`LEAVE_DEFINITION_CREATE_FAILED: ${error.message}`);
 }
@@ -170,6 +180,9 @@ export async function updateLeaveDefinition(actor: Actor, id: string, input: unk
   const { error } = await supabase.from("leave_definitions").update({
     display_name: parsed.display_name, active: parsed.active, default_entitlement_days: parsed.default_entitlement_days,
     counting_basis: parsed.counting_basis, attachment_requirement: parsed.attachment_requirement,
+    accrual_enabled: parsed.accrual_enabled, accrual_frequency: parsed.accrual_frequency,
+    joining_date_pro_rata: parsed.joining_date_pro_rata, carry_forward_enabled: parsed.carry_forward_enabled,
+    carry_forward_cap_days: parsed.carry_forward_cap_days,
   } as never).eq("tenant_id", tenantId).eq("id", id);
   if (error) throw new Error(`LEAVE_DEFINITION_UPDATE_FAILED: ${error.message}`);
 }

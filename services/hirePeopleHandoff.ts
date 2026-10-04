@@ -39,6 +39,7 @@ export async function createEmployeeFromReviewedHire(
   actor: Actor,
   untrustedSnapshot: unknown,
 ): Promise<{ employeeId: string }> {
+  if (process.env.TEAMFRAME_HIRE_BRIDGE_ENABLED !== "true") throw new Error("HIRE_HANDOFF_DISABLED");
   if (actor.role !== "admin") throw new Error("FORBIDDEN");
   if (!actor.tenantId) throw new Error("NO_TENANT_CONTEXT");
   const snapshot = HirePeopleSnapshotSchema.parse(untrustedSnapshot);

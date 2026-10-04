@@ -19,7 +19,7 @@ import { AppShell } from "@/components/AppShell";
 import { listEmployeesForAdmin } from "@/services/employeeService";
 import { EmptyState } from "@/components/EmptyState";
 import { StatusPill, type StatusPillTone } from "@/components/StatusPill";
-import { cancelLeaveAction, decideLeaveAction, downloadLeaveEvidenceAction, submitLeaveAction, submitLeaveForEmployeeAction, withdrawLeaveAction } from "./actions";
+import { addLeaveBalanceEntryAction, cancelLeaveAction, decideLeaveAction, downloadLeaveEvidenceAction, submitLeaveAction, submitLeaveForEmployeeAction, withdrawLeaveAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +28,7 @@ const STATUS_COPY: Record<string, string> = {
   decided_rejected: "Request declined.",
   leave_withdrawn: "Leave request withdrawn.",
   leave_cancelled: "Approved leave cancelled.",
+  leave_balance_updated: "Leave balance entry recorded.",
 };
 
 const ERROR_COPY: Record<string, string> = {
@@ -185,6 +186,7 @@ export default async function LeavesPage({
               <label className="text-[12px] text-ink-500">Time-off type<select name="leave_definition_id" required className="tf-select-sm mt-1 w-full">{activeDefinitions.map((definition) => <option key={definition.id} value={definition.id}>{definition.display_name}</option>)}</select></label>
               <label className="text-[12px] text-ink-500">Starts<DateField name="start_date" dense required /></label>
               <label className="text-[12px] text-ink-500">Ends<DateField name="end_date" dense required /></label>
+              <label className="text-[12px] text-ink-500">Day portion<select name="day_part" defaultValue="full_day" className="tf-select-sm mt-1 w-full"><option value="full_day">Full day(s)</option><option value="morning">Morning half-day</option><option value="afternoon">Afternoon half-day</option></select></label>
               <label className="text-[12px] text-ink-500 md:col-span-2">Reason<textarea name="reason" maxLength={500} className="tf-input mt-1 min-h-20 w-full p-3" /></label>
               <div className="md:col-span-2"><FileInput name="attachment" label="Add supporting file (optional)" /></div>
               <div className="md:col-span-2"><PendingSubmitButton idleLabel="Record time off" pendingLabel="Recording…" className="tf-primary-action px-4 py-2 text-[13px]" /></div>
@@ -192,9 +194,9 @@ export default async function LeavesPage({
           </section>
         ) : view === "balances" ? (
           <section className="mt-8 tf-surface-flat overflow-hidden"><div className="overflow-x-auto"><table className="min-w-full text-left text-[13px]">
-            <thead className="border-b border-ink-200 text-[11px] uppercase tracking-[0.1em] text-ink-500"><tr><th className="px-4 py-3">Person</th><th className="px-4 py-3">Type</th><th className="px-4 py-3 text-right">Entitlement</th><th className="px-4 py-3 text-right">Taken</th><th className="px-4 py-3 text-right">Pending</th><th className="px-4 py-3 text-right">Available</th></tr></thead>
-            <tbody className="divide-y divide-ink-100">{employeeBalances.flatMap(({ employee, balances }) => balances.map((balance) => <tr key={`${employee.id}:${balance.definition_id}`}><td className="px-4 py-3 font-semibold"><a href={`/people/${employee.id}#time-off`} className="hover:underline">{employee.full_name}</a></td><td className="px-4 py-3">{balance.display_name}</td><td className="px-4 py-3 text-right tabular-nums">{balance.entitlement ?? "—"}</td><td className="px-4 py-3 text-right tabular-nums">{balance.taken}</td><td className="px-4 py-3 text-right tabular-nums">{balance.pending}</td><td className="px-4 py-3 text-right tabular-nums">{balance.available ?? "—"}</td></tr>))}</tbody>
-          </table></div></section>
+            <thead className="border-b border-ink-200 text-[11px] uppercase tracking-[0.1em] text-ink-500"><tr><th className="px-4 py-3">Person</th><th className="px-4 py-3">Type</th><th className="px-4 py-3 text-right">Opening</th><th className="px-4 py-3 text-right">Carried</th><th className="px-4 py-3 text-right">Accrued</th><th className="px-4 py-3 text-right">Adjustments</th><th className="px-4 py-3 text-right">Taken</th><th className="px-4 py-3 text-right">Pending</th><th className="px-4 py-3 text-right">Available</th></tr></thead>
+            <tbody className="divide-y divide-ink-100">{employeeBalances.flatMap(({ employee, balances }) => balances.map((balance) => <tr key={`${employee.id}:${balance.definition_id}`}><td className="px-4 py-3 font-semibold"><a href={`/people/${employee.id}#time-off`} className="hover:underline">{employee.full_name}</a></td><td className="px-4 py-3">{balance.display_name}</td><td className="px-4 py-3 text-right tabular-nums">{balance.opening}</td><td className="px-4 py-3 text-right tabular-nums">{balance.carried_forward}</td><td className="px-4 py-3 text-right tabular-nums">{balance.accrued}</td><td className="px-4 py-3 text-right tabular-nums">{balance.adjustments}</td><td className="px-4 py-3 text-right tabular-nums">{balance.taken}</td><td className="px-4 py-3 text-right tabular-nums">{balance.pending}</td><td className="px-4 py-3 text-right tabular-nums">{balance.available}</td></tr>))}</tbody>
+          </table></div><form action={addLeaveBalanceEntryAction} className="grid gap-3 border-t border-ink-200 p-4 md:grid-cols-3"><h3 className="font-semibold md:col-span-3">Record an audited balance entry</h3><label className="text-[12px] text-ink-500">Person<select name="employee_id" required className="tf-select-sm mt-1 w-full">{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.full_name}</option>)}</select></label><label className="text-[12px] text-ink-500">Leave type<select name="leave_definition_id" required className="tf-select-sm mt-1 w-full">{activeDefinitions.map((definition) => <option key={definition.id} value={definition.id}>{definition.display_name}</option>)}</select></label><label className="text-[12px] text-ink-500">Entry<select name="entry_kind" defaultValue="admin_adjustment" className="tf-select-sm mt-1 w-full"><option value="admin_adjustment">Adjustment</option><option value="opening">Opening balance</option><option value="carry_forward">Carry-forward</option></select></label><label className="text-[12px] text-ink-500">Balance year<input name="balance_year" type="number" min="2000" max="2200" defaultValue={year} className="tf-input mt-1" required /></label><label className="text-[12px] text-ink-500">Source year (carry-forward only)<input name="source_year" type="number" min="2000" max="2200" defaultValue={year - 1} className="tf-input mt-1" /></label><label className="text-[12px] text-ink-500">Amount in days (+/−)<input name="amount_days" type="number" step="0.5" min="-365" max="365" className="tf-input mt-1" required /></label><label className="text-[12px] text-ink-500">Effective date<input name="effective_date" type="date" defaultValue={`${year}-01-01`} className="tf-input mt-1" required /></label><label className="text-[12px] text-ink-500 md:col-span-2">Reason<input name="reason" maxLength={500} className="tf-input mt-1" required /></label><div className="md:col-span-3"><PendingSubmitButton idleLabel="Record balance entry" pendingLabel="Recording…" className="tf-primary-action px-4 py-2 text-[13px]" /></div></form></section>
         ) : view === "away" ? (
           <section className="mt-8 rounded-xl border border-ink-300/70 bg-white/80">
             <div className="border-b border-ink-300/60 px-5 py-4"><h2 className="text-[17px] font-medium">Who&apos;s away</h2><p className="mt-1 text-[13px] text-ink-500">Approved time off today and in the next 30 days.</p></div>
@@ -219,7 +221,7 @@ export default async function LeavesPage({
                 // per-definition available (which already nets this pending request) is negative —
                 // the same condition the approval engine enforces.
                 const defBal = leave.definition_balance;
-                const customShortfall = defBal && defBal.available !== null && defBal.available < 0 ? -defBal.available : 0;
+                const customShortfall = defBal && defBal.available !== null ? Math.max(leave.requested_days - defBal.available, 0) : 0;
                 const shortfall = Math.max(annualShortfall, customShortfall, 0);
                 const shortfallLabel = customShortfall > 0 ? (leave.leave_definition_name ?? "custom") : "annual";
                 return (
@@ -371,7 +373,7 @@ export default async function LeavesPage({
                 <div key={`mobile-${balance.definition_id}`} className="px-4 py-4">
                   <p className="text-[14px] font-semibold text-ink-900">{balance.display_name}</p>
                   <p className="mt-1 text-[13px] text-ink-700"><span className="font-semibold tabular-nums">{balance.available ?? "—"}</span> available · <span className="tabular-nums">{balance.taken}</span> taken · <span className="tabular-nums">{balance.pending}</span> pending</p>
-                  <p className="mt-1 text-[12px] text-ink-600">Entitlement: <span className="tabular-nums">{balance.entitlement ?? "—"}</span></p>
+                  <p className="mt-1 text-[12px] text-ink-600">Opening {balance.opening} + carried {balance.carried_forward} + accrued {balance.accrued} + adjustments {balance.adjustments}</p>
                 </div>
               ))}
             </div>
@@ -379,7 +381,10 @@ export default async function LeavesPage({
               <thead className="border-b border-ink-200 text-[11px] uppercase tracking-[0.1em] text-ink-500">
                 <tr>
                   <th className="px-4 py-3 font-medium">Leave type</th>
-                  <th className="px-4 py-3 font-medium text-right">Entitlement</th>
+                  <th className="px-4 py-3 font-medium text-right">Opening</th>
+                  <th className="px-4 py-3 font-medium text-right">Carried</th>
+                  <th className="px-4 py-3 font-medium text-right">Accrued</th>
+                  <th className="px-4 py-3 font-medium text-right">Adjustments</th>
                   <th className="px-4 py-3 font-medium text-right">Taken</th>
                   <th className="px-4 py-3 font-medium text-right">Pending approval</th>
                   <th className="px-4 py-3 font-medium text-right">Available</th>
@@ -389,7 +394,10 @@ export default async function LeavesPage({
                 {definitionBalances.map((b) => (
                   <tr key={b.definition_id}>
                     <td className="px-4 py-2 font-medium text-ink-900">{b.display_name}</td>
-                    <td className="px-4 py-2 text-right tabular-nums">{b.entitlement ?? "—"}</td>
+                    <td className="px-4 py-2 text-right tabular-nums">{b.opening}</td>
+                    <td className="px-4 py-2 text-right tabular-nums">{b.carried_forward}</td>
+                    <td className="px-4 py-2 text-right tabular-nums">{b.accrued}</td>
+                    <td className="px-4 py-2 text-right tabular-nums">{b.adjustments}</td>
                     <td className="px-4 py-2 text-right tabular-nums">{b.taken}</td>
                     <td className="px-4 py-2 text-right tabular-nums">{b.pending}</td>
                     <td className="px-4 py-2 text-right tabular-nums">{b.available ?? "—"}</td>
@@ -421,6 +429,7 @@ export default async function LeavesPage({
                 To
                 <DateField name="end_date" required />
               </label>
+              <label className="flex flex-col gap-1 text-[12px] text-ink-500 sm:col-span-2">Day portion<select name="day_part" defaultValue="full_day" className="rounded-md border border-ink-300 px-3 py-2 text-[14px]"><option value="full_day">Full day(s)</option><option value="morning">Morning half-day</option><option value="afternoon">Afternoon half-day</option></select><span className="text-[11px] text-ink-400">Half-days must use the same From and To date.</span></label>
               <label className="flex flex-col gap-1 text-[12px] text-ink-500 sm:col-span-2">
                 Reason
                 <input name="reason" maxLength={500} className="rounded-md border border-ink-300 px-3 py-2 text-[14px]" />

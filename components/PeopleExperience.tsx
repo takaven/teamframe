@@ -66,12 +66,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { listCustomFieldDefinitions, listCustomFieldValues } from "@/services/customFieldService";
 import { savePersonCustomFieldsAction } from "@/app/people/custom-field-actions";
+import { listPerformanceReviews } from "@/services/performanceReviewService";
 
 export const dynamic = "force-dynamic";
 
 const STATUS_COPY: Record<string, string> = {
   created: "Employee created.",
-  hire_handoff_created: "Hire handoff saved. Invitation has not been sent; review the employee before inviting.",
+  hire_handoff_created: "TeamFrame Hire starter created. Invitation has not been sent; review the employee before inviting.",
   updated: "Employee updated.",
   offboarding_started: "Offboarding started.",
   offboarding_cancelled: "Offboarding cancelled.",
@@ -97,11 +98,12 @@ const ERROR_COPY: Record<string, string> = {
   MISSING_EXPECTED_UPDATED_AT: "This action is out of date. Refresh and retry.",
   NO_PATCH_FIELDS: "No editable fields were provided.",
   EMPLOYEE_CREATE_FAILED: "Could not create employee.",
-  HIRE_HANDOFF_INVALID_SNAPSHOT: "The reviewed Hire snapshot or People mapping is incomplete.",
-  HIRE_HANDOFF_CONFLICT: "This Hire candidate was already transferred with different details. Review the existing employee; no duplicate was created.",
-  HIRE_HANDOFF_REVIEW_REQUIRED: "Confirm that you reviewed the accepted offer and hired candidate in HirePass.",
-  HIRE_HANDOFF_SOURCE_NOT_CONFIGURED: "The stable HirePass source is not configured for this customer. No employee was created.",
-  HIRE_HANDOFF_FAILED: "Hire handoff failed; no partial employee was saved. Review the details before trying again.",
+  HIRE_HANDOFF_INVALID_SNAPSHOT: "The TeamFrame Hire candidate details are incomplete.",
+  HIRE_HANDOFF_CONFLICT: "This candidate was already used to create a different starter record. Review the existing employee; no duplicate was created.",
+  HIRE_HANDOFF_REVIEW_REQUIRED: "Confirm that you reviewed the accepted offer and hired candidate in TeamFrame Hire.",
+  HIRE_HANDOFF_SOURCE_NOT_CONFIGURED: "TeamFrame Hire is not enabled for this workspace. No person was created.",
+  HIRE_HANDOFF_FAILED: "The TeamFrame Hire transfer failed; no partial person was saved.",
+  HIRE_HANDOFF_DISABLED: "TeamFrame Hire transfer is not enabled for this workspace.",
   EMPLOYEE_UPDATE_FAILED: "Could not update employee.",
   EMPLOYEE_DELETE_FAILED: "Could not archive employee.",
   OFFBOARDING_START_FAILED: "Could not start offboarding.",
@@ -132,6 +134,7 @@ const ERROR_COPY: Record<string, string> = {
   DOCUMENT_FETCH_FAILED: "Document could not be found.",
   DOCUMENT_SIGNED_URL_FAILED: "Could not generate document download link.",
   DOCUMENT_DELETE_FAILED: "Could not delete document.",
+  UAE_RECORD_COUNTRY_REQUIRED: "UAE employment records can only be added to an employee whose work country is United Arab Emirates.",
   EMPLOYMENT_CHANGE_RECORD_FAILED: "Could not record the employment change.",
   EMPLOYMENT_CHANGE_CANCEL_FAILED: "Could not cancel the employment change.",
   EMPLOYMENT_CHANGE_CONFLICT: "A pending change already exists for that employee, date, and field.",
@@ -179,6 +182,14 @@ function formatDate(value: string | null): string {
     month: "short",
     year: "numeric",
   });
+}
+
+function recordStatus(expiresAt: string | null): { label: string; tone: StatusPillTone } {
+  if (!expiresAt) return { label: "On file", tone: "neutral" };
+  const days = Math.ceil((new Date(`${expiresAt}T00:00:00.000Z`).getTime() - Date.now()) / 86_400_000);
+  if (days < 0) return { label: "Expired", tone: "red" };
+  if (days <= 90) return { label: "Expiring", tone: "amber" };
+  return { label: "On file", tone: "green" };
 }
 
 function formatChangeKey(key: string): string {
@@ -336,6 +347,7 @@ export async function PeopleExperience({
     detailEmployees.map(async (employee) => ({ employeeId: employee.id, country: await getEmployeeWorkCountry(actor, employee.id) })),
   );
   const workCountryByEmployee = new Map(workCountries.map((item) => [item.employeeId, item.country]));
+  const performanceReviews = detailEmployees.length > 0 ? await listPerformanceReviews(actor) : [];
   const employeePhotos = await listEmployeePhotoUrls(actor);
   const photoByEmployeeId = new Map(employeePhotos.map((p) => [p.employee_id, p.photo_url]));
   const positionTitleById = new Map(positions.map((position) => [position.id, position.title]));
@@ -770,10 +782,11 @@ export async function PeopleExperience({
                 <section data-tab="history" className="rounded-xl border border-ink-200 bg-white/70 p-5">
                   <h3 className="text-[14px] font-semibold text-ink-900">Recent history</h3>
                   <div className="mt-3 divide-y divide-ink-100 border-t border-ink-100">
+                    {performanceReviews.filter((review) => review.employee_id === employee.id && ["completed", "acknowledged"].includes(review.status)).slice(0, 4).map((review) => <p key={review.id} className="py-3 text-[12px] text-ink-700">Performance review · {review.cycle.name} · {review.rating ?? "No rating"}/{review.cycle.rating_scale_max_snapshot} · {review.status === "acknowledged" ? "Acknowledged" : "Completed"}</p>)}
                     {changes.slice(0, 6).map((change) => <p key={change.id} className="py-3 text-[12px] text-ink-700">Employment change · {formatDate(change.effective_date)} · {change.status.replaceAll("_", " ").replace(/\b\w/g, (character) => character.toUpperCase())}</p>)}
                     {documentRequirements.filter((item) => item.state === "accepted").slice(0, 4).map((item) => <p key={item.id} className="py-3 text-[12px] text-ink-700">Document accepted · {documentLabel(item.document_type)} · {formatDate(item.updated_at)}</p>)}
                     {(onboardingByEmployee.get(employee.id) ?? []).filter((task) => task.status === "completed").slice(0, 4).map((task) => <p key={task.id} className="py-3 text-[12px] text-ink-700">Onboarding completed · {task.title} · {formatDate(task.completed_at)}</p>)}
-                    {changes.length === 0 && documentRequirements.every((item) => item.state !== "accepted") && (onboardingByEmployee.get(employee.id) ?? []).every((task) => task.status !== "completed") ? <p className="py-3 text-[12px] text-ink-500">No recent activity.</p> : null}
+                    {performanceReviews.every((review) => review.employee_id !== employee.id || !["completed", "acknowledged"].includes(review.status)) && changes.length === 0 && documentRequirements.every((item) => item.state !== "accepted") && (onboardingByEmployee.get(employee.id) ?? []).every((task) => task.status !== "completed") ? <p className="py-3 text-[12px] text-ink-500">No recent activity.</p> : null}
                   </div>
                 </section>
 
@@ -1172,11 +1185,9 @@ export async function PeopleExperience({
                   <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                     Request type
                     <select name="document_type" defaultValue="contract" className="tf-select-sm">
-                      <option value="contract">Contract</option>
-                      <option value="right_to_work">Right to work</option>
-                      <option value="passport">Passport</option>
-                      <option value="emirates_id">Emirates ID</option>
-                      <option value="jd">Job description</option>
+                      {workCountryByEmployee.get(employee.id) === UAE_COUNTRY
+                        ? UAE_RECORD_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)
+                        : <><option value="contract">Contract</option><option value="right_to_work">Right to work</option><option value="passport">Passport</option><option value="jd">Job description</option></>}
                     </select>
                   </label>
                   <label className="flex flex-col gap-1 text-[11px] text-ink-500">
@@ -1396,6 +1407,9 @@ export async function PeopleExperience({
                       <input name="expiry_required" type="checkbox" defaultChecked className="h-4 w-4 rounded border-ink-300" />
                       Expiry monitored
                     </label>
+                    <label className="flex flex-col gap-1 text-[11px] text-ink-500">Due date<DateField name="due_date" dense /></label>
+                    <label className="flex items-end gap-2 pb-2 text-[11px] text-ink-500"><input name="review_required" type="checkbox" defaultChecked className="h-4 w-4 rounded border-ink-300" />Admin review</label>
+                    <label className="flex items-end gap-2 pb-2 text-[11px] text-ink-500"><input name="employee_upload_allowed" type="checkbox" defaultChecked className="h-4 w-4 rounded border-ink-300" />Employee upload</label>
                     <PendingSubmitButton
                       idleLabel="Request record"
                       pendingLabel="Requesting…"
@@ -1406,11 +1420,12 @@ export async function PeopleExperience({
 
                   {documents.filter((d) => isUaeRecordType(d.document_type)).length > 0 ? (
                     <ul className="mt-3 space-y-2">
-                      {documents.filter((d) => isUaeRecordType(d.document_type)).map((document) => (
-                        <li key={document.id} className="rounded-md border border-ink-300/50 px-3 py-2 text-[12px] text-ink-700">
+                      {documents.filter((d) => isUaeRecordType(d.document_type)).map((document) => {
+                        const state = recordStatus(document.expires_at);
+                        return <li key={document.id} className="rounded-md border border-ink-300/50 px-3 py-2 text-[12px] text-ink-700">
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <div>
-                              <p className="font-medium text-ink-900">{uaeRecordLabel(document.document_type)}</p>
+                              <div className="flex items-center gap-2"><p className="font-medium text-ink-900">{uaeRecordLabel(document.document_type)}</p><StatusPill tone={state.tone}>{state.label}</StatusPill></div>
                               {document.reference_number ? <p>Reference: <span className="font-mono">{document.reference_number}</span></p> : null}
                               <p>
                                 Issued: <span className="tabular-nums">{document.issued_at ? formatDate(document.issued_at) : "-"}</span>
@@ -1427,8 +1442,8 @@ export async function PeopleExperience({
                               />
                             </form>
                           </div>
-                        </li>
-                      ))}
+                        </li>;
+                      })}
                     </ul>
                   ) : (
                     <p className="mt-3 text-[12px] text-ink-500">No UAE records saved yet.</p>
@@ -1607,14 +1622,14 @@ export async function PeopleExperience({
           </div>
         </form>
       </section>
-      <section id="hire-handoff" className="mt-8 rounded-xl border border-ink-300/70 bg-white/80 p-5">
-        <h2 className="text-[19px] font-medium tracking-tight">Add from HirePass</h2>
-        <p className="mt-2 text-sm text-ink-600">Operator-attested one-way snapshot, not a live or independently verified HirePass connection. Check the source candidate and offer yourself. No invitation, salary, CV or live sync is included.</p>
+      {process.env.TEAMFRAME_HIRE_BRIDGE_ENABLED === "true" ? <section id="hire-handoff" className="mt-8 rounded-xl border border-ink-300/70 bg-white/80 p-5">
+        <h2 className="text-[19px] font-medium tracking-tight">Add from TeamFrame Hire</h2>
+        <p className="mt-2 text-sm text-ink-600">Create a starter People record from a reviewed hire. Review the mapped People fields before saving; invitations and candidate documents are not transferred.</p>
         <form action={createEmployeeFromHireAction} className="mt-4 grid gap-3 md:grid-cols-2">
-          <label className="text-xs text-ink-600">HirePass candidate ID<input className="tf-input mt-1" name="pass_candidate_id" type="number" min="1" required /></label>
+          <label className="text-xs text-ink-600">Candidate reference<input className="tf-input mt-1" name="pass_candidate_id" type="number" min="1" required /></label>
           <label className="text-xs text-ink-600">Accepted offer ID<input className="tf-input mt-1" name="offer_id" type="number" min="1" required /></label>
-          <label className="text-xs text-ink-600">Candidate status in HirePass<select className="tf-select mt-1" name="candidate_status" required defaultValue=""><option value="" disabled>Choose observed status</option><option value="hired">Hired</option><option value="other">Not hired</option></select></label>
-          <label className="text-xs text-ink-600">Offer status in HirePass<select className="tf-select mt-1" name="offer_status" required defaultValue=""><option value="" disabled>Choose observed status</option><option value="accepted">Accepted</option><option value="other">Not accepted</option></select></label>
+          <label className="text-xs text-ink-600">Candidate status<select className="tf-select mt-1" name="candidate_status" required defaultValue=""><option value="" disabled>Choose status</option><option value="hired">Hired</option><option value="other">Not hired</option></select></label>
+          <label className="text-xs text-ink-600">Offer status<select className="tf-select mt-1" name="offer_status" required defaultValue=""><option value="" disabled>Choose status</option><option value="accepted">Accepted</option><option value="other">Not accepted</option></select></label>
           <label className="text-xs text-ink-600">Approval reference<input className="tf-input mt-1" name="approval_reference" required /></label>
           <label className="text-xs text-ink-600">Full name<input className="tf-input mt-1" name="full_name" required /></label>
           <label className="text-xs text-ink-600">Work email<input className="tf-input mt-1" name="email" type="email" required /></label>
@@ -1625,10 +1640,10 @@ export async function PeopleExperience({
           <label className="text-xs text-ink-600">Country<select className="tf-select mt-1" name="country" defaultValue={defaultCountry ?? ""} required><option value="" disabled>Choose country</option>{ISO_COUNTRIES.map((country) => <option key={country.code} value={country.code}>{country.name}</option>)}</select></label>
           <label className="text-xs text-ink-600">Start date<DateField name="start_date" required /></label>
           <label className="text-xs text-ink-600">End date (optional)<DateField name="end_date" /></label>
-          <label className="flex items-center gap-2 text-sm text-ink-700 md:col-span-2"><input name="source_reviewed" type="checkbox" value="yes" required />I verified this candidate is hired and this offer is accepted in HirePass, and explicitly reviewed the People fields above.</label>
-          <div className="md:col-span-2"><PendingSubmitButton idleLabel="Create People record without invitation" pendingLabel="Creating…" disabled={!hasUsableDefaults} className="tf-primary-action px-4 py-2 text-sm" /></div>
+          <label className="flex items-center gap-2 text-sm text-ink-700 md:col-span-2"><input name="source_reviewed" type="checkbox" value="yes" required />I confirmed the hire and reviewed the People fields above.</label>
+          <div className="md:col-span-2"><PendingSubmitButton idleLabel="Create starter in TeamFrame People" pendingLabel="Creating…" disabled={!hasUsableDefaults} className="tf-primary-action px-4 py-2 text-sm" /></div>
         </form>
-      </section>
+      </section> : null}
       </> : null}
 
     </main>

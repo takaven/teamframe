@@ -10,9 +10,10 @@ export function ReportsExports({ canFinance, canFull, returnTo }: { canFinance: 
     <div className="mt-6 grid gap-4 md:grid-cols-2">
       <section className="rounded-xl border border-ink-200 p-5">
         <h3 className="font-bold">Payroll export</h3>
-        <p className="mt-1 text-[13px] text-ink-500">Finance handoff in spreadsheet-friendly formats.</p>
-        {canFinance ? <form action={exportFinanceHandoffAction} className="mt-4">
+        <p className="mt-1 text-[13px] text-ink-500">Period-aware finance handoff. It prepares payroll inputs and change flags; it does not calculate payroll, deductions or statutory amounts.</p>
+        {canFinance ? <form action={exportFinanceHandoffAction} className="mt-4 flex flex-wrap items-end gap-3">
           <input type="hidden" name="return_to" value={returnTo}/>
+          <label className="text-[12px] text-ink-500">Payroll period<input name="period" type="month" required defaultValue={new Date().toISOString().slice(0, 7)} className="tf-input mt-1"/></label>
           <PendingSubmitButton idleLabel="Export payroll data" pendingLabel="Preparing…" className="tf-primary-action px-4 py-2 text-[13px]"/>
         </form> : <p className="mt-4 text-[13px] text-ink-500">Finance export access is required.</p>}
       </section>

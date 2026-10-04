@@ -1,9 +1,8 @@
 /**
  * Leave service — server-side only.
  *
- * MR-6 scope:
- *  - date-based leave requests, decisions, balances, cancellation, and Who's Away
- *  - no statutory engine, accrual, carry-forward, payroll calculation, or manager delegation
+ * MR-6 + Marketability M1: configured accrual, audited carry-forward and
+ * adjustments, half-days, decisions, cancellation, and Who's Away.
  */
 
 import "server-only";
@@ -23,7 +22,7 @@ export type LeaveStatus = "pending" | "approved" | "rejected" | "cancelled";
 export const LEAVE_TYPES = ["annual", "sick", "unpaid", "other"] as const satisfies readonly LeaveType[];
 
 const LEAVE_COLUMNS =
-  "id, tenant_id, employee_id, start_date, end_date, leave_type, leave_definition_id, attachment_document_id, requested_days, reason, status, decided_by_user_id, decided_at, decision_note, override_insufficient_balance, override_reason, cancelled_by_user_id, cancelled_at, cancellation_reason, approval_automation_item_id, created_at, updated_at";
+  "id, tenant_id, employee_id, start_date, end_date, leave_type, leave_definition_id, attachment_document_id, requested_days, day_part, reason, status, decided_by_user_id, decided_at, decision_note, override_insufficient_balance, override_reason, cancelled_by_user_id, cancelled_at, cancellation_reason, approval_automation_item_id, created_at, updated_at";
 
 export type LeaveRecord = {
   id: string;
@@ -39,6 +38,7 @@ export type LeaveRecord = {
   // Private-bucket document holding supporting evidence, or null when none was attached.
   attachment_document_id: string | null;
   requested_days: number;
+  day_part: "full_day" | "morning" | "afternoon";
   reason: string | null;
   status: LeaveStatus;
   decided_by_user_id: string | null;
@@ -96,6 +96,10 @@ export type LeaveDefinitionBalance = {
   counting_basis: string;
   attachment_requirement: string;
   entitlement: number | null;
+  opening: number;
+  carried_forward: number;
+  accrued: number;
+  adjustments: number;
   taken: number;
   pending: number;
   available: number | null;
@@ -144,9 +148,11 @@ const SubmitLeaveSchema = z
     startDate: DateString,
     endDate: DateString,
     leaveType: z.enum(LEAVE_TYPES).default("annual"),
+    dayPart: z.enum(["full_day", "morning", "afternoon"]).default("full_day"),
     reason: z.string().trim().max(500).optional().nullable(),
   })
-  .refine((d) => d.endDate >= d.startDate, { message: "INVALID_INPUT" });
+  .refine((d) => d.endDate >= d.startDate, { message: "INVALID_INPUT" })
+  .refine((d) => d.dayPart === "full_day" || d.startDate === d.endDate, { message: "LEAVE_DAY_PART_INVALID" });
 
 const DecisionInputSchema = z.object({
   overrideInsufficientBalance: z.boolean().default(false),
@@ -391,44 +397,36 @@ export async function listActiveLeaveDefinitions(actor: Actor): Promise<ActiveLe
   return (q.data ?? []) as unknown as ActiveLeaveDefinition[];
 }
 
-/** Per-configured-definition balances (Entitlement / Taken / Pending approval / Available). */
-export async function listLeaveDefinitionBalances(actor: Actor, employeeId: string): Promise<LeaveDefinitionBalance[]> {
+/** Transparent per-definition balance, using the same database engine as approval. */
+export async function listLeaveDefinitionBalances(actor: Actor, employeeId: string, year = new Date().getUTCFullYear(), asOfDate = todayIso(), excludeLeaveId: string | null = null): Promise<LeaveDefinitionBalance[]> {
   const tenantId = requireTenant(actor);
   if (actor.role !== "admin" && actor.employeeId !== employeeId) {
     await assertCurrentDirectManager(actor, employeeId);
   }
   const supabase = createServiceRoleClient();
-  const [defsQ, leavesQ, openingQ, employeeQ] = await Promise.all([
+  const [defsQ,employeeQ] = await Promise.all([
     supabase.from("leave_definitions").select("id, display_name, system_leave_type, counting_basis, attachment_requirement, default_entitlement_days, is_system, active, archived_at, sort_order").eq("tenant_id", tenantId).eq("active", true).is("archived_at", null).order("sort_order", { ascending: true }),
-    supabase.from("leaves").select("leave_type, leave_definition_id, status, requested_days").eq("tenant_id", tenantId).eq("employee_id", employeeId),
-    supabase.from("leave_opening_adjustments").select("leave_type, used_days").eq("tenant_id", tenantId).eq("employee_id", employeeId),
-    supabase.from("employees").select("annual_leave_entitlement_override").eq("tenant_id", tenantId).eq("id", employeeId).maybeSingle(),
+    supabase.from("employees").select("annual_leave_entitlement_override").eq("tenant_id",tenantId).eq("id",employeeId).single(),
   ]);
   if (defsQ.error) throw new Error(`LEAVE_DEFINITIONS_LIST_FAILED: ${defsQ.error.message}`);
+  if (employeeQ.error) throw new Error(`LEAVE_EMPLOYEE_FETCH_FAILED: ${employeeQ.error.message}`);
+  const annualOverride=(employeeQ.data as {annual_leave_entitlement_override:number|null}).annual_leave_entitlement_override;
   const defs = (defsQ.data ?? []) as unknown as Array<{ id: string; display_name: string; system_leave_type: LeaveType; counting_basis: string; attachment_requirement: string; default_entitlement_days: number | null; is_system: boolean }>;
-  const leaves = (leavesQ.data ?? []) as unknown as Array<{ leave_type: LeaveType; leave_definition_id: string | null; status: string; requested_days: number | string }>;
-  const opening = (openingQ.data ?? []) as unknown as Array<{ leave_type: LeaveType; used_days: number | string }>;
-  const annualOverride = (employeeQ.data as { annual_leave_entitlement_override: string | number | null } | null)?.annual_leave_entitlement_override ?? null;
-
-  return defs.map((d) => {
-    let taken = 0; let pending = 0;
-    for (const l of leaves) {
-      const matches = l.leave_definition_id === d.id || (l.leave_definition_id === null && d.is_system && l.leave_type === d.system_leave_type);
-      if (!matches) continue;
-      const days = Number(l.requested_days);
-      if (l.status === "approved") taken += days;
-      else if (l.status === "pending") pending += days;
-    }
-    // Opening adjustments (prior-consumed days) only apply to the built-in system type.
-    const openingUsed = d.is_system ? opening.filter((o) => o.leave_type === d.system_leave_type).reduce((s, o) => s + Number(o.used_days), 0) : 0;
-    // Entitlement = configured definition default, EXCEPT the built-in Annual type honours the
-    // per-employee override so this table matches the verified balance engine exactly.
-    const entitlement = d.is_system && d.system_leave_type === "annual" && annualOverride !== null
-      ? Number(annualOverride)
-      : d.default_entitlement_days;
-    const available = entitlement === null ? null : Math.round((entitlement - openingUsed - taken - pending) * 100) / 100;
-    return { definition_id: d.id, display_name: d.display_name, system_leave_type: d.system_leave_type, is_system: d.is_system, counting_basis: d.counting_basis, attachment_requirement: d.attachment_requirement, entitlement, taken: Math.round((taken + openingUsed) * 100) / 100, pending, available };
-  });
+  return Promise.all(defs.map(async (d) => {
+    const balanceQ = await supabase.rpc("teamframe_leave_balance_components", {
+      p_tenant_id: tenantId, p_employee_id: employeeId, p_leave_definition_id: d.id,
+      p_balance_year: year, p_as_of_date: asOfDate, p_exclude_leave_id: excludeLeaveId,
+    } as never).single();
+    if (balanceQ.error) throw new Error(`LEAVE_BALANCE_FETCH_FAILED: ${balanceQ.error.message}`);
+    const b = balanceQ.data as unknown as Record<string, string | number>;
+    return {
+      definition_id: d.id, display_name: d.display_name, system_leave_type: d.system_leave_type,
+      is_system: d.is_system, counting_basis: d.counting_basis, attachment_requirement: d.attachment_requirement,
+      entitlement: d.system_leave_type==="annual"&&annualOverride!=null?Number(annualOverride):d.default_entitlement_days, opening: Number(b.opening), carried_forward: Number(b.carried_forward),
+      accrued: Number(b.accrued), adjustments: Number(b.adjustments), taken: Number(b.taken),
+      pending: Number(b.pending), available: Number(b.available),
+    };
+  }));
 }
 
 export async function getLeaveOverviewForEmployee(actor: Actor, employeeId: string): Promise<LeaveOverview> {
@@ -492,9 +490,15 @@ export async function listPendingLeavesWithEmployee(actor: Actor): Promise<Pendi
 
   const annualBalances = new Map<string, LeaveBalanceSummary>();
   const definitionBalances = new Map<string, LeaveDefinitionBalance[]>();
-  for (const employeeId of employeeIds) {
-    annualBalances.set(employeeId, (await listLeaveBalancesForEmployee(actor, employeeId))[0]!);
-    definitionBalances.set(employeeId, await listLeaveDefinitionBalances(actor, employeeId));
+  for (const row of leaves) {
+    const year = Number(row.start_date.slice(0, 4));
+    const key = row.id;
+    if (!annualBalances.has(key)) {
+      const balances=await listLeaveDefinitionBalances(actor,row.employee_id,year,row.start_date,row.id);
+      definitionBalances.set(key,balances);
+      const annual=balances.find((balance)=>balance.is_system&&balance.system_leave_type==="annual");
+      if(annual)annualBalances.set(key,{leave_type:"annual",tracked:true,allocation:annual.entitlement,pending:annual.pending,approved_taken:annual.taken,available:annual.available,period_start:`${year}-01-01`,period_end:`${year}-12-31`});
+    }
   }
 
   return leaves.map((row) => {
@@ -503,21 +507,20 @@ export async function listPendingLeavesWithEmployee(actor: Actor): Promise<Pendi
       ...row,
       employee_full_name: employee?.full_name ?? "(unknown)",
       employee_role_title: employee?.role_title ?? "(unknown)",
-      annual_balance: annualBalances.get(row.employee_id),
-      definition_balance: pickCustomDefinitionBalance(definitionBalances.get(row.employee_id), row.leave_definition_id),
+      annual_balance: annualBalances.get(row.id),
+      definition_balance: pickCustomDefinitionBalance(definitionBalances.get(row.id), row.leave_definition_id),
     };
   });
 }
 
-// The per-definition balance for a non-system, entitlement-bearing custom type — the only case
-// the approval engine enforces (and therefore the only case the reviewer needs an override for).
+// The exact entitlement-bearing definition balance enforced by approval, including system Annual Leave.
 function pickCustomDefinitionBalance(
   balances: LeaveDefinitionBalance[] | undefined,
   leaveDefinitionId: string | null,
 ): LeaveDefinitionBalance | undefined {
   if (!balances || !leaveDefinitionId) return undefined;
   const match = balances.find((b) => b.definition_id === leaveDefinitionId);
-  if (!match || match.is_system || match.entitlement === null) return undefined;
+  if (!match || match.entitlement === null) return undefined;
   return match;
 }
 
@@ -549,9 +552,15 @@ export async function listPendingLeavesForManager(actor: Actor): Promise<Pending
 
   const annualBalances = new Map<string, LeaveBalanceSummary>();
   const definitionBalances = new Map<string, LeaveDefinitionBalance[]>();
-  for (const employeeId of directReportIds) {
-    annualBalances.set(employeeId, (await listLeaveBalancesForEmployee(actor, employeeId))[0]!);
-    definitionBalances.set(employeeId, await listLeaveDefinitionBalances(actor, employeeId));
+  for (const row of leaves) {
+    const year = Number(row.start_date.slice(0, 4));
+    const key = row.id;
+    if (!annualBalances.has(key)) {
+      const balances=await listLeaveDefinitionBalances(actor,row.employee_id,year,row.start_date,row.id);
+      definitionBalances.set(key,balances);
+      const annual=balances.find((balance)=>balance.is_system&&balance.system_leave_type==="annual");
+      if(annual)annualBalances.set(key,{leave_type:"annual",tracked:true,allocation:annual.entitlement,pending:annual.pending,approved_taken:annual.taken,available:annual.available,period_start:`${year}-01-01`,period_end:`${year}-12-31`});
+    }
   }
 
   return leaves.map((row) => {
@@ -560,8 +569,8 @@ export async function listPendingLeavesForManager(actor: Actor): Promise<Pending
       ...row,
       employee_full_name: employee?.full_name ?? "(unknown)",
       employee_role_title: employee?.role_title ?? "(unknown)",
-      annual_balance: annualBalances.get(row.employee_id),
-      definition_balance: pickCustomDefinitionBalance(definitionBalances.get(row.employee_id), row.leave_definition_id),
+      annual_balance: annualBalances.get(row.id),
+      definition_balance: pickCustomDefinitionBalance(definitionBalances.get(row.id), row.leave_definition_id),
     };
   });
 }
@@ -661,7 +670,7 @@ export async function listApprovedLeaveInRange(actor: Actor, fromIso: string, to
 
 export async function submitLeaveRequest(
   actor: Actor,
-  input: { startDate: string; endDate: string; leaveType?: LeaveType; leaveDefinitionId?: string | null; reason?: string | null; attachment?: File | null },
+  input: { startDate: string; endDate: string; dayPart?: "full_day" | "morning" | "afternoon"; leaveType?: LeaveType; leaveDefinitionId?: string | null; reason?: string | null; attachment?: File | null },
 ): Promise<LeaveRecord> {
   const tenantId = requireTenant(actor);
   const employeeId = requireLinkedEmployee(actor);
@@ -723,6 +732,7 @@ export async function submitLeaveRequest(
       p_leave_definition_id: definitionId,
       p_counting_basis: countingBasis,
       p_attachment_document_id: attachmentDocumentId,
+      p_day_part: parsed.data.dayPart,
     } as never)
     .single();
 
@@ -741,6 +751,32 @@ export async function submitLeaveRequest(
   }
 
   return rowToRecord(created);
+}
+
+/** Append an immutable, operator-attributed balance entry. Carry-forward is idempotent. */
+export async function addLeaveBalanceEntry(
+  actor: Actor,
+  input: { employeeId: string; leaveDefinitionId: string; balanceYear: number; entryKind: "opening" | "carry_forward" | "admin_adjustment"; amountDays: number; effectiveDate: string; reason: string; sourceYear?: number | null },
+): Promise<void> {
+  requireAdmin(actor);
+  const tenantId = requireTenant(actor);
+  const parsed = z.object({
+    employeeId: z.string().uuid(), leaveDefinitionId: z.string().uuid(), balanceYear: z.number().int().min(2000).max(2200),
+    entryKind: z.enum(["opening", "carry_forward", "admin_adjustment"]),
+    amountDays: z.number().min(-365).max(365).refine((value) => value !== 0),
+    effectiveDate: DateString, reason: z.string().trim().min(1).max(500),
+    sourceYear: z.number().int().min(2000).max(2200).optional().nullable(),
+  }).parse(input);
+  const idempotencyKey = parsed.entryKind === "carry_forward"
+    ? `leave-carry:${parsed.employeeId}:${parsed.leaveDefinitionId}:${parsed.sourceYear}:${parsed.balanceYear}`
+    : null;
+  const result = await createServiceRoleClient().rpc("teamframe_add_leave_balance_entry", {
+    p_tenant_id: tenantId, p_actor_user_id: actor.authUserId, p_employee_id: parsed.employeeId,
+    p_leave_definition_id: parsed.leaveDefinitionId, p_balance_year: parsed.balanceYear,
+    p_entry_kind: parsed.entryKind, p_amount_days: parsed.amountDays, p_effective_date: parsed.effectiveDate,
+    p_reason: parsed.reason, p_source_year: parsed.sourceYear ?? null, p_idempotency_key: idempotencyKey,
+  } as never);
+  if (result.error) throw new Error(`LEAVE_BALANCE_ENTRY_FAILED: ${result.error.message}`);
 }
 
 /** Admin-on-behalf entry that deliberately reuses the normal validation and leave engine. */

@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { runDueAutomation } from "@/services/hrAutomation";
 import { runDailyDigests } from "@/services/notificationService";
+import { runPerformanceReviewReminders } from "@/services/performanceReviewService";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,7 @@ async function handleAutomationRun(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ status: "unauthorized" }, { status: 401 });
   }
 
-  const [result, digest] = await Promise.all([runDueAutomation(), runDailyDigests()]);
+  const [result, digest, performanceReminders] = await Promise.all([runDueAutomation(), runDailyDigests(), runPerformanceReviewReminders()]);
   return NextResponse.json({
     status: result.failed === 0 ? "ok" : "degraded",
     checked: result.checked,
@@ -34,6 +35,7 @@ async function handleAutomationRun(req: NextRequest): Promise<NextResponse> {
     failed: result.failed,
     tenants: result.tenants,
     digest,
+    performanceReminders,
   });
 }
 

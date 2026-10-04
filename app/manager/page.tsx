@@ -223,7 +223,12 @@ export default async function ManagerPage({
               <ul className="divide-y divide-ink-300/40">
                 {dashboard.pendingLeaves.map((leave) => {
                   const annual = leave.annual_balance;
-                  const shortfall = leave.leave_type === "annual" && annual?.available !== null && annual ? leave.requested_days - annual.available : 0;
+                  const definition = leave.definition_balance;
+                  const shortfall = definition?.available !== null && definition
+                    ? Math.max(leave.requested_days - definition.available, 0)
+                    : leave.leave_type === "annual" && annual?.available !== null && annual
+                      ? Math.max(leave.requested_days - annual.available, 0)
+                      : 0;
                   return (
                     <li id={`leave-${leave.id}`} key={leave.id} className="scroll-mt-6 grid gap-4 px-5 py-4 lg:grid-cols-[1fr_260px]">
                       <div>
@@ -231,14 +236,18 @@ export default async function ManagerPage({
                         <p className="mt-1 text-[13px] text-ink-500">
                           {formatDate(leave.start_date)} to {formatDate(leave.end_date)} · {leave.leave_type === "annual" ? "Annual Leave" : leave.leave_type.replaceAll("_", " ").replace(/\b\w/g, (character) => character.toUpperCase())} · {days(leave.requested_days)}
                         </p>
-                        {annual && leave.leave_type === "annual" ? (
+                        {definition ? (
+                          <p className="mt-1 text-[12px] text-ink-500">
+                            Available before approval: <span className="tabular-nums">{days(definition.available ?? 0)}</span>
+                          </p>
+                        ) : annual && leave.leave_type === "annual" ? (
                           <p className="mt-1 text-[12px] text-ink-500">
                             Annual available: <span className="tabular-nums">{days(annual.available ?? 0)}</span>
                           </p>
                         ) : null}
                         {shortfall > 0 ? (
                           <p className="mt-2 text-[12px] text-signal-red">
-                            Insufficient annual leave by {days(shortfall)}. Ask an admin to review an override.
+                            Insufficient {leave.leave_definition_name ?? "leave"} balance by {days(shortfall)}. Ask an admin to review an override.
                           </p>
                         ) : null}
                       </div>

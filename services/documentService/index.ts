@@ -138,6 +138,7 @@ type DocumentRequirementRow = DocumentRequirementRecord & {
 
 type FinanceEmployeeRow = {
   id: string;
+  employee_number?: string | null;
   full_name: string;
   employment_type?: string | null;
   country?: string | null;
@@ -160,6 +161,13 @@ type CompensationRow = {
   employee_id: string;
   base_salary: string | number;
   currency: string;
+  pay_basis: string;
+};
+
+type PaymentDetailRow = {
+  employee_id: string; account_holder_name: string | null; bank_name: string | null;
+  account_number_iban: string | null; routing_sort_branch_code: string | null;
+  swift_bic: string | null; account_currency: string | null; updated_at: string;
 };
 
 type ZipEntry = {
@@ -1593,12 +1601,16 @@ export async function exportEmployeeDueDiligencePackUrl(
   });
 }
 
-export async function exportFinanceHandoffUrl(actor: Actor): Promise<string> {
+export async function exportFinanceHandoffUrl(actor: Actor, period = new Date().toISOString().slice(0, 7)): Promise<string> {
   if (!(await canRunFinanceExport(actor))) throw new Error("FORBIDDEN");
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(period)) throw new Error("INVALID_PAYROLL_PERIOD");
   const tenantId = requireTenant(actor);
   const supabase = createServiceRoleClient();
+  const periodStart = `${period}-01`;
+  const [periodYear, periodMonth] = period.split("-").map(Number);
+  const periodEnd = new Date(Date.UTC(periodYear!, periodMonth!, 0)).toISOString().slice(0, 10);
 
-  const employeeSelect = "id, full_name, employment_type, country, start_date, end_date, lifecycle_state, status";
+  const employeeSelect = "id, employee_number, full_name, employment_type, country, start_date, end_date, lifecycle_state, status";
   const legacyEmployeeSelect = "id, full_name, status";
 
   const { data: employeeData, error: employeeError } = await supabase
@@ -1639,6 +1651,10 @@ export async function exportFinanceHandoffUrl(actor: Actor): Promise<string> {
     throw new Error(`DOCUMENT_EXPORT_FAILED: ${employeeError.message}`);
   }
 
+  employees = employees.filter((employee) =>
+    (!employee.start_date || employee.start_date <= periodEnd)
+    && (!employee.end_date || employee.end_date >= periodStart));
+
   const employeeIds = employees.map((employee) => employee.id);
 
   let compensationByEmployee = new Map<string, CompensationRow>();
@@ -1646,10 +1662,15 @@ export async function exportFinanceHandoffUrl(actor: Actor): Promise<string> {
     string,
     { annualDays: number; sickDays: number; unpaidDays: number; otherDays: number; unpaidPeriods: string[] }
   >();
+  let paymentByEmployee = new Map<string, PaymentDetailRow>();
+  let componentAmountsByEmployee = new Map<string, string[]>();
+  let changesByEmployee = new Map<string, Set<string>>();
+  const compensationChangesByEmployee = new Map<string, string[]>();
+  const employmentChangesByEmployee = new Map<string, string[]>();
   if (employeeIds.length > 0) {
     const { data: compensationData, error: compensationError } = await supabase
       .from("compensation")
-      .select("employee_id, base_salary, currency")
+      .select("employee_id, base_salary, currency, pay_basis")
       .eq("tenant_id", tenantId)
       .in("employee_id", employeeIds);
 
@@ -1661,17 +1682,14 @@ export async function exportFinanceHandoffUrl(actor: Actor): Promise<string> {
       ((compensationData ?? []) as CompensationRow[]).map((row) => [row.employee_id, row]),
     );
 
-    const currentYear = new Date().getUTCFullYear();
-    const leaveYearStart = `${currentYear}-01-01`;
-    const leaveYearEnd = `${currentYear}-12-31`;
     const { data: approvedLeaveData, error: approvedLeaveError } = await supabase
       .from("leaves")
       .select("employee_id, leave_type, requested_days, start_date, end_date, status")
       .eq("tenant_id", tenantId)
       .in("employee_id", employeeIds)
       .eq("status", "approved")
-      .gte("start_date", leaveYearStart)
-      .lte("start_date", leaveYearEnd);
+      .lte("start_date", periodEnd)
+      .gte("end_date", periodStart);
 
     if (approvedLeaveError && !isSchemaMissingColumnError(approvedLeaveError.message)) {
       throw new Error(`DOCUMENT_EXPORT_FAILED: ${approvedLeaveError.message}`);
@@ -1686,16 +1704,46 @@ export async function exportFinanceHandoffUrl(actor: Actor): Promise<string> {
           otherDays: 0,
           unpaidPeriods: [],
         };
-      const days = Number(leave.requested_days);
+      const crossPeriod = leave.start_date < periodStart || leave.end_date > periodEnd;
+      const days = crossPeriod ? 0 : Number(leave.requested_days);
       const safeDays = Number.isFinite(days) ? days : 0;
       if (leave.leave_type === "annual") summary.annualDays += safeDays;
       if (leave.leave_type === "sick") summary.sickDays += safeDays;
       if (leave.leave_type === "unpaid") {
         summary.unpaidDays += safeDays;
-        summary.unpaidPeriods.push(`${leave.start_date} to ${leave.end_date}`);
+        summary.unpaidPeriods.push(`${leave.start_date} to ${leave.end_date}${crossPeriod ? " (cross-period; review)" : ""}`);
       }
       if (leave.leave_type === "other") summary.otherDays += safeDays;
       approvedLeaveByEmployee.set(leave.employee_id, summary);
+    }
+
+    const [paymentQ, componentDefsQ, componentAmountsQ, compensationHistoryQ, employmentChangesQ] = await Promise.all([
+      supabase.from("employee_payment_details").select("employee_id, account_holder_name, bank_name, account_number_iban, routing_sort_branch_code, swift_bic, account_currency, updated_at").eq("tenant_id", tenantId).in("employee_id", employeeIds),
+      supabase.from("compensation_components").select("id,name").eq("tenant_id",tenantId).eq("active",true),
+      supabase.from("compensation_component_amounts").select("employee_id,component_id,amount").eq("tenant_id",tenantId).in("employee_id",employeeIds),
+      supabase.from("compensation_history").select("employee_id, effective_date, total_amount, currency, pay_basis").eq("tenant_id", tenantId).in("employee_id", employeeIds).gte("effective_date", periodStart).lte("effective_date", periodEnd),
+      supabase.from("employment_changes").select("employee_id, change_keys, effective_date, old_values, new_values, status").eq("tenant_id", tenantId).in("employee_id", employeeIds).eq("status", "applied").gte("effective_date", periodStart).lte("effective_date", periodEnd),
+    ]);
+    if (paymentQ.error || componentDefsQ.error || componentAmountsQ.error || compensationHistoryQ.error || employmentChangesQ.error) {
+      throw new Error(`DOCUMENT_EXPORT_FAILED: ${paymentQ.error?.message ?? componentDefsQ.error?.message ?? componentAmountsQ.error?.message ?? compensationHistoryQ.error?.message ?? employmentChangesQ.error?.message}`);
+    }
+    paymentByEmployee = new Map(((paymentQ.data ?? []) as PaymentDetailRow[]).map((row) => [row.employee_id, row]));
+    const componentNameById=new Map(((componentDefsQ.data??[]) as Array<{id:string;name:string}>).map((row)=>[row.id,row.name]));
+    for(const row of (componentAmountsQ.data??[]) as Array<{employee_id:string;component_id:string;amount:string|number}>){const name=componentNameById.get(row.component_id);if(!name)continue;const values=componentAmountsByEmployee.get(row.employee_id)??[];values.push(`${name}: ${row.amount}`);componentAmountsByEmployee.set(row.employee_id,values);}
+    for (const row of (compensationHistoryQ.data ?? []) as Array<{ employee_id: string; effective_date:string; total_amount:string|number; currency:string; pay_basis:string }>) {
+      const changes = changesByEmployee.get(row.employee_id) ?? new Set<string>(); changes.add("salary"); changesByEmployee.set(row.employee_id, changes);
+      const details=compensationChangesByEmployee.get(row.employee_id)??[];details.push(`${row.effective_date}: ${row.total_amount} ${row.currency} (${row.pay_basis})`);compensationChangesByEmployee.set(row.employee_id,details);
+    }
+    for (const row of (employmentChangesQ.data ?? []) as Array<{ employee_id: string; change_keys: string[]; effective_date:string; old_values:Record<string,unknown>; new_values:Record<string,unknown> }>) {
+      const changes = changesByEmployee.get(row.employee_id) ?? new Set<string>();
+      for (const key of row.change_keys) changes.add(key === "compensation" ? "salary" : key);
+      changesByEmployee.set(row.employee_id, changes);
+      const details=employmentChangesByEmployee.get(row.employee_id)??[];details.push(`${row.effective_date}: ${JSON.stringify(row.old_values)} -> ${JSON.stringify(row.new_values)}`);employmentChangesByEmployee.set(row.employee_id,details);
+    }
+    for (const payment of paymentByEmployee.values()) {
+      if (payment.updated_at.slice(0, 10) >= periodStart && payment.updated_at.slice(0, 10) <= periodEnd) {
+        const changes = changesByEmployee.get(payment.employee_id) ?? new Set<string>(); changes.add("payment_details"); changesByEmployee.set(payment.employee_id, changes);
+      }
     }
   }
 
@@ -1719,47 +1767,74 @@ export async function exportFinanceHandoffUrl(actor: Actor): Promise<string> {
   );
 
   const header = [
+    "payroll_period",
+    "joiner_flag",
+    "leaver_flag",
+    "employee_number",
     "employee_name",
     "employment_type",
     "country",
     "salary_amount",
     "currency",
-    "payment_method_reference",
+    "pay_basis",
+    "compensation_changes_period",
+    "employment_changes_period",
+    "compensation_components",
+    "bank_name",
+    "account_holder_name",
+    "account_number_iban",
+    "routing_sort_branch_code",
+    "swift_bic",
+    "account_currency",
     "start_date",
     "end_date",
     "employment_status",
     "lifecycle_state",
     "contract_status",
-    "bank_account_details",
-    "approved_annual_leave_days_ytd",
-    "approved_sick_leave_days_ytd",
-    "approved_unpaid_leave_days_ytd",
-    "approved_other_leave_days_ytd",
-    "approved_unpaid_leave_periods_ytd",
+    "approved_annual_leave_days_period",
+    "approved_sick_leave_days_period",
+    "approved_unpaid_leave_days_period",
+    "approved_other_leave_days_period",
+    "approved_unpaid_leave_periods",
+    "change_flags_period",
   ];
 
   const dataRows = employees.map((employee) => {
     const compensation = compensationByEmployee.get(employee.id);
     const approvedLeave = approvedLeaveByEmployee.get(employee.id);
+    const payment = paymentByEmployee.get(employee.id);
     const salaryAmount = compensation?.base_salary == null ? "" : String(compensation.base_salary);
     return [
+      period,
+      employee.start_date != null && employee.start_date >= periodStart && employee.start_date <= periodEnd ? "yes" : "no",
+      employee.end_date != null && employee.end_date >= periodStart && employee.end_date <= periodEnd ? "yes" : "no",
+      employee.employee_number ?? "",
       employee.full_name,
       employee.employment_type ?? "",
       employee.country ?? "",
       salaryAmount,
       compensation?.currency ?? "",
-      "",
+      compensation?.pay_basis ?? "",
+      (compensationChangesByEmployee.get(employee.id)??[]).join("; "),
+      (employmentChangesByEmployee.get(employee.id)??[]).join("; "),
+      (componentAmountsByEmployee.get(employee.id)??[]).sort().join("; "),
+      payment?.bank_name ?? "",
+      payment?.account_holder_name ?? "",
+      payment?.account_number_iban ?? "",
+      payment?.routing_sort_branch_code ?? "",
+      payment?.swift_bic ?? "",
+      payment?.account_currency ?? "",
       employee.start_date ?? "",
       employee.end_date ?? "",
       employee.status,
       employee.lifecycle_state ?? "",
       signedContractEmployeeIds.has(employee.id) ? "signed" : "missing",
-      "",
       approvedLeave?.annualDays ? String(approvedLeave.annualDays) : "",
       approvedLeave?.sickDays ? String(approvedLeave.sickDays) : "",
       approvedLeave?.unpaidDays ? String(approvedLeave.unpaidDays) : "",
       approvedLeave?.otherDays ? String(approvedLeave.otherDays) : "",
       approvedLeave?.unpaidPeriods.join("; ") ?? "",
+      Array.from(changesByEmployee.get(employee.id) ?? []).sort().join(";"),
     ];
   });
 
@@ -1783,6 +1858,7 @@ export async function exportFinanceHandoffUrl(actor: Actor): Promise<string> {
           {
             generated_at: now.toISOString(),
             export_kind: "finance_handoff",
+            payroll_period: period,
             employee_count: employees.length,
             columns: header,
           },
@@ -1796,7 +1872,7 @@ export async function exportFinanceHandoffUrl(actor: Actor): Promise<string> {
 
   const payload = buildZip(zipEntries, now);
   assertExportMimeSupported(EXPORT_ZIP_MIME);
-  const fileName = `finance-handoff-${formatDateForFileName(now)}.zip`;
+  const fileName = `finance-handoff-${period}-${formatDateForFileName(now)}.zip`;
   const storagePath = `${tenantId}/exports/finance-handoff/${randomUUID()}.zip`;
 
   return createExportFileUrl({

@@ -92,3 +92,29 @@ export async function deleteCompanyHoliday(actor: Actor, holidayId: string): Pro
   if (error) throw new Error(`HOLIDAY_DELETE_FAILED: ${error.message}`);
   if (count === 0) throw new Error("HOLIDAY_NOT_FOUND");
 }
+
+export async function importCompanyHolidays(actor: Actor, csv: string, year: number): Promise<number> {
+  await requireHolidayAccess(actor);
+  const tenantId = requireTenant(actor);
+  if (!Number.isInteger(year) || year < 1900 || year > 2200 || csv.length > 50_000) throw new Error("INVALID_INPUT");
+  const rows = csv.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  if (rows[0]?.toLowerCase().replaceAll(" ", "") === "date,name") rows.shift();
+  const seen = new Set<string>();
+  const parsed = rows.map((line) => {
+    const separator = line.indexOf(",");
+    if (separator < 0) throw new Error("HOLIDAY_IMPORT_INVALID_ROW");
+    const date = line.slice(0, separator).trim();
+    const name = line.slice(separator + 1).trim();
+    const value = HolidayInputSchema.parse({ date, name });
+    if (!date.startsWith(`${year}-`) || seen.has(date)) throw new Error("HOLIDAY_IMPORT_INVALID_YEAR_OR_DUPLICATE");
+    seen.add(date);
+    return { tenant_id: tenantId, holiday_date: value.date, name: value.name, updated_at: new Date().toISOString() };
+  });
+  if (parsed.length === 0 || parsed.length > 80) throw new Error("HOLIDAY_IMPORT_INVALID_COUNT");
+  const db = createServiceRoleClient();
+  const result = await db.from("company_holidays").upsert(parsed as never, { onConflict: "tenant_id,holiday_date" });
+  if (result.error) throw new Error(`HOLIDAY_IMPORT_FAILED: ${result.error.message}`);
+  const audit = await db.from("audit_logs").insert({ tenant_id: tenantId, actor_user_id: actor.authUserId, action_type: "company.holidays_imported" } as never);
+  if (audit.error) throw new Error(`AUDIT_LOG_FAILED: ${audit.error.message}`);
+  return parsed.length;
+}

@@ -67,3 +67,14 @@ create table if not exists employee_payment_details (
 );
 
 create index if not exists employee_payment_details_tenant_idx on employee_payment_details(tenant_id);
+
+create or replace function employee_payment_details_touch_updated_at()
+returns trigger language plpgsql as $$
+begin
+  new.updated_at = clock_timestamp();
+  return new;
+end;
+$$;
+drop trigger if exists employee_payment_details_touch_updated_at_trigger on employee_payment_details;
+create trigger employee_payment_details_touch_updated_at_trigger before update on employee_payment_details
+for each row execute function employee_payment_details_touch_updated_at();

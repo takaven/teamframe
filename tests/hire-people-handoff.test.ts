@@ -32,6 +32,7 @@ const snapshot = {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.stubEnv("TEAMFRAME_HIREPASS_SOURCE_NAMESPACE", "hirepass-customer-1");
+  vi.stubEnv("TEAMFRAME_HIRE_BRIDGE_ENABLED", "true");
 });
 afterEach(() => vi.unstubAllEnvs());
 
@@ -77,6 +78,13 @@ describe("one-way Hire→People handoff", () => {
     vi.stubEnv("TEAMFRAME_HIREPASS_SOURCE_NAMESPACE", "");
     await expect(createEmployeeFromReviewedHire(actor as never, snapshot))
       .rejects.toThrow("HIRE_HANDOFF_SOURCE_NOT_CONFIGURED");
+    expect(createServiceRoleClient).not.toHaveBeenCalled();
+  });
+
+  it("fails closed at the service boundary when the commercial bridge is disabled", async () => {
+    vi.stubEnv("TEAMFRAME_HIRE_BRIDGE_ENABLED", "");
+    await expect(createEmployeeFromReviewedHire(actor as never, snapshot))
+      .rejects.toThrow("HIRE_HANDOFF_DISABLED");
     expect(createServiceRoleClient).not.toHaveBeenCalled();
   });
 

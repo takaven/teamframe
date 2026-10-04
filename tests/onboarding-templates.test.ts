@@ -10,8 +10,9 @@ import {
 } from "@/services/onboardingService/templates";
 
 describe("onboarding template packs (static data)", () => {
-  it("ships exactly the three Wave 2 packs", () => {
+  it("ships the three Wave 2 packs plus the approved UAE starter pack", () => {
     expect(ONBOARDING_TEMPLATE_PACKS.map((p) => p.id)).toEqual([
+      "uae_sme",
       "every_hire",
       "engineering",
       "operations",

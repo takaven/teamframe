@@ -88,6 +88,6 @@ describe("TeamFrame brand system", () => {
     expect(appShell).not.toContain('{ href: "/employees?tab=documents", label: "Documents" }');
     expect(appShell).toContain('{ href: "/policies", label: "Policies" }');
     expect(appShell).toContain('{ href: "/setup", label: "Settings" }');
-    expect(appShell).not.toContain('label: "Performance"');
+    expect(appShell).toContain('{ href: "/performance", label: "Performance" }');
   });
 });

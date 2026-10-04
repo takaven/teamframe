@@ -22,7 +22,7 @@ export type OnboardingTemplateTask = {
   requiredDocumentType?: string;
 };
 
-export type OnboardingTemplatePackId = "every_hire" | "engineering" | "operations";
+export type OnboardingTemplatePackId = "every_hire" | "engineering" | "operations" | "uae_sme";
 
 export type OnboardingTemplatePack = {
   id: OnboardingTemplatePackId;
@@ -32,6 +32,19 @@ export type OnboardingTemplatePack = {
 };
 
 export const ONBOARDING_TEMPLATE_PACKS: readonly OnboardingTemplatePack[] = [
+  {
+    id: "uae_sme",
+    name: "UAE starter checklist",
+    description: "Editable starter checklist for a UAE office-based SME. Confirm every item against company policy before assigning it.",
+    tasks: [
+      { title: "Review and sign the employment contract", dueOffsetDays: 0, completionMode: "document_required", requiredDocumentType: "contract" },
+      { title: "Upload Emirates ID or application evidence", dueOffsetDays: 2, completionMode: "document_required", requiredDocumentType: "emirates_id" },
+      { title: "Upload passport copy", dueOffsetDays: 2, completionMode: "document_required", requiredDocumentType: "passport" },
+      { title: "Confirm payroll and bank details", dueOffsetDays: 5 },
+      { title: "Review company policies", dueOffsetDays: 7 },
+      { title: "Meet your manager and confirm first-month priorities", dueOffsetDays: 7 },
+    ],
+  },
   {
     id: "every_hire",
     name: "Every hire",

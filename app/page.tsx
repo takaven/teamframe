@@ -1,6 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
-import dashboardShot from "@/public/marketing/dashboard-risk-signals.png";
 import { BrandLogo } from "@/components/BrandLogo";
 import { TakavenEndorsement } from "@/components/TakavenEndorsement";
 
@@ -77,18 +75,21 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Real product, real demo data — captured from the seeded overview. */}
+      {/* Maintained with the current overview vocabulary so the landing page cannot drift behind the product navigation. */}
       <section className="mt-14" aria-label="Product preview">
         <figure className="tf-public-preview overflow-hidden p-3 md:p-4">
-          <Image
-            src={dashboardShot}
-            alt="TeamFrame overview: what needs attention across the team, with the next action for each item"
-            priority
-            className="w-full rounded-xl"
-            sizes="(max-width: 1024px) 100vw, 976px"
-          />
+          <div className="rounded-xl bg-[#f2f2f0] p-4 shadow-inner md:p-7" aria-label="Current TeamFrame overview illustrated with synthetic data">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink-300/40 pb-4">
+              <div><p className="text-[11px] uppercase tracking-[0.12em] text-ink-500">Demo workspace</p><h2 className="mt-1 text-[25px] font-semibold tracking-tight">Good morning</h2></div>
+              <span className="rounded-full bg-white px-3 py-1.5 text-[12px] font-semibold shadow-sm">3 active</span>
+            </div>
+            <div className="mt-5 grid gap-4 md:grid-cols-[1.45fr_0.8fr]">
+              <section className="rounded-xl bg-white p-5 shadow-sm"><p className="text-[11px] uppercase tracking-[0.12em] text-ink-500">Today</p><h3 className="mt-1 text-[19px] font-semibold">Needs your attention</h3><div className="mt-4 space-y-3"><div className="rounded-lg border-l-4 border-signal-red bg-ink-50 p-3"><p className="text-[12px] text-ink-500">UAE employee record</p><p className="mt-1 text-[14px] font-semibold">Residence visa expires soon</p><p className="mt-1 text-[12px] text-ink-600">Review the document and request the renewed record.</p></div><div className="rounded-lg border-l-4 border-signal-amber bg-ink-50 p-3"><p className="text-[12px] text-ink-500">Manager decision</p><p className="mt-1 text-[14px] font-semibold">Half-day leave request</p><p className="mt-1 text-[12px] text-ink-600">Check the transparent balance before deciding.</p></div></div></section>
+              <section className="rounded-xl bg-white p-5 shadow-sm"><p className="text-[11px] uppercase tracking-[0.12em] text-ink-500">Quick view</p><div className="mt-4 grid grid-cols-2 gap-3"><div className="rounded-lg bg-ink-50 p-3"><p className="text-[11px] text-ink-500">People</p><p className="mt-1 text-xl font-semibold">12</p></div><div className="rounded-lg bg-ink-50 p-3"><p className="text-[11px] text-ink-500">Away today</p><p className="mt-1 text-xl font-semibold">1</p></div><div className="rounded-lg bg-ink-50 p-3"><p className="text-[11px] text-ink-500">Starting soon</p><p className="mt-1 text-xl font-semibold">2</p></div><div className="rounded-lg bg-ink-50 p-3"><p className="text-[11px] text-ink-500">Overdue</p><p className="mt-1 text-xl font-semibold">0</p></div></div></section>
+            </div>
+          </div>
           <figcaption className="px-2 pb-1 pt-3 text-[12px] text-ink-500">
-            The overview on demo data — what needs attention, and the next action for each.
+            The current overview, illustrated with synthetic data — what needs attention and the next action for each item.
           </figcaption>
         </figure>
       </section>

@@ -31,6 +31,6 @@
     { "employeeEmail": "finance@example.invalid", "documentType": "passport", "dueDate": "2026-10-01", "expiryRequired": true, "reviewRequired": true, "employeeUploadAllowed": true }
   ],
   "policies": [
-    { "title": "Employee handbook", "body": "Replace this synthetic text with the approved customer policy.", "version": 1, "effectiveDate": "2026-01-01", "publish": true }
+    { "title": "Employee handbook", "body": "Example Advisory expects colleagues to act professionally, keep personal details current, and acknowledge published policy updates in TeamFrame.", "version": 1, "effectiveDate": "2026-01-01", "publish": false }
   ]
 }
