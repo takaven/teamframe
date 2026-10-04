@@ -631,6 +631,7 @@ $$;
 -- counting-basis parameters (added params would otherwise create an overload).
 drop function if exists teamframe_submit_leave(uuid, uuid, uuid, date, date, leave_type, text);
 drop function if exists teamframe_submit_leave(uuid, uuid, uuid, date, date, leave_type, text, uuid, text);
+drop function if exists teamframe_submit_leave(uuid, uuid, uuid, date, date, leave_type, text, uuid, text, uuid);
 create or replace function teamframe_submit_leave(
   p_tenant_id uuid,
   p_actor_user_id uuid,
@@ -641,7 +642,8 @@ create or replace function teamframe_submit_leave(
   p_reason text default null,
   p_leave_definition_id uuid default null,
   p_counting_basis text default 'working_days',
-  p_attachment_document_id uuid default null
+  p_attachment_document_id uuid default null,
+  p_day_part text default 'full_day'
 )
 returns leaves
 language plpgsql
@@ -654,6 +656,10 @@ declare
   v_days numeric(6,2);
   v_automation_item_id uuid;
 begin
+  if p_day_part not in ('full_day', 'morning', 'afternoon')
+    or (p_day_part <> 'full_day' and p_start_date <> p_end_date) then
+    raise exception 'LEAVE_DAY_PART_INVALID';
+  end if;
   if p_end_date < p_start_date then
     raise exception 'INVALID_INPUT';
   end if;
@@ -695,13 +701,24 @@ begin
       and l.status in ('pending', 'approved')
       and l.start_date <= p_end_date
       and p_start_date <= l.end_date
+      and (
+        coalesce(l.day_part, 'full_day') = 'full_day'
+        or p_day_part = 'full_day'
+        or coalesce(l.day_part, 'full_day') = p_day_part
+      )
   ) then
     raise exception 'LEAVE_OVERLAP';
   end if;
 
   -- Counting basis: calendar_days counts every inclusive date; otherwise reuse the
   -- verified working-day engine (employee override / company default / holidays).
-  if p_counting_basis = 'calendar_days' then
+  if p_day_part <> 'full_day' then
+    if p_counting_basis = 'working_days'
+      and teamframe_calculate_leave_days(p_tenant_id, p_employee_id, p_start_date, p_end_date) <= 0 then
+      raise exception 'INVALID_INPUT';
+    end if;
+    v_days := 0.5;
+  elsif p_counting_basis = 'calendar_days' then
     v_days := (p_end_date - p_start_date) + 1;
   else
     v_days := teamframe_calculate_leave_days(p_tenant_id, p_employee_id, p_start_date, p_end_date);
@@ -741,7 +758,8 @@ begin
     attachment_document_id,
     requested_days,
     reason,
-    status
+    status,
+    day_part
   )
   values (
     p_tenant_id,
@@ -753,7 +771,8 @@ begin
     p_attachment_document_id,
     v_days,
     nullif(trim(coalesce(p_reason, '')), ''),
-    'pending'
+    'pending',
+    p_day_part
   )
   returning * into v_leave;
 
@@ -767,7 +786,7 @@ begin
     clock_timestamp() + interval '1 day',
     'decision',
     null,
-    jsonb_build_object('leave_type', p_leave_type, 'requested_days', v_days),
+    jsonb_build_object('leave_type', p_leave_type, 'requested_days', v_days, 'day_part', p_day_part),
     3
   );
 
@@ -849,11 +868,33 @@ begin
         and l.status = 'approved'
         and l.start_date <= v_leave.end_date
         and v_leave.start_date <= l.end_date
+        and (
+          coalesce(l.day_part, 'full_day') = 'full_day'
+          or coalesce(v_leave.day_part, 'full_day') = 'full_day'
+          or coalesce(l.day_part, 'full_day') = coalesce(v_leave.day_part, 'full_day')
+        )
     ) then
       raise exception 'LEAVE_OVERLAP';
     end if;
 
-    if v_leave.leave_type = 'annual' then
+    if v_leave.leave_definition_id is not null and exists (
+      select 1 from leave_definitions
+      where tenant_id=p_tenant_id and id=v_leave.leave_definition_id
+        and default_entitlement_days is not null
+    ) then
+      select available into v_available
+      from teamframe_leave_balance_components(
+        p_tenant_id,
+        v_leave.employee_id,
+        v_leave.leave_definition_id,
+        extract(year from v_leave.start_date)::integer,
+        v_leave.start_date,
+        v_leave.id
+      );
+      if v_leave.requested_days > v_available and not p_override_insufficient_balance then
+        raise exception 'LEAVE_INSUFFICIENT_BALANCE';
+      end if;
+    elsif v_leave.leave_type = 'annual' then
       select * into v_company
       from companies
       where id = p_tenant_id
@@ -894,42 +935,6 @@ begin
       v_available := v_allocation - coalesce(v_opening_used, 0) - v_pending - v_approved;
       if v_leave.requested_days > v_available and not p_override_insufficient_balance then
         raise exception 'LEAVE_INSUFFICIENT_BALANCE';
-      end if;
-    elsif v_leave.leave_definition_id is not null then
-      -- Phase 5A closure: an entitlement-bearing CUSTOM definition (non-system, routed through
-      -- any system category such as 'other') must obey the same insufficient-balance rule, keyed
-      -- on the definition identity so two 'other'-routed types never contaminate each other.
-      -- System types keep their existing behaviour (annual enforced above; sick/unpaid/other not
-      -- balance-blocked) and the parked cross-year semantics are untouched.
-      select * into v_def
-      from leave_definitions
-      where tenant_id = p_tenant_id
-        and id = v_leave.leave_definition_id;
-
-      if found and not v_def.is_system and v_def.default_entitlement_days is not null then
-        v_allocation := v_def.default_entitlement_days;
-
-        select coalesce(sum(l.requested_days), 0)
-        into v_pending
-        from leaves l
-        where l.tenant_id = p_tenant_id
-          and l.employee_id = v_leave.employee_id
-          and l.leave_definition_id = v_leave.leave_definition_id
-          and l.status = 'pending'
-          and l.id <> v_leave.id;
-
-        select coalesce(sum(l.requested_days), 0)
-        into v_approved
-        from leaves l
-        where l.tenant_id = p_tenant_id
-          and l.employee_id = v_leave.employee_id
-          and l.leave_definition_id = v_leave.leave_definition_id
-          and l.status = 'approved';
-
-        v_available := v_allocation - v_pending - v_approved;
-        if v_leave.requested_days > v_available and not p_override_insufficient_balance then
-          raise exception 'LEAVE_INSUFFICIENT_BALANCE';
-        end if;
       end if;
     end if;
   end if;

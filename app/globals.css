@@ -1316,7 +1316,6 @@ main > section[class*="bg-white"][class*="border"] {
   background: var(--tf-material);
   box-shadow: var(--tf-floating);
 }
-.tf-public-preview img { box-shadow: var(--tf-inset); }
 .tf-public-feature {
   border: 0;
   border-radius: 12px;

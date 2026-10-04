@@ -4,13 +4,14 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { notifyDocumentRequest } from "@/services/notificationService";
 import { requireTenantActor } from "@/middleware/rbac";
-import { UAE_RECORD_TYPE_VALUES } from "@/lib/countryRecords";
+import { UAE_COUNTRY, UAE_RECORD_TYPE_VALUES, isUaeRecordType } from "@/lib/countryRecords";
 import {
   createEmployee,
   generateEmployeeActivationLink,
   reinviteEmployee,
   softDeleteEmployee,
   updateEmployee,
+  getEmployeeWorkCountry,
 } from "@/services/employeeService";
 import {
   cancelEmploymentChange,
@@ -166,6 +167,7 @@ const ExportDueDiligencePackInputSchema = z.object({
 
 const ExportFinanceHandoffInputSchema = z.object({
   return_to: z.string().trim().optional(),
+  period: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/),
 });
 
 const RecordEmploymentChangeInputSchema = z.object({
@@ -291,6 +293,7 @@ export async function createEmployeeFromHireAction(formData: FormData): Promise<
   let errorCode: string | null = null;
   let employeeId: string | null = null;
   try {
+    if (process.env.TEAMFRAME_HIRE_BRIDGE_ENABLED !== "true") throw new Error("HIRE_HANDOFF_DISABLED");
     const actor = await requireTenantActor();
     if (formData.get("source_reviewed") !== "yes") throw new Error("HIRE_HANDOFF_REVIEW_REQUIRED");
     const result = await createEmployeeFromReviewedHire(actor, {
@@ -847,9 +850,8 @@ export async function uploadEmployeeDocumentAction(formData: FormData): Promise<
 
 // Phase 5E: upload a country-specific (UAE) record — a specialised document with factual metadata
 // (issue date, expiry, reference number). Reuses uploadDocument; the reference number is stored as
-// employer-controlled PII behind the same private-document gate. Country gating is enforced in the
-// admin UI (the section only appears for AE work-country employees); this action additionally
-// restricts the type to the bounded UAE vocabulary.
+// employer-controlled PII behind the same private-document gate. The UAE work-country gate is
+// enforced again here; UI visibility is never treated as authorization.
 export async function uploadUaeRecordAction(formData: FormData): Promise<void> {
   let failed = false;
   let errorCode = "UNKNOWN";
@@ -872,6 +874,7 @@ export async function uploadUaeRecordAction(formData: FormData): Promise<void> {
     });
     employeeId = parsed.employee_id;
     returnTo = safeReturnPath(parsed.return_to, "/people");
+    if (await getEmployeeWorkCountry(actor, employeeId) !== UAE_COUNTRY) throw new Error("UAE_RECORD_COUNTRY_REQUIRED");
 
     await uploadDocument(
       actor,
@@ -976,6 +979,10 @@ export async function createDocumentRequirementAction(formData: FormData): Promi
     });
     employeeId = parsed.employee_id;
     returnTo = safeReturnPath(parsed.return_to, "/people");
+
+    if (isUaeRecordType(parsed.document_type) && await getEmployeeWorkCountry(actor, employeeId) !== UAE_COUNTRY) {
+      throw new Error("UAE_RECORD_COUNTRY_REQUIRED");
+    }
 
     const requirement = await createDocumentRequirement(actor, {
       employeeId: parsed.employee_id,
@@ -1181,9 +1188,10 @@ export async function exportFinanceHandoffAction(formData: FormData): Promise<vo
     const actor = await requireTenantActor();
     const parsed = ExportFinanceHandoffInputSchema.parse({
       return_to: optionalString(formData.get("return_to")),
+      period: formData.get("period"),
     });
     returnTo = safeReturnPath(parsed.return_to, "/people");
-    signedUrl = await exportFinanceHandoffUrl(actor);
+    signedUrl = await exportFinanceHandoffUrl(actor, parsed.period);
   } catch (error) {
     failed = true;
     errorCode = getErrorCode(error);

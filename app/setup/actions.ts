@@ -22,6 +22,7 @@ import {
 import { exportTenantData } from "@/services/documentService";
 import { captureActionError } from "@/lib/telemetry/sentry";
 import { logAction } from "@/lib/telemetry/logger";
+import { applyUaeSetupPack } from "@/services/uaeSetupPackService";
 import {
   addChecklistItem, copyStarterChecklist, createChecklistTemplate, moveChecklistItem,
   removeChecklistItem, setChecklistActive, setDefaultChecklist, updateChecklistItem,
@@ -155,6 +156,11 @@ export async function createLeaveDefinitionAction(formData: FormData): Promise<v
     default_entitlement_days: optNum(formData.get("default_entitlement_days")),
     counting_basis: s(formData.get("counting_basis")),
     attachment_requirement: s(formData.get("attachment_requirement")),
+    accrual_enabled: formData.get("accrual_enabled") === "on",
+    accrual_frequency: s(formData.get("accrual_frequency")) || "monthly",
+    joining_date_pro_rata: formData.get("joining_date_pro_rata") === "on",
+    carry_forward_enabled: formData.get("carry_forward_enabled") === "on",
+    carry_forward_cap_days: optNum(formData.get("carry_forward_cap_days")),
   }));
 }
 export async function updateLeaveDefinitionAction(formData: FormData): Promise<void> {
@@ -165,7 +171,15 @@ export async function updateLeaveDefinitionAction(formData: FormData): Promise<v
     default_entitlement_days: optNum(formData.get("default_entitlement_days")),
     counting_basis: s(formData.get("counting_basis")),
     attachment_requirement: s(formData.get("attachment_requirement")),
+    accrual_enabled: formData.get("accrual_enabled") === "on",
+    accrual_frequency: s(formData.get("accrual_frequency")) || "monthly",
+    joining_date_pro_rata: formData.get("joining_date_pro_rata") === "on",
+    carry_forward_enabled: formData.get("carry_forward_enabled") === "on",
+    carry_forward_cap_days: optNum(formData.get("carry_forward_cap_days")),
   }));
+}
+export async function applyUaeSetupPackAction(formData:FormData):Promise<void>{
+  await run("applyUaeSetupPack","uae-pack",(actor)=>applyUaeSetupPack(actor,{weekend:s(formData.get("weekend")),annualEntitlement:Number(s(formData.get("annual_entitlement"))),sickEntitlement:Number(s(formData.get("sick_entitlement"))),annualAccrual:formData.get("annual_accrual")==="on",annualProRata:formData.get("annual_pro_rata")==="on",carryForward:formData.get("carry_forward")==="on",carryCap:optNum(formData.get("carry_cap")),confirmed:formData.get("confirmed")==="on"}));
 }
 
 // Whole-tenant portability export. Full Access only (enforced in the service by

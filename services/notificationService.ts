@@ -6,7 +6,7 @@ import { loadControlCentreData } from "@/app/dashboard/data";
 import { getManagerDashboard } from "@/services/managerService";
 import type { Actor } from "@/middleware/rbac";
 
-export type NotificationType = "document_action" | "task_assignment" | "leave_action" | "policy_acknowledgement" | "probation_check_in" | "offboarding" | "daily_digest";
+export type NotificationType = "document_action" | "task_assignment" | "leave_action" | "policy_acknowledgement" | "probation_check_in" | "performance_review" | "offboarding" | "daily_digest";
 export type NotificationInput = { tenantId: string; recipientEmployeeId?: string | null; recipientEmail?: string | null; type: NotificationType; eventKey: string; subject: string; text: string; actionPath: string; relatedEntityType?: string; relatedEntityId?: string | null };
 type DeliveryRow = { id: string; tenant_id: string; recipient_employee_id: string | null; recipient_email: string | null; notification_type: NotificationType; event_key: string; related_entity_type: string | null; related_entity_id: string | null; action_path: string | null; status: "pending" | "sent" | "failed" | "skipped"; provider_message_id: string | null; attempt_count: number; last_error_summary: string | null };
 
@@ -92,6 +92,20 @@ export async function notifyLeaveRequest(tenantId: string, leaveId: string): Pro
 
 export async function notifyTaskAssignment(tenantId: string, employeeId: string, eventId: string, title: string): Promise<void> {
   await notifyBestEffort({ tenantId, recipientEmployeeId: employeeId, type: "task_assignment", eventKey: `onboarding:${eventId}:assigned`, subject: "Onboarding task assigned", text: `${title} has been added to your onboarding checklist.`, actionPath: "/onboarding", relatedEntityType: "onboarding_task", relatedEntityId: eventId });
+}
+
+export async function notifyPerformanceReviewDue(tenantId: string, employeeId: string, reviewId: string, cycleName: string, stage: "employee" | "reviewer"): Promise<void> {
+  await notifyBestEffort({
+    tenantId,
+    recipientEmployeeId: employeeId,
+    type: "performance_review",
+    eventKey: `performance-review:${reviewId}:${stage}-due`,
+    subject: "Performance review needs your input",
+    text: `${cycleName} is due. Open TeamFrame to complete your part of the review.`,
+    actionPath: "/performance",
+    relatedEntityType: "performance_review",
+    relatedEntityId: reviewId,
+  });
 }
 
 export async function notifyOffboardingAssignment(tenantId: string, item: { id: string; employeeId: string; ownerEmployeeId: string | null; title: string; dueDate: string | null }): Promise<void> {

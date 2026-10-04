@@ -207,13 +207,16 @@ describe("MR-5 documents, evidence and policies", () => {
     expect(documentService).not.toContain("employee_compliance_records");
 
     // Bounded UAE vocabulary (all seven) + AE work-country gate, never nationality.
-    for (const t of ["visa", "emirates_id", "passport", "medical_fitness", "iloe", "medical_insurance", "employment_contract"]) {
+    for (const t of ["emirates_id", "passport", "residence_visa", "work_permit", "medical_fitness", "medical_insurance", "iloe"]) {
       expect(vocab).toContain(`"${t}"`);
     }
     expect(vocab).toContain("UAE_COUNTRY = \"AE\"");
     expect(employeeService).toContain("getEmployeeWorkCountry");
     expect(employeeService).toContain("work_location_id"); // structured work-location path
     expect(employeesActions).toContain("uploadUaeRecordAction");
+    expect(employeesActions).toContain("getEmployeeWorkCountry(actor, employeeId) !== UAE_COUNTRY");
+    expect(employeesActions).toContain("isUaeRecordType(parsed.document_type)");
+    expect(employeesActions).toContain("UAE_RECORD_COUNTRY_REQUIRED");
 
     // PII: reference_number is only returned through canReadEmployeeDocuments-gated paths and is
     // NEVER read by the employee-master service (no leak into rosters/org chart/manager cards).

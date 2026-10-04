@@ -153,6 +153,7 @@ export function LeaveCalendar({
             <div className="flex justify-between border-b border-ink-100 py-1"><dt className="text-ink-500">From</dt><dd className="tabular-nums">{fmtLong(selected.start_date)}</dd></div>
             <div className="flex justify-between border-b border-ink-100 py-1"><dt className="text-ink-500">To</dt><dd className="tabular-nums">{fmtLong(selected.end_date)}</dd></div>
             <div className="flex justify-between border-b border-ink-100 py-1"><dt className="text-ink-500">Counted days</dt><dd className="tabular-nums">{selected.requested_days}</dd></div>
+            <div className="flex justify-between border-b border-ink-100 py-1"><dt className="text-ink-500">Day portion</dt><dd className="capitalize">{selected.day_part.replace("_", " ")}</dd></div>
             <div className="flex justify-between border-b border-ink-100 py-1"><dt className="text-ink-500">Status</dt><dd className="capitalize">{selected.status}</dd></div>
             {selected.reason ? (
               <div className="flex justify-between border-b border-ink-100 py-1 sm:col-span-2"><dt className="text-ink-500">Reason</dt><dd className="text-right text-ink-800">{selected.reason}</dd></div>

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { notifyLeaveDecision, notifyLeaveRequest } from "@/services/notificationService";
 import { requireTenantActor } from "@/middleware/rbac";
-import { cancelApprovedLeave, decideLeaveRequest, submitLeaveRequest, submitLeaveRequestForEmployee, withdrawPendingLeave } from "@/services/leaveService";
+import { addLeaveBalanceEntry, cancelApprovedLeave, decideLeaveRequest, submitLeaveRequest, submitLeaveRequestForEmployee, withdrawPendingLeave } from "@/services/leaveService";
 import { getSignedDownloadUrl } from "@/services/documentService";
 import { logAction } from "@/lib/telemetry/logger";
 import { captureActionError } from "@/lib/telemetry/sentry";
@@ -14,6 +14,7 @@ const SubmitSchema = z
     start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     leave_definition_id: z.string().uuid(),
+    day_part: z.enum(["full_day", "morning", "afternoon"]).default("full_day"),
     reason: z.string().trim().max(500).optional(),
   })
   .refine((d) => d.end_date >= d.start_date, { message: "INVALID_INPUT" });
@@ -73,6 +74,7 @@ export async function submitLeaveAction(formData: FormData): Promise<void> {
       start_date: formData.get("start_date"),
       end_date: formData.get("end_date"),
       leave_definition_id: formData.get("leave_definition_id"),
+      day_part: formData.get("day_part") ?? "full_day",
       reason: optionalString(formData.get("reason")),
     });
     const file = formData.get("attachment");
@@ -80,6 +82,7 @@ export async function submitLeaveAction(formData: FormData): Promise<void> {
       startDate: parsed.start_date,
       endDate: parsed.end_date,
       leaveDefinitionId: parsed.leave_definition_id,
+      dayPart: parsed.day_part,
       reason: parsed.reason,
       attachment: file instanceof File ? file : null,
     });
@@ -131,6 +134,7 @@ export async function submitLeaveForEmployeeAction(formData: FormData): Promise<
       start_date: formData.get("start_date"),
       end_date: formData.get("end_date"),
       leave_definition_id: formData.get("leave_definition_id"),
+      day_part: formData.get("day_part") ?? "full_day",
       reason: optionalString(formData.get("reason")),
     });
     const file = formData.get("attachment");
@@ -138,6 +142,7 @@ export async function submitLeaveForEmployeeAction(formData: FormData): Promise<
       startDate: parsed.start_date,
       endDate: parsed.end_date,
       leaveDefinitionId: parsed.leave_definition_id,
+      dayPart: parsed.day_part,
       reason: parsed.reason,
       attachment: file instanceof File ? file : null,
     });
@@ -146,6 +151,25 @@ export async function submitLeaveForEmployeeAction(formData: FormData): Promise<
     redirect(`/leaves?view=record&error=${encodeURIComponent(errorCode)}`);
   }
   redirect("/leaves?view=requests&status=leave_recorded");
+}
+
+export async function addLeaveBalanceEntryAction(formData: FormData): Promise<void> {
+  try {
+    const actor = await requireTenantActor();
+    await addLeaveBalanceEntry(actor, {
+      employeeId: z.string().uuid().parse(formData.get("employee_id")),
+      leaveDefinitionId: z.string().uuid().parse(formData.get("leave_definition_id")),
+      balanceYear: z.coerce.number().int().parse(formData.get("balance_year")),
+      entryKind: z.enum(["opening", "carry_forward", "admin_adjustment"]).parse(formData.get("entry_kind")),
+      amountDays: z.coerce.number().parse(formData.get("amount_days")),
+      effectiveDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).parse(formData.get("effective_date")),
+      reason: z.string().trim().min(1).max(500).parse(formData.get("reason")),
+      sourceYear: formData.get("entry_kind") === "carry_forward" ? z.coerce.number().int().parse(formData.get("source_year")) : null,
+    });
+  } catch (error) {
+    redirect(`/leaves?view=balances&error=${encodeURIComponent(getErrorCode(error))}`);
+  }
+  redirect("/leaves?view=balances&status=leave_balance_updated");
 }
 
 const EvidenceSchema = z.object({

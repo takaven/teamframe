@@ -11,24 +11,26 @@ export const UAE_COUNTRY = "AE";
 
 // The seven approved UAE record types (factual document categories, not legal requirements).
 export const UAE_RECORD_TYPES = [
-  { value: "visa", label: "Visa" },
   { value: "emirates_id", label: "Emirates ID" },
   { value: "passport", label: "Passport" },
+  { value: "residence_visa", label: "Residence visa" },
+  { value: "work_permit", label: "Labour card / work permit" },
   { value: "medical_fitness", label: "Medical fitness" },
-  { value: "iloe", label: "ILOE" },
   { value: "medical_insurance", label: "Medical insurance" },
-  { value: "employment_contract", label: "Employment contract" },
+  { value: "iloe", label: "ILOE" },
 ] as const;
 
 export const UAE_RECORD_TYPE_VALUES: readonly string[] = UAE_RECORD_TYPES.map((t) => t.value);
 
 export function uaeRecordLabel(documentType: string): string {
+  if (documentType.toLowerCase() === "visa") return "Visa (legacy)";
+  if (documentType.toLowerCase() === "employment_contract") return "Employment contract (legacy)";
   return UAE_RECORD_TYPES.find((t) => t.value === documentType.toLowerCase())?.label
     ?? documentType.replace(/_/g, " ");
 }
 
 export function isUaeRecordType(documentType: string | null | undefined): boolean {
-  return documentType != null && UAE_RECORD_TYPE_VALUES.includes(documentType.toLowerCase());
+  return documentType != null && [...UAE_RECORD_TYPE_VALUES, "visa"].includes(documentType.toLowerCase());
 }
 
 /**

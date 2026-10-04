@@ -10,6 +10,8 @@ const DOCUMENT_LABELS: Readonly<Record<string, string>> = {
   cv: "CV",
   photo: "Photo",
   visa: "Visa",
+  residence_visa: "Residence visa",
+  work_permit: "Labour card / work permit",
   iloe: "ILOE certificate",
 };
 

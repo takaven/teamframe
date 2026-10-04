@@ -33,19 +33,22 @@ import {
   createChecklistAction, copyStarterChecklistAction, updateChecklistAction, toggleChecklistAction,
   setDefaultChecklistAction, addChecklistItemAction, updateChecklistItemAction,
   removeChecklistItemAction, moveChecklistItemAction,
+  applyUaeSetupPackAction,
 } from "./actions";
 import { listCompanyHolidays } from "@/services/companyHolidayService";
-import { deleteHolidayAction, saveHolidayAction } from "@/app/company/actions";
+import { deleteHolidayAction, importHolidaysAction, saveHolidayAction } from "@/app/company/actions";
 import { listCustomFieldDefinitions } from "@/services/customFieldService";
 import { listChecklistTemplates } from "@/services/onboardingService/checklistTemplates";
 import { ONBOARDING_TEMPLATE_PACKS, dueOffsetLabel } from "@/services/onboardingService/templates";
 import { PeopleFieldsSettings } from "@/components/PeopleFieldsSettings";
 import { LeaveDefinitionsSettings } from "@/components/LeaveDefinitionsSettings";
+import { UAE_SETUP_PACK } from "@/services/uaeSetupPackService";
 
 export const dynamic = "force-dynamic";
 
 const SECTIONS = [
   { key: "company", label: "Company" },
+  { key: "uae-pack", label: "UAE setup pack" },
   { key: "people", label: "People fields" },
   { key: "organisation", label: "Organisation" },
   { key: "timeoff", label: "Time off" },
@@ -234,6 +237,8 @@ export default async function SetupPage({
             <PeopleFieldsSettings fields={customFields} />
           ) : null}
 
+          {section === "uae-pack" ? <section className="tf-surface-flat p-6"><h2 className="tf-h2">UAE office-SME setup pack</h2><p className="mt-1 text-[13px] text-ink-500">Preview and confirm a reusable starting pattern. All settings remain editable; TeamFrame does not provide legal advice or infer statutory entitlements.</p><div className="mt-5 grid gap-4 md:grid-cols-2"><div><h3 className="font-semibold">Included pattern</h3><ul className="mt-2 list-disc space-y-1 pl-5 text-[13px] text-ink-600"><li>Selectable Friday/Saturday or Saturday/Sunday weekend</li><li>Editable annual and sick leave values</li><li>UAE document categories: {UAE_SETUP_PACK.documentCategories.join(", ")}</li><li>Editable UAE starter checklist</li><li>{UAE_SETUP_PACK.probationGuidance}</li><li>{UAE_SETUP_PACK.offboardingGuidance}</li><li>Policy category placeholders only: {UAE_SETUP_PACK.policyCategories.join(", ")}</li></ul><p className="mt-3 rounded-lg border border-signal-amber/30 bg-signal-amber/5 p-3 text-[12px] text-ink-700">{UAE_SETUP_PACK.holidayGuidance}</p></div><form action={applyUaeSetupPackAction} className="grid gap-3 rounded-lg border border-ink-200 p-4"><h3 className="font-semibold">Confirm company choices</h3><label className="text-[12px] text-ink-600">Weekend<select name="weekend" className="tf-select mt-1" required defaultValue=""><option value="" disabled>Select explicitly</option><option value="friday_saturday">Friday and Saturday</option><option value="saturday_sunday">Saturday and Sunday</option></select></label><label className="text-[12px] text-ink-600">Annual entitlement days<input name="annual_entitlement" type="number" min="0" max="365" step="0.5" required className="tf-input mt-1"/></label><label className="text-[12px] text-ink-600">Sick entitlement days<input name="sick_entitlement" type="number" min="0" max="365" step="0.5" required className="tf-input mt-1"/></label><label className="flex items-center gap-2 text-[12px]"><input name="annual_accrual" type="checkbox"/>Accrue annual leave monthly</label><label className="flex items-center gap-2 text-[12px]"><input name="annual_pro_rata" type="checkbox"/>Pro-rate annual leave from joining date</label><label className="flex items-center gap-2 text-[12px]"><input name="carry_forward" type="checkbox"/>Allow carry-forward</label><label className="text-[12px] text-ink-600">Carry-forward cap (days)<input name="carry_cap" type="number" min="0" max="365" step="0.5" className="tf-input mt-1"/></label><label className="flex items-start gap-2 rounded-lg bg-ink-50 p-3 text-[12px]"><input name="confirmed" type="checkbox" required className="mt-0.5"/>I reviewed these choices with the customer/admin and understand that holidays, probation terms, offboarding tasks and policy text still require company confirmation.</label><PendingSubmitButton idleLabel="Apply confirmed UAE setup" pendingLabel="Applying…" className={btn}/></form></div></section>:null}
+
           {section === "organisation" ? (
             <section className="tf-surface-flat p-6">
               <h2 className="tf-h2">Departments</h2>
@@ -260,6 +265,17 @@ export default async function SetupPage({
                   </li>
                 ))}
               </ul>
+              <details className="mt-4 rounded-lg border border-ink-200 p-4">
+                <summary className="cursor-pointer text-[13px] font-semibold">Import an admin-confirmed annual holiday list</summary>
+                <p className="mt-2 text-[12px] text-ink-500">Download the neutral CSV template, enter the dates confirmed for this company and year, then review the list after import. TeamFrame does not supply or certify future religious-holiday dates.</p>
+                <a href="/templates/uae-holidays-template.csv" download className="mt-2 inline-block text-[12px] underline underline-offset-4">Download CSV template</a>
+                <form action={importHolidaysAction} className="mt-3 grid gap-3">
+                  <input type="hidden" name="year" value={holidayYear}/>
+                  <label className="text-[12px] text-ink-600">CSV rows<textarea name="csv" required className="tf-input mt-1 min-h-28 font-mono" placeholder={`date,name\n${holidayYear}-12-02,National Day`}/></label>
+                  <label className="flex items-start gap-2 text-[12px]"><input type="checkbox" name="confirmed" required className="mt-0.5"/>I confirm these dates were reviewed for this company and year.</label>
+                  <PendingSubmitButton idleLabel="Import confirmed holidays" pendingLabel="Importing…" className={btn}/>
+                </form>
+              </details>
             </section>
           ) : null}
 

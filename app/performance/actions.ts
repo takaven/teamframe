@@ -1,0 +1,15 @@
+"use server";
+import { redirect } from "next/navigation";
+import { requireTenantActor } from "@/middleware/rbac";
+import { acknowledgePerformanceReview, completePerformanceReview, createPerformanceCycle, createPerformanceTemplate, setPerformanceTemplateActive, submitPerformanceSelfReview } from "@/services/performanceReviewService";
+
+function answers(formData:FormData):Record<string,string>{const out:Record<string,string>={};for(const [key,value] of formData.entries()){if(key.startsWith("answer_")&&typeof value==="string")out[key.slice(7)]=value;}return out;}
+function questions(raw:string){return raw.split("\n").map((line)=>line.trim()).filter(Boolean).map((line,index)=>{const optional=line.startsWith("[optional]");const clean=optional?line.slice(10).trim():line;const [rawSection,...promptParts]=clean.split("::");const section=rawSection?.trim()||"General";const prompt=promptParts.length?promptParts.join("::").trim():section;return{id:`q${index+1}`,section:promptParts.length?section:"General",prompt,type:"text" as const,required:!optional};});}
+function go(error?:unknown):never{const code=error instanceof Error?(error.message.split(":")[0]??"UNKNOWN"):"UNKNOWN";redirect(error?`/performance?error=${encodeURIComponent(code)}`:"/performance?status=saved");}
+
+export async function createPerformanceTemplateAction(formData:FormData){try{const actor=await requireTenantActor();await createPerformanceTemplate(actor,{name:String(formData.get("name")??""),questions:questions(String(formData.get("questions")??"")),ratingScaleMax:Number(formData.get("rating_scale_max")??5)});}catch(error){go(error);}go();}
+export async function createPerformanceCycleAction(formData:FormData){try{const actor=await requireTenantActor();await createPerformanceCycle(actor,{templateId:String(formData.get("template_id")??""),name:String(formData.get("name")??""),dueDate:String(formData.get("due_date")??""),employeeIds:formData.getAll("employee_id").map(String),selfInputEnabled:formData.get("self_input_enabled")==="true"});}catch(error){go(error);}go();}
+export async function submitPerformanceSelfReviewAction(formData:FormData){try{const actor=await requireTenantActor();await submitPerformanceSelfReview(actor,String(formData.get("review_id")??""),answers(formData));}catch(error){go(error);}go();}
+export async function completePerformanceReviewAction(formData:FormData){try{const actor=await requireTenantActor();await completePerformanceReview(actor,String(formData.get("review_id")??""),{responses:answers(formData),rating:Number(formData.get("rating")),comments:String(formData.get("comments")??"")});}catch(error){go(error);}go();}
+export async function acknowledgePerformanceReviewAction(formData:FormData){try{const actor=await requireTenantActor();await acknowledgePerformanceReview(actor,String(formData.get("review_id")??""));}catch(error){go(error);}go();}
+export async function setPerformanceTemplateActiveAction(formData:FormData){try{const actor=await requireTenantActor();await setPerformanceTemplateActive(actor,String(formData.get("template_id")??""),formData.get("active")==="true");}catch(error){go(error);}go();}

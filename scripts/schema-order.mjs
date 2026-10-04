@@ -31,11 +31,14 @@ export const SCHEMA_ORDER = [
   // Each file only FKs to companies, which is applied first.
   "departments.sql",
   "work_locations.sql",
+  // Capability helpers must exist before later RLS policies reference their enum/functions.
+  "access_model.sql",
   "leave_definitions.sql",
+  "20261004_leave_accrual.sql",
   // The leave RPC declares a leave_definitions row, so this table must exist
   // before transactional_mutations.sql is parsed on a fresh database.
   "transactional_mutations.sql",
-  "access_model.sql",
+  "20261004_performance_reviews.sql",
   "offboarding.sql",
   // Phase 2: position occupancy history + positions→config FKs. Applies last so it
   // can reference departments, work_locations, positions and employees.
@@ -90,6 +93,7 @@ export const EXPECTED_PUBLIC_TABLES = [
   "file_operations",
   "hr_automation_events",
   "hr_automation_items",
+  "leave_balance_entries",
   "leave_definitions",
   "leave_opening_adjustments",
   "leaves",
@@ -101,6 +105,9 @@ export const EXPECTED_PUBLIC_TABLES = [
   "onboarding_checklist_template_items",
   "onboarding_checklist_templates",
   "onboarding_tasks",
+  "performance_review_cycles",
+  "performance_review_templates",
+  "performance_reviews",
   "policies",
   "position_assignments",
   "positions",

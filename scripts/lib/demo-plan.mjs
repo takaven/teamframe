@@ -785,9 +785,9 @@ export function buildDemoPlan(now = new Date()) {
         key: "handbook",
         title: "Employee Handbook",
         body:
-          "Synthetic demo policy for the Northstar Advisory demo tenant. It describes how the " +
-          "handbook is structured, who maintains it, and how employees confirm they have read it. " +
-          "It contains no real company rules and creates no obligations.",
+          "Northstar Advisory expects colleagues to act with care, professionalism, and respect. " +
+          "People should raise workplace questions with their manager or the People team, keep their " +
+          "personal details current, and acknowledge published policy updates in TeamFrame.",
         version: 3,
         is_published: true,
         effective_date: dateOnlyDaysFrom(now, -180),
@@ -796,9 +796,9 @@ export function buildDemoPlan(now = new Date()) {
         key: "infoSecurity",
         title: "Information Security Policy",
         body:
-          "Synthetic demo policy for the Northstar Advisory demo tenant. It stands in for the " +
-          "handling of client data, device security, and access reviews so the acknowledgement " +
-          "loop can be demonstrated. It contains no real controls.",
+          "Use company-approved devices and accounts for work, protect passwords and verification " +
+          "codes, and share client information only with authorised colleagues. Report a lost device, " +
+          "suspicious message, or unintended disclosure to the operations lead promptly.",
         version: 2,
         is_published: true,
         effective_date: dateOnlyDaysFrom(now, -90),
@@ -807,8 +807,9 @@ export function buildDemoPlan(now = new Date()) {
         key: "expenses",
         title: "Expenses and Travel Policy",
         body:
-          "Synthetic demo policy for the Northstar Advisory demo tenant. It stands in for expense " +
-          "categories, travel approval, and reimbursement timelines. It contains no real limits.",
+          "Agree business travel and material purchases with the budget owner before committing funds. " +
+          "Submit an itemised receipt and business purpose within ten working days. Finance will return " +
+          "incomplete claims for clarification before reimbursement.",
         version: 1,
         is_published: true,
         effective_date: dateOnlyDaysFrom(now, -30),
@@ -817,8 +818,9 @@ export function buildDemoPlan(now = new Date()) {
         key: "hybridWorking",
         title: "Remote and Hybrid Working Policy",
         body:
-          "Synthetic demo policy for the Northstar Advisory demo tenant, kept unpublished so the " +
-          "draft state is visible alongside published versions. It contains no real rules.",
+          "Draft: team members should agree regular office and remote-working arrangements with their " +
+          "manager, remain reachable during agreed working hours, and use a private setting for client " +
+          "calls and confidential work. Exceptions are reviewed case by case.",
         version: 1,
         is_published: false,
         effective_date: dateOnlyDaysFrom(now, 21),

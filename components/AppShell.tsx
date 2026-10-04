@@ -18,6 +18,7 @@ const ADMIN_LINKS = [
   { href: "/leaves", label: "Time off" },
   { href: "/documents", label: "Documents" },
   { href: "/policies", label: "Policies" },
+  { href: "/performance", label: "Performance" },
   { href: "/reports", label: "Reports" },
 ] as const;
 
@@ -28,6 +29,7 @@ const EMPLOYEE_LINKS = [
   { href: "/me", label: "Me" },
   { href: "/leaves", label: "Time off" },
   { href: "/documents-and-policies", label: "Documents & policies" },
+  { href: "/performance", label: "Performance" },
   { href: "/directory", label: "Directory" },
 ] as const;
 
@@ -39,6 +41,7 @@ const MANAGER_LINKS = [
   MANAGER_PRIORITIES_LINK,
   { href: "/leaves", label: "Time off" },
   { href: "/me", label: "Me" },
+  { href: "/performance", label: "Performance" },
 ] as const;
 
 // Manager status = the employee currently has at least one direct report.

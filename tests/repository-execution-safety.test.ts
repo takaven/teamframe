@@ -39,7 +39,7 @@ describe("repository execution safety", () => {
         if (tableName) tablesFromSchemas.add(tableName.toLowerCase());
       }
     }
-    expect(EXPECTED_PUBLIC_TABLES).toHaveLength(45);
+    expect(EXPECTED_PUBLIC_TABLES).toHaveLength(49);
     expect([...EXPECTED_PUBLIC_TABLES].sort()).toEqual(EXPECTED_PUBLIC_TABLES);
     expect([...tablesFromSchemas].sort()).toEqual(EXPECTED_PUBLIC_TABLES);
 

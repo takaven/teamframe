@@ -11,6 +11,7 @@ import { listEmployeesForAdmin } from "@/services/employeeService";
 import { listWorkspaceDocuments } from "@/services/documentService";
 import { createDocumentRequirementAction, reviewDocumentRequirementAction } from "@/app/employees/actions";
 import { remindDocumentAction } from "@/app/notifications/actions";
+import { UAE_RECORD_TYPES } from "@/lib/countryRecords";
 
 export const dynamic = "force-dynamic";
 
@@ -94,7 +95,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
         <form action={createDocumentRequirementAction} className="mt-5 grid gap-3 md:grid-cols-3">
           <input type="hidden" name="return_to" value="/documents" />
           <label className="text-[12px] text-ink-500">Person<select name="employee_id" required className="tf-select-sm mt-1 w-full"><option value="">Select person</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.full_name}</option>)}</select></label>
-          <label className="text-[12px] text-ink-500">Document type<select name="document_type" defaultValue="passport" className="tf-select-sm mt-1 w-full"><option value="passport">Passport</option><option value="employment_contract">Employment contract</option><option value="right_to_work">Right to work</option><option value="medical_fitness">Medical fitness certificate</option><option value="emirates_id">Emirates ID</option><option value="jd">Job description</option></select></label>
+          <label className="text-[12px] text-ink-500">Document type<select name="document_type" defaultValue="passport" className="tf-select-sm mt-1 w-full">{UAE_RECORD_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}<option value="contract">Employment contract</option><option value="right_to_work">Right to work (non-UAE)</option><option value="jd">Job description</option></select></label>
           <label className="text-[12px] text-ink-500">Due date<DateField name="due_date" dense /></label>
           <label className="flex items-center gap-2 text-[12px] text-ink-600"><input type="checkbox" name="expiry_required"/>Monitor expiry</label>
           <label className="flex items-center gap-2 text-[12px] text-ink-600"><input type="checkbox" name="review_required" defaultChecked/>Review required</label>
