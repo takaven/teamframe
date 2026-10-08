@@ -5,6 +5,7 @@ import { env } from "@/lib/db/env";
 import { loadControlCentreData } from "@/app/dashboard/data";
 import { getManagerDashboard } from "@/services/managerService";
 import type { Actor } from "@/middleware/rbac";
+import { employeeDocumentRequestLabel, type EmployeeDocumentRequestType } from "@/lib/employeeDocumentRequests";
 
 export type NotificationType = "document_action" | "task_assignment" | "leave_action" | "policy_acknowledgement" | "probation_check_in" | "performance_review" | "offboarding" | "daily_digest";
 export type NotificationInput = { tenantId: string; recipientEmployeeId?: string | null; recipientEmail?: string | null; type: NotificationType; eventKey: string; subject: string; text: string; actionPath: string; relatedEntityType?: string; relatedEntityId?: string | null };
@@ -72,6 +73,30 @@ export async function notifyDocumentRequest(tenantId: string, requirementId: str
   if (!data) return;
   const label = String(data.document_type).replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
   await notifyBestEffort({ tenantId, recipientEmployeeId: data.employee_id, type: "document_action", eventKey: `document-request:${requirementId}:requested`, subject: `${label} requested`, text: `Please upload ${label}${data.due_date ? ` by ${data.due_date}` : ""}.`, actionPath: "/documents-and-policies#documents", relatedEntityType: "document_requirement", relatedEntityId: requirementId });
+}
+
+export async function notifyEmployeeDocumentReady(tenantId: string, requestId: string): Promise<void> {
+  const db: any = createServiceRoleClient();
+  const { data } = await db
+    .from("employee_document_requests")
+    .select("id,employee_id,request_type,status")
+    .eq("tenant_id", tenantId)
+    .eq("id", requestId)
+    .eq("status", "ready")
+    .maybeSingle();
+  if (!data) return;
+  const label = employeeDocumentRequestLabel(data.request_type as EmployeeDocumentRequestType);
+  await notifyBestEffort({
+    tenantId,
+    recipientEmployeeId: data.employee_id,
+    type: "document_action",
+    eventKey: `employee-document-request:${requestId}:ready`,
+    subject: `Your ${label} is ready`,
+    text: `Your ${label} is ready to download in TeamFrame.`,
+    actionPath: "/documents-and-policies#requested-documents",
+    relatedEntityType: "employee_document_request",
+    relatedEntityId: requestId,
+  });
 }
 
 export async function notifyLeaveDecision(tenantId: string, leaveId: string, decision: "approved" | "rejected"): Promise<void> {

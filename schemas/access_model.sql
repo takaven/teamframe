@@ -575,6 +575,35 @@ with check (
   and current_actor_has_capability(tenant_id, 'private_employee_documents'::access_capability, employee_id)
 );
 
+drop policy if exists employee_document_requests_select on employee_document_requests;
+create policy employee_document_requests_select on employee_document_requests
+for select
+using (
+  tenant_id = current_actor_tenant_id()
+  and (
+    current_actor_employee_id(tenant_id) = employee_id
+    or (
+      exists (
+        select 1
+        from tenant_memberships tm
+        where tm.auth_user_id = auth.uid()
+          and tm.tenant_id = employee_document_requests.tenant_id
+          and tm.active
+          and tm.removed_at is null
+          and coalesce(tm.people_access_scope::text, case when tm.profile in ('admin', 'full_access') then 'all' else 'none' end) <> 'none'
+          and teamframe_scope_matches(
+            coalesce(tm.people_access_scope::text, case when tm.profile in ('admin', 'full_access') then 'all' else 'none' end),
+            tm.people_selected_employee_ids,
+            tm.tenant_id,
+            tm.employee_id,
+            employee_document_requests.employee_id
+          )
+      )
+      and current_actor_has_capability(tenant_id, 'private_employee_documents'::access_capability, employee_id)
+    )
+  )
+);
+
 drop policy if exists export_files_admin_only on export_files;
 drop policy if exists export_files_access on export_files;
 create policy export_files_access on export_files

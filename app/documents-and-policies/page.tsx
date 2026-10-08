@@ -7,19 +7,32 @@ import { EmptyState } from "@/components/EmptyState";
 import { DocumentsChecklist } from "@/components/DocumentsChecklist";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
+import { DateField } from "@/components/DateField";
+import { StatusPill } from "@/components/StatusPill";
 import { acknowledgePolicyAction, downloadPolicyFileAction } from "@/app/policies/actions";
+import {
+  createEmployeeDocumentRequestAction,
+  downloadEmployeeDocumentRequestAction,
+} from "@/app/document-requests/actions";
+import {
+  EMPLOYEE_DOCUMENT_REQUEST_LABELS,
+  EMPLOYEE_DOCUMENT_REQUEST_TYPES,
+} from "@/lib/employeeDocumentRequests";
+import { listOwnEmployeeDocumentRequests } from "@/services/employeeDocumentRequestService";
 
 export const dynamic = "force-dynamic";
 
 const STATUS_COPY: Record<string, string> = {
   policy_acknowledged: "Policy acknowledged. Thank you.",
   document_uploaded: "Document uploaded.",
+  document_request_created: "Your document request has been sent.",
 };
 
 const ERROR_COPY: Record<string, string> = {
   FORBIDDEN: "You do not have permission for that action.",
   NO_EMPLOYEE_RECORD: "Your account is not linked to an employee profile yet. Ask your admin.",
   INVALID_INPUT: "Check the details and try again.",
+  EMPLOYEE_DOCUMENT_REQUEST_NEEDED_BY_PAST: "Choose today or a future needed-by date.",
   UNKNOWN: "Something went wrong. Refresh and try again.",
 };
 
@@ -41,9 +54,10 @@ export default async function DocumentsAndPoliciesPage({ searchParams }: { searc
     );
   }
 
-  const [requirements, policies] = await Promise.all([
+  const [requirements, policies, employeeRequests] = await Promise.all([
     listDocumentRequirementsForEmployee(actor, actor.employeeId),
     listUnacknowledgedForEmployee(actor),
+    listOwnEmployeeDocumentRequests(actor),
   ]);
   const successMessage = status ? (STATUS_COPY[status] ?? null) : null;
   const errorMessage = error ? (ERROR_COPY[error] ?? ERROR_COPY.UNKNOWN) : null;
@@ -60,9 +74,50 @@ export default async function DocumentsAndPoliciesPage({ searchParams }: { searc
       {errorMessage ? <p role="alert" className="mt-6 rounded-lg border border-signal-red/30 bg-signal-red/10 px-4 py-3 text-[14px] text-signal-red">{errorMessage}</p> : null}
 
       <section id="documents" className="mt-7 scroll-mt-6 tf-surface-flat p-5">
-        <h2 className="tf-h2">Documents</h2>
+        <h2 className="tf-h2">Requested from me</h2>
         <p className="mt-1 text-[13px] text-ink-500">Each upload is recorded against the matching request.</p>
         <div className="mt-4"><DocumentsChecklist requirements={requirements} returnTo="/documents-and-policies#documents" /></div>
+      </section>
+
+      <section id="requested-documents" className="mt-6 scroll-mt-6 tf-surface-flat">
+        <div className="border-b border-ink-200 px-5 py-4">
+          <h2 className="tf-h2">Documents I&apos;ve requested</h2>
+          <p className="mt-1 text-[13px] text-ink-500">Request salary certificates, NOCs and other employment letters from your HR team.</p>
+        </div>
+        <form action={createEmployeeDocumentRequestAction} className="grid gap-4 border-b border-ink-200 px-5 py-5 md:grid-cols-2">
+          <input type="hidden" name="return_to" value="/documents-and-policies#requested-documents" />
+          <label className="text-[12px] text-ink-500">Document type
+            <select name="request_type" required defaultValue="salary_certificate" className="tf-select-sm mt-1 w-full">
+              {EMPLOYEE_DOCUMENT_REQUEST_TYPES.map((type) => <option key={type} value={type}>{EMPLOYEE_DOCUMENT_REQUEST_LABELS[type]}</option>)}
+            </select>
+          </label>
+          <label className="text-[12px] text-ink-500">Needed by <span className="text-ink-400">(optional)</span>
+            <DateField name="needed_by" dense min={new Date().toISOString().slice(0, 10)} />
+          </label>
+          <label className="text-[12px] text-ink-500 md:col-span-2">Details / addressed to / purpose <span className="text-ink-400">(required for Other)</span>
+            <textarea name="details" maxLength={1000} rows={3} placeholder="For example: Address to Emirates NBD" className="tf-input mt-1 w-full resize-y" />
+          </label>
+          <div className="md:col-span-2"><PendingSubmitButton idleLabel="Request document" pendingLabel="Sending request…" className="w-full tf-primary-action px-4 py-2 text-[13px] sm:w-auto" /></div>
+        </form>
+        {employeeRequests.length === 0 ? (
+          <div className="px-5 py-5"><p className="text-[14px] font-medium text-ink-800">No document requests yet.</p><p className="mt-1 text-[13px] text-ink-500">Your requests and completed letters will appear here.</p></div>
+        ) : (
+          <ul className="divide-y divide-ink-100">
+            {employeeRequests.map((request) => (
+              <li key={request.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-[14px] font-semibold text-ink-900">{request.label}</p>
+                  <p className="mt-1 text-[12px] text-ink-500">Requested {formatDay(request.requested_at)}{request.needed_by ? ` · Needed by ${formatDay(request.needed_by)}` : ""}{request.completed_at ? ` · Ready ${formatDay(request.completed_at)}` : ""}</p>
+                  {request.details ? <p className="mt-2 whitespace-pre-wrap text-[13px] text-ink-700">{request.details}</p> : null}
+                </div>
+                <div className="flex shrink-0 items-center gap-3">
+                  <StatusPill tone={request.status === "ready" ? "green" : request.status === "in_progress" ? "info" : "amber"}>{request.status === "in_progress" ? "In progress" : request.status === "ready" ? "Ready" : "Requested"}</StatusPill>
+                  {request.status === "ready" ? <form action={downloadEmployeeDocumentRequestAction}><input type="hidden" name="request_id" value={request.id}/><input type="hidden" name="return_to" value="/documents-and-policies#requested-documents"/><PendingSubmitButton idleLabel="Download" pendingLabel="Opening…" className="tf-secondary-action h-9 px-3 text-[12px]"/></form> : null}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section id="policies" className="mt-6 scroll-mt-6 tf-surface-flat">

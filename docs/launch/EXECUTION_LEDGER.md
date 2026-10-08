@@ -10,6 +10,16 @@ Daily question: **Are current tasks moving TeamFrame toward M5/M6, or merely clo
 
 **Marketability Release closure (2026-10-04):** MR-M1 through MR-M6 are **PASS** after focused gates and independent M1/M2, M3/M4 and M5/M6 review. The IMPLEMENT cells below preserve the in-flight execution snapshot; this closure statement is the final state for the bounded release.
 
+## Employee document requests — 2026-10-08
+
+| ID | Workstream | State | Target / ceiling | Stop condition |
+| -- | ---------- | ----- | ---------------- | -------------- |
+| EDR-1 | Employee-to-company document requests | PASS | Target 6h; max 10h active | Stop before document generation, templates, e-signature, approval workflow, a new storage system, a new top-level module, UAE Alignment Phase B, Production deployment/migration, customer data, or a material RBAC redesign. |
+
+Authoritative start: protected `origin/main` at `de59074ef60cbd595d10316b4627d4a7ee3b9360`; isolated branch `feature/employee-document-requests`. The bounded design reuses the private `documents` bucket/table, signed-download service, HR automation items, notification ledger, audit conventions and existing Employee/Admin Documents surfaces. A narrow tenant-bound request record is permitted because `document_requirements` represents the opposite company-to-employee evidence workflow and feeds employee-file completeness/onboarding; overloading it would create incorrect semantics. Acceptance requires own-request employee access, explicit People Ops plus private-document capability for processing, manager/Finance/cross-tenant denial, idempotent action and ready notification behaviour, no completeness impact, 390px usability, complete release QA and independent migration/RLS/private-file review. No Production or customer-data operation is authorised.
+
+Closure evidence: employees can submit one of six fixed request types from the existing Documents & Policies area, view status/history and download their own Ready document. Authorised People Ops users process requests in the existing Admin Documents surface, upload the final file once into existing private storage, and complete the request atomically; the resulting notification is idempotent and best-effort. A narrow additive request table preserves ownership, timestamps, completion actor and the final document link without affecting employee-file requirements or completeness. Dated requests reuse one idempotent HR automation item; undated requests remain in the Documents queue without an invented SLA. Service/RLS enforcement requires explicit People Ops plus private-document scope, excludes reporting-line-only managers and Finance-only users, and retains tenant isolation. Independent review identified and then verified correction of an actorless dashboard privacy path, scoped People Ops queue admission and overclaimed notification copy. Final gates: focused feature/security tests 41/41 PASS; complete serial suite 525 PASS / 2 skipped; typecheck PASS; lint PASS; all four security/static guards PASS; Production build PASS; `git diff --check` PASS. No Production deployment, migration or customer-data operation occurred.
+
 ## UAE HR Alignment Phase A correctness — 2026-10-08
 
 | ID | Workstream | State | Target / ceiling | Stop condition |

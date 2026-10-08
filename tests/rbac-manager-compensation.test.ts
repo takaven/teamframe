@@ -24,7 +24,7 @@ vi.mock("@/lib/db/supabaseServer", () => ({
   }),
 }));
 
-import { canViewCompensation, canReadEmployeeProfile, canReadEmergencyContact, canRunFinanceExport } from "@/lib/rbac/access";
+import { canViewCompensation, canReadEmployeeProfile, canReadEmergencyContact, canRunFinanceExport, canProcessEmployeeDocumentRequest, canAccessEmployeeDocumentRequestQueue } from "@/lib/rbac/access";
 import type { Actor } from "@/middleware/rbac";
 import type { ResolvedMembership } from "@/lib/rbac/roles";
 
@@ -91,5 +91,25 @@ describe("RBAC — manager-derived access grants people_operations but NEVER com
     expect(await canViewCompensation(financeLegacy, "rep")).toBe(true);
     const fullAccess = actor({ employeeId: "fa", currentMembership: membership({ employeeId: "fa", profile: "full_access", salaryAccessLevel: "manage", salaryAccessScope: "all" }) });
     expect(await canViewCompensation(fullAccess, "rep")).toBe(true);
+  });
+
+  it("requires explicit People Ops and private-document scopes to process employee document requests", async () => {
+    const managerOnly = actor({ employeeId: "mgr", currentMembership: membership({ employeeId: "mgr", peopleAccess: "direct_reports", privateDocumentsScope: "none" }) });
+    const financeOnly = actor({ employeeId: "fin", currentMembership: membership({ employeeId: "fin", profile: "finance", salaryAccessLevel: "view", financeExportsAccess: true }) });
+    const adminWithoutDocuments = actor({ employeeId: "adm", role: "admin", currentMembership: membership({ employeeId: "adm", profile: "admin", peopleAccess: "all", privateDocumentsScope: "none" }) });
+    const scopedProcessor = actor({ employeeId: "ops", currentMembership: membership({ employeeId: "ops", peopleAccess: "selected_people", peopleSelectedEmployeeIds: ["rep"], privateDocumentsScope: "selected_people", privateDocumentsSelectedEmployeeIds: ["rep"] }) });
+    const fullAccess = actor({ role: "admin", accessProfile: "full_access", currentMembership: null });
+
+    expect(await canProcessEmployeeDocumentRequest(managerOnly, "rep")).toBe(false);
+    expect(await canProcessEmployeeDocumentRequest(financeOnly, "rep")).toBe(false);
+    expect(await canProcessEmployeeDocumentRequest(adminWithoutDocuments, "rep")).toBe(false);
+    expect(canAccessEmployeeDocumentRequestQueue(adminWithoutDocuments)).toBe(false);
+    expect(await canProcessEmployeeDocumentRequest(scopedProcessor, "rep")).toBe(true);
+    expect(canAccessEmployeeDocumentRequestQueue(scopedProcessor)).toBe(true);
+    expect(await canProcessEmployeeDocumentRequest(scopedProcessor, "other")).toBe(false);
+    expect(await canProcessEmployeeDocumentRequest(fullAccess, "rep")).toBe(true);
+    expect(canAccessEmployeeDocumentRequestQueue(fullAccess)).toBe(true);
+    expect(canAccessEmployeeDocumentRequestQueue(managerOnly)).toBe(false);
+    expect(canAccessEmployeeDocumentRequestQueue(financeOnly)).toBe(false);
   });
 });

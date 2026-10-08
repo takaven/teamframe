@@ -25,6 +25,7 @@ grant select, insert, update, delete on table
   public.departments,
   public.document_requirements,
   public.documents,
+  public.employee_document_requests,
   public.employee_join_initializations,
   public.employee_payment_details,
   public.employee_profiles,

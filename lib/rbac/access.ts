@@ -160,6 +160,33 @@ export async function canReadPrivateDocuments(actor: Actor, employeeId: string):
   return hasCapability(actor, "private_employee_documents", { employeeId });
 }
 
+/**
+ * HR-issued employee documents can contain salary or other private content.
+ * Processing therefore requires the intersection of explicit People Ops and
+ * private-document scopes. A reporting line alone is intentionally excluded.
+ */
+export async function canProcessEmployeeDocumentRequest(actor: Actor, employeeId: string): Promise<boolean> {
+  return (
+    await hasExplicitCapability(actor, "people_operations", { employeeId })
+  ) && (
+    await hasExplicitCapability(actor, "private_employee_documents", { employeeId })
+  );
+}
+
+/**
+ * Admits an actor to the request queue without widening access to its rows.
+ * Target-level filtering still happens through canProcessEmployeeDocumentRequest.
+ */
+export function canAccessEmployeeDocumentRequestQueue(actor: Actor): boolean {
+  if (!actor.tenantId) return false;
+  const membership = actor.currentMembership;
+  if (membership) {
+    return membership.peopleAccess !== "none" && membership.privateDocumentsScope !== "none";
+  }
+  const capabilities = PROFILE_CAPABILITIES[effectiveProfile(actor)] ?? [];
+  return capabilities.includes("people_operations") && capabilities.includes("private_employee_documents");
+}
+
 export async function canManageAccess(actor: Actor): Promise<boolean> {
   return hasCapability(actor, "company_access_settings", {});
 }

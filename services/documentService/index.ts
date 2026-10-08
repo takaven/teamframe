@@ -1366,6 +1366,17 @@ export async function softDeleteDocument(actor: Actor, documentId: string): Prom
 
   const document = existing as DocumentRow;
   await requireCapability(actor, "private_employee_documents", { employeeId: document.employee_id });
+  const { data: issuedRequest, error: issuedRequestError } = await supabase
+    .from("employee_document_requests")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("final_document_id", documentId)
+    .eq("status", "ready")
+    .maybeSingle();
+  if (issuedRequestError) {
+    throw new Error(`DOCUMENT_REQUEST_LINK_CHECK_FAILED: ${issuedRequestError.message}`);
+  }
+  if (issuedRequest) throw new Error("DOCUMENT_IN_USE_BY_EMPLOYEE_REQUEST");
   const operationId = await beginFileOperation({
     tenantId,
     kind: "document_delete",
@@ -1935,6 +1946,7 @@ const TENANT_EXPORT_DATASETS: readonly TenantExportDataset[] = [
   { table: "acknowledgements", file: "policies/acknowledgements.csv", scope: "tenant", orderBy: "id" },
   { table: "documents", file: "documents/documents-index.csv", scope: "tenant", orderBy: "id" },
   { table: "document_requirements", file: "documents/document-requirements.csv", scope: "tenant", orderBy: "id" },
+  { table: "employee_document_requests", file: "documents/employee-document-requests.csv", scope: "tenant", orderBy: "id" },
   { table: "offboarding_cases", file: "offboarding/offboarding-cases.csv", scope: "tenant", orderBy: "id" },
   { table: "offboarding_items", file: "offboarding/offboarding-items.csv", scope: "tenant", orderBy: "id" },
   { table: "compensation", file: "compensation/compensation.csv", scope: "tenant", orderBy: "employee_id" },
