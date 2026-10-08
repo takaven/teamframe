@@ -8,7 +8,10 @@ export type { OverviewQueueItem } from "@/lib/ui/overviewQueue";
 
 const FILTERS: { key: OverviewQueueFilter; label: string }[] = [
   { key: "all", label: "All" },
-  { key: "exception", label: "Problems" },
+  // Exceptions are failed/blocked operational items. Overdue work has its own
+  // explicit class, so "Problems" made a zero count look contradictory beside
+  // a non-zero Overdue count.
+  { key: "exception", label: "Exceptions" },
   { key: "overdue", label: "Overdue" },
   { key: "decision", label: "Needs a decision" },
   { key: "due", label: "Due this week" },

@@ -90,8 +90,38 @@ export async function notifyLeaveRequest(tenantId: string, leaveId: string): Pro
   await notifyBestEffort({ tenantId, recipientEmployeeId: employee.manager_id, type: "leave_action", eventKey: `leave:${leaveId}:decision-needed`, subject: "Leave request needs your decision", text: `${employee.full_name} requested time off from ${data.start_date}${data.end_date !== data.start_date ? ` to ${data.end_date}` : ""}.`, actionPath: "/manager", relatedEntityType: "leave", relatedEntityId: leaveId });
 }
 
-export async function notifyTaskAssignment(tenantId: string, employeeId: string, eventId: string, title: string): Promise<void> {
-  await notifyBestEffort({ tenantId, recipientEmployeeId: employeeId, type: "task_assignment", eventKey: `onboarding:${eventId}:assigned`, subject: "Onboarding task assigned", text: `${title} has been added to your onboarding checklist.`, actionPath: "/onboarding", relatedEntityType: "onboarding_task", relatedEntityId: eventId });
+export async function notifyTaskAssignment(tenantId: string, task: {
+  id: string;
+  employeeId: string;
+  title: string;
+  ownerRole: "employee" | "manager" | "admin" | "system";
+  ownerEmployeeId: string | null;
+  dueDate: string | null;
+}): Promise<void> {
+  const recipientEmployeeId = task.ownerRole === "manager" ? task.ownerEmployeeId : task.ownerRole === "employee" ? task.employeeId : null;
+  if (!recipientEmployeeId) return;
+
+  let employeeName = "a team member";
+  if (task.ownerRole === "manager") {
+    const db: any = createServiceRoleClient();
+    const { data } = await db.from("employees").select("full_name").eq("tenant_id", tenantId).eq("id", task.employeeId).maybeSingle();
+    employeeName = (data as { full_name?: string } | null)?.full_name?.trim() || employeeName;
+  }
+
+  const managerOwned = task.ownerRole === "manager";
+  await notifyBestEffort({
+    tenantId,
+    recipientEmployeeId,
+    type: "task_assignment",
+    eventKey: `onboarding:${task.id}:assigned:${task.ownerRole}`,
+    subject: managerOwned ? "Onboarding action assigned to you" : "Onboarding task assigned",
+    text: managerOwned
+      ? `${task.title} for ${employeeName}${task.dueDate ? ` is due by ${task.dueDate}` : ""}.`
+      : `${task.title}${task.dueDate ? ` is due by ${task.dueDate}` : ""}.`,
+    actionPath: managerOwned ? "/manager" : "/home",
+    relatedEntityType: "onboarding_task",
+    relatedEntityId: task.id,
+  });
 }
 
 export async function notifyPerformanceReviewDue(tenantId: string, employeeId: string, reviewId: string, cycleName: string, stage: "employee" | "reviewer"): Promise<void> {

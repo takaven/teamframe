@@ -8,6 +8,21 @@ import { getOverviewQueueCounts, getOverviewQueueView, type OverviewQueueItem } 
 const read = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8");
 
 describe("final red-team UI safeguards", () => {
+  it("uses mutually exclusive labels for overdue work and exceptions", () => {
+    const queue = read("components/OverviewQueue.tsx");
+    expect(queue).toContain('{ key: "exception", label: "Exceptions" }');
+    expect(queue).toContain('{ key: "overdue", label: "Overdue" }');
+    expect(queue).not.toContain('{ key: "exception", label: "Problems" }');
+  });
+
+  it("keeps Performance operational data visible while creation controls stay collapsed", () => {
+    const page = read("app/performance/page.tsx");
+    expect(page).toContain("<details className=\"tf-surface-flat p-5\">");
+    expect(page).toContain("Create review template");
+    expect(page).toContain("Open review cycle");
+    expect(page).toContain("Your reviews");
+  });
+
   it("keeps employee and manager navigation role-specific", () => {
     const shell = read("components/AppShell.tsx");
     expect(shell).toContain('label: "My team"');

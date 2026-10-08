@@ -73,7 +73,14 @@ export async function assignOnboardingTaskAction(formData: FormData): Promise<vo
       title: parsed.title,
       ownerRole: parsed.owner_role,
     });
-    await notifyTaskAssignment(actor.tenantId, parsed.employee_id, task.id, task.title);
+    await notifyTaskAssignment(actor.tenantId, {
+      id: task.id,
+      employeeId: task.employee_id,
+      title: task.title,
+      ownerRole: task.owner_role,
+      ownerEmployeeId: task.owner_employee_id,
+      dueDate: task.due_date,
+    });
   } catch (error) {
     failed = true;
     errorCode = getErrorCode(error);
@@ -134,7 +141,14 @@ export async function assignOnboardingPackAction(formData: FormData): Promise<vo
       packId: parsed.pack_id,
       keptIndexes: parsed.task_indexes,
     });
-    if (tasks[0]) await notifyTaskAssignment(actor.tenantId, parsed.employee_id, tasks[0].id, `${tasks.length} onboarding tasks`);
+    await Promise.all(tasks.map((task) => notifyTaskAssignment(actor!.tenantId, {
+      id: task.id,
+      employeeId: task.employee_id,
+      title: task.title,
+      ownerRole: task.owner_role,
+      ownerEmployeeId: task.owner_employee_id,
+      dueDate: task.due_date,
+    })));
   } catch (error) {
     failed = true;
     errorCode = getErrorCode(error);

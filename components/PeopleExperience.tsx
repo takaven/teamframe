@@ -19,7 +19,7 @@ import { getEmployeeMasterRecord, listEmployeePhotoUrls } from "@/services/emplo
 import { listAssignmentsForEmployee } from "@/services/positionAssignmentService";
 import { getCompanySettings, listDepartments } from "@/services/configurationService";
 import { ISO_COUNTRIES, normalizeCountryCode } from "@/lib/geo/countries";
-import { documentLabel } from "@/lib/ui/documentLabels";
+import { documentLabel, summarizeEmployeeFile } from "@/lib/ui/documentLabels";
 import { isValidTimeZone } from "@/lib/geo/timezones";
 import {
   RecordHeader,
@@ -594,6 +594,7 @@ export async function PeopleExperience({
                 const resendBlocked = resendCooldownSeconds > 0;
                 const documents = documentsByEmployee.get(employee.id) ?? [];
                 const documentRequirements = documentRequirementsByEmployee.get(employee.id) ?? [];
+                const employeeFile = summarizeEmployeeFile(documentRequirements);
                 const readiness = configuredPreStartChecks(employee.start_date, onboardingByEmployee.get(employee.id) ?? [], documentRequirements, employeeNameById);
                 const changes = changesByEmployee.get(employee.id) ?? [];
                 const offboarding = offboardingByEmployee.get(employee.id) ?? null;
@@ -1174,6 +1175,24 @@ export async function PeopleExperience({
                 <div className="flex items-center justify-between">
                   <h4 className="tf-h3">Documents</h4>
                   <span className="text-[12px] text-ink-500 tabular-nums">{documents.length} on file · {documentRequirements.length} requested</span>
+                </div>
+
+                <div className="mt-4 grid gap-3 rounded-lg bg-ink-50 px-4 py-3 sm:grid-cols-[1fr_auto] sm:items-center">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-500">Employee file</p>
+                    <p className="mt-1 text-[15px] font-semibold text-ink-900">
+                      {employeeFile.required > 0
+                        ? `${employeeFile.complete} of ${employeeFile.required} required documents complete`
+                        : "No required documents configured"}
+                    </p>
+                  </div>
+                  {employeeFile.required > 0 ? (
+                    <p className="text-[12px] text-ink-600">
+                      {employeeFile.missing} missing or requiring action
+                      {employeeFile.awaitingReview ? ` · ${employeeFile.awaitingReview} awaiting review` : ""}
+                      {` · ${employeeFile.expiringWithin90Days} expiring within 90 days`}
+                    </p>
+                  ) : null}
                 </div>
 
                 <div className="order-last mt-4 rounded-lg border border-ink-100 bg-ink-50/40 p-4">

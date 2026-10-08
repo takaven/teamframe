@@ -33,15 +33,18 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
     </section> : null}
     {actor.role === "admin" ? <>
       <section className="mt-7 grid gap-5 lg:grid-cols-2">
-        <form action={createPerformanceTemplateAction} className="tf-surface-flat grid gap-3 p-5">
-          <h2 className="tf-h2">Review template</h2>
+        <details className="tf-surface-flat p-5">
+          <summary className="cursor-pointer text-[14px] font-semibold text-ink-800">Create review template</summary>
+        <form action={createPerformanceTemplateAction} className="mt-4 grid gap-3 border-t border-ink-100 pt-4">
           <label className="text-[12px] text-ink-500">Name<input name="name" required maxLength={120} className="tf-input mt-1" /></label>
           <label className="text-[12px] text-ink-500">Questions (one per line; use Section :: Question and prefix [optional] where needed)<textarea name="questions" required className="tf-input mt-1 min-h-28" /></label>
           <label className="text-[12px] text-ink-500">Rating scale<input name="rating_scale_max" type="number" min="3" max="10" defaultValue="5" className="tf-input mt-1" /></label>
           <PendingSubmitButton idleLabel="Create template" pendingLabel="Creating…" className="tf-primary-action px-4 py-2" />
         </form>
-        <form action={createPerformanceCycleAction} className="tf-surface-flat grid gap-3 p-5">
-          <h2 className="tf-h2">Open review cycle</h2>
+        </details>
+        <details className="tf-surface-flat p-5">
+          <summary className="cursor-pointer text-[14px] font-semibold text-ink-800">Open review cycle</summary>
+        <form action={createPerformanceCycleAction} className="mt-4 grid gap-3 border-t border-ink-100 pt-4">
           <label className="text-[12px] text-ink-500">Cycle name<input name="name" required maxLength={120} className="tf-input mt-1" /></label>
           <label className="text-[12px] text-ink-500">Template<select name="template_id" required className="tf-select mt-1">{templates.filter((template) => template.active).map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select></label>
           <label className="text-[12px] text-ink-500">Due date<DateField name="due_date" required /></label>
@@ -50,6 +53,7 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
           <p className="text-[12px] text-ink-500">Selected employees are assigned to their recorded direct manager. Template and self-input settings are frozen with the cycle.</p>
           <PendingSubmitButton idleLabel="Open cycle" pendingLabel="Opening…" className="tf-primary-action px-4 py-2" />
         </form>
+        </details>
       </section>
       <section className="tf-surface-flat mt-5 p-5"><h2 className="tf-h2">Templates</h2><ul className="mt-3 divide-y divide-ink-100">{templates.map((template) => <li key={template.id} className="flex items-center justify-between gap-3 py-3 text-[13px]"><span><strong>{template.name}</strong> · {template.questions.length} questions · {template.rating_scale_max}-point scale · {template.active ? "Active" : "Inactive"}</span><form action={setPerformanceTemplateActiveAction}><input type="hidden" name="template_id" value={template.id} /><input type="hidden" name="active" value={template.active ? "false" : "true"} /><PendingSubmitButton idleLabel={template.active ? "Deactivate" : "Activate"} pendingLabel="Saving…" className="tf-secondary-action px-3 py-1.5 text-[12px]" /></form></li>)}</ul></section>
     </> : null}
