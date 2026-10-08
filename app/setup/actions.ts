@@ -192,9 +192,9 @@ export async function applyUaeSetupPackAction(formData:FormData):Promise<void>{
   await run("applyUaeSetupPack","uae-pack",(actor)=>applyUaeSetupPack(actor,{weekend:s(formData.get("weekend")),annualEntitlement:Number(s(formData.get("annual_entitlement"))),sickEntitlement:Number(s(formData.get("sick_entitlement"))),entitlementTiming:s(formData.get("entitlement_timing"))||legacyTiming,carryForward:formData.get("carry_forward")==="on",carryCap:optNum(formData.get("carry_cap")),confirmed:formData.get("confirmed")==="on"}));
 }
 
-// Whole-tenant portability export. Full Access only (enforced in the service by
-// the `company_access_settings` capability). Redirects straight to the
-// short-lived signed download URL, matching the other export actions.
+// Whole-tenant portability export. The service enforces the complete Full
+// Access permission model. Redirects straight to the short-lived signed
+// download URL, matching the other export actions.
 export async function exportTenantDataAction(): Promise<void> {
   const start = Date.now();
   const requestId = crypto.randomUUID();

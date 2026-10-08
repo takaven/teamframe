@@ -13,6 +13,12 @@ const DOCUMENT_LABELS: Readonly<Record<string, string>> = {
   residence_visa: "Residence visa",
   work_permit: "Labour card / work permit",
   iloe: "ILOE certificate",
+  hr_issued_salary_certificate: "Salary Certificate",
+  hr_issued_salary_transfer_letter: "Salary Transfer Letter",
+  hr_issued_noc: "NOC",
+  hr_issued_employment_certificate: "Employment Certificate",
+  hr_issued_experience_letter: "Experience Letter",
+  hr_issued_other: "HR-issued document",
 };
 
 export function documentLabel(value: string): string {

@@ -61,6 +61,7 @@ alter table compensation enable row level security;
 alter table positions enable row level security;
 alter table documents enable row level security;
 alter table document_requirements enable row level security;
+alter table employee_document_requests enable row level security;
 alter table leaves enable row level security;
 alter table audit_logs enable row level security;
 alter table risk_signals enable row level security;
@@ -488,6 +489,29 @@ drop policy if exists document_requirements_delete_blocked on document_requireme
 create policy document_requirements_delete_blocked on document_requirements
 for delete
 using (false);
+
+drop policy if exists employee_document_requests_select on employee_document_requests;
+create policy employee_document_requests_select on employee_document_requests
+for select
+using (
+  tenant_id = current_actor_tenant_id()
+  and (
+    is_current_actor_admin()
+    or current_actor_employee_id(tenant_id) = employee_id
+  )
+);
+
+drop policy if exists employee_document_requests_insert_blocked on employee_document_requests;
+create policy employee_document_requests_insert_blocked on employee_document_requests
+for insert with check (false);
+
+drop policy if exists employee_document_requests_update_blocked on employee_document_requests;
+create policy employee_document_requests_update_blocked on employee_document_requests
+for update using (false) with check (false);
+
+drop policy if exists employee_document_requests_delete_blocked on employee_document_requests;
+create policy employee_document_requests_delete_blocked on employee_document_requests
+for delete using (false);
 
 drop policy if exists hr_automation_events_select_admin on hr_automation_events;
 create policy hr_automation_events_select_admin on hr_automation_events

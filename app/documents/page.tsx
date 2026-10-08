@@ -12,6 +12,13 @@ import { listWorkspaceDocuments } from "@/services/documentService";
 import { createDocumentRequirementAction, reviewDocumentRequirementAction } from "@/app/employees/actions";
 import { remindDocumentAction } from "@/app/notifications/actions";
 import { UAE_RECORD_TYPES } from "@/lib/countryRecords";
+import { listProcessableEmployeeDocumentRequests } from "@/services/employeeDocumentRequestService";
+import {
+  completeEmployeeDocumentRequestAction,
+  downloadEmployeeDocumentRequestAction,
+  markEmployeeDocumentRequestInProgressAction,
+} from "@/app/document-requests/actions";
+import { canAccessEmployeeDocumentRequestQueue } from "@/lib/rbac/access";
 
 export const dynamic = "force-dynamic";
 
@@ -21,10 +28,18 @@ function dateOrDash(value: string | null): string {
 
 export default async function DocumentsPage({ searchParams }: { searchParams: Promise<{ view?: string; status?: string; error?: string }> }) {
   const actor = await requireTenantActor();
-  if (actor.role !== "admin") return null;
   const params = await searchParams;
-  const view = params.view === "expiring" || params.view === "all" ? params.view : "outstanding";
-  const [{ requirements, documents }, employees] = await Promise.all([listWorkspaceDocuments(actor), listEmployeesForAdmin(actor)]);
+  const view = params.view === "expiring" || params.view === "all" || params.view === "employee-requests" ? params.view : "outstanding";
+  const canAccessEmployeeRequestQueue = canAccessEmployeeDocumentRequestQueue(actor);
+  if (view === "employee-requests") {
+    if (!canAccessEmployeeRequestQueue) return null;
+  } else if (actor.role !== "admin") {
+    return null;
+  }
+  const employeeRequests = await listProcessableEmployeeDocumentRequests(actor);
+  const [{ requirements, documents }, employees] = view === "employee-requests"
+    ? [{ requirements: [], documents: [] }, []]
+    : await Promise.all([listWorkspaceDocuments(actor), listEmployeesForAdmin(actor)]);
   const today = new Date();
   const ninetyDays = new Date(today.getTime() + 90 * 86_400_000);
   const openStates = new Set(["requested", "received", "rejected", "expired"]);
@@ -44,22 +59,47 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
           <h1 className="text-[34px] leading-tight tracking-tight">Documents</h1>
           <p className="text-[14px] text-ink-500">Request, review and monitor employee documents in one place.</p>
         </div>
-        <a href="#request-document" className="tf-primary-action px-4 py-2 text-[13px]">Request document</a>
+        {view !== "employee-requests" ? <a href="#request-document" className="tf-primary-action px-4 py-2 text-[13px]">Request document</a> : null}
       </header>
+      {params.status === "document_request_in_progress" ? <p role="status" aria-live="polite" className="mt-6 rounded-lg border border-accent/70 bg-white/80 px-4 py-3 text-[14px] text-accent">Document request marked in progress.</p> : null}
+      {params.status === "document_request_ready" ? <p role="status" aria-live="polite" className="mt-6 rounded-lg border border-accent/70 bg-white/80 px-4 py-3 text-[14px] text-accent">Final document uploaded. The document is ready for the employee.</p> : null}
+      {params.error ? <p role="alert" className="mt-6 rounded-lg border border-signal-red/30 bg-signal-red/10 px-4 py-3 text-[14px] text-signal-red">The request could not be updated. Check your access and the file, then try again.</p> : null}
 
-      <div className="tf-summary mt-6 max-w-2xl">
+      {view === "employee-requests" ? <div className="tf-summary mt-6 max-w-sm"><div><div className="tf-summary-label">Need attention</div><div className="tf-summary-value">{employeeRequests.filter((request) => request.status !== "ready").length}</div></div><div><div className="tf-summary-label">Ready</div><div className="tf-summary-value">{employeeRequests.filter((request) => request.status === "ready").length}</div></div></div> : <div className="tf-summary mt-6 max-w-2xl">
         <div><div className="tf-summary-label">Outstanding</div><div className="tf-summary-value">{outstanding.length}</div></div>
         <div><div className="tf-summary-label">Expiring in 90 days</div><div className="tf-summary-value">{expiring.length}</div></div>
         <div><div className="tf-summary-label">On file</div><div className="tf-summary-value">{documents.length}</div></div>
-      </div>
+      </div>}
 
       <nav className="mt-8 flex gap-1 border-b border-ink-300/60" aria-label="Document views">
-        {[["outstanding", "Outstanding"], ["expiring", "Expiring"], ["all", "All documents"]].map(([id, label]) => (
+        {[["outstanding", "Outstanding"], ["employee-requests", "Employee requests"], ["expiring", "Expiring"], ["all", "All documents"]]
+          .filter(([id]) => id !== "employee-requests" || canAccessEmployeeRequestQueue)
+          .map(([id, label]) => (
           <Link key={id} href={id === "outstanding" ? "/documents" : `/documents?view=${id}`} aria-current={view === id ? "page" : undefined} className={`-mb-px border-b-2 px-4 py-2 text-[14px] ${view === id ? "border-ink-900 font-medium text-ink-900" : "border-transparent text-ink-500 hover:text-ink-900"}`}>{label}</Link>
         ))}
       </nav>
 
-      {view === "outstanding" ? (
+      {view === "employee-requests" ? (
+        <section className="mt-7 tf-surface-flat overflow-hidden">
+          {employeeRequests.length === 0 ? <EmptyState message="No employee document requests need attention." hint="New employee requests will appear here." /> : (
+            <div className="overflow-x-auto"><table className="min-w-full text-left text-[13px]">
+              <thead className="border-b border-ink-200 text-[11px] uppercase tracking-[0.1em] text-ink-500"><tr><th className="px-4 py-3">Employee</th><th className="px-4 py-3">Document requested</th><th className="px-4 py-3">Requested</th><th className="px-4 py-3">Needed by</th><th className="px-4 py-3">Status</th><th className="px-4 py-3 text-right">Action</th></tr></thead>
+              <tbody className="divide-y divide-ink-100">{employeeRequests.map((request) => <tr key={request.id}>
+                <td className="px-4 py-3"><Link className="font-semibold hover:underline" href={`/people/${request.employee_id}#documents`}>{request.employee_name}</Link><div className="text-[11px] text-ink-500">{request.employee_role_title}</div></td>
+                <td className="px-4 py-3"><p className="font-medium">{request.label}</p>{request.details ? <p className="mt-1 max-w-xs whitespace-pre-wrap text-[11px] text-ink-500">{request.details}</p> : null}</td>
+                <td className="px-4 py-3 tabular-nums">{dateOrDash(request.requested_at)}</td>
+                <td className="px-4 py-3 tabular-nums">{dateOrDash(request.needed_by)}</td>
+                <td className="px-4 py-3"><StatusPill tone={request.status === "ready" ? "green" : request.status === "in_progress" ? "info" : "amber"}>{request.status === "in_progress" ? "In progress" : request.status === "ready" ? "Ready" : "Requested"}</StatusPill></td>
+                <td className="px-4 py-3"><div className="flex min-w-[190px] flex-col items-end gap-2">
+                  {request.status === "requested" ? <form action={markEmployeeDocumentRequestInProgressAction}><input type="hidden" name="request_id" value={request.id}/><input type="hidden" name="return_to" value="/documents?view=employee-requests"/><PendingSubmitButton idleLabel="Mark in progress" pendingLabel="Updating…" className="tf-tertiary-action h-8 px-2 text-[12px]"/></form> : null}
+                  {request.status !== "ready" ? <form action={completeEmployeeDocumentRequestAction} className="flex flex-col items-end gap-2 sm:flex-row sm:items-center"><input type="hidden" name="request_id" value={request.id}/><input type="hidden" name="return_to" value="/documents?view=employee-requests"/><input type="file" name="file" required accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/png,image/jpeg" className="block max-w-[220px] text-[11px] text-ink-500 file:mr-2 file:rounded-md file:border file:border-ink-300 file:bg-white file:px-2 file:py-1 file:text-[11px]"/><PendingSubmitButton idleLabel="Upload & mark ready" pendingLabel="Uploading…" className="tf-primary-action h-9 px-3 text-[12px]"/></form> : null}
+                  {request.status === "ready" ? <form action={downloadEmployeeDocumentRequestAction}><input type="hidden" name="request_id" value={request.id}/><input type="hidden" name="return_to" value="/documents?view=employee-requests"/><PendingSubmitButton idleLabel="Download" pendingLabel="Opening…" className="tf-secondary-action h-9 px-3 text-[12px]"/></form> : null}
+                </div></td>
+              </tr>)}</tbody>
+            </table></div>
+          )}
+        </section>
+      ) : view === "outstanding" ? (
         <section className="mt-7 tf-surface-flat overflow-hidden">
           {outstanding.length === 0 ? <EmptyState message="No documents need attention." hint="New requests and documents awaiting review will appear here." /> : (
             <div className="overflow-x-auto"><table className="min-w-full text-left text-[13px]">
@@ -89,7 +129,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
         </table></div></section>
       )}
 
-      <section id="request-document" className="mt-8 tf-surface-flat p-5 scroll-mt-8">
+      {view !== "employee-requests" ? <section id="request-document" className="mt-8 tf-surface-flat p-5 scroll-mt-8">
         <h2 className="text-[18px] font-semibold">Request document</h2>
         <p className="mt-1 text-[13px] text-ink-500">The request appears here and in the person’s record.</p>
         <form action={createDocumentRequirementAction} className="mt-5 grid gap-3 md:grid-cols-3">
@@ -102,7 +142,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
           <label className="flex items-center gap-2 text-[12px] text-ink-600"><input type="checkbox" name="employee_upload_allowed" defaultChecked/>Employee can upload</label>
           <div className="md:col-span-3"><PendingSubmitButton idleLabel="Request document" pendingLabel="Requesting…" className="tf-primary-action px-4 py-2 text-[13px]"/></div>
         </form>
-      </section>
+      </section> : null}
     </main>
   );
 }

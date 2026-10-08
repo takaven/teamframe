@@ -15,9 +15,12 @@ import { Buffer } from "node:buffer";
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 import {
   canReadPrivateDocuments,
+  canRunFullTenantExport,
   canRunFinanceExport,
+  canViewCompensation,
   requireCapability,
 } from "@/lib/rbac/access";
+import { isSalarySensitiveHrIssuedDocumentType } from "@/lib/employeeDocumentRequests";
 import { logAction } from "@/lib/telemetry/logger";
 import { captureActionError } from "@/lib/telemetry/sentry";
 import { runSignalEngineForTenant } from "@/services/signalEngine";
@@ -822,6 +825,17 @@ async function canReadEmployeeDocuments(actor: Actor, employeeId: string): Promi
   return canReadPrivateDocuments(actor, employeeId);
 }
 
+async function canReadEmployeeDocument(
+  actor: Actor,
+  employeeId: string,
+  documentType: string,
+): Promise<boolean> {
+  if (actor.employeeId === employeeId) return true;
+  if (!(await canReadPrivateDocuments(actor, employeeId))) return false;
+  if (!isSalarySensitiveHrIssuedDocumentType(documentType)) return true;
+  return canViewCompensation(actor, employeeId);
+}
+
 export async function listDocumentsForEmployee(
   actor: Actor,
   employeeId: string,
@@ -844,7 +858,12 @@ export async function listDocumentsForEmployee(
     throw new Error(`DOCUMENT_LIST_FAILED: ${error.message}`);
   }
 
-  return ((data ?? []) as DocumentRow[]).map(toPublicRecord);
+  const rows = (data ?? []) as DocumentRow[];
+  const visible = await Promise.all(rows.map(async (row) => ({
+    row,
+    allowed: await canReadEmployeeDocument(actor, employeeId, row.document_type ?? row.type),
+  })));
+  return visible.filter((entry) => entry.allowed).map((entry) => toPublicRecord(entry.row));
 }
 
 export async function uploadDocument(
@@ -866,6 +885,7 @@ export async function uploadDocument(
 
   try {
     const tenantId = requireTenant(actor);
+    const normalizedInputType = normalizeDocumentType(input.type);
     if (options.allowEmployeeSelfUpload) {
       if (!(await canReadPrivateDocuments(actor, input.employeeId))) {
         throw new Error("FORBIDDEN");
@@ -873,7 +893,12 @@ export async function uploadDocument(
     } else {
       await requireCapability(actor, "private_employee_documents", { employeeId: input.employeeId });
     }
-    const normalizedInputType = normalizeDocumentType(input.type);
+    if (
+      actor.employeeId !== input.employeeId
+      && isSalarySensitiveHrIssuedDocumentType(normalizedInputType)
+    ) {
+      await requireCapability(actor, "compensation_view", { employeeId: input.employeeId });
+    }
     const fileType = validateUploadBeforeBuffer(input.file);
     assertMetadataLength(input.subjectPersonId, "DOCUMENT_UPLOAD_METADATA_TOO_LONG");
     assertMetadataLength(input.signedAt, "DOCUMENT_UPLOAD_METADATA_TOO_LONG");
@@ -1105,7 +1130,12 @@ export async function listWorkspaceDocuments(actor: Actor): Promise<{
 
   const rawRequirements = (requirementData ?? []) as DocumentRequirementRow[];
   const rawDocuments = (documentData ?? []) as DocumentRow[];
-  const employeeIds = [...new Set([...rawRequirements.map((row) => row.employee_id), ...rawDocuments.map((row) => row.employee_id)])];
+  const documentVisibility = await Promise.all(rawDocuments.map(async (row) => ({
+    row,
+    allowed: await canReadEmployeeDocument(actor, row.employee_id, row.document_type ?? row.type),
+  })));
+  const visibleDocuments = documentVisibility.filter((entry) => entry.allowed).map((entry) => entry.row);
+  const employeeIds = [...new Set([...rawRequirements.map((row) => row.employee_id), ...visibleDocuments.map((row) => row.employee_id)])];
   const employeeById = new Map<string, { full_name: string; role_title: string }>();
   if (employeeIds.length > 0) {
     const { data: employeeData, error: employeeError } = await supabase
@@ -1121,7 +1151,7 @@ export async function listWorkspaceDocuments(actor: Actor): Promise<{
     employee_name: employeeById.get(row.employee_id)?.full_name ?? "Unknown person",
     employee_role_title: employeeById.get(row.employee_id)?.role_title ?? "",
   }));
-  const documents = rawDocuments.map((row) => ({
+  const documents = visibleDocuments.map((row) => ({
     ...toPublicRecord(row),
     employee_name: employeeById.get(row.employee_id)?.full_name ?? "Unknown person",
     employee_role_title: employeeById.get(row.employee_id)?.role_title ?? "",
@@ -1330,13 +1360,14 @@ export async function getSignedDownloadUrl(
     throw new Error(`DOCUMENT_FETCH_FAILED: ${error.message}`);
   }
   if (!data) throw new Error("NOT_FOUND");
-  if (!(await canReadEmployeeDocuments(actor, (data as DocumentRow).employee_id))) {
+  const document = data as DocumentRow;
+  if (!(await canReadEmployeeDocument(actor, document.employee_id, document.document_type ?? document.type))) {
     throw new Error("FORBIDDEN");
   }
 
   const { data: signed, error: signedErr } = await supabase.storage
     .from(DOCUMENT_BUCKET)
-    .createSignedUrl((data as DocumentRow).file_url, 60 * 10);
+    .createSignedUrl(document.file_url, 60 * 10);
 
   if (signedErr || !signed?.signedUrl) {
     throw new Error(`DOCUMENT_SIGNED_URL_FAILED: ${signedErr?.message ?? "missing signed URL"}`);
@@ -1366,6 +1397,20 @@ export async function softDeleteDocument(actor: Actor, documentId: string): Prom
 
   const document = existing as DocumentRow;
   await requireCapability(actor, "private_employee_documents", { employeeId: document.employee_id });
+  if (isSalarySensitiveHrIssuedDocumentType(document.document_type ?? document.type)) {
+    await requireCapability(actor, "compensation_view", { employeeId: document.employee_id });
+  }
+  const { data: issuedRequest, error: issuedRequestError } = await supabase
+    .from("employee_document_requests")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("final_document_id", documentId)
+    .eq("status", "ready")
+    .maybeSingle();
+  if (issuedRequestError) {
+    throw new Error(`DOCUMENT_REQUEST_LINK_CHECK_FAILED: ${issuedRequestError.message}`);
+  }
+  if (issuedRequest) throw new Error("DOCUMENT_IN_USE_BY_EMPLOYEE_REQUEST");
   const operationId = await beginFileOperation({
     tenantId,
     kind: "document_delete",
@@ -1893,9 +1938,8 @@ export async function exportFinanceHandoffUrl(actor: Actor, period = new Date().
 // plus the underlying document files, plus a manifest.
 //
 // Deliberate boundaries:
-//  - Full Access only. `company_access_settings` is exclusive to the Full Access
-//    profile (lib/rbac/access.ts PROFILE_CAPABILITIES), so this is the narrowest
-//    existing capability that means "highest in-product authority".
+//  - Full Access only. This is verified from the resolved access matrix rather
+//    than the independently configurable Manage users capability.
 //  - Tenant-scoped by construction: fetchTenantScopedRows ALWAYS applies a tenant
 //    filter — `.eq("tenant_id", …)` for every operational table, `.eq("id", …)`
 //    for `companies`, which is the tenant root. There is no code path that reads
@@ -1935,6 +1979,7 @@ const TENANT_EXPORT_DATASETS: readonly TenantExportDataset[] = [
   { table: "acknowledgements", file: "policies/acknowledgements.csv", scope: "tenant", orderBy: "id" },
   { table: "documents", file: "documents/documents-index.csv", scope: "tenant", orderBy: "id" },
   { table: "document_requirements", file: "documents/document-requirements.csv", scope: "tenant", orderBy: "id" },
+  { table: "employee_document_requests", file: "documents/employee-document-requests.csv", scope: "tenant", orderBy: "id" },
   { table: "offboarding_cases", file: "offboarding/offboarding-cases.csv", scope: "tenant", orderBy: "id" },
   { table: "offboarding_items", file: "offboarding/offboarding-items.csv", scope: "tenant", orderBy: "id" },
   { table: "compensation", file: "compensation/compensation.csv", scope: "tenant", orderBy: "employee_id" },
@@ -2026,7 +2071,7 @@ export function tenantExportRowsToCsv(rows: readonly TenantExportRow[]): string 
  */
 export async function exportTenantData(actor: Actor): Promise<string> {
   const tenantId = requireTenant(actor);
-  await requireCapability(actor, "company_access_settings");
+  if (!canRunFullTenantExport(actor)) throw new Error("FORBIDDEN");
 
   const supabase = createServiceRoleClient();
   const now = new Date();
