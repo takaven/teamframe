@@ -470,7 +470,7 @@ export async function PeopleExperience({
         <div className="tf-people-tools">
         <div className="tf-people-actions">
           <Link href="/org-chart" className="tf-secondary-action tf-people-action px-4 text-[13px] font-medium">Organisation</Link>
-          <Link href="/people/import" className="tf-secondary-action tf-people-action px-4 text-[13px] font-medium">Import CSV</Link>
+          <Link href="/people/import" className="tf-secondary-action tf-people-action px-4 text-[13px] font-medium">Import existing workforce</Link>
           <Link href="/people/add" className="tf-primary-action tf-people-action px-4 text-[13px] font-medium">Add person</Link>
         </div>
         <form className="tf-people-filters">
