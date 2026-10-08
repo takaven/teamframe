@@ -21,6 +21,13 @@ describe("Finance export operability", () => {
     expect(reports).not.toContain('if (actor.role !== "admin") return null');
   });
 
+  it("shows the full data export only when the complete Full Access matrix permits it", () => {
+    const reports = read("app/reports/page.tsx");
+    expect(reports).toContain('import { canRunFullTenantExport, hasCapability } from "@/lib/rbac/access"');
+    expect(reports).toContain("const canFull = canRunFullTenantExport(actor);");
+    expect(reports).not.toContain('const canFull = await hasCapability(actor, "company_access_settings");');
+  });
+
   it("keeps payroll export service-authorised", () => {
     const exports = read("services/documentService/index.ts");
     expect(exports).toContain("if (!(await canRunFinanceExport(actor))) throw new Error(\"FORBIDDEN\")");

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { ReportsExports } from "@/components/ReportsExports";
 import { requireTenantActor } from "@/middleware/rbac";
-import { hasCapability } from "@/lib/rbac/access";
+import { canRunFullTenantExport, hasCapability } from "@/lib/rbac/access";
 import { getReports } from "@/services/reportingService";
 import { getCountryName } from "@/lib/geo/countries";
 import { loadControlCentreData } from "@/app/dashboard/data";
@@ -42,7 +42,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     view === "snapshot" ? loadControlCentreData({ tenantId: actor.tenantId }) : Promise.resolve(null),
   ]);
   const canFinance = await hasCapability(actor, "finance_payroll_exports");
-  const canFull = await hasCapability(actor, "company_access_settings");
+  const canFull = canRunFullTenantExport(actor);
   const query = new URLSearchParams({ from: filters.from, to: filters.to, ...(filters.department ? { department: filters.department } : {}), ...(filters.location ? { location: filters.location } : {}) });
   const csvLink = `/reports/export?report=${encodeURIComponent(view)}&${query}`;
   return <main className="mx-auto max-w-6xl px-6 py-14"><AppShell actor={actor} activePath="/reports" />
