@@ -30,8 +30,9 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
   const actor = await requireTenantActor();
   const params = await searchParams;
   const view = params.view === "expiring" || params.view === "all" || params.view === "employee-requests" ? params.view : "outstanding";
+  const canAccessEmployeeRequestQueue = canAccessEmployeeDocumentRequestQueue(actor);
   if (view === "employee-requests") {
-    if (!canAccessEmployeeDocumentRequestQueue(actor)) return null;
+    if (!canAccessEmployeeRequestQueue) return null;
   } else if (actor.role !== "admin") {
     return null;
   }
@@ -71,7 +72,9 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
       </div>}
 
       <nav className="mt-8 flex gap-1 border-b border-ink-300/60" aria-label="Document views">
-        {[["outstanding", "Outstanding"], ["employee-requests", "Employee requests"], ["expiring", "Expiring"], ["all", "All documents"]].map(([id, label]) => (
+        {[["outstanding", "Outstanding"], ["employee-requests", "Employee requests"], ["expiring", "Expiring"], ["all", "All documents"]]
+          .filter(([id]) => id !== "employee-requests" || canAccessEmployeeRequestQueue)
+          .map(([id, label]) => (
           <Link key={id} href={id === "outstanding" ? "/documents" : `/documents?view=${id}`} aria-current={view === id ? "page" : undefined} className={`-mb-px border-b-2 px-4 py-2 text-[14px] ${view === id ? "border-ink-900 font-medium text-ink-900" : "border-transparent text-ink-500 hover:text-ink-900"}`}>{label}</Link>
         ))}
       </nav>

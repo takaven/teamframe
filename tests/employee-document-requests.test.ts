@@ -268,6 +268,7 @@ describe("employee document requests", () => {
     expect(employeePage).toContain("sm:flex-row");
     expect(adminPage).toContain("Employee requests");
     expect(adminPage).toContain("canAccessEmployeeDocumentRequestQueue(actor)");
+    expect(adminPage).toContain('id !== "employee-requests" || canAccessEmployeeRequestQueue');
     expect(adminPage).toContain("Upload & mark ready");
     expect(adminPage).toContain("The document is ready for the employee.");
     expect(adminPage).not.toContain("document generator");
