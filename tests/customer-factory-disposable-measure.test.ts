@@ -126,7 +126,7 @@ it.skipIf(process.env.TEAMFRAME_FACTORY_INVOKED !== "1")("measures the unchanged
         where e.tenant_id = $1 and e.start_date = date '2026-10-15') as starter_probation`, [company.id]);
     expect(joinWork).toEqual({ existing_initializations: 0, existing_tasks: 0, existing_check_ins: 0,
       existing_probation: 0, existing_join_automation: 0, starter_initializations: 4, starter_tasks: 24, starter_manager_tasks: 4,
-      starter_check_ins: 4, starter_probation: 4 });
+      starter_check_ins: 4, starter_probation: 0 });
     console.info(`FACTORY_JOIN_WORK ${JSON.stringify(joinWork)}`);
     console.info(`FACTORY_RESULT ${JSON.stringify({ ref, previewSeconds, commitSeconds: (performance.now() - commitStart) / 1000,
       totalSeconds: (performance.now() - started) / 1000, before, after })}`);

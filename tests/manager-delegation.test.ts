@@ -121,6 +121,18 @@ describe("MR-3B bounded manager delegation", () => {
     expect(managerService).not.toContain("employmentChange");
   });
 
+  it("does not expose emergency contacts through relationship-only manager access", () => {
+    const managerPage = read("app/manager/page.tsx");
+    const master = read("services/employeeMasterService.ts");
+    const access = read("lib/rbac/access.ts");
+
+    expect(managerPage).not.toContain("Emergency contact");
+    expect(master).toContain("canReadEmergencyContact(actor, employeeId)");
+    expect(master).toContain("name: canEmergency ? emp.emergency_contact_name : null");
+    expect(master).toContain("canView: canEmergency");
+    expect(access).toContain("hasExplicitCapability(actor, \"people_operations\"");
+  });
+
   it("transfers or suppresses manager-owned operational work when reporting truth changes", () => {
     const employmentChangesSchema = read("schemas/employment_changes.sql");
     const archiveMutation = read("schemas/transactional_mutations.sql");

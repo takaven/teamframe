@@ -146,7 +146,7 @@ export default async function ManagerPage({
               </section>
               <section className="tf-surface-flat p-5">
                 <h2 className="tf-h2">Contact</h2>
-                <dl className="mt-4 grid gap-4 text-[13px]"><div><dt className="text-ink-600">Company email</dt><dd>{reportRecord.contact.company_email}</dd></div><div><dt className="text-ink-600">Company phone</dt><dd>{reportRecord.contact.company_phone ?? "—"}</dd></div><div><dt className="text-ink-600">Emergency contact</dt><dd>{reportRecord.emergency_contact.name ?? "—"}{reportRecord.emergency_contact.phone ? ` · ${reportRecord.emergency_contact.phone}` : ""}</dd></div></dl>
+                <dl className="mt-4 grid gap-4 text-[13px]"><div><dt className="text-ink-600">Company email</dt><dd>{reportRecord.contact.company_email}</dd></div><div><dt className="text-ink-600">Company phone</dt><dd>{reportRecord.contact.company_phone ?? "—"}</dd></div></dl>
               </section>
             </div>
           </>

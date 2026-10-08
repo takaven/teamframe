@@ -129,6 +129,9 @@ const LeaveDefinitionInputSchema = z.object({
   joining_date_pro_rata: z.boolean(),
   carry_forward_enabled: z.boolean(),
   carry_forward_cap_days: z.number().min(0).max(365).nullable(),
+}).refine((value) => !(value.accrual_enabled && value.joining_date_pro_rata), {
+  message: "LEAVE_ENTITLEMENT_TIMING_CONFLICT",
+  path: ["accrual_enabled"],
 });
 
 function slugify(name: string): string {

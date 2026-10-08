@@ -23,6 +23,35 @@ function workingDays(startDate: string, endDate: string): number {
   return days;
 }
 
+function daysInclusive(start: string, end: string): number {
+  return Math.round((Date.parse(`${end}T00:00:00Z`) - Date.parse(`${start}T00:00:00Z`)) / 86_400_000) + 1;
+}
+
+function phaseABalance(input: {
+  annual: number;
+  startDate: string;
+  asOf: string;
+  year: number;
+  joiningProration: boolean;
+  monthlyAccrual: boolean;
+}): { entitlement: number; accrued: number } {
+  const yearStart = `${input.year}-01-01`;
+  const yearEnd = `${input.year}-12-31`;
+  const eligibleStart = input.startDate > yearStart ? input.startDate : yearStart;
+  const entitlement = input.joiningProration
+    ? Math.round(input.annual * daysInclusive(eligibleStart, yearEnd) / daysInclusive(yearStart, yearEnd) * 100) / 100
+    : input.annual;
+  if (!input.monthlyAccrual) return { entitlement, accrued: entitlement };
+  if (input.asOf < eligibleStart) return { entitlement, accrued: 0 };
+  const startYear = Number(eligibleStart.slice(0, 4));
+  const startMonth = Number(eligibleStart.slice(5, 7));
+  const asOfYear = Number(input.asOf.slice(0, 4));
+  const asOfMonth = Number(input.asOf.slice(5, 7));
+  const months = (asOfYear - startYear) * 12 + asOfMonth - startMonth + 1;
+  const accrued = Math.min(entitlement, Math.round(input.annual * Math.min(12, Math.max(0, months)) / 12 * 100) / 100);
+  return { entitlement, accrued };
+}
+
 describe("MR-6 leave market-ready scope", () => {
   it("models bounded leave types, states and audit facts", () => {
     expect(service).toContain('["annual", "sick", "unpaid", "other"]');
@@ -62,6 +91,27 @@ describe("MR-6 leave market-ready scope", () => {
     }
     expect(mutations).toContain("teamframe_leave_balance_components");
     expect(service).toContain('rpc("teamframe_leave_balance_components"');
+  });
+
+  it("separates annual entitlement from accrued-to-date without compounded reduction", () => {
+    const april = phaseABalance({ annual: 30, startDate: "2026-04-01", asOf: "2026-12-31", year: 2026, joiningProration: true, monthlyAccrual: true });
+    expect(april.entitlement).toBe(22.6);
+    expect(april.accrued).toBe(22.5);
+    expect(april.accrued).not.toBe(16.95); // the former double-prorated result
+
+    expect(phaseABalance({ annual: 30, startDate: "2026-04-01", asOf: "2026-12-31", year: 2026, joiningProration: true, monthlyAccrual: false }).accrued).toBe(22.6);
+    expect(phaseABalance({ annual: 30, startDate: "2026-04-01", asOf: "2026-12-31", year: 2026, joiningProration: false, monthlyAccrual: true }).accrued).toBe(22.5);
+    expect(phaseABalance({ annual: 30, startDate: "2026-04-01", asOf: "2026-09-30", year: 2026, joiningProration: false, monthlyAccrual: true }).accrued).toBe(15);
+    expect(phaseABalance({ annual: 24, startDate: "2026-04-15", asOf: "2026-06-30", year: 2026, joiningProration: true, monthlyAccrual: true }).accrued).toBe(6);
+    expect(phaseABalance({ annual: 30, startDate: "2024-04-01", asOf: "2024-12-31", year: 2024, joiningProration: true, monthlyAccrual: false }).entitlement).toBe(22.54);
+    expect(phaseABalance({ annual: 30, startDate: "2025-12-15", asOf: "2026-01-31", year: 2026, joiningProration: true, monthlyAccrual: true }).accrued).toBe(2.5);
+    expect(phaseABalance({ annual: 18, startDate: "2026-04-01", asOf: "2026-12-31", year: 2026, joiningProration: true, monthlyAccrual: true }).accrued).toBe(13.5);
+
+    expect(accrual).toContain("round(v_annual * least(12, greatest(0, v_months)) / 12, 2)");
+    expect(accrual).not.toContain("round(v_prorated * least(12, greatest(0, v_months)) / 12, 2)");
+    expect(accrual).toContain("entry_kind = 'carry_forward'");
+    expect(accrual).toContain("day_part in ('full_day', 'morning', 'afternoon')");
+    expect(accrual).not.toMatch(/update\s+leave_balance_entries|delete\s+from\s+leave_balance_entries/i);
   });
 
   it("keeps adjustments immutable, actor-attributed, tenant-scoped and carry-forward idempotent", () => {

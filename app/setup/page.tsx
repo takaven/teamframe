@@ -237,7 +237,39 @@ export default async function SetupPage({
             <PeopleFieldsSettings fields={customFields} />
           ) : null}
 
-          {section === "uae-pack" ? <section className="tf-surface-flat p-6"><h2 className="tf-h2">UAE office-SME setup pack</h2><p className="mt-1 text-[13px] text-ink-500">Preview and confirm a reusable starting pattern. All settings remain editable; TeamFrame does not provide legal advice or infer statutory entitlements.</p><div className="mt-5 grid gap-4 md:grid-cols-2"><div><h3 className="font-semibold">Included pattern</h3><ul className="mt-2 list-disc space-y-1 pl-5 text-[13px] text-ink-600"><li>Selectable Friday/Saturday or Saturday/Sunday weekend</li><li>Editable annual and sick leave values</li><li>UAE document categories: {UAE_SETUP_PACK.documentCategories.join(", ")}</li><li>Editable UAE starter checklist</li><li>{UAE_SETUP_PACK.probationGuidance}</li><li>{UAE_SETUP_PACK.offboardingGuidance}</li><li>Policy category placeholders only: {UAE_SETUP_PACK.policyCategories.join(", ")}</li></ul><p className="mt-3 rounded-lg border border-signal-amber/30 bg-signal-amber/5 p-3 text-[12px] text-ink-700">{UAE_SETUP_PACK.holidayGuidance}</p></div><form action={applyUaeSetupPackAction} className="grid gap-3 rounded-lg border border-ink-200 p-4"><h3 className="font-semibold">Confirm company choices</h3><label className="text-[12px] text-ink-600">Weekend<select name="weekend" className="tf-select mt-1" required defaultValue=""><option value="" disabled>Select explicitly</option><option value="friday_saturday">Friday and Saturday</option><option value="saturday_sunday">Saturday and Sunday</option></select></label><label className="text-[12px] text-ink-600">Annual entitlement days<input name="annual_entitlement" type="number" min="0" max="365" step="0.5" required className="tf-input mt-1"/></label><label className="text-[12px] text-ink-600">Sick entitlement days<input name="sick_entitlement" type="number" min="0" max="365" step="0.5" required className="tf-input mt-1"/></label><label className="flex items-center gap-2 text-[12px]"><input name="annual_accrual" type="checkbox"/>Accrue annual leave monthly</label><label className="flex items-center gap-2 text-[12px]"><input name="annual_pro_rata" type="checkbox"/>Pro-rate annual leave from joining date</label><label className="flex items-center gap-2 text-[12px]"><input name="carry_forward" type="checkbox"/>Allow carry-forward</label><label className="text-[12px] text-ink-600">Carry-forward cap (days)<input name="carry_cap" type="number" min="0" max="365" step="0.5" className="tf-input mt-1"/></label><label className="flex items-start gap-2 rounded-lg bg-ink-50 p-3 text-[12px]"><input name="confirmed" type="checkbox" required className="mt-0.5"/>I reviewed these choices with the customer/admin and understand that holidays, probation terms, offboarding tasks and policy text still require company confirmation.</label><PendingSubmitButton idleLabel="Apply confirmed UAE setup" pendingLabel="Applying…" className={btn}/></form></div></section>:null}
+          {section === "uae-pack" ? (
+            <section className="tf-surface-flat p-6">
+              <h2 className="tf-h2">UAE office-SME setup pack</h2>
+              <p className="mt-1 text-[13px] text-ink-500">Preview and confirm a reusable starting pattern. All settings remain editable; TeamFrame does not provide legal advice or infer statutory entitlements.</p>
+              <div className="mt-5 grid gap-4 md:grid-cols-2">
+                <div>
+                  <h3 className="font-semibold">Included pattern</h3>
+                  <ul className="mt-2 list-disc space-y-1 pl-5 text-[13px] text-ink-600">
+                    <li>Selectable Friday/Saturday or Saturday/Sunday weekend</li>
+                    <li>Editable annual and sick leave values</li>
+                    <li>UAE document categories: {UAE_SETUP_PACK.documentCategories.join(", ")}</li>
+                    <li>Editable UAE starter checklist</li>
+                    <li>{UAE_SETUP_PACK.probationGuidance}</li>
+                    <li>{UAE_SETUP_PACK.offboardingGuidance}</li>
+                    <li>Policy category placeholders only: {UAE_SETUP_PACK.policyCategories.join(", ")}</li>
+                  </ul>
+                  <p className="mt-3 rounded-lg border border-signal-amber/30 bg-signal-amber/5 p-3 text-[12px] text-ink-700">{UAE_SETUP_PACK.holidayGuidance}</p>
+                </div>
+                <form action={applyUaeSetupPackAction} className="grid gap-3 rounded-lg border border-ink-200 p-4">
+                  <h3 className="font-semibold">Confirm company choices</h3>
+                  <label className="text-[12px] text-ink-600">Weekend<select name="weekend" className="tf-select mt-1" required defaultValue=""><option value="" disabled>Select explicitly</option><option value="friday_saturday">Friday and Saturday</option><option value="saturday_sunday">Saturday and Sunday</option></select></label>
+                  <label className="text-[12px] text-ink-600">Annual entitlement days<input name="annual_entitlement" type="number" min="0" max="365" step="0.5" required className="tf-input mt-1" /></label>
+                  <label className="text-[12px] text-ink-600">Sick entitlement days<input name="sick_entitlement" type="number" min="0" max="365" step="0.5" required className="tf-input mt-1" /></label>
+                  <label className="text-[12px] text-ink-600">Entitlement timing<select name="entitlement_timing" className="tf-select mt-1" required defaultValue=""><option value="" disabled>Select explicitly</option><option value="upfront">Available upfront</option><option value="joining_date_proration">Prorate once from joining date</option><option value="monthly_accrual">Accrue from the full annual value</option></select></label>
+                  <p className="text-[11px] text-ink-500">Choose one timing method. Monthly accrual and joining-date proration are not combined.</p>
+                  <label className="flex items-center gap-2 text-[12px]"><input name="carry_forward" type="checkbox" />Allow carry-forward</label>
+                  <label className="text-[12px] text-ink-600">Carry-forward cap (days)<input name="carry_cap" type="number" min="0" max="365" step="0.5" className="tf-input mt-1" /></label>
+                  <label className="flex items-start gap-2 rounded-lg bg-ink-50 p-3 text-[12px]"><input name="confirmed" type="checkbox" required className="mt-0.5" />I reviewed these choices with the customer/admin and understand that holidays, probation terms, offboarding tasks and policy text still require company confirmation.</label>
+                  <PendingSubmitButton idleLabel="Apply confirmed UAE setup" pendingLabel="Applying…" className={btn} />
+                </form>
+              </div>
+            </section>
+          ) : null}
 
           {section === "organisation" ? (
             <section className="tf-surface-flat p-6">

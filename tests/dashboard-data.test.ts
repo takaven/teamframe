@@ -349,4 +349,25 @@ describe("Control Centre data", () => {
     expect(result.savedDataStatus).toEqual({ state: "timeout" });
     expect(result.summary.total).toBe(0);
   });
+
+  it("describes a retired inferred-document signal as retired, not completed", async () => {
+    db.risk_signals = [{
+      id: "retired-country-rule",
+      tenant_id: "TENANT_A",
+      kind: "missing_jurisdiction_requirement",
+      severity: "yellow",
+      subject_employee_id: "emp-active",
+      evidence: { resolution_reason: "RULE RETIRED — APPLICABILITY REQUIRES EXPLICIT CONFIRMATION" },
+      last_seen_at: "2026-10-08T00:00:00Z",
+      resolved_at: "2026-10-08T00:00:00Z",
+    }];
+
+    const result = await loadControlCentreData({
+      tenantId: "TENANT_A",
+      now: new Date("2026-10-08T12:00:00Z"),
+      savedDataTimeoutMs: 50,
+    });
+
+    expect(result.resolvedItems[0]?.detail).toBe("Rule retired — applicability requires explicit confirmation.");
+  });
 });

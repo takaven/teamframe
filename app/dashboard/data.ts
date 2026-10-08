@@ -617,7 +617,10 @@ function buildControlCentreItems(input: {
       subjectName: employeeName(names, signal.subject_employee_id),
       resolvedAt: signal.resolved_at!,
       href: signal.subject_employee_id ? employeePath(signal.subject_employee_id) : sourcePath(signal.kind),
-      detail: "Completion is retained in the activity history.",
+      detail: signal.kind === "missing_jurisdiction_requirement"
+        && signal.evidence?.resolution_reason === "RULE RETIRED — APPLICABILITY REQUIRES EXPLICIT CONFIRMATION"
+        ? "Rule retired — applicability requires explicit confirmation."
+        : "Completion is retained in the activity history.",
     }));
 
   const sortedItems = items.sort(compareItems);

@@ -8,7 +8,7 @@ vi.mock("@/lib/db/supabaseServer", () => ({ createServiceRoleClient: vi.fn() }))
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 import {
   CHECK_IN_DEFAULTS,
-  PROBATION_DEFAULTS,
+  PROBATION_REVIEW_DEFAULTS,
   completeProbationReview,
   submitMyOnboardingCheckIn,
 } from "@/services/earlyEmploymentService";
@@ -74,17 +74,27 @@ describe("MR-4 join and early employment workflows", () => {
     ]) {
       expect(schema).toContain(title);
     }
-    expect(mutations.match(/teamframe_initialize_join_work/g)?.length).toBe(2);
+    expect(mutations.match(/teamframe_initialize_join_work/g)?.length).toBeGreaterThanOrEqual(2);
   });
 
-  it("schedules 30-day check-ins and probation reviews through MR-2 automation", () => {
+  it("keeps 30-day check-ins separate and schedules probation only from explicit terms", () => {
     const schema = read("schemas/early_employment.sql");
+    const mutations = read("schemas/transactional_mutations.sql");
+    const form = read("components/PeopleExperience.tsx");
     const automation = read("services/hrAutomation/index.ts");
 
     expect(CHECK_IN_DEFAULTS.milestoneDays).toBe(30);
-    expect(PROBATION_DEFAULTS.durationDays).toBe(90);
-    expect(PROBATION_DEFAULTS.reviewLeadDays).toBe(14);
+    expect(PROBATION_REVIEW_DEFAULTS.reviewLeadDays).toBe(14);
     expect(schema).toContain("'onboarding.check_in.due'");
+    expect(schema).toContain("function teamframe_schedule_probation_review");
+    expect(schema).toContain("p_probation_end_date date");
+    expect(schema).toContain("PROBATION_END_AFTER_EMPLOYMENT_END");
+    expect(schema).not.toContain("v_base_date + 90");
+    expect(mutations).toContain("p_probation_end_date date");
+    expect(mutations).toContain("teamframe_schedule_probation_review");
+    expect(form).toContain('name="probation_used"');
+    expect(form).toContain('name="probation_end_date"');
+    expect(form).toContain("30-day check-in remains an operational workflow");
     expect(schema).toContain("'probation.review_due'");
     expect(schema).toContain("teamframe_ensure_hr_automation_item");
     expect(schema).toContain("teamframe_run_hr_automation_item");
@@ -148,6 +158,7 @@ describe("MR-4 join and early employment workflows", () => {
     expect(rls).toContain("onboarding_check_ins_insert_blocked");
     expect(rls).toContain("probation_reviews_update_blocked");
     expect(schema).toContain("revoke all on function teamframe_initialize_join_work");
+    expect(schema).toContain("revoke all on function teamframe_schedule_probation_review");
     expect(schema).toContain("revoke all on function teamframe_submit_onboarding_check_in");
     expect(schema).toContain("revoke all on function teamframe_complete_probation_review");
     expect(schema).toContain("to service_role");

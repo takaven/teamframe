@@ -3,6 +3,7 @@ import type { Actor } from "@/middleware/rbac";
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 import {
   canReadEmployeeProfile,
+  canReadEmergencyContact,
   canReadOwnEmployeeRecord,
   canViewCompensation,
   canRunFinanceExport,
@@ -72,6 +73,7 @@ export type EmployeeMasterRecord = {
     annual_leave_entitlement_override: number | null;
   };
   emergency_contact: {
+    canView: boolean;
     name: string | null;
     relationship: string | null;
     phone: string | null;
@@ -123,7 +125,10 @@ export async function getEmployeeMasterRecord(actor: Actor, employeeId: string):
   const profile = profileQuery.data as unknown as { photo_url: string | null } | null;
   const photoSigned = profile?.photo_url ? (await resolvePhotoUrls([profile.photo_url])).get(profile.photo_url) ?? null : null;
 
-  const canComp = await canViewCompensation(actor, employeeId);
+  const [canComp, canEmergency] = await Promise.all([
+    canViewCompensation(actor, employeeId),
+    canReadEmergencyContact(actor, employeeId),
+  ]);
   const canPay = (await canReadOwnEmployeeRecord(actor, employeeId)) || (await canRunFinanceExport(actor));
 
   let comp: CompensationRow = { base_salary: null, currency: null, pay_basis: null, grade_band: null };
@@ -170,8 +175,11 @@ export async function getEmployeeMasterRecord(actor: Actor, employeeId: string):
       working_days_override: emp.working_days_override, annual_leave_entitlement_override: emp.annual_leave_entitlement_override,
     },
     emergency_contact: {
-      name: emp.emergency_contact_name, relationship: emp.emergency_contact_relationship,
-      phone: emp.emergency_contact_phone, email: emp.emergency_contact_email,
+      canView: canEmergency,
+      name: canEmergency ? emp.emergency_contact_name : null,
+      relationship: canEmergency ? emp.emergency_contact_relationship : null,
+      phone: canEmergency ? emp.emergency_contact_phone : null,
+      email: canEmergency ? emp.emergency_contact_email : null,
     },
     compensation: { canView: canComp, ...comp },
     payment_details: { canView: canPay, ...pay },

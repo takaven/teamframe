@@ -13,7 +13,7 @@ export const UAE_SETUP_PACK = {
   policyCategories:["Employment","Leave and attendance","Conduct","Data and confidentiality","Health and safety"],
 } as const;
 
-const Input=z.object({weekend:z.enum(["friday_saturday","saturday_sunday"]),annualEntitlement:z.number().min(0).max(365),sickEntitlement:z.number().min(0).max(365),annualAccrual:z.boolean(),annualProRata:z.boolean(),carryForward:z.boolean(),carryCap:z.number().min(0).max(365).nullable(),confirmed:z.literal(true)});
+const Input=z.object({weekend:z.enum(["friday_saturday","saturday_sunday"]),annualEntitlement:z.number().min(0).max(365),sickEntitlement:z.number().min(0).max(365),entitlementTiming:z.enum(["upfront","joining_date_proration","monthly_accrual"]),carryForward:z.boolean(),carryCap:z.number().min(0).max(365).nullable(),confirmed:z.literal(true)});
 
 export async function applyUaeSetupPack(actor:Actor,input:unknown):Promise<void>{
   if(actor.role!=="admin"||!actor.tenantId)throw new Error("FORBIDDEN");const value=Input.parse(input);
@@ -21,7 +21,7 @@ export async function applyUaeSetupPack(actor:Actor,input:unknown):Promise<void>
   const annual=definitions.find((definition)=>definition.code==="annual");const sick=definitions.find((definition)=>definition.code==="sick");
   if(!annual||!sick)throw new Error("UAE_SETUP_LEAVE_DEFINITIONS_MISSING");
   await updateCompanySettings(actor,{...company,country:"AE",default_working_days:value.weekend==="friday_saturday"?[7,1,2,3,4]:[1,2,3,4,5]});
-  await updateLeaveDefinition(actor,annual.id,{display_name:annual.display_name,system_leave_type:annual.system_leave_type,active:true,default_entitlement_days:value.annualEntitlement,counting_basis:"working_days",attachment_requirement:annual.attachment_requirement,accrual_enabled:value.annualAccrual,accrual_frequency:"monthly",joining_date_pro_rata:value.annualProRata,carry_forward_enabled:value.carryForward,carry_forward_cap_days:value.carryForward?value.carryCap:null});
+  await updateLeaveDefinition(actor,annual.id,{display_name:annual.display_name,system_leave_type:annual.system_leave_type,active:true,default_entitlement_days:value.annualEntitlement,counting_basis:"working_days",attachment_requirement:annual.attachment_requirement,accrual_enabled:value.entitlementTiming==="monthly_accrual",accrual_frequency:"monthly",joining_date_pro_rata:value.entitlementTiming==="joining_date_proration",carry_forward_enabled:value.carryForward,carry_forward_cap_days:value.carryForward?value.carryCap:null});
   await updateLeaveDefinition(actor,sick.id,{display_name:sick.display_name,system_leave_type:sick.system_leave_type,active:true,default_entitlement_days:value.sickEntitlement,counting_basis:"calendar_days",attachment_requirement:sick.attachment_requirement,accrual_enabled:false,accrual_frequency:"annual",joining_date_pro_rata:false,carry_forward_enabled:false,carry_forward_cap_days:null});
   if(!checklists.some((template)=>template.name==="UAE starter checklist"))await copyStarterChecklist(actor,"uae_sme");
   const audit=await createServiceRoleClient().from("audit_logs").insert({tenant_id:actor.tenantId,actor_user_id:actor.authUserId,action_type:"setup.uae_pack_applied"} as never);

@@ -24,7 +24,7 @@ vi.mock("@/lib/db/supabaseServer", () => ({
   }),
 }));
 
-import { canViewCompensation, canReadEmployeeProfile, canRunFinanceExport } from "@/lib/rbac/access";
+import { canViewCompensation, canReadEmployeeProfile, canReadEmergencyContact, canRunFinanceExport } from "@/lib/rbac/access";
 import type { Actor } from "@/middleware/rbac";
 import type { ResolvedMembership } from "@/lib/rbac/roles";
 
@@ -47,6 +47,19 @@ describe("RBAC — manager-derived access grants people_operations but NEVER com
     const mgr = actor({ employeeId: "mgr", currentMembership: membership({ employeeId: "mgr", peopleAccess: "none", salaryAccessLevel: "none" }) });
     expect(await canViewCompensation(mgr, "rep")).toBe(false);
     expect(await canReadEmployeeProfile(mgr, "rep")).toBe(true); // people_operations manager-derived preserved
+    expect(await canReadEmergencyContact(mgr, "rep")).toBe(false); // relationship alone is insufficient
+  });
+
+  it("allows emergency contacts only for self or explicit People/Admin scope", async () => {
+    const self = actor({ employeeId: "rep" });
+    const scopedPeopleOps = actor({ employeeId: "mgr", currentMembership: membership({ employeeId: "mgr", peopleAccess: "direct_reports" }) });
+    const admin = actor({ role: "admin", accessProfile: "admin", currentMembership: null });
+    const unrelated = actor({ employeeId: "other", currentMembership: membership({ employeeId: "other", peopleAccess: "none" }) });
+
+    expect(await canReadEmergencyContact(self, "rep")).toBe(true);
+    expect(await canReadEmergencyContact(scopedPeopleOps, "rep")).toBe(true);
+    expect(await canReadEmergencyContact(admin, "rep")).toBe(true);
+    expect(await canReadEmergencyContact(unrelated, "rep")).toBe(false);
   });
 
   it("Manager + direct report + EXPLICIT salary scope (direct_reports) → compensation visible", async () => {

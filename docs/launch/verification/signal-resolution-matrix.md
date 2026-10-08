@@ -22,37 +22,31 @@ must have a UI path that resolves it. "Resolved" means the engine's next reconci
 | 6 | `incomplete_offboarding` | Employee in `offboarding`/`exited` has open action items (any category other than its own). Red when exited. | `/dashboard` → **Mark done** each open offboarding checklist item (items are created by **Start offboarding** on `/employees`). | Yes — `tests/signal-engine-golden-flow.test.ts` (emit + action + visibility) |
 | 7 | `active_access_after_exit` | Employee in `exited` state still has `status = active` or `setup_status = active`. Red. | `/employees` → employee card → set status to `inactive` and **Save** (or **Archive employee**). Dashboard **Mark done** is the audited manual fallback (completed-action suppression built in). | Yes — code-inspected; both paths (status change and mark-done suppression) present in `activeAccessAfterExit.ts` |
 | 8 | `unreturned_asset` | Employee in `offboarding`/`exited` has open action items whose text mentions asset/return. Red when exited. | `/dashboard` → **Mark done** the asset-return action items once the asset is recovered. | Yes — code-inspected; resolution loop closes signal + items in `unreturnedAsset.ts` |
-| 9 | `missing_jurisdiction_requirement` | Employee with a `country` set lacks the jurisdiction's required document type (UAE → `emirates_id`, UK → `right_to_work`, SG/HK → `work_permit`, MU → `residence_visa`, else `passport`). Red when active/offboarding. | **Gap found and fixed in this wave.** The V1 upload UI cannot create jurisdiction document types (the `documents.type` Postgres enum is locked to CV/CONTRACT/JD/PHOTO), so the signal previously could never be resolved from the UI — even dashboard **Mark done** did not suppress it. Fixed: completed-action suppression added (mirrors `unacknowledgedPolicy`/`activeAccessAfterExit`), so `/dashboard` → **Mark done** now resolves it with an audit trail. | Yes — `tests/manual-resolution-suppression.test.ts` |
+| 9 | `missing_jurisdiction_requirement` | **Retired in Phase A.** Worker country/location no longer implies a required identity or work document. | Applicability is configured through an explicit active `document_requirement`; the ordinary request, upload, review, expiry and completeness paths then apply. The Phase A migration resolves historic inferred signals, dismisses their open actions and preserves an auditable retirement reason. | Yes — `tests/manual-resolution-suppression.test.ts`, `tests/phase-a-correctness-migration.test.ts` |
 | 10 | `leave_conflict` | An employee has overlapping `pending`/`approved` leave date ranges. Yellow. | Pending overlaps: `/leaves` → reject one of the requests. Approved-approved overlaps: **gap found and fixed in this wave** — no V1 surface can edit an approved leave, so completed-action suppression was added; `/dashboard` → **Mark done** resolves the reviewed conflict. Dashboard CTAs land on `/leaves`. | Yes — `tests/manual-resolution-suppression.test.ts` |
 
 ## Verdict
 
-**10 / 10 signals now have a working UI resolution path.**
+**Nine active signal kinds have a working UI resolution path; the tenth legacy kind is retained only for history and is no longer emitted.**
 
 - Gaps fixed in this wave:
   - #4 `unacknowledged_policy` — had no way to fire (no policy create/publish UI) and no way
     to resolve (no acknowledge UI). Completed end-to-end: `services/policyService`,
     `/policies` (admin), `/me` acknowledge block (employee).
-  - #9 `missing_jurisdiction_requirement` — no resolution path at all; manual mark-done
-    suppression added.
+  - #9 `missing_jurisdiction_requirement` — country-derived applicability was retired in
+    Phase A. Explicit document requirements are now the only source of truth.
   - #10 `leave_conflict` — unresolvable for approved-approved overlaps; manual mark-done
     suppression added.
 - Dashboard CTA corrections (`signalCtas()` in `app/dashboard/page.tsx`): `unacknowledged_policy`
   now lands on `/policies`; onboarding/leave/document CTAs land on `/onboarding`, `/leaves`,
   `/employees` respectively instead of self-referencing `/dashboard`.
 
-## Follow-up proposal (out of Wave 1 scope)
+## Phase A applicability correction
 
-The honest long-term fix for #9 is uploading real jurisdiction documents. That requires:
-
-1. `ALTER TYPE document_type ADD VALUE` migration (or dropping the legacy enum in favour of
-   the free-text `document_type` column) — a production schema change;
-2. extending `services/documentService` `DocumentType` and the upload `<select>` on
-   `/employees` with `passport`, `emirates_id`, `work_permit`, `residence_visa`,
-   `right_to_work`.
-
-Until then the mark-done path is auditable and consistent with how `active_access_after_exit`
-handles externally-verified fixes.
+The earlier country map was not a reliable applicability model. TeamFrame already supports
+free-text, tenant-scoped document requirements and the related request/upload/review/expiry
+workflow. Phase A reuses that mechanism and does not infer a requirement from nationality,
+worker country, work location, or company country.
 
 ## Runtime caveat
 

@@ -4,14 +4,13 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { notifyDocumentRequest } from "@/services/notificationService";
 import { requireTenantActor } from "@/middleware/rbac";
-import { UAE_COUNTRY, UAE_RECORD_TYPE_VALUES, isUaeRecordType } from "@/lib/countryRecords";
+import { UAE_RECORD_TYPE_VALUES } from "@/lib/countryRecords";
 import {
   createEmployee,
   generateEmployeeActivationLink,
   reinviteEmployee,
   softDeleteEmployee,
   updateEmployee,
-  getEmployeeWorkCountry,
 } from "@/services/employeeService";
 import {
   cancelEmploymentChange,
@@ -57,6 +56,21 @@ const CreateInputSchema = z.object({
   }),
   start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  probation_used: z.enum(["yes", "no"]),
+  probation_end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+}).superRefine((value, context) => {
+  if (value.probation_used === "yes" && !value.probation_end_date) {
+    context.addIssue({ code: "custom", path: ["probation_end_date"], message: "Probation end date is required" });
+  }
+  if (value.probation_used === "no" && value.probation_end_date) {
+    context.addIssue({ code: "custom", path: ["probation_end_date"], message: "Remove the probation end date when probation is not used" });
+  }
+  if (value.probation_end_date && value.probation_end_date <= value.start_date) {
+    context.addIssue({ code: "custom", path: ["probation_end_date"], message: "Probation end date must follow the start date" });
+  }
+  if (value.probation_end_date && value.end_date && value.probation_end_date > value.end_date) {
+    context.addIssue({ code: "custom", path: ["probation_end_date"], message: "Probation end date cannot follow the employment end date" });
+  }
 });
 
 const UpdateInputSchema = z.object({
@@ -234,9 +248,15 @@ export async function createEmployeeAction(formData: FormData): Promise<void> {
       country: formData.get("country"),
       start_date: formData.get("start_date"),
       end_date: optionalString(formData.get("end_date")),
+      probation_used: formData.get("probation_used"),
+      probation_end_date: optionalString(formData.get("probation_end_date")),
     });
 
-    const created = await createEmployee(actor, parsed);
+    const created = await createEmployee(actor, {
+      ...parsed,
+      probation_used: parsed.probation_used === "yes",
+      probation_end_date: parsed.probation_used === "yes" ? parsed.probation_end_date : undefined,
+    });
     employeeId = created.id;
     try {
       await assignDefaultChecklist(actor, created.id);
@@ -848,10 +868,8 @@ export async function uploadEmployeeDocumentAction(formData: FormData): Promise<
   redirect(`${returnTo}?status=document_uploaded&employee=${encodeURIComponent(employeeId)}`);
 }
 
-// Phase 5E: upload a country-specific (UAE) record — a specialised document with factual metadata
-// (issue date, expiry, reference number). Reuses uploadDocument; the reference number is stored as
-// employer-controlled PII behind the same private-document gate. The UAE work-country gate is
-// enforced again here; UI visibility is never treated as authorization.
+// Upload a factual employment record with metadata. Applicability is established by
+// explicit admin action/document requirements, never inferred from country or nationality.
 export async function uploadUaeRecordAction(formData: FormData): Promise<void> {
   let failed = false;
   let errorCode = "UNKNOWN";
@@ -874,8 +892,6 @@ export async function uploadUaeRecordAction(formData: FormData): Promise<void> {
     });
     employeeId = parsed.employee_id;
     returnTo = safeReturnPath(parsed.return_to, "/people");
-    if (await getEmployeeWorkCountry(actor, employeeId) !== UAE_COUNTRY) throw new Error("UAE_RECORD_COUNTRY_REQUIRED");
-
     await uploadDocument(
       actor,
       {
@@ -979,10 +995,6 @@ export async function createDocumentRequirementAction(formData: FormData): Promi
     });
     employeeId = parsed.employee_id;
     returnTo = safeReturnPath(parsed.return_to, "/people");
-
-    if (isUaeRecordType(parsed.document_type) && await getEmployeeWorkCountry(actor, employeeId) !== UAE_COUNTRY) {
-      throw new Error("UAE_RECORD_COUNTRY_REQUIRED");
-    }
 
     const requirement = await createDocumentRequirement(actor, {
       employeeId: parsed.employee_id,

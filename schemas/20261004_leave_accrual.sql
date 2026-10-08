@@ -16,6 +16,10 @@ do $$ begin
     alter table leave_definitions add constraint leave_definitions_carry_cap_check
       check (carry_forward_cap_days is null or carry_forward_cap_days between 0 and 365);
   end if;
+  if not exists (select 1 from pg_constraint where conname = 'leave_definitions_single_entitlement_timing_check') then
+    alter table leave_definitions add constraint leave_definitions_single_entitlement_timing_check
+      check (not (accrual_enabled and joining_date_pro_rata)) not valid;
+  end if;
 end $$;
 
 alter table leaves add column if not exists day_part text not null default 'full_day';
@@ -144,7 +148,10 @@ begin
   else
     v_months := ((extract(year from v_as_of)::integer - extract(year from v_eligible_start)::integer) * 12)
       + extract(month from v_as_of)::integer - extract(month from v_eligible_start)::integer + 1;
-    accrued := least(v_prorated, round(v_prorated * least(12, greatest(0, v_months)) / 12, 2));
+    -- Joining-date pro-rata defines this year's entitlement ceiling. Monthly
+    -- accrual is calculated once from the configured annual value, then capped
+    -- at that ceiling; it must not reduce the already-prorated value a second time.
+    accrued := least(v_prorated, round(v_annual * least(12, greatest(0, v_months)) / 12, 2));
   end if;
 
   select coalesce(sum(amount_days) filter (where entry_kind = 'opening'), 0),

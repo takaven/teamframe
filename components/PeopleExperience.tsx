@@ -4,10 +4,9 @@ import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import {
   INVITE_RESEND_COOLDOWN_SECONDS,
-  getEmployeeWorkCountry,
   listEmployeesForAdmin,
 } from "@/services/employeeService";
-import { UAE_COUNTRY, UAE_RECORD_TYPES, isUaeRecordType, uaeRecordLabel } from "@/lib/countryRecords";
+import { UAE_RECORD_TYPES, isUaeRecordType, uaeRecordLabel } from "@/lib/countryRecords";
 import { listDocumentRequirementsForEmployee, listDocumentsForEmployee } from "@/services/documentService";
 import { listOnboardingTasksForEmployee } from "@/services/onboardingService";
 import { configuredPreStartChecks } from "@/services/starterReadiness";
@@ -61,12 +60,19 @@ import { PrintRecordButton } from "@/components/PrintRecordButton";
 import { EmptyState } from "@/components/EmptyState";
 import { StatusPill, type StatusPillTone } from "@/components/StatusPill";
 import { StarterReadinessPanel } from "@/components/StarterReadinessPanel";
-import { getLeaveOverviewForEmployee } from "@/services/leaveService";
+import { listLeaveDefinitionBalances, listLeavesForEmployee } from "@/services/leaveService";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { listCustomFieldDefinitions, listCustomFieldValues } from "@/services/customFieldService";
 import { savePersonCustomFieldsAction } from "@/app/people/custom-field-actions";
 import { listPerformanceReviews } from "@/services/performanceReviewService";
+
+const DOCUMENT_REQUIREMENT_TYPES = [
+  { value: "contract", label: "Contract" },
+  { value: "right_to_work", label: "Right to work" },
+  { value: "jd", label: "Job description" },
+  ...UAE_RECORD_TYPES.filter((type) => !["contract", "right_to_work", "jd"].includes(type.value)),
+];
 
 export const dynamic = "force-dynamic";
 
@@ -322,7 +328,10 @@ export async function PeopleExperience({
   const offboardingByEmployee = new Map(offboardingWorkflows.map((item) => [item.employeeId, item.workflow]));
   const offboardingLeaveByEmployee = new Map(offboardingWorkflows.map((item) => [item.employeeId, item.leaveReconciliation]));
   const leaveOverviews = new Map(await Promise.all(detailEmployees.map(async (employee) => [
-    employee.id, await getLeaveOverviewForEmployee(actor, employee.id),
+    employee.id, {
+      balances: await listLeaveDefinitionBalances(actor, employee.id),
+      requests: await listLeavesForEmployee(actor, employee.id),
+    },
   ] as const)));
   const employeeNameById = new Map(employees.map((employee) => [employee.id, employee.full_name]));
   // Structured master record (capability-gated compensation/payment) + position history
@@ -342,11 +351,6 @@ export async function PeopleExperience({
     detailEmployees.map(async (employee) => ({ employeeId: employee.id, detail: await getEmployeeCompensationDetail(actor, employee.id) })),
   );
   const compensationByEmployee = new Map(compensationRecords.map((item) => [item.employeeId, item.detail]));
-  // Work country (ISO) for the opened employee — gates the UAE country-specific records section.
-  const workCountries = await Promise.all(
-    detailEmployees.map(async (employee) => ({ employeeId: employee.id, country: await getEmployeeWorkCountry(actor, employee.id) })),
-  );
-  const workCountryByEmployee = new Map(workCountries.map((item) => [item.employeeId, item.country]));
   const performanceReviews = detailEmployees.length > 0 ? await listPerformanceReviews(actor) : [];
   const employeePhotos = await listEmployeePhotoUrls(actor);
   const photoByEmployeeId = new Map(employeePhotos.map((p) => [p.employee_id, p.photo_url]));
@@ -734,10 +738,12 @@ export async function PeopleExperience({
                   </div>
                   <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     {(leaveOverview?.balances ?? []).map((balance) => (
-                      <div key={balance.leave_type} className="rounded-lg bg-ink-50/70 p-3">
-                        <p className="text-[11px] uppercase tracking-[0.08em] text-ink-500">{balance.leave_type.replaceAll("_", " ")}</p>
+                      <div key={balance.definition_id} className="rounded-lg bg-ink-50/70 p-3">
+                        <p className="text-[11px] uppercase tracking-[0.08em] text-ink-500">{balance.display_name}</p>
                         <p className="mt-1 text-[18px] font-semibold text-ink-900">{balance.available ?? "—"}</p>
                         <p className="text-[11px] text-ink-500">available · {balance.pending} pending</p>
+                        <p className="mt-1 text-[11px] text-ink-500">Accrued to date {balance.accrued} · Annual entitlement {balance.entitlement ?? "—"}</p>
+                        {balance.timing_review_required ? <p className="mt-1 text-[11px] font-medium text-signal-amber">Timing settings require review</p> : null}
                       </div>
                     ))}
                   </div>
@@ -1204,9 +1210,7 @@ export async function PeopleExperience({
                   <label className="flex flex-col gap-1 text-[11px] text-ink-500">
                     Request type
                     <select name="document_type" defaultValue="contract" className="tf-select-sm">
-                      {workCountryByEmployee.get(employee.id) === UAE_COUNTRY
-                        ? UAE_RECORD_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)
-                        : <><option value="contract">Contract</option><option value="right_to_work">Right to work</option><option value="passport">Passport</option><option value="jd">Job description</option></>}
+                      {DOCUMENT_REQUIREMENT_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
                     </select>
                   </label>
                   <label className="flex flex-col gap-1 text-[11px] text-ink-500">
@@ -1363,15 +1367,14 @@ export async function PeopleExperience({
 
               </section>
 
-              {workCountryByEmployee.get(employee.id) === UAE_COUNTRY ? (
-                <section data-tab="documents" className="tf-product-section">
-                  <h4 className="text-[15px] font-semibold text-ink-900">UAE employment records</h4>
+              <section data-tab="documents" className="tf-product-section">
+                  <h4 className="text-[15px] font-semibold text-ink-900">Employment records</h4>
                   <p className="mt-1 text-[12px] text-ink-500">
                     Factual record-keeping only. Store the document, its reference and dates, and evidence — TeamFrame does not assess legal compliance.
                   </p>
 
                   <details className="mt-4">
-                    <summary className="tf-secondary-action inline-flex cursor-pointer list-none px-4 py-2 text-[12px] marker:hidden">Add UAE record</summary>
+                    <summary className="tf-secondary-action inline-flex cursor-pointer list-none px-4 py-2 text-[12px] marker:hidden">Add employment record</summary>
                   <form action={uploadUaeRecordAction} className="tf-edit-panel mt-3 grid gap-3 md:grid-cols-3" encType="multipart/form-data">
                     <input type="hidden" name="employee_id" value={employee.id} />
                     <input type="hidden" name="return_to" value={`/people/${employee.id}`} />
@@ -1401,7 +1404,7 @@ export async function PeopleExperience({
                     </label>
                     <div className="flex items-end">
                       <PendingSubmitButton
-                        idleLabel="Save UAE record"
+                        idleLabel="Save employment record"
                         pendingLabel="Saving…"
                         className="tf-primary-action px-3 py-1.5 text-[12px] disabled:cursor-not-allowed disabled:text-ink-300"
                       />
@@ -1468,7 +1471,6 @@ export async function PeopleExperience({
                     <p className="mt-3 text-[12px] text-ink-500">No UAE records saved yet.</p>
                   )}
                 </section>
-              ) : null}
 
               <details data-tab="onboarding-offboarding" className="tf-product-section">
                 <summary className="flex cursor-pointer list-none items-center justify-between marker:hidden">
@@ -1631,6 +1633,19 @@ export async function PeopleExperience({
             End date (optional)
             <DateField name="end_date" />
           </label>
+          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+            Probation used?
+            <select name="probation_used" defaultValue="" required className="tf-select">
+              <option value="" disabled>Choose explicitly</option>
+              <option value="no">No</option>
+              <option value="yes">Yes</option>
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-[12px] text-ink-500">
+            Contractual probation end date (required when probation is used)
+            <DateField name="probation_end_date" />
+          </label>
+          <p className="text-[12px] text-ink-500 md:col-span-2">The separate 30-day check-in remains an operational workflow and does not define the probation period.</p>
           <div className="flex flex-col justify-end">
             <PendingSubmitButton
               idleLabel="Add person"

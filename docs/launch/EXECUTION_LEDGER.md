@@ -10,6 +10,16 @@ Daily question: **Are current tasks moving TeamFrame toward M5/M6, or merely clo
 
 **Marketability Release closure (2026-10-04):** MR-M1 through MR-M6 are **PASS** after focused gates and independent M1/M2, M3/M4 and M5/M6 review. The IMPLEMENT cells below preserve the in-flight execution snapshot; this closure statement is the final state for the bounded release.
 
+## UAE HR Alignment Phase A correctness — 2026-10-08
+
+| ID | Workstream | State | Target / ceiling | Stop condition |
+| -- | ---------- | ----- | ---------------- | -------------- |
+| UAE-A | Current-product correctness and privacy | PASS | Target 8h; max 14h active | Stop before Federal/DIFC/ADGM formulas, reference manifests/history, alignment UI/statuses, inferred jurisdiction replacement, destructive migration, Production/customer-data mutation, or any silent rewrite of leave balances, probation dates, document requirements or evidence. |
+
+Authoritative start: protected `origin/main` at `b277f07908f7c7508280f8a476339f2c81c39399`; isolated branch `phase/uae-alignment-a-correctness`. Clean baseline `npm test` reached 487 PASS / 2 skipped with four pre-existing 5-second timeouts in three factory/integration test files under parallel load. The exact 20 affected assertions passed unchanged when rerun serially with a 30-second runner timeout. Phase A scope is restricted to: prevent compounded leave reduction without adding legal formulas; remove automatic 90-day contractual probation while preserving the independent 30-day check-in; retire employee-country document inference in favour of explicit requirements; and redact emergency contacts from manager-derived profile access. No external communication is authorised by this workstream.
+
+Closure evidence: the leave engine now separates annual entitlement from accrued-to-date calculation and prevents new dual timing configurations while preserving existing definitions, ledger rows, requests and approvals for explicit review. The 30-day check-in remains independent; probation is created only from affirmative new-starter intent plus an explicit contractual end date, with existing probation rows untouched. Country-derived document signals are retired through a history-preserving migration and the runtime can no longer recreate them; active explicit document requirements remain authoritative. Emergency-contact fields are redacted in the shared employee projection for relationship-derived manager access while self and privileged People Ops/Admin access remain. No Federal, DIFC or ADGM formulas, alignment controls, public claims, live data queries or Production mutations were introduced. Independent leave/probation and documents/privacy reviews both PASS after their findings were corrected. Final gates: focused Phase A suites PASS; complete serial suite 512 PASS / 2 skipped; typecheck PASS; lint PASS; all four security/static guards PASS; Production build PASS; `git diff --check` PASS. The additive migration has not been applied to any environment.
+
 ## Final marketability sprint — 2026-10-07
 
 This is the last bounded reopening before sales. Production and customer data are out of scope. Only verified gaps with direct buyer/demo value may proceed.
