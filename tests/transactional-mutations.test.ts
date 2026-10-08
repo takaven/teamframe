@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 const migration = readFileSync(join(process.cwd(), "schemas", "transactional_mutations.sql"), "utf8");
 const employeeService = readFileSync(join(process.cwd(), "services", "employeeService", "index.ts"), "utf8");
 const setupService = readFileSync(join(process.cwd(), "services", "customerProvisioningService.ts"), "utf8");
+const peopleImportAction = readFileSync(join(process.cwd(), "app", "people", "import", "actions.ts"), "utf8");
 const leaveService = readFileSync(join(process.cwd(), "services", "leaveService", "index.ts"), "utf8");
 const schemaOrder = readFileSync(join(process.cwd(), "scripts", "schema-order.mjs"), "utf8");
 
@@ -109,7 +110,9 @@ describe("transactional mutation RPCs", () => {
     expect(create).toContain("JOIN_WORK_INTENT_REQUIRED");
     expect(create).toContain("if p_initialize_join_work then");
     expect(create).toContain("p_setup_status, true");
-    expect(employeeService).not.toContain("p_initialize_join_work:");
+    expect(employeeService).toContain("p_initialize_join_work: parsed.initialize_join_work ?? true");
+    expect(peopleImportAction).toContain("initialize_join_work: false");
+    expect(peopleImportAction).toContain('setup_status: "active"');
     expect(setupService).toContain("p_initialize_join_work: false");
     const managerLink = setupService.indexOf('if (!employee.managerEmail) continue;');
     const starterInit = setupService.indexOf('.rpc("teamframe_initialize_join_work"');

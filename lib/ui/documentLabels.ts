@@ -19,3 +19,39 @@ export function documentLabel(value: string): string {
   const key = value.trim().toLowerCase();
   return DOCUMENT_LABELS[key] ?? key.replaceAll("_", " ").replace(/\b\w/g, (character) => character.toUpperCase());
 }
+
+type FileRequirement = {
+  state: string;
+  current_expires_at: string | null;
+};
+
+export type EmployeeFileSummary = {
+  required: number;
+  complete: number;
+  missing: number;
+  awaitingReview: number;
+  expiringWithin90Days: number;
+};
+
+/** Factual record completeness only; this deliberately makes no compliance judgement. */
+export function summarizeEmployeeFile(
+  requirements: readonly FileRequirement[],
+  now = new Date(),
+): EmployeeFileSummary {
+  const current = requirements.filter((item) => !["cancelled", "replaced"].includes(item.state));
+  const today = now.toISOString().slice(0, 10);
+  const in90Days = new Date(now);
+  in90Days.setUTCDate(in90Days.getUTCDate() + 90);
+  const horizon = in90Days.toISOString().slice(0, 10);
+
+  return {
+    required: current.length,
+    complete: current.filter((item) => item.state === "accepted").length,
+    missing: current.filter((item) => ["requested", "rejected", "expired"].includes(item.state)).length,
+    awaitingReview: current.filter((item) => item.state === "received").length,
+    expiringWithin90Days: current.filter((item) => {
+      const expiry = item.current_expires_at?.slice(0, 10);
+      return Boolean(expiry && expiry >= today && expiry <= horizon);
+    }).length,
+  };
+}

@@ -28,6 +28,16 @@ describe("Group D bounded notifications", () => {
     for (const helper of ["notifyDocumentRequest", "notifyTaskAssignment", "notifyLeaveRequest", "notifyLeaveDecision", "notifyPolicyPublished", "notifyDueMilestone", "notifyOffboardingAssignment"]) expect(service).toContain(helper);
   });
 
+  it("routes manager-owned onboarding assignments to the assigned manager", () => {
+    const actions = read("app/onboarding/actions.ts");
+    expect(service).toContain('task.ownerRole === "manager" ? task.ownerEmployeeId');
+    expect(service).toContain('actionPath: managerOwned ? "/manager" : "/home"');
+    expect(service).toContain("Onboarding action assigned to you");
+    expect(service).toContain("task.dueDate");
+    expect(actions).toContain("ownerRole: task.owner_role");
+    expect(actions).toContain("ownerEmployeeId: task.owner_employee_id");
+  });
+
   it("never sends reserved synthetic review addresses externally", () => {
     expect(service).toContain("invalid|example|test");
     expect(service).toContain('domain === "localhost"');

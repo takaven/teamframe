@@ -334,6 +334,7 @@ const CreateEmployeeSchema = z.object({
   grade: z.string().trim().max(100).nullable().optional(),
   status: z.enum(["active", "on_leave", "inactive"]).optional(),
   setup_status: z.enum(["incomplete", "ready", "active"]).optional(),
+  initialize_join_work: z.boolean().optional(),
 });
 
 const UpdateEmployeeSchema = z.object({
@@ -954,6 +955,10 @@ export async function createEmployee(actor: Actor, input: unknown): Promise<Empl
       p_grade: parsed.grade ?? null,
       p_status: parsed.status ?? "active",
       p_setup_status: parsed.setup_status ?? "incomplete",
+      // New starters receive the normal onboarding/check-in/probation work.
+      // Historical imports must opt out explicitly rather than relying on a
+      // date heuristic that could misclassify a late-entered starter.
+      p_initialize_join_work: parsed.initialize_join_work ?? true,
     } as never)
     .single();
 

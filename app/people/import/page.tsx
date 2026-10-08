@@ -24,8 +24,9 @@ export default async function PeopleImportPage({ searchParams }: { searchParams:
     <AppShell actor={actor} activePath="/people" />
     <Link href="/people" className="tf-context-back">← Back to People</Link>
     <header className="mt-4 border-b border-ink-200 pb-5">
-      <h1 className="text-[32px] font-bold">Import people</h1>
-      <p className="mt-1 text-[14px] text-ink-500">Paste a CSV, review every row, then confirm the import into this workspace only. Country and timezone are optional and use company defaults when blank.</p>
+      <h1 className="text-[32px] font-bold">Import existing workforce</h1>
+      <p className="mt-1 text-[14px] text-ink-500">Use this bulk import for employees already in the business. Historical start dates will not create onboarding, check-in or probation work. For new or upcoming starters who should receive those workflows, use <Link href="/people/add" className="font-semibold underline">Add person</Link>.</p>
+      <p className="mt-2 text-[14px] text-ink-500">Paste a CSV, review every row, then confirm the import into this workspace only. Country and timezone are optional and use company defaults when blank.</p>
     </header>
     {params.error ? <p className="mt-5 text-signal-red">Import stopped after {params.created ?? "0"} rows. Correct the CSV and avoid re-importing rows already created.</p> : null}
     <section className="mt-6 tf-surface-flat p-5">

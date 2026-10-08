@@ -38,7 +38,17 @@ export async function importEmployeesAction(formData: FormData): Promise<void> {
       if (!country) throw new Error("INVALID_COUNTRY");
       const timezone = row.timezone?.trim() || company.default_timezone;
       if (!isValidTimeZone(timezone)) throw new Error("INVALID_TIMEZONE");
-      const created = await createEmployee(actor, { ...row, country, manager_id: managerId, timezone, end_date: null });
+      const created = await createEmployee(actor, {
+        ...row,
+        country,
+        manager_id: managerId,
+        timezone,
+        end_date: null,
+        // This route imports an established workforce. It must never create
+        // historical starter work from an old start date.
+        initialize_join_work: false,
+        setup_status: "active",
+      });
       await applyImportedEmployeeIdentity(actor, created.id, { employeeNumber: row.employee_number, workLocation: row.work_location });
       employeeIdByEmail.set(created.email.toLowerCase(), created.id);
       count += 1;

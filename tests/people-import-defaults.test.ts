@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { orderEmployeeImportRows, parseEmployeeCsv } from "@/lib/people/importCsv";
 
@@ -89,5 +91,23 @@ describe("People CSV defaults", () => {
       "Asia/Dubai",
     );
     expect(cycle.errors).toContain("Manager reporting relationships contain a cycle.");
+  });
+
+  it("classifies the People CSV route as an existing-workforce import", () => {
+    const action = readFileSync(join(process.cwd(), "app/people/import/actions.ts"), "utf8");
+    const importPage = readFileSync(join(process.cwd(), "app/people/import/page.tsx"), "utf8");
+    const peopleExperience = readFileSync(join(process.cwd(), "components/PeopleExperience.tsx"), "utf8");
+    const service = readFileSync(join(process.cwd(), "services/employeeService/index.ts"), "utf8");
+    const schema = readFileSync(join(process.cwd(), "schemas/transactional_mutations.sql"), "utf8");
+
+    expect(action).toContain("initialize_join_work: false");
+    expect(action).toContain('setup_status: "active"');
+    expect(importPage).toContain("Import existing workforce");
+    expect(importPage).toContain("Historical start dates will not create onboarding, check-in or probation work.");
+    expect(importPage).toContain('href="/people/add"');
+    expect(peopleExperience).toContain(">Import existing workforce</Link>");
+    expect(service).toContain("p_initialize_join_work: parsed.initialize_join_work ?? true");
+    expect(schema).toContain("if p_initialize_join_work is null then");
+    expect(schema).toContain("if p_initialize_join_work then");
   });
 });

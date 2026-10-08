@@ -107,7 +107,7 @@ describe("repository execution safety", () => {
     }
   }, 15_000);
 
-  it("rejects the ARIE-associated ref even with matching URLs and self-declared approval", () => {
+  it("rejects the externally associated ref even with matching URLs and self-declared approval", () => {
     const other = "qrsxoumymbcehtltbtgn";
     const overrides = {
       TEAMFRAME_INSTALL_PROJECT_REF: other,

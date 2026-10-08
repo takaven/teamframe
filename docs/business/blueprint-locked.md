@@ -60,7 +60,7 @@ It helps founders see what is missing, expiring, non-compliant, overdue, or need
 
 TeamFrame is built by an HR practitioner with 15 years of real-world experience, including:
 
-- Currently sole HR lead at a UAE startup (Baynunah Watergeneration) — i.e. the target customer
+- Direct experience operating HR for a UAE startup matching the target-customer profile
 - HR Executive at Sinyar Holding (Royal Group, Abu Dhabi)
 - Payroll Supervisor at BCP Bank (Mauritius, multi-country compliance)
 - HR Officer at Bramer Bank (Mauritius)

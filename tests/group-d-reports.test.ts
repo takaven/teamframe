@@ -12,10 +12,18 @@ describe("Group D fixed reports", () => {
     expect(shell.indexOf('{ href: "/reports"')).toBeLessThan(shell.indexOf("const EMPLOYEE_LINKS"));
   });
 
-  it("ships the eight fixed report destinations and no report builder", () => {
+  it("ships the management snapshot and eight fixed report destinations with no report builder", () => {
     const page = read("app/reports/page.tsx");
-    for (const label of ["Headcount", "Joiners & leavers", "Time off", "Who's away", "Documents", "Onboarding & probation", "Policy acknowledgements", "Exports"]) expect(page).toContain(label);
+    for (const label of ["Management snapshot", "Headcount", "Joiners & leavers", "Time off", "Who's away", "Documents", "Onboarding & probation", "Policy acknowledgements", "Exports"]) expect(page).toContain(label);
     expect(page).not.toMatch(/report builder|query builder/i);
+  });
+
+  it("keeps the management snapshot factual and reuses existing operational data", () => {
+    const page = read("app/reports/page.tsx");
+    expect(page).toContain("loadControlCentreData");
+    expect(page).toContain("Employee files incomplete");
+    expect(page).toContain("Policy acknowledgements outstanding");
+    expect(page).toContain("not a legal or compliance score");
   });
 
   it("keeps payroll and full export actions in Reports and removes them from Settings", () => {
