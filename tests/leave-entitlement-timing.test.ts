@@ -33,5 +33,6 @@ describe("leave entitlement timing projection", () => {
     expect(actions).toContain('z.enum(["upfront", "joining_date_proration", "monthly_accrual", "annual_accrual"])');
     expect(actions).toContain('timing === "annual_accrual" ? "annual" : "monthly"');
     expect(leaveService).toContain("default_entitlement_days, accrual_enabled, accrual_frequency, joining_date_pro_rata");
+    expect(settings).toContain("Partial first and final months are prorated by calendar days in service.");
   });
 });

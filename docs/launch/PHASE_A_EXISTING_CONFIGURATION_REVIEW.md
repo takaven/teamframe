@@ -9,6 +9,8 @@ No live or customer tenant was queried during implementation. The repository con
 
 The prior model allowed both `joining_date_pro_rata` and `accrual_enabled`. For an annual value of 30 and a 1 April 2026 start, the previous calculation reduced the annual value to 22.60 and then accrued from that reduced amount, producing 16.95 by year end. Phase A calculates accrued-to-date from the configured annual value and caps it at the applicable entitlement, so the same entitlement is not reduced twice.
 
+Monthly accrual now uses one inclusive calendar-day convention for partial first and final months. For each month, the configured annual value is divided by 12 and multiplied by eligible service days divided by calendar days in that month. For example, service from 15–30 April is 16 eligible days out of 30. Intermediate calculations retain PostgreSQL numeric precision; only the final projected accrual is rounded once to two decimal places, matching the existing ledger/display convention. Joining-date proration remains a separate strategy and is not combined with monthly accrual for new or edited definitions.
+
 Existing dual-strategy rows are not rewritten. The new constraint is `NOT VALID`, the UI labels them **Timing review required**, and all new writes require one explicit timing choice.
 
 Secure operator review, when separately authorised, should report only aggregate counts by workspace:

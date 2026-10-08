@@ -22,8 +22,10 @@ describe("Phase A existing-install migration", () => {
   it("prevents new dual-strategy leave settings while preserving legacy rows", () => {
     expect(migration).toContain("leave_definitions_single_entitlement_timing_check");
     expect(migration).toContain("not valid");
-    expect(migration).toContain("round(v_annual * least(12, greatest(0, v_months)) / 12, 2)");
-    expect(migration).not.toContain("round(v_prorated * least(12");
+    expect(migration).toContain("v_eligible_end := least(v_as_of, v_year_end, coalesce(v_employee.end_date, v_as_of))");
+    expect(migration).toContain("(v_service_end - v_service_start + 1)::numeric");
+    expect(migration).toContain("accrued := least(v_prorated, round(v_monthly_accrued, 2))");
+    expect(migration).not.toContain("v_prorated * least(12");
   });
 
   it("replaces inferred probation with an explicit scheduling path", () => {
