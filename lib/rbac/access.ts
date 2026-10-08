@@ -111,6 +111,16 @@ export async function hasCapability(
   return false;
 }
 
+async function hasExplicitCapability(
+  actor: Actor,
+  capability: AccessCapability,
+  target: CapabilityTarget = {},
+): Promise<boolean> {
+  if (!actor.tenantId) return false;
+  if (await matrixAllows(actor, capability, target)) return true;
+  return profileAllows(actor, capability);
+}
+
 export async function requireCapability(
   actor: Actor,
   capability: AccessCapability,
@@ -128,6 +138,13 @@ export async function canReadOwnEmployeeRecord(actor: Actor, employeeId: string)
 export async function canReadEmployeeProfile(actor: Actor, employeeId: string): Promise<boolean> {
   if (await canReadOwnEmployeeRecord(actor, employeeId)) return true;
   return hasCapability(actor, "people_operations", { employeeId });
+}
+
+export async function canReadEmergencyContact(actor: Actor, employeeId: string): Promise<boolean> {
+  if (await canReadOwnEmployeeRecord(actor, employeeId)) return true;
+  // Direct-report access intentionally does not apply to emergency-contact data.
+  // The caller must hold an explicit People/Admin scope for this employee.
+  return hasExplicitCapability(actor, "people_operations", { employeeId });
 }
 
 export async function canViewCompensation(actor: Actor, employeeId: string): Promise<boolean> {

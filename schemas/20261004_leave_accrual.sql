@@ -16,6 +16,10 @@ do $$ begin
     alter table leave_definitions add constraint leave_definitions_carry_cap_check
       check (carry_forward_cap_days is null or carry_forward_cap_days between 0 and 365);
   end if;
+  if not exists (select 1 from pg_constraint where conname = 'leave_definitions_single_entitlement_timing_check') then
+    alter table leave_definitions add constraint leave_definitions_single_entitlement_timing_check
+      check (not (accrual_enabled and joining_date_pro_rata)) not valid;
+  end if;
 end $$;
 
 alter table leaves add column if not exists day_part text not null default 'full_day';
@@ -105,9 +109,14 @@ declare
   v_year_start date := make_date(p_balance_year, 1, 1);
   v_year_end date := make_date(p_balance_year, 12, 31);
   v_eligible_start date;
+  v_eligible_end date;
   v_as_of date := least(greatest(p_as_of_date, make_date(p_balance_year, 1, 1)), make_date(p_balance_year, 12, 31));
   v_prorated numeric := 0;
-  v_months numeric := 0;
+  v_month_cursor date;
+  v_month_end date;
+  v_service_start date;
+  v_service_end date;
+  v_monthly_accrued numeric := 0;
   v_legacy_used numeric := 0;
 begin
   if p_balance_year not between 2000 and 2200 then raise exception 'INVALID_INPUT'; end if;
@@ -134,17 +143,35 @@ begin
   else
     v_prorated := v_annual;
   end if;
+  v_eligible_end := least(v_as_of, v_year_end, coalesce(v_employee.end_date, v_as_of));
 
   if not v_def.accrual_enabled then
     accrued := v_prorated;
-  elsif v_as_of < v_eligible_start then
+  elsif v_eligible_end < v_eligible_start then
     accrued := 0;
   elsif v_def.accrual_frequency = 'annual' then
     accrued := v_prorated;
   else
-    v_months := ((extract(year from v_as_of)::integer - extract(year from v_eligible_start)::integer) * 12)
-      + extract(month from v_as_of)::integer - extract(month from v_eligible_start)::integer + 1;
-    accrued := least(v_prorated, round(v_prorated * least(12, greatest(0, v_months)) / 12, 2));
+    -- Monthly accrual uses the configured annual value exactly once. For each
+    -- calendar month, start/end dates are inclusive and only eligible service
+    -- days contribute. Intermediate numeric precision is retained and the final
+    -- projected accrual is rounded once to the existing two-decimal convention.
+    v_month_cursor := date_trunc('month', v_eligible_start)::date;
+    while v_month_cursor <= v_eligible_end loop
+      v_month_end := (v_month_cursor + interval '1 month - 1 day')::date;
+      v_service_start := greatest(v_eligible_start, v_month_cursor);
+      v_service_end := least(v_eligible_end, v_month_end);
+      if v_service_end >= v_service_start then
+        v_monthly_accrued := v_monthly_accrued
+          + (v_annual / 12)
+          * ((v_service_end - v_service_start + 1)::numeric
+            / (v_month_end - v_month_cursor + 1)::numeric);
+      end if;
+      v_month_cursor := (v_month_cursor + interval '1 month')::date;
+    end loop;
+    -- A legacy dual setting may still supply a prorated ceiling pending operator
+    -- review, but monthly accrual never operates on that reduced value.
+    accrued := least(v_prorated, round(v_monthly_accrued, 2));
   end if;
 
   select coalesce(sum(amount_days) filter (where entry_kind = 'opening'), 0),

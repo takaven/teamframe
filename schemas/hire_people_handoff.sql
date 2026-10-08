@@ -77,7 +77,7 @@ begin
     nullif(p_snapshot->>'end_date', '')::date,
     nullif(p_snapshot->>'manager_id', '')::uuid,
     nullif(p_snapshot->>'grade', ''), 'active'::employee_status,
-    'incomplete'::employee_setup_status
+    'incomplete'::employee_setup_status, true, null
   );
   update employees set
     hire_source_namespace = v_namespace,

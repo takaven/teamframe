@@ -54,6 +54,7 @@ function builderFor(result: Result) {
   return builder;
 }
 
+const rpcMock = vi.fn(() => builderFor({ data: createdLeaveRow, error: null }));
 const fakeClient = {
   from: (table: string) => {
     if (table === "leave_definitions") return builderFor(definitionResult);
@@ -61,7 +62,7 @@ const fakeClient = {
     if (table === "leaves") return builderFor({ data: [], error: null, count: 1 });
     return builderFor({ data: null, error: null });
   },
-  rpc: () => builderFor({ data: createdLeaveRow, error: null }),
+  rpc: rpcMock,
 };
 
 vi.mock("@/lib/db/supabaseServer", () => ({
@@ -82,7 +83,7 @@ vi.mock("@/services/documentService", () => ({
 
 const evidenceFile = () => new File([new Uint8Array([1, 2, 3, 4])], "note.pdf", { type: "application/pdf" });
 
-import { submitLeaveRequest } from "@/services/leaveService";
+import { addLeaveBalanceEntry, submitLeaveRequest } from "@/services/leaveService";
 import type { Actor } from "@/middleware/rbac";
 
 const actor: Actor = {
@@ -104,6 +105,7 @@ beforeEach(() => {
   definitionResult = { data: null, error: null };
   uploadDocumentMock.mockClear();
   softDeleteDocumentMock.mockClear();
+  rpcMock.mockClear();
 });
 
 describe("submitLeaveRequest — definition + attachment enforcement", () => {
@@ -154,5 +156,35 @@ describe("submitLeaveRequest — definition + attachment enforcement", () => {
     await expect(
       submitLeaveRequest(actor, { startDate: "2026-06-01", endDate: "2026-06-02", leaveDefinitionId: "def-1", attachment: evidenceFile() }),
     ).rejects.toThrow("LEAVE_DEFINITION_INVALID");
+  });
+
+  it("enforces a single-date half day and sends the selected part to the RPC", async () => {
+    def({});
+    await expect(submitLeaveRequest(actor, {
+      startDate: "2026-06-01", endDate: "2026-06-02", leaveDefinitionId: "def-1", dayPart: "morning",
+    })).rejects.toThrow("INVALID_INPUT");
+
+    await submitLeaveRequest(actor, {
+      startDate: "2026-06-01", endDate: "2026-06-01", leaveDefinitionId: "def-1", dayPart: "afternoon",
+    });
+    expect(rpcMock).toHaveBeenCalledWith("teamframe_submit_leave", expect.objectContaining({ p_day_part: "afternoon" }));
+  });
+
+  it("uses a stable idempotency key for carry-forward without mutating the ledger directly", async () => {
+    const admin = { ...actor, role: "admin" as const };
+    await addLeaveBalanceEntry(admin, {
+      employeeId: "00000000-0000-0000-0000-000000000001",
+      leaveDefinitionId: "00000000-0000-0000-0000-000000000002",
+      balanceYear: 2026,
+      entryKind: "carry_forward",
+      amountDays: 5,
+      effectiveDate: "2026-01-01",
+      reason: "Approved carry-forward",
+      sourceYear: 2025,
+    });
+    expect(rpcMock).toHaveBeenCalledWith("teamframe_add_leave_balance_entry", expect.objectContaining({
+      p_entry_kind: "carry_forward",
+      p_idempotency_key: "leave-carry:00000000-0000-0000-0000-000000000001:00000000-0000-0000-0000-000000000002:2025:2026",
+    }));
   });
 });

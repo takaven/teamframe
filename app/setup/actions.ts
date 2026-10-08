@@ -34,6 +34,11 @@ function code(error: unknown): string {
   if (error instanceof Error) return error.message.match(/^[A-Z_]+/)?.[0] ?? "UNKNOWN";
   return "UNKNOWN";
 }
+
+const EntitlementTimingSchema = z.enum(["upfront", "joining_date_proration", "monthly_accrual", "annual_accrual"]);
+function entitlementTiming(value: FormDataEntryValue | null) {
+  return EntitlementTimingSchema.parse(value);
+}
 function s(v: FormDataEntryValue | null): string { return typeof v === "string" ? v.trim() : ""; }
 function optNum(v: FormDataEntryValue | null): number | null { const t = s(v); return t === "" ? null : Number(t); }
 
@@ -149,6 +154,7 @@ export async function updateWorkLocationAction(formData: FormData): Promise<void
 }
 
 export async function createLeaveDefinitionAction(formData: FormData): Promise<void> {
+  const timing = entitlementTiming(formData.get("entitlement_timing"));
   await run("createLeaveDefinition", "leave", (actor) => createLeaveDefinition(actor, {
     display_name: s(formData.get("display_name")),
     system_leave_type: s(formData.get("system_leave_type")),
@@ -156,14 +162,15 @@ export async function createLeaveDefinitionAction(formData: FormData): Promise<v
     default_entitlement_days: optNum(formData.get("default_entitlement_days")),
     counting_basis: s(formData.get("counting_basis")),
     attachment_requirement: s(formData.get("attachment_requirement")),
-    accrual_enabled: formData.get("accrual_enabled") === "on",
-    accrual_frequency: s(formData.get("accrual_frequency")) || "monthly",
-    joining_date_pro_rata: formData.get("joining_date_pro_rata") === "on",
+    accrual_enabled: timing === "monthly_accrual" || timing === "annual_accrual",
+    accrual_frequency: timing === "annual_accrual" ? "annual" : "monthly",
+    joining_date_pro_rata: timing === "joining_date_proration",
     carry_forward_enabled: formData.get("carry_forward_enabled") === "on",
     carry_forward_cap_days: optNum(formData.get("carry_forward_cap_days")),
   }));
 }
 export async function updateLeaveDefinitionAction(formData: FormData): Promise<void> {
+  const timing = entitlementTiming(formData.get("entitlement_timing"));
   await run("updateLeaveDefinition", "leave", (actor) => updateLeaveDefinition(actor, s(formData.get("id")), {
     display_name: s(formData.get("display_name")),
     system_leave_type: s(formData.get("system_leave_type")),
@@ -171,15 +178,18 @@ export async function updateLeaveDefinitionAction(formData: FormData): Promise<v
     default_entitlement_days: optNum(formData.get("default_entitlement_days")),
     counting_basis: s(formData.get("counting_basis")),
     attachment_requirement: s(formData.get("attachment_requirement")),
-    accrual_enabled: formData.get("accrual_enabled") === "on",
-    accrual_frequency: s(formData.get("accrual_frequency")) || "monthly",
-    joining_date_pro_rata: formData.get("joining_date_pro_rata") === "on",
+    accrual_enabled: timing === "monthly_accrual" || timing === "annual_accrual",
+    accrual_frequency: timing === "annual_accrual" ? "annual" : "monthly",
+    joining_date_pro_rata: timing === "joining_date_proration",
     carry_forward_enabled: formData.get("carry_forward_enabled") === "on",
     carry_forward_cap_days: optNum(formData.get("carry_forward_cap_days")),
   }));
 }
 export async function applyUaeSetupPackAction(formData:FormData):Promise<void>{
-  await run("applyUaeSetupPack","uae-pack",(actor)=>applyUaeSetupPack(actor,{weekend:s(formData.get("weekend")),annualEntitlement:Number(s(formData.get("annual_entitlement"))),sickEntitlement:Number(s(formData.get("sick_entitlement"))),annualAccrual:formData.get("annual_accrual")==="on",annualProRata:formData.get("annual_pro_rata")==="on",carryForward:formData.get("carry_forward")==="on",carryCap:optNum(formData.get("carry_cap")),confirmed:formData.get("confirmed")==="on"}));
+  const accrual = formData.get("annual_accrual") === "on";
+  const proRata = formData.get("annual_pro_rata") === "on";
+  const legacyTiming = accrual && proRata ? "invalid" : accrual ? "monthly_accrual" : proRata ? "joining_date_proration" : "upfront";
+  await run("applyUaeSetupPack","uae-pack",(actor)=>applyUaeSetupPack(actor,{weekend:s(formData.get("weekend")),annualEntitlement:Number(s(formData.get("annual_entitlement"))),sickEntitlement:Number(s(formData.get("sick_entitlement"))),entitlementTiming:s(formData.get("entitlement_timing"))||legacyTiming,carryForward:formData.get("carry_forward")==="on",carryCap:optNum(formData.get("carry_cap")),confirmed:formData.get("confirmed")==="on"}));
 }
 
 // Whole-tenant portability export. Full Access only (enforced in the service by

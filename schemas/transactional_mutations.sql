@@ -375,6 +375,72 @@ create or replace function teamframe_create_employee(
   p_manager_id uuid,
   p_grade text,
   p_status employee_status,
+  p_setup_status employee_setup_status,
+  p_initialize_join_work boolean,
+  p_probation_end_date date
+)
+returns employees
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_employee employees;
+begin
+  if p_initialize_join_work is null then raise exception 'JOIN_WORK_INTENT_REQUIRED'; end if;
+  if not p_initialize_join_work and p_probation_end_date is not null then
+    raise exception 'PROBATION_REQUIRES_JOIN_WORK';
+  end if;
+  if p_probation_end_date is not null and (p_start_date is null or p_probation_end_date <= p_start_date) then
+    raise exception 'PROBATION_END_DATE_INVALID';
+  end if;
+  if p_probation_end_date is not null and p_end_date is not null and p_probation_end_date > p_end_date then
+    raise exception 'PROBATION_END_AFTER_EMPLOYMENT_END';
+  end if;
+
+  insert into employees (
+    tenant_id, full_name, email, role_title, department, timezone,
+    employment_type, country, start_date, end_date, manager_id, grade,
+    status, lifecycle_state, setup_status
+  ) values (
+    p_tenant_id, p_full_name, p_email, p_role_title, p_department, p_timezone,
+    p_employment_type, p_country, p_start_date, p_end_date, p_manager_id, p_grade,
+    p_status,
+    teamframe_derive_employee_lifecycle(p_status, p_setup_status, p_start_date, p_end_date, null),
+    p_setup_status
+  ) returning * into v_employee;
+
+  insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)
+  values (p_tenant_id, p_actor_user_id, 'employee.created', v_employee.id);
+
+  if p_initialize_join_work then
+    perform teamframe_initialize_join_work(p_tenant_id, p_actor_user_id, v_employee.id);
+    if p_probation_end_date is not null then
+      perform teamframe_schedule_probation_review(
+        p_tenant_id, p_actor_user_id, v_employee.id, p_probation_end_date
+      );
+    end if;
+  end if;
+
+  return v_employee;
+end;
+$$;
+
+create or replace function teamframe_create_employee(
+  p_tenant_id uuid,
+  p_actor_user_id uuid,
+  p_full_name text,
+  p_email text,
+  p_role_title text,
+  p_department text,
+  p_timezone text,
+  p_employment_type employment_type,
+  p_country text,
+  p_start_date date,
+  p_end_date date,
+  p_manager_id uuid,
+  p_grade text,
+  p_status employee_status,
   p_setup_status employee_setup_status
 )
 returns employees
@@ -1259,6 +1325,9 @@ revoke all on function teamframe_create_employee(
 revoke all on function teamframe_create_employee(
   uuid, uuid, text, text, text, text, text, employment_type, text, date, date, uuid, text, employee_status, employee_setup_status, boolean
 ) from public, anon, authenticated;
+revoke all on function teamframe_create_employee(
+  uuid, uuid, text, text, text, text, text, employment_type, text, date, date, uuid, text, employee_status, employee_setup_status, boolean, date
+) from public, anon, authenticated;
 revoke all on function teamframe_derive_employee_lifecycle(
   employee_status, employee_setup_status, date, date, employee_lifecycle_state
 ) from public, anon, authenticated;
@@ -1283,6 +1352,9 @@ grant execute on function teamframe_create_employee(
 ) to service_role;
 grant execute on function teamframe_create_employee(
   uuid, uuid, text, text, text, text, text, employment_type, text, date, date, uuid, text, employee_status, employee_setup_status, boolean
+) to service_role;
+grant execute on function teamframe_create_employee(
+  uuid, uuid, text, text, text, text, text, employment_type, text, date, date, uuid, text, employee_status, employee_setup_status, boolean, date
 ) to service_role;
 grant execute on function teamframe_derive_employee_lifecycle(
   employee_status, employee_setup_status, date, date, employee_lifecycle_state

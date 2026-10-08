@@ -15,7 +15,6 @@ import "server-only";
 import { z } from "zod";
 import type { Actor } from "@/middleware/rbac";
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
-import { normalizeIsoCountry } from "@/lib/countryRecords";
 import { env } from "@/lib/db/env";
 import { track } from "@/lib/telemetry/track";
 import { logSchemaCapability } from "@/lib/telemetry/logger";
@@ -320,7 +319,7 @@ export async function listColleagueDirectory(actor: Actor): Promise<ColleagueDir
   return rows.map((row) => ({ id: row.id, full_name: row.full_name, role_title: row.role_title, department: row.department, email: row.email, manager_name: row.manager_id ? names.get(row.manager_id) ?? null : null }));
 }
 
-const CreateEmployeeSchema = z.object({
+export const CreateEmployeeInputSchema = z.object({
   full_name: z.string().trim().min(1).max(200),
   email: z.string().trim().toLowerCase().email(),
   role_title: z.string().trim().min(1).max(200),
@@ -335,6 +334,28 @@ const CreateEmployeeSchema = z.object({
   status: z.enum(["active", "on_leave", "inactive"]).optional(),
   setup_status: z.enum(["incomplete", "ready", "active"]).optional(),
   initialize_join_work: z.boolean().optional(),
+  probation_used: z.boolean().optional(),
+  probation_end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+}).superRefine((value, context) => {
+  const initializesJoinWork = value.initialize_join_work ?? true;
+  if (initializesJoinWork && value.probation_used === undefined) {
+    context.addIssue({ code: "custom", path: ["probation_used"], message: "PROBATION_INTENT_REQUIRED" });
+  }
+  if (value.probation_used && !value.probation_end_date) {
+    context.addIssue({ code: "custom", path: ["probation_end_date"], message: "PROBATION_END_DATE_REQUIRED" });
+  }
+  if (value.probation_used !== true && value.probation_end_date) {
+    context.addIssue({ code: "custom", path: ["probation_end_date"], message: "PROBATION_NOT_USED" });
+  }
+  if (!initializesJoinWork && value.probation_used === true) {
+    context.addIssue({ code: "custom", path: ["probation_used"], message: "PROBATION_REQUIRES_JOIN_WORK" });
+  }
+  if (value.probation_end_date && value.probation_end_date <= value.start_date) {
+    context.addIssue({ code: "custom", path: ["probation_end_date"], message: "PROBATION_END_DATE_INVALID" });
+  }
+  if (value.probation_end_date && value.end_date && value.probation_end_date > value.end_date) {
+    context.addIssue({ code: "custom", path: ["probation_end_date"], message: "PROBATION_END_AFTER_EMPLOYMENT_END" });
+  }
 });
 
 const UpdateEmployeeSchema = z.object({
@@ -888,54 +909,10 @@ export async function getEmployee(
   return toEmployeeFullRecord(data as EmployeeRow);
 }
 
-/**
- * The employee's WORK country as an ISO alpha-2 code (Phase 5E), used to gate country-specific
- * record options. Resolution order (never nationality): (1) the ISO country of the work location on
- * the employee's current open position, if configured; (2) the free-text employees.country
- * normalised. Returns null when neither resolves. Admin-only, tenant-scoped.
- */
-export async function getEmployeeWorkCountry(actor: Actor, employeeId: string): Promise<string | null> {
-  requireAdmin(actor);
-  const tenantId = requireTenant(actor);
-  const supabase = createServiceRoleClient();
-
-  // (1) structured: current open position → work_location → ISO country.
-  const posQuery = await supabase
-    .from("positions")
-    .select("work_location_id")
-    .eq("tenant_id", tenantId)
-    .eq("assigned_employee_id", employeeId)
-    .is("deleted_at", null)
-    .not("work_location_id", "is", null)
-    .limit(1)
-    .maybeSingle();
-  const workLocationId = (posQuery.data as { work_location_id: string | null } | null)?.work_location_id ?? null;
-  if (workLocationId) {
-    const locQuery = await supabase
-      .from("work_locations")
-      .select("country")
-      .eq("tenant_id", tenantId)
-      .eq("id", workLocationId)
-      .maybeSingle();
-    const isoFromLocation = normalizeIsoCountry((locQuery.data as { country: string | null } | null)?.country ?? null);
-    if (isoFromLocation) return isoFromLocation;
-  }
-
-  // (2) fallback: free-text employment/work country.
-  const empQuery = await supabase
-    .from("employees")
-    .select("country")
-    .eq("tenant_id", tenantId)
-    .eq("id", employeeId)
-    .is("deleted_at", null)
-    .maybeSingle();
-  return normalizeIsoCountry((empQuery.data as { country: string | null } | null)?.country ?? null);
-}
-
 export async function createEmployee(actor: Actor, input: unknown): Promise<EmployeeFullRecord> {
   requireAdmin(actor);
   const tenantId = requireTenant(actor);
-  const parsed = CreateEmployeeSchema.parse(input);
+  const parsed = CreateEmployeeInputSchema.parse(input);
 
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
@@ -955,10 +932,12 @@ export async function createEmployee(actor: Actor, input: unknown): Promise<Empl
       p_grade: parsed.grade ?? null,
       p_status: parsed.status ?? "active",
       p_setup_status: parsed.setup_status ?? "incomplete",
-      // New starters receive the normal onboarding/check-in/probation work.
+      // New starters receive onboarding and the independent 30-day check-in.
+      // Probation work is added only when an explicit contractual end date is supplied.
       // Historical imports must opt out explicitly rather than relying on a
       // date heuristic that could misclassify a late-entered starter.
       p_initialize_join_work: parsed.initialize_join_work ?? true,
+      p_probation_end_date: parsed.probation_used === true ? parsed.probation_end_date : null,
     } as never)
     .single();
 

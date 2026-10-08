@@ -10,8 +10,7 @@ export const CHECK_IN_DEFAULTS = {
   milestoneDays: 30,
 } as const;
 
-export const PROBATION_DEFAULTS = {
-  durationDays: 90,
+export const PROBATION_REVIEW_DEFAULTS = {
   reviewLeadDays: 14,
 } as const;
 

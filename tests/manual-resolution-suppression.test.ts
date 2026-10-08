@@ -113,117 +113,14 @@ beforeEach(() => {
 });
 
 describe("missing_jurisdiction_requirement manual resolution", () => {
-  it("keeps the signal open while the action item is open", async () => {
-    db.employees = [
-      { id: "emp-a", tenant_id: "TENANT_A", country: "UAE", lifecycle_state: "active", deleted_at: null },
-    ];
-    db.risk_signals = [
-      {
-        id: "signal-open",
-        tenant_id: "TENANT_A",
-        kind: "missing_jurisdiction_requirement",
-        subject_employee_id: "emp-a",
-        evidence: { evidence_fingerprint: "missing_jurisdiction_requirement:uae:emirates_id" },
-        resolved_at: null,
-      },
-    ];
-    db.action_items = [
-      {
-        id: "action-open",
-        tenant_id: "TENANT_A",
-        risk_signal_id: "signal-open",
-        subject_employee_id: "emp-a",
-        category: "missing_jurisdiction_requirement",
-        status: "open",
-      },
-    ];
-
-    const result = await reconcileMissingJurisdictionRequirementSignals({
-      tenantId: "TENANT_A",
-      actorUserId: "admin-user",
-      now: new Date("2026-07-03T00:00:00Z"),
-    });
-
-    expect(result.resolvedSignals).toBe(0);
-    const signal = db.risk_signals.find((s) => s.id === "signal-open");
-    expect(signal?.resolved_at).toBeNull();
-  });
-
-  it("resolves the signal after the admin marks the action item done on the dashboard", async () => {
-    db.employees = [
-      { id: "emp-a", tenant_id: "TENANT_A", country: "UAE", lifecycle_state: "active", deleted_at: null },
-    ];
-    db.risk_signals = [
-      {
-        id: "signal-open",
-        tenant_id: "TENANT_A",
-        kind: "missing_jurisdiction_requirement",
-        subject_employee_id: "emp-a",
-        evidence: { evidence_fingerprint: "missing_jurisdiction_requirement:uae:emirates_id" },
-        resolved_at: null,
-      },
-    ];
-    db.action_items = [
-      {
-        id: "action-done",
-        tenant_id: "TENANT_A",
-        risk_signal_id: "signal-open",
-        subject_employee_id: "emp-a",
-        category: "missing_jurisdiction_requirement",
-        status: "done",
-        resolved_at: "2026-07-03T00:00:00Z",
-      },
-    ];
-
-    const result = await reconcileMissingJurisdictionRequirementSignals({
-      tenantId: "TENANT_A",
-      actorUserId: "admin-user",
-      now: new Date("2026-07-03T01:00:00Z"),
-    });
-
-    expect(result.createdSignals).toBe(0);
-    expect(result.resolvedSignals).toBe(1);
-    const signal = db.risk_signals.find((s) => s.id === "signal-open");
-    expect(signal?.resolved_at).not.toBeNull();
-  });
-
-  it("creates a fresh signal when the required jurisdiction evidence changes after manual resolution", async () => {
-    db.employees = [
-      { id: "emp-a", tenant_id: "TENANT_A", country: "UK", lifecycle_state: "active", deleted_at: null },
-    ];
-    db.risk_signals = [
-      {
-        id: "signal-old",
-        tenant_id: "TENANT_A",
-        kind: "missing_jurisdiction_requirement",
-        subject_employee_id: "emp-a",
-        evidence: { evidence_fingerprint: "missing_jurisdiction_requirement:uae:emirates_id" },
-        resolved_at: "2026-07-03T00:00:00Z",
-      },
-    ];
-    db.action_items = [
-      {
-        id: "action-done",
-        tenant_id: "TENANT_A",
-        risk_signal_id: "signal-old",
-        subject_employee_id: "emp-a",
-        category: "missing_jurisdiction_requirement",
-        status: "done",
-        resolved_at: "2026-07-03T00:00:00Z",
-      },
-    ];
-
-    const result = await reconcileMissingJurisdictionRequirementSignals({
-      tenantId: "TENANT_A",
-      actorUserId: "admin-user",
-      now: new Date("2026-07-04T00:00:00Z"),
-    });
-
-    expect(result.createdSignals).toBe(1);
-    const newSignal = db.risk_signals.find((s) => s.id !== "signal-old");
-    expect(newSignal?.evidence).toMatchObject({
-      evidence_fingerprint: "missing_jurisdiction_requirement:uk:right_to_work",
-    });
+  it("never creates country-derived document signals", async () => {
+    for (const country of ["AE", "UAE", "United Arab Emirates", "GB"]) {
+      db.employees = [{ id: `emp-${country}`, tenant_id: "TENANT_A", country, lifecycle_state: "active", deleted_at: null }];
+      const result = await reconcileMissingJurisdictionRequirementSignals({ tenantId: "TENANT_A" });
+      expect(result).toEqual({ scannedEmployees: 0, createdSignals: 0, updatedSignals: 0, resolvedSignals: 0 });
+      expect(db.risk_signals).toEqual([]);
+      expect(db.action_items).toEqual([]);
+    }
   });
 });
 

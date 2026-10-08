@@ -220,10 +220,6 @@ declare
   v_check_in_enabled boolean;
   v_check_in_id uuid;
   v_check_in_item_id uuid;
-  v_probation_id uuid;
-  v_probation_item_id uuid;
-  v_probation_manager_input_item_id uuid;
-  v_probation_end date;
   v_manager_task_id uuid;
   v_manager_task_item_id uuid;
 begin
@@ -346,74 +342,104 @@ begin
       and id = v_check_in_id;
   end if;
 
-  if v_employee.employment_type <> 'contractor' then
-    v_probation_end := v_base_date + 90;
-    insert into probation_reviews (
-      tenant_id,
-      employee_id,
-      probation_end_date,
-      review_due_date,
-      review_owner_user_id
-    )
-    values (
-      p_tenant_id,
-      p_employee_id,
-      v_probation_end,
-      v_probation_end - 14,
-      p_actor_user_id
-    )
-    on conflict (tenant_id, employee_id, probation_end_date) do update set updated_at = clock_timestamp()
-    returning id into v_probation_id;
-
-    v_probation_item_id := teamframe_ensure_hr_automation_item(
-      p_tenant_id,
-      'probation.review_due',
-      'probation.review:' || p_employee_id::text || ':' || v_probation_end::text,
-      'probation_review',
-      v_probation_id,
-      null,
-      ((v_probation_end - 14)::text || 'T09:00:00Z')::timestamptz,
-      'decision',
-      null,
-      jsonb_build_object('employee_id', p_employee_id, 'probation_end_date', v_probation_end),
-      3
-    );
-
-    update probation_reviews
-    set automation_item_id = v_probation_item_id
-    where tenant_id = p_tenant_id
-      and id = v_probation_id;
-
-    if v_employee.manager_id is not null then
-      v_probation_manager_input_item_id := teamframe_ensure_hr_automation_item(
-        p_tenant_id,
-        'probation.manager_input_due',
-        'probation.manager_input:' || v_probation_id::text,
-        'probation_review',
-        v_probation_id,
-        v_employee.manager_id,
-        ((v_probation_end - 14)::text || 'T09:00:00Z')::timestamptz,
-        'routine_reminder',
-        null,
-        jsonb_build_object('employee_id', p_employee_id, 'probation_end_date', v_probation_end),
-        3
-      );
-
-      update probation_reviews
-      set manager_input_automation_item_id = v_probation_manager_input_item_id
-      where tenant_id = p_tenant_id
-        and id = v_probation_id;
-    end if;
-  end if;
-
   insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)
   values (p_tenant_id, p_actor_user_id, 'early_employment.initialized', p_employee_id);
 
   return jsonb_build_object(
     'initialized', true,
     'onboarding_check_in_id', v_check_in_id,
-    'probation_review_id', v_probation_id
+    'probation_review_id', null
   );
+end;
+$$;
+
+-- Probation is contractual input, not an inferred/default duration. This bounded
+-- helper is called only when an administrator supplied an explicit end date.
+create or replace function teamframe_schedule_probation_review(
+  p_tenant_id uuid,
+  p_actor_user_id uuid,
+  p_employee_id uuid,
+  p_probation_end_date date
+)
+returns probation_reviews
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_employee employees%rowtype;
+  v_review probation_reviews;
+  v_review_item_id uuid;
+  v_manager_item_id uuid;
+  v_review_due_date date;
+begin
+  if p_probation_end_date is null then
+    raise exception 'PROBATION_END_DATE_REQUIRED';
+  end if;
+
+  select * into v_employee
+  from employees
+  where tenant_id = p_tenant_id and id = p_employee_id and deleted_at is null
+  for update;
+  if not found then raise exception 'EMPLOYEE_NOT_FOUND'; end if;
+  if v_employee.start_date is null or p_probation_end_date <= v_employee.start_date then
+    raise exception 'PROBATION_END_DATE_INVALID';
+  end if;
+  if v_employee.end_date is not null and p_probation_end_date > v_employee.end_date then
+    raise exception 'PROBATION_END_AFTER_EMPLOYMENT_END';
+  end if;
+
+  v_review_due_date := greatest(v_employee.start_date, p_probation_end_date - 14);
+  insert into probation_reviews (
+    tenant_id, employee_id, probation_end_date, review_due_date, review_owner_user_id
+  ) values (
+    p_tenant_id, p_employee_id, p_probation_end_date, v_review_due_date, p_actor_user_id
+  )
+  on conflict (tenant_id, employee_id, probation_end_date)
+  do update set updated_at = clock_timestamp()
+  returning * into v_review;
+
+  v_review_item_id := teamframe_ensure_hr_automation_item(
+    p_tenant_id,
+    'probation.review_due',
+    'probation.review:' || p_employee_id::text || ':' || p_probation_end_date::text,
+    'probation_review',
+    v_review.id,
+    null,
+    (v_review_due_date::text || 'T09:00:00Z')::timestamptz,
+    'decision',
+    null,
+    jsonb_build_object('employee_id', p_employee_id, 'probation_end_date', p_probation_end_date),
+    3
+  );
+
+  update probation_reviews set automation_item_id = v_review_item_id
+  where tenant_id = p_tenant_id and id = v_review.id;
+
+  if v_employee.manager_id is not null then
+    v_manager_item_id := teamframe_ensure_hr_automation_item(
+      p_tenant_id,
+      'probation.manager_input_due',
+      'probation.manager_input:' || v_review.id::text,
+      'probation_review',
+      v_review.id,
+      v_employee.manager_id,
+      (v_review_due_date::text || 'T09:00:00Z')::timestamptz,
+      'routine_reminder',
+      null,
+      jsonb_build_object('employee_id', p_employee_id, 'probation_end_date', p_probation_end_date),
+      3
+    );
+    update probation_reviews set manager_input_automation_item_id = v_manager_item_id
+    where tenant_id = p_tenant_id and id = v_review.id;
+  end if;
+
+  insert into audit_logs (tenant_id, actor_user_id, action_type, target_id)
+  values (p_tenant_id, p_actor_user_id, 'probation.review_scheduled_from_terms', v_review.id);
+
+  select * into v_review from probation_reviews
+  where tenant_id = p_tenant_id and id = v_review.id;
+  return v_review;
 end;
 $$;
 
@@ -654,6 +680,8 @@ grant execute on function teamframe_onboarding_check_in_questions() to service_r
 
 revoke all on function teamframe_initialize_join_work(uuid, uuid, uuid) from public, anon, authenticated;
 grant execute on function teamframe_initialize_join_work(uuid, uuid, uuid) to service_role;
+revoke all on function teamframe_schedule_probation_review(uuid, uuid, uuid, date) from public, anon, authenticated;
+grant execute on function teamframe_schedule_probation_review(uuid, uuid, uuid, date) to service_role;
 
 revoke all on function teamframe_submit_onboarding_check_in(uuid, uuid, uuid, uuid, jsonb) from public, anon, authenticated;
 grant execute on function teamframe_submit_onboarding_check_in(uuid, uuid, uuid, uuid, jsonb) to service_role;

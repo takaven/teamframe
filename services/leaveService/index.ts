@@ -96,6 +96,8 @@ export type LeaveDefinitionBalance = {
   counting_basis: string;
   attachment_requirement: string;
   entitlement: number | null;
+  entitlement_timing: "upfront" | "joining_date_proration" | "monthly_accrual" | "annual_accrual" | "legacy_review_required";
+  timing_review_required: boolean;
   opening: number;
   carried_forward: number;
   accrued: number;
@@ -104,6 +106,18 @@ export type LeaveDefinitionBalance = {
   pending: number;
   available: number | null;
 };
+
+export function projectEntitlementTiming(input: {
+  accrual_enabled: boolean;
+  accrual_frequency: "monthly" | "annual";
+  joining_date_pro_rata: boolean;
+}): LeaveDefinitionBalance["entitlement_timing"] {
+  if (input.accrual_enabled && input.joining_date_pro_rata) return "legacy_review_required";
+  if (input.accrual_enabled && input.accrual_frequency === "annual") return "annual_accrual";
+  if (input.accrual_enabled) return "monthly_accrual";
+  if (input.joining_date_pro_rata) return "joining_date_proration";
+  return "upfront";
+}
 
 export type PendingLeaveWithEmployee = LeaveRecord & {
   employee_full_name: string;
@@ -405,13 +419,13 @@ export async function listLeaveDefinitionBalances(actor: Actor, employeeId: stri
   }
   const supabase = createServiceRoleClient();
   const [defsQ,employeeQ] = await Promise.all([
-    supabase.from("leave_definitions").select("id, display_name, system_leave_type, counting_basis, attachment_requirement, default_entitlement_days, is_system, active, archived_at, sort_order").eq("tenant_id", tenantId).eq("active", true).is("archived_at", null).order("sort_order", { ascending: true }),
+    supabase.from("leave_definitions").select("id, display_name, system_leave_type, counting_basis, attachment_requirement, default_entitlement_days, accrual_enabled, accrual_frequency, joining_date_pro_rata, is_system, active, archived_at, sort_order").eq("tenant_id", tenantId).eq("active", true).is("archived_at", null).order("sort_order", { ascending: true }),
     supabase.from("employees").select("annual_leave_entitlement_override").eq("tenant_id",tenantId).eq("id",employeeId).single(),
   ]);
   if (defsQ.error) throw new Error(`LEAVE_DEFINITIONS_LIST_FAILED: ${defsQ.error.message}`);
   if (employeeQ.error) throw new Error(`LEAVE_EMPLOYEE_FETCH_FAILED: ${employeeQ.error.message}`);
   const annualOverride=(employeeQ.data as {annual_leave_entitlement_override:number|null}).annual_leave_entitlement_override;
-  const defs = (defsQ.data ?? []) as unknown as Array<{ id: string; display_name: string; system_leave_type: LeaveType; counting_basis: string; attachment_requirement: string; default_entitlement_days: number | null; is_system: boolean }>;
+  const defs = (defsQ.data ?? []) as unknown as Array<{ id: string; display_name: string; system_leave_type: LeaveType; counting_basis: string; attachment_requirement: string; default_entitlement_days: number | null; accrual_enabled: boolean; accrual_frequency: "monthly" | "annual"; joining_date_pro_rata: boolean; is_system: boolean }>;
   return Promise.all(defs.map(async (d) => {
     const balanceQ = await supabase.rpc("teamframe_leave_balance_components", {
       p_tenant_id: tenantId, p_employee_id: employeeId, p_leave_definition_id: d.id,
@@ -419,10 +433,14 @@ export async function listLeaveDefinitionBalances(actor: Actor, employeeId: stri
     } as never).single();
     if (balanceQ.error) throw new Error(`LEAVE_BALANCE_FETCH_FAILED: ${balanceQ.error.message}`);
     const b = balanceQ.data as unknown as Record<string, string | number>;
+    const entitlementTiming = projectEntitlementTiming(d);
     return {
       definition_id: d.id, display_name: d.display_name, system_leave_type: d.system_leave_type,
       is_system: d.is_system, counting_basis: d.counting_basis, attachment_requirement: d.attachment_requirement,
-      entitlement: d.system_leave_type==="annual"&&annualOverride!=null?Number(annualOverride):d.default_entitlement_days, opening: Number(b.opening), carried_forward: Number(b.carried_forward),
+      entitlement: d.system_leave_type==="annual"&&annualOverride!=null?Number(annualOverride):d.default_entitlement_days,
+      entitlement_timing: entitlementTiming,
+      timing_review_required: entitlementTiming === "legacy_review_required",
+      opening: Number(b.opening), carried_forward: Number(b.carried_forward),
       accrued: Number(b.accrued), adjustments: Number(b.adjustments), taken: Number(b.taken),
       pending: Number(b.pending), available: Number(b.available),
     };

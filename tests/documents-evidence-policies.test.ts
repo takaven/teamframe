@@ -191,8 +191,9 @@ describe("MR-5 documents, evidence and policies", () => {
     expect(acknowledgementSchema).toContain("is_published = true");
   });
 
-  it("Phase 5E: UAE records extend documents (metadata, work-country gating, PII gating)", () => {
+  it("Phase 5E: UAE records extend explicit document requirements without country inference", () => {
     const documents = read("schemas/documents.sql");
+    const requirements = read("schemas/document_requirements.sql");
     const documentService = read("services/documentService/index.ts");
     const employeeService = read("services/employeeService/index.ts");
     const employeeMaster = read("services/employeeMasterService.ts");
@@ -206,17 +207,21 @@ describe("MR-5 documents, evidence and policies", () => {
     expect(documents).toContain("documents_reference_number_len");
     expect(documentService).not.toContain("employee_compliance_records");
 
-    // Bounded UAE vocabulary (all seven) + AE work-country gate, never nationality.
+    // Bounded UAE vocabulary remains available for explicitly configured requirements. Worker
+    // country/location no longer infers that any one document is required.
     for (const t of ["emirates_id", "passport", "residence_visa", "work_permit", "medical_fitness", "medical_insurance", "iloe"]) {
       expect(vocab).toContain(`"${t}"`);
     }
     expect(vocab).toContain("UAE_COUNTRY = \"AE\"");
-    expect(employeeService).toContain("getEmployeeWorkCountry");
-    expect(employeeService).toContain("work_location_id"); // structured work-location path
+    expect(employeeService).not.toContain("getEmployeeWorkCountry");
     expect(employeesActions).toContain("uploadUaeRecordAction");
-    expect(employeesActions).toContain("getEmployeeWorkCountry(actor, employeeId) !== UAE_COUNTRY");
-    expect(employeesActions).toContain("isUaeRecordType(parsed.document_type)");
-    expect(employeesActions).toContain("UAE_RECORD_COUNTRY_REQUIRED");
+    expect(employeesActions).not.toContain("UAE_RECORD_COUNTRY_REQUIRED");
+    expect(requirements).toContain("create table if not exists document_requirements");
+    const people = read("components/PeopleExperience.tsx");
+    for (const explicitType of ["contract", "right_to_work", "jd"]) {
+      expect(people).toContain(`value: "${explicitType}"`);
+    }
+    for (const explicitType of ["passport", "emirates_id"]) expect(vocab).toContain(`value: "${explicitType}"`);
 
     // PII: reference_number is only returned through canReadEmployeeDocuments-gated paths and is
     // NEVER read by the employee-master service (no leak into rosters/org chart/manager cards).
