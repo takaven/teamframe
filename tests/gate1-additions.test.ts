@@ -67,9 +67,12 @@ vi.mock("@/lib/db/supabaseServer", () => ({
 }));
 
 const requireCapabilityMock = vi.fn(async () => {});
+const canRunFullTenantExportMock = vi.fn(() => true);
 vi.mock("@/lib/rbac/access", () => ({
   requireCapability: (...args: unknown[]) => requireCapabilityMock(...(args as [])),
   canReadPrivateDocuments: async () => true,
+  canViewCompensation: async () => true,
+  canRunFullTenantExport: (...args: unknown[]) => canRunFullTenantExportMock(...(args as [])),
   canRunFinanceExport: async () => true,
   hasCapability: async () => true,
 }));
@@ -89,38 +92,24 @@ beforeEach(() => {
   rowsByTable = {};
   requireCapabilityMock.mockClear();
   requireCapabilityMock.mockImplementation(async () => {});
+  canRunFullTenantExportMock.mockClear();
+  canRunFullTenantExportMock.mockReturnValue(true);
 });
 
 describe("Whole-tenant export — permission and tenant isolation", () => {
   it("is refused unless the actor holds the Full Access capability", async () => {
     const { exportTenantData } = await import("@/services/documentService");
-    requireCapabilityMock.mockImplementation(async () => {
-      throw new Error("FORBIDDEN");
-    });
+    canRunFullTenantExportMock.mockReturnValue(false);
     await expect(exportTenantData(ACTOR)).rejects.toThrow("FORBIDDEN");
     // Nothing was read before the capability check failed.
     expect(recorded).toHaveLength(0);
   });
 
-  it("gates on company_access_settings, which only Full Access holds", async () => {
+  it("gates on the complete Full Access matrix, not independently configurable Manage users access", async () => {
     const { exportTenantData } = await import("@/services/documentService");
     await exportTenantData(ACTOR);
-    expect(requireCapabilityMock).toHaveBeenCalledWith(ACTOR, "company_access_settings");
-
-    const profiles = read("lib/rbac/access.ts");
-    const fullAccessBlock = profiles.slice(
-      profiles.indexOf("full_access: ["),
-      profiles.indexOf("employee: []"),
-    );
-    expect(fullAccessBlock).toContain("company_access_settings");
-    // No other profile grants it.
-    const adminBlock = profiles.slice(profiles.indexOf("admin: ["), profiles.indexOf("finance: ["));
-    expect(adminBlock).not.toContain("company_access_settings");
-    const financeBlock = profiles.slice(
-      profiles.indexOf("finance: ["),
-      profiles.indexOf("full_access: ["),
-    );
-    expect(financeBlock).not.toContain("company_access_settings");
+    expect(canRunFullTenantExportMock).toHaveBeenCalledWith(ACTOR);
+    expect(read("services/documentService/index.ts")).not.toContain('await requireCapability(actor, "company_access_settings");');
   });
 
   it("applies a tenant filter to EVERY dataset it reads", async () => {

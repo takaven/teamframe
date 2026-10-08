@@ -50,6 +50,8 @@ vi.mock("@/services/notificationService", () => ({
 
 import {
   EMPLOYEE_DOCUMENT_REQUEST_TYPES,
+  isSalarySensitiveEmployeeDocumentRequest,
+  isSalarySensitiveHrIssuedDocumentType,
   parseEmployeeDocumentRequestInput,
 } from "@/lib/employeeDocumentRequests";
 import {
@@ -59,6 +61,7 @@ import {
   getEmployeeDocumentRequestDownloadUrl,
   listOwnEmployeeDocumentRequests,
   listProcessableEmployeeDocumentRequests,
+  markEmployeeDocumentRequestInProgress,
 } from "@/services/employeeDocumentRequestService";
 import type { Actor } from "@/middleware/rbac";
 import { EXPECTED_PUBLIC_TABLES, SCHEMA_ORDER } from "../scripts/schema-order.mjs";
@@ -119,6 +122,11 @@ describe("employee document requests", () => {
     expect(() => parseEmployeeDocumentRequestInput({ requestType: "other", details: "" })).toThrow();
     expect(parseEmployeeDocumentRequestInput({ requestType: "other", details: "Visa copy letter" }).details).toBe("Visa copy letter");
     expect(() => parseEmployeeDocumentRequestInput({ requestType: "noc", neededBy: "2026-10-07" }, new Date("2026-10-08T00:00:00Z"))).toThrow("EMPLOYEE_DOCUMENT_REQUEST_NEEDED_BY_PAST");
+    expect(isSalarySensitiveEmployeeDocumentRequest("salary_certificate")).toBe(true);
+    expect(isSalarySensitiveEmployeeDocumentRequest("salary_transfer_letter")).toBe(true);
+    expect(isSalarySensitiveEmployeeDocumentRequest("noc")).toBe(false);
+    expect(isSalarySensitiveHrIssuedDocumentType("hr_issued_salary_certificate")).toBe(true);
+    expect(isSalarySensitiveHrIssuedDocumentType("hr_issued_noc")).toBe(false);
   });
 
   it("derives the employee from the authenticated actor when creating a request", async () => {
@@ -145,21 +153,34 @@ describe("employee document requests", () => {
   });
 
   it("does not grant access to another employee unless both processing scopes pass", async () => {
-    expect(await canAccessEmployeeDocumentRequest(actor, employeeId)).toBe(true);
-    expect(await canAccessEmployeeDocumentRequest(actor, "other-employee")).toBe(false);
+    expect(await canAccessEmployeeDocumentRequest(actor, employeeId, "salary_certificate")).toBe(true);
+    expect(await canAccessEmployeeDocumentRequest(actor, "other-employee", "salary_certificate")).toBe(false);
     mocks.canProcess.mockResolvedValue(true);
-    expect(await canAccessEmployeeDocumentRequest(actor, "other-employee")).toBe(true);
+    expect(await canAccessEmployeeDocumentRequest(actor, "other-employee", "salary_certificate")).toBe(true);
   });
 
-  it("returns only target-scoped requests to a People Ops processor", async () => {
-    mocks.listRows = [requestRow, { ...requestRow, id: "request-2", employee_id: "employee-2" }];
+  it("filters the processing queue by target employee and request type", async () => {
+    mocks.listRows = [requestRow, { ...requestRow, id: "request-2", request_type: "noc" }, { ...requestRow, id: "request-3", employee_id: "employee-2", request_type: "noc" }];
     mocks.employeeRows = [
       { id: employeeId, tenant_id: tenantId, full_name: "Aisha Rahman", role_title: "Consultant" },
       { id: "employee-2", tenant_id: tenantId, full_name: "Other Person", role_title: "Analyst" },
     ];
-    mocks.canProcess.mockImplementation(async (_actor: Actor, targetEmployeeId: string) => targetEmployeeId === employeeId);
+    mocks.canProcess.mockImplementation(async (_actor: Actor, targetEmployeeId: string, requestType: string) => targetEmployeeId === employeeId && requestType === "noc");
     const rows = await listProcessableEmployeeDocumentRequests({ ...actor, role: "admin" });
-    expect(rows).toEqual([expect.objectContaining({ id: requestId, employee_name: "Aisha Rahman" })]);
+    expect(rows).toEqual([expect.objectContaining({ id: "request-2", employee_name: "Aisha Rahman", request_type: "noc" })]);
+    expect(mocks.canProcess).toHaveBeenCalledWith(expect.anything(), employeeId, "salary_certificate");
+    expect(mocks.canProcess).toHaveBeenCalledWith(expect.anything(), employeeId, "noc");
+  });
+
+  it("repeats request-type-aware authorization for direct processor actions", async () => {
+    mocks.maybeSingle.mockResolvedValue({ data: requestRow, error: null });
+    mocks.canProcess.mockResolvedValue(false);
+    const processor = { ...actor, employeeId: "processor", role: "admin" as const };
+    await expect(markEmployeeDocumentRequestInProgress(processor, requestId)).rejects.toThrow("FORBIDDEN");
+    await expect(completeEmployeeDocumentRequest(processor, { requestId, file: { size: 100 } as File })).rejects.toThrow("FORBIDDEN");
+    await expect(getEmployeeDocumentRequestDownloadUrl(processor, requestId)).rejects.toThrow("FORBIDDEN");
+    expect(mocks.canProcess).toHaveBeenCalledWith(processor, employeeId, "salary_certificate");
+    expect(mocks.upload).not.toHaveBeenCalled();
   });
 
   it("uploads once, atomically links Ready, and emits the employee notification once", async () => {
@@ -219,6 +240,9 @@ describe("employee document requests", () => {
     expect(rls).toContain("employee_document_requests_select");
     expect(rls).toContain("'people_operations'::access_capability");
     expect(rls).toContain("'private_employee_documents'::access_capability");
+    expect(rls).toContain("'compensation_view'::access_capability");
+    expect(rls).toContain("hr_issued_salary_certificate");
+    expect(migration).toContain("hr_issued_salary_transfer_letter");
     expect(reports).not.toContain("employee_document_requests");
     expect(completeness).not.toContain("employee_document_requests");
   });

@@ -558,7 +558,13 @@ using (
   and tenant_id = current_actor_tenant_id()
   and (
     current_actor_employee_id(tenant_id) = employee_id
-    or current_actor_has_capability(tenant_id, 'private_employee_documents'::access_capability, employee_id)
+    or (
+      current_actor_has_capability(tenant_id, 'private_employee_documents'::access_capability, employee_id)
+      and (
+        coalesce(document_type, lower(type::text), '') not in ('hr_issued_salary_certificate', 'hr_issued_salary_transfer_letter')
+        or current_actor_has_capability(tenant_id, 'compensation_view'::access_capability, employee_id)
+      )
+    )
   )
 );
 
@@ -569,10 +575,18 @@ for all
 using (
   tenant_id = current_actor_tenant_id()
   and current_actor_has_capability(tenant_id, 'private_employee_documents'::access_capability, employee_id)
+  and (
+    coalesce(document_type, lower(type::text), '') not in ('hr_issued_salary_certificate', 'hr_issued_salary_transfer_letter')
+    or current_actor_has_capability(tenant_id, 'compensation_view'::access_capability, employee_id)
+  )
 )
 with check (
   tenant_id = current_actor_tenant_id()
   and current_actor_has_capability(tenant_id, 'private_employee_documents'::access_capability, employee_id)
+  and (
+    coalesce(document_type, lower(type::text), '') not in ('hr_issued_salary_certificate', 'hr_issued_salary_transfer_letter')
+    or current_actor_has_capability(tenant_id, 'compensation_view'::access_capability, employee_id)
+  )
 );
 
 drop policy if exists employee_document_requests_select on employee_document_requests;
@@ -600,6 +614,10 @@ using (
           )
       )
       and current_actor_has_capability(tenant_id, 'private_employee_documents'::access_capability, employee_id)
+      and (
+        request_type not in ('salary_certificate'::employee_document_request_type, 'salary_transfer_letter'::employee_document_request_type)
+        or current_actor_has_capability(tenant_id, 'compensation_view'::access_capability, employee_id)
+      )
     )
   )
 );

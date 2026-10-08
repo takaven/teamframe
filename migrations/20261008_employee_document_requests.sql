@@ -210,6 +210,10 @@ for select using (
           )
       )
       and current_actor_has_capability(tenant_id, 'private_employee_documents'::access_capability, employee_id)
+      and (
+        request_type not in ('salary_certificate'::employee_document_request_type, 'salary_transfer_letter'::employee_document_request_type)
+        or current_actor_has_capability(tenant_id, 'compensation_view'::access_capability, employee_id)
+      )
     )
   )
 );
@@ -225,5 +229,46 @@ revoke all on function teamframe_complete_employee_document_request(uuid, uuid, 
 grant execute on function teamframe_create_employee_document_request(uuid, uuid, uuid, employee_document_request_type, text, date, uuid) to service_role;
 grant execute on function teamframe_mark_employee_document_request_in_progress(uuid, uuid, uuid) to service_role;
 grant execute on function teamframe_complete_employee_document_request(uuid, uuid, uuid, uuid) to service_role;
+
+-- Salary-bearing HR-issued files keep the existing private-document boundary
+-- and additionally require compensation-view access for non-owner reads/writes.
+drop policy if exists documents_select on documents;
+create policy documents_select on documents
+for select
+using (
+  deleted_at is null
+  and tenant_id = current_actor_tenant_id()
+  and (
+    current_actor_employee_id(tenant_id) = employee_id
+    or (
+      current_actor_has_capability(tenant_id, 'private_employee_documents'::access_capability, employee_id)
+      and (
+        coalesce(document_type, lower(type::text), '') not in ('hr_issued_salary_certificate', 'hr_issued_salary_transfer_letter')
+        or current_actor_has_capability(tenant_id, 'compensation_view'::access_capability, employee_id)
+      )
+    )
+  )
+);
+
+drop policy if exists documents_write_admin on documents;
+drop policy if exists documents_write_access on documents;
+create policy documents_write_access on documents
+for all
+using (
+  tenant_id = current_actor_tenant_id()
+  and current_actor_has_capability(tenant_id, 'private_employee_documents'::access_capability, employee_id)
+  and (
+    coalesce(document_type, lower(type::text), '') not in ('hr_issued_salary_certificate', 'hr_issued_salary_transfer_letter')
+    or current_actor_has_capability(tenant_id, 'compensation_view'::access_capability, employee_id)
+  )
+)
+with check (
+  tenant_id = current_actor_tenant_id()
+  and current_actor_has_capability(tenant_id, 'private_employee_documents'::access_capability, employee_id)
+  and (
+    coalesce(document_type, lower(type::text), '') not in ('hr_issued_salary_certificate', 'hr_issued_salary_transfer_letter')
+    or current_actor_has_capability(tenant_id, 'compensation_view'::access_capability, employee_id)
+  )
+);
 
 commit;

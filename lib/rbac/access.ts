@@ -2,6 +2,7 @@ import "server-only";
 import type { Actor } from "@/middleware/rbac";
 import type { AccessCapability, AccessProfile, PeopleAccessScope, PrivateDocumentsScope, SalaryAccessScope } from "@/lib/rbac/roles";
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
+import { isSalarySensitiveEmployeeDocumentRequest, type EmployeeDocumentRequestType } from "@/lib/employeeDocumentRequests";
 
 export type CapabilityTarget = {
   employeeId?: string | null;
@@ -165,12 +166,19 @@ export async function canReadPrivateDocuments(actor: Actor, employeeId: string):
  * Processing therefore requires the intersection of explicit People Ops and
  * private-document scopes. A reporting line alone is intentionally excluded.
  */
-export async function canProcessEmployeeDocumentRequest(actor: Actor, employeeId: string): Promise<boolean> {
-  return (
+export async function canProcessEmployeeDocumentRequest(
+  actor: Actor,
+  employeeId: string,
+  requestType: EmployeeDocumentRequestType,
+): Promise<boolean> {
+  const baseAccess = (
     await hasExplicitCapability(actor, "people_operations", { employeeId })
   ) && (
     await hasExplicitCapability(actor, "private_employee_documents", { employeeId })
   );
+  if (!baseAccess) return false;
+  if (!isSalarySensitiveEmployeeDocumentRequest(requestType)) return true;
+  return hasExplicitCapability(actor, "compensation_view", { employeeId });
 }
 
 /**
@@ -193,4 +201,17 @@ export async function canManageAccess(actor: Actor): Promise<boolean> {
 
 export async function canRunFinanceExport(actor: Actor): Promise<boolean> {
   return hasCapability(actor, "finance_payroll_exports", {});
+}
+
+/** Whole-tenant export contains every dataset and private document file. */
+export function canRunFullTenantExport(actor: Actor): boolean {
+  if (!actor.tenantId) return false;
+  const membership = actor.currentMembership;
+  if (!membership) return effectiveProfile(actor) === "full_access";
+  return membership.peopleAccess === "all"
+    && membership.salaryAccessLevel === "manage"
+    && membership.salaryAccessScope === "all"
+    && membership.privateDocumentsScope === "all"
+    && membership.financeExportsAccess
+    && membership.manageUsersAccess;
 }

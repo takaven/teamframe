@@ -12,6 +12,11 @@ export const EMPLOYEE_DOCUMENT_REQUEST_TYPES = [
 export type EmployeeDocumentRequestType = (typeof EMPLOYEE_DOCUMENT_REQUEST_TYPES)[number];
 export type EmployeeDocumentRequestStatus = "requested" | "in_progress" | "ready";
 
+export const SALARY_SENSITIVE_EMPLOYEE_DOCUMENT_REQUEST_TYPES = [
+  "salary_certificate",
+  "salary_transfer_letter",
+] as const satisfies readonly EmployeeDocumentRequestType[];
+
 export const EMPLOYEE_DOCUMENT_REQUEST_LABELS: Record<EmployeeDocumentRequestType, string> = {
   salary_certificate: "Salary Certificate",
   salary_transfer_letter: "Salary Transfer Letter",
@@ -63,6 +68,18 @@ export function employeeDocumentRequestLabel(type: EmployeeDocumentRequestType):
   return EMPLOYEE_DOCUMENT_REQUEST_LABELS[type];
 }
 
+export function isSalarySensitiveEmployeeDocumentRequest(
+  type: EmployeeDocumentRequestType,
+): boolean {
+  return (SALARY_SENSITIVE_EMPLOYEE_DOCUMENT_REQUEST_TYPES as readonly string[]).includes(type);
+}
+
 export function employeeDocumentType(type: EmployeeDocumentRequestType): string {
   return `hr_issued_${type}`;
+}
+
+export function isSalarySensitiveHrIssuedDocumentType(type: string | null | undefined): boolean {
+  if (!type?.startsWith("hr_issued_")) return false;
+  const requestType = type.slice("hr_issued_".length) as EmployeeDocumentRequestType;
+  return isSalarySensitiveEmployeeDocumentRequest(requestType);
 }

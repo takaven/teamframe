@@ -24,7 +24,7 @@ vi.mock("@/lib/db/supabaseServer", () => ({
   }),
 }));
 
-import { canViewCompensation, canReadEmployeeProfile, canReadEmergencyContact, canRunFinanceExport, canProcessEmployeeDocumentRequest, canAccessEmployeeDocumentRequestQueue } from "@/lib/rbac/access";
+import { canViewCompensation, canReadEmployeeProfile, canReadEmergencyContact, canRunFinanceExport, canProcessEmployeeDocumentRequest, canAccessEmployeeDocumentRequestQueue, canRunFullTenantExport } from "@/lib/rbac/access";
 import type { Actor } from "@/middleware/rbac";
 import type { ResolvedMembership } from "@/lib/rbac/roles";
 
@@ -98,18 +98,35 @@ describe("RBAC — manager-derived access grants people_operations but NEVER com
     const financeOnly = actor({ employeeId: "fin", currentMembership: membership({ employeeId: "fin", profile: "finance", salaryAccessLevel: "view", financeExportsAccess: true }) });
     const adminWithoutDocuments = actor({ employeeId: "adm", role: "admin", currentMembership: membership({ employeeId: "adm", profile: "admin", peopleAccess: "all", privateDocumentsScope: "none" }) });
     const scopedProcessor = actor({ employeeId: "ops", currentMembership: membership({ employeeId: "ops", peopleAccess: "selected_people", peopleSelectedEmployeeIds: ["rep"], privateDocumentsScope: "selected_people", privateDocumentsSelectedEmployeeIds: ["rep"] }) });
+    const salaryProcessor = actor({ employeeId: "ops-salary", currentMembership: membership({ employeeId: "ops-salary", peopleAccess: "selected_people", peopleSelectedEmployeeIds: ["rep"], privateDocumentsScope: "selected_people", privateDocumentsSelectedEmployeeIds: ["rep"], salaryAccessLevel: "view", salaryAccessScope: "selected_people", salarySelectedEmployeeIds: ["rep"] }) });
     const fullAccess = actor({ role: "admin", accessProfile: "full_access", currentMembership: null });
 
-    expect(await canProcessEmployeeDocumentRequest(managerOnly, "rep")).toBe(false);
-    expect(await canProcessEmployeeDocumentRequest(financeOnly, "rep")).toBe(false);
-    expect(await canProcessEmployeeDocumentRequest(adminWithoutDocuments, "rep")).toBe(false);
+    expect(await canProcessEmployeeDocumentRequest(managerOnly, "rep", "noc")).toBe(false);
+    expect(await canProcessEmployeeDocumentRequest(financeOnly, "rep", "salary_certificate")).toBe(false);
+    expect(await canProcessEmployeeDocumentRequest(adminWithoutDocuments, "rep", "noc")).toBe(false);
     expect(canAccessEmployeeDocumentRequestQueue(adminWithoutDocuments)).toBe(false);
-    expect(await canProcessEmployeeDocumentRequest(scopedProcessor, "rep")).toBe(true);
+    expect(await canProcessEmployeeDocumentRequest(scopedProcessor, "rep", "noc")).toBe(true);
+    expect(await canProcessEmployeeDocumentRequest(scopedProcessor, "rep", "employment_certificate")).toBe(true);
+    expect(await canProcessEmployeeDocumentRequest(scopedProcessor, "rep", "salary_certificate")).toBe(false);
+    expect(await canProcessEmployeeDocumentRequest(scopedProcessor, "rep", "salary_transfer_letter")).toBe(false);
     expect(canAccessEmployeeDocumentRequestQueue(scopedProcessor)).toBe(true);
-    expect(await canProcessEmployeeDocumentRequest(scopedProcessor, "other")).toBe(false);
-    expect(await canProcessEmployeeDocumentRequest(fullAccess, "rep")).toBe(true);
+    expect(await canProcessEmployeeDocumentRequest(scopedProcessor, "other", "noc")).toBe(false);
+    expect(await canProcessEmployeeDocumentRequest(salaryProcessor, "rep", "salary_certificate")).toBe(true);
+    expect(await canProcessEmployeeDocumentRequest(fullAccess, "rep", "salary_transfer_letter")).toBe(true);
     expect(canAccessEmployeeDocumentRequestQueue(fullAccess)).toBe(true);
     expect(canAccessEmployeeDocumentRequestQueue(managerOnly)).toBe(false);
     expect(canAccessEmployeeDocumentRequestQueue(financeOnly)).toBe(false);
+  });
+
+  it("reserves the whole-tenant export for the complete Full Access matrix", () => {
+    const manageUsersOnly = actor({ currentMembership: membership({ manageUsersAccess: true }) });
+    const restrictedFullAccessProfile = actor({ currentMembership: membership({ profile: "full_access", manageUsersAccess: true, peopleAccess: "all", privateDocumentsScope: "all" }) });
+    const fullAccess = actor({ currentMembership: membership({ profile: "full_access", peopleAccess: "all", privateDocumentsScope: "all", salaryAccessLevel: "manage", salaryAccessScope: "all", financeExportsAccess: true, manageUsersAccess: true }) });
+    const legacyFullAccess = actor({ role: "admin", accessProfile: "full_access", currentMembership: null });
+
+    expect(canRunFullTenantExport(manageUsersOnly)).toBe(false);
+    expect(canRunFullTenantExport(restrictedFullAccessProfile)).toBe(false);
+    expect(canRunFullTenantExport(fullAccess)).toBe(true);
+    expect(canRunFullTenantExport(legacyFullAccess)).toBe(true);
   });
 });

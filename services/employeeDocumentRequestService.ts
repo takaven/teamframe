@@ -82,13 +82,18 @@ async function findRequest(actor: Actor, requestId: string): Promise<EmployeeDoc
 export async function canAccessEmployeeDocumentRequest(
   actor: Actor,
   employeeId: string,
+  requestType: EmployeeDocumentRequestType,
 ): Promise<boolean> {
   if (actor.employeeId === employeeId) return true;
-  return canProcessEmployeeDocumentRequest(actor, employeeId);
+  return canProcessEmployeeDocumentRequest(actor, employeeId, requestType);
 }
 
-async function requireProcessor(actor: Actor, employeeId: string): Promise<void> {
-  if (!(await canProcessEmployeeDocumentRequest(actor, employeeId))) throw new Error("FORBIDDEN");
+async function requireProcessor(
+  actor: Actor,
+  employeeId: string,
+  requestType: EmployeeDocumentRequestType,
+): Promise<void> {
+  if (!(await canProcessEmployeeDocumentRequest(actor, employeeId, requestType))) throw new Error("FORBIDDEN");
 }
 
 export async function createEmployeeDocumentRequest(
@@ -145,7 +150,10 @@ export async function listProcessableEmployeeDocumentRequests(
 
   const rows = (data ?? []) as EmployeeDocumentRequestRow[];
   const allowed = (
-    await Promise.all(rows.map(async (row) => ({ row, allowed: await canProcessEmployeeDocumentRequest(actor, row.employee_id) })))
+    await Promise.all(rows.map(async (row) => ({
+      row,
+      allowed: await canProcessEmployeeDocumentRequest(actor, row.employee_id, row.request_type),
+    })))
   ).filter((entry) => entry.allowed).map((entry) => entry.row);
   const employeeIds = [...new Set(allowed.map((row) => row.employee_id))];
   const employeeById = new Map<string, { full_name: string; role_title: string }>();
@@ -172,7 +180,7 @@ export async function markEmployeeDocumentRequestInProgress(
 ): Promise<EmployeeDocumentRequestRecord> {
   const tenantId = requireTenant(actor);
   const existing = await findRequest(actor, requestId);
-  await requireProcessor(actor, existing.employee_id);
+  await requireProcessor(actor, existing.employee_id, existing.request_type);
   const db: any = createServiceRoleClient();
   const { data, error } = await db.rpc("teamframe_mark_employee_document_request_in_progress", {
     p_tenant_id: tenantId,
@@ -191,7 +199,7 @@ export async function completeEmployeeDocumentRequest(
 ): Promise<EmployeeDocumentRequestRecord> {
   const tenantId = requireTenant(actor);
   const existing = await findRequest(actor, input.requestId);
-  await requireProcessor(actor, existing.employee_id);
+  await requireProcessor(actor, existing.employee_id, existing.request_type);
   if (existing.status === "ready") throw new Error("EMPLOYEE_DOCUMENT_REQUEST_ALREADY_READY");
 
   const document = await uploadDocument(
@@ -235,7 +243,7 @@ export async function getEmployeeDocumentRequestDownloadUrl(
   requestId: string,
 ): Promise<string> {
   const existing = await findRequest(actor, requestId);
-  if (!(await canAccessEmployeeDocumentRequest(actor, existing.employee_id))) throw new Error("FORBIDDEN");
+  if (!(await canAccessEmployeeDocumentRequest(actor, existing.employee_id, existing.request_type))) throw new Error("FORBIDDEN");
   if (existing.status !== "ready" || !existing.final_document_id) {
     throw new Error("EMPLOYEE_DOCUMENT_REQUEST_NOT_READY");
   }
