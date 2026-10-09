@@ -10,6 +10,16 @@ Daily question: **Are current tasks moving TeamFrame toward M5/M6, or merely clo
 
 **Marketability Release closure (2026-10-04):** MR-M1 through MR-M6 are **PASS** after focused gates and independent M1/M2, M3/M4 and M5/M6 review. The IMPLEMENT cells below preserve the in-flight execution snapshot; this closure statement is the final state for the bounded release.
 
+## UAE HR Basics completeness pass — 2026-10-09
+
+| ID | Workstream | State | Target / ceiling | Stop condition |
+| -- | ---------- | ----- | ---------------- | -------------- |
+| UAE-BASICS-CLOSE | Final Federal UAE SME reference and template completeness pass | PASS | Target 4h; max 7h active | Stop before any schema/migration, new module/dashboard, legal or eligibility engine, DIFC/ADGM, MOHRE/government workflow, payroll/WPS/attendance/EOS calculation, customer-data use, Production deployment, or a factual claim that is not supported by a current official UAE source. |
+
+Authoritative start: protected `origin/main` at `6fb266214f56c6b71c209dafc113962aa8d1dbef`; isolated branch `feature/uae-hr-basics-completeness`. This final pass may add only two inactive leave templates and bounded Setup/offboarding/policy reference guidance using existing services and UI. It must preserve Phase A calculation/probation/privacy behaviour, Employee Document Request security, customer-editable settings and the distinction between TeamFrame operations and external payroll/legal/government responsibilities. Acceptance requires no schema or migration, focused and full release gates, and an independent bounded red-team conclusion limited to common high-value small SME gaps.
+
+Closure evidence: Hajj and National Service remain inactive, idempotent suggestions without nationality or eligibility inference. UAE Setup distinguishes company-policy choices from Federal reference guidance for leave, working hours/rest, holidays, work models, notice/final dues, work injury, policies, payroll/WPS, the 50+ worker threshold, health insurance, ILOE, Emiratisation and UAE/GCC pension. Annual and sick reference values no longer become form defaults; blank values cannot silently become zero. The UAE form no longer changes country or working days, and holidays, policies and the optional UAE starter checklist are neutral operational reminders rather than warning states. The UAE starter contract item is manual confirmation and creates no document requirement. All six suggested leave types remain inactive with no preset entitlement and require explicit company choices for applicability, days, counting basis and supporting evidence; inactive storage fallbacks stay hidden until reviewed. Existing custom values are prefilled and preserved, while missing intent leaves existing definitions untouched. No schema, migration, eligibility or calculation engine, new module/dashboard, Production operation or customer data was introduced. Final gates: focused checks 50/50 PASS; complete serial suite 548 PASS / 2 skipped; typecheck, lint, all four security/static guards, Production build and `git diff --check` PASS. Independent bounded red-team final verdict: PASS — no reference-driven defaults, automatic applicability, warning leakage, working-day mutation or silent overwrite remains.
+
 ## UAE HR Basics — 2026-10-09
 
 | ID | Workstream | State | Target / ceiling | Stop condition |

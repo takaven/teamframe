@@ -22,7 +22,10 @@ import {
 import { exportTenantData } from "@/services/documentService";
 import { captureActionError } from "@/lib/telemetry/sentry";
 import { logAction } from "@/lib/telemetry/logger";
-import { applyUaeSetupPack } from "@/services/uaeSetupPackService";
+import {
+  applyUaeSetupPack,
+  UAE_SUGGESTED_LEAVE_TEMPLATES,
+} from "@/services/uaeSetupPackService";
 import {
   addChecklistItem, copyStarterChecklist, createChecklistTemplate, moveChecklistItem,
   removeChecklistItem, setChecklistActive, setDefaultChecklist, updateChecklistItem,
@@ -189,7 +192,22 @@ export async function applyUaeSetupPackAction(formData:FormData):Promise<void>{
   const accrual = formData.get("annual_accrual") === "on";
   const proRata = formData.get("annual_pro_rata") === "on";
   const legacyTiming = accrual && proRata ? "invalid" : accrual ? "monthly_accrual" : proRata ? "joining_date_proration" : "upfront";
-  await run("applyUaeSetupPack","uae-pack",(actor)=>applyUaeSetupPack(actor,{weekend:s(formData.get("weekend")),annualEntitlement:Number(s(formData.get("annual_entitlement"))),annualCountingBasis:s(formData.get("annual_counting_basis")),sickEntitlement:Number(s(formData.get("sick_entitlement"))),entitlementTiming:s(formData.get("entitlement_timing"))||legacyTiming,carryForward:formData.get("carry_forward")==="on",carryCap:optNum(formData.get("carry_cap")),confirmed:formData.get("confirmed")==="on"}));
+  const suggestedLeaves=UAE_SUGGESTED_LEAVE_TEMPLATES.flatMap((template)=>{
+    if(formData.get(`suggested_leave_intent_${template.key}`)!=="reviewed") return [];
+    return [{
+      key:template.key,
+      applicable:formData.get(`suggested_leave_applicable_${template.key}`)==="on",
+      entitlementDays:optNum(formData.get(`suggested_leave_days_${template.key}`)),
+      countingBasis:s(formData.get(`suggested_leave_basis_${template.key}`))||null,
+      attachmentRequirement:s(formData.get(`suggested_leave_evidence_${template.key}`))||null,
+    }];
+  });
+  await run("applyUaeSetupPack","uae-pack",(actor)=>{
+    const annualEntitlement=optNum(formData.get("annual_entitlement"));
+    const sickEntitlement=optNum(formData.get("sick_entitlement"));
+    if(annualEntitlement===null||sickEntitlement===null) throw new Error("UAE_SETUP_ENTITLEMENT_REQUIRED");
+    return applyUaeSetupPack(actor,{annualEntitlement,annualCountingBasis:s(formData.get("annual_counting_basis")),sickEntitlement,entitlementTiming:s(formData.get("entitlement_timing"))||legacyTiming,carryForward:formData.get("carry_forward")==="on",carryCap:optNum(formData.get("carry_cap")),suggestedLeaves,confirmed:formData.get("confirmed")==="on"});
+  });
 }
 
 // Whole-tenant portability export. The service enforces the complete Full
