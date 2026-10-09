@@ -50,7 +50,7 @@ Older V1/readiness/finalisation and launch-execution documents are retained as t
 3. TeamFrame + HR Service adds agreed TAKAVEN support around that product; it is not a separate platform and does not justify features without customer/product value.
 4. UAE references inform company policy; they do not silently become company settings or employee applicability.
 
-TeamFrame People does not implement an ATS/recruiting pipeline. TeamFrame Hire is provided by the separate HirePass application and must not be rebuilt in this repository. TeamFrame is also intentionally not payroll, employee ratings/review software, enterprise RBAC, statutory leave calculation or a workflow-builder platform.
+TeamFrame People does not implement an ATS/recruiting pipeline. TeamFrame Hire is provided by the separate HirePass application and must not be rebuilt in this repository. TeamFrame is also intentionally not payroll, a full talent-management, OKR, 360-feedback, succession or compensation-performance platform, enterprise RBAC, statutory leave calculation or a workflow-builder platform.
 
 ## Architecture
 
