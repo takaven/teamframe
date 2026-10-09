@@ -10,6 +10,16 @@ Daily question: **Are current tasks moving TeamFrame toward M5/M6, or merely clo
 
 **Marketability Release closure (2026-10-04):** MR-M1 through MR-M6 are **PASS** after focused gates and independent M1/M2, M3/M4 and M5/M6 review. The IMPLEMENT cells below preserve the in-flight execution snapshot; this closure statement is the final state for the bounded release.
 
+## UAE HR Basics completeness pass — 2026-10-09
+
+| ID | Workstream | State | Target / ceiling | Stop condition |
+| -- | ---------- | ----- | ---------------- | -------------- |
+| UAE-BASICS-CLOSE | Final Federal UAE SME reference and template completeness pass | PASS | Target 4h; max 7h active | Stop before any schema/migration, new module/dashboard, legal or eligibility engine, DIFC/ADGM, MOHRE/government workflow, payroll/WPS/attendance/EOS calculation, customer-data use, Production deployment, or a factual claim that is not supported by a current official UAE source. |
+
+Authoritative start: protected `origin/main` at `6fb266214f56c6b71c209dafc113962aa8d1dbef`; isolated branch `feature/uae-hr-basics-completeness`. This final pass may add only two inactive leave templates and bounded Setup/offboarding/policy reference guidance using existing services and UI. It must preserve Phase A calculation/probation/privacy behaviour, Employee Document Request security, customer-editable settings and the distinction between TeamFrame operations and external payroll/legal/government responsibilities. Acceptance requires no schema or migration, focused and full release gates, and an independent bounded red-team conclusion limited to common high-value small SME gaps.
+
+Closure evidence: Hajj and National Service were added as inactive, idempotent templates without nationality or eligibility inference. Existing UAE Setup now distinguishes company-policy monthly accrual from the Federal first-year reference, records the part-time/carry-forward caveats, expands sick-leave guidance, and presents bounded official references for working hours/rest, holidays, work models, notice/final dues, work injury, policy areas, payroll/WPS boundaries and the 50+ worker internal-control threshold. No schema, migration, calculation engine, new module/dashboard, Production operation or customer data was introduced. Focused UAE/Phase A/document-request/access checks 65/65 PASS; complete serial suite 541 PASS / 2 skipped; typecheck, lint, all four security/static guards, Production build and `git diff --check` PASS. The first parallel full-suite run reproduced three known unrelated five-second factory/integration timing flakes; all three passed alone and the complete serial suite passed. Independent bounded red-team final verdict: PASS — no blocking small gap remains.
+
 ## UAE HR Basics — 2026-10-09
 
 | ID | Workstream | State | Target / ceiling | Stop condition |

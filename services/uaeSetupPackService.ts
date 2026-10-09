@@ -17,18 +17,58 @@ import {
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 
 const FEDERAL_LAW_URL = "https://uaelegislation.gov.ae/en/legislations/1541/download";
+const UAE_OFFICIAL_GUIDANCE_URLS = {
+  annualLeave:
+    "https://u.ae/en/information-and-services/jobs/employment-in-the-private-sector/types-of-leaves-and-entitlements-in-the-private-sector/annual-leave",
+  executiveRegulations:
+    "https://www.uaelegislation.gov.ae/en/legislations/1547/download",
+  hajjLeave:
+    "https://u.ae/en/information-and-services/jobs/employment-in-the-private-sector/types-of-leaves-and-entitlements-in-the-private-sector/hajj-and-umrah-leave",
+  nationalServiceLeave:
+    "https://u.ae/en/information-and-services/jobs/employment-in-the-private-sector/types-of-leaves-and-entitlements-in-the-private-sector/sabbatical-leave",
+  workingHours:
+    "https://u.ae/en/information-and-services/jobs/employment-in-the-private-sector/working-hours",
+  restAndHolidays:
+    "https://u.ae/en/information-and-services/jobs/employment-in-the-private-sector/types-of-leaves-and-entitlements-in-the-private-sector/official-leaves-and-vacations",
+  employmentModels:
+    "https://u.ae/en/information-and-services/jobs/employment-in-the-private-sector/job-offers-and-work-permits-and-contracts/employment-contracts-duration-and-models-in-the-private-sector",
+  termination:
+    "https://u.ae/en/information-and-services/jobs/employment-in-the-private-sector/job-offers-and-work-permits-and-contracts/terminating-employment-contracts",
+  finalDues:
+    "https://u.ae/en/information-and-services/jobs/employment-in-the-private-sector/end-of-service-benefits-for-employees-in-the-private-sector",
+  workInjuryResolution:
+    "https://www.uaelegislation.gov.ae/en/legislations/1559/download",
+  disciplinaryRules:
+    "https://u.ae/en/information-and-services/jobs/employment-in-the-private-sector/disciplinary-rules",
+  workplaceSafety:
+    "https://u.ae/en/information-and-services/jobs/health-and-safety-at-workplace",
+} as const;
 
 export const UAE_FEDERAL_REFERENCES = {
   annualLeave: {
     label: "Annual leave",
-    summary: "30 days per completed year of service.",
+    summary: "30 days after one completed year; 2 days per month where service exceeds 6 months but is less than 1 year.",
     article: "Federal Decree-Law No. 33 of 2021, Article 29",
-    sourceUrl: FEDERAL_LAW_URL,
+    sourceUrl: UAE_OFFICIAL_GUIDANCE_URLS.annualLeave,
+    reviewedAt: "2026-10-09",
+  },
+  partTimeAnnualLeave: {
+    label: "Part-time annual leave",
+    summary: "Uses a separate hours-based calculation under the implementing regulations; confirm the employee-specific entitlement.",
+    article: "Cabinet Resolution No. 1 of 2022, Article 18",
+    sourceUrl: UAE_OFFICIAL_GUIDANCE_URLS.executiveRegulations,
+    reviewedAt: "2026-10-09",
+  },
+  annualLeaveCarryForward: {
+    label: "Annual leave carry-forward",
+    summary: "The implementing regulations allow no more than half of annual leave to be carried to the following year; confirm company policy before setting a cap.",
+    article: "Cabinet Resolution No. 1 of 2022, Article 19",
+    sourceUrl: UAE_OFFICIAL_GUIDANCE_URLS.executiveRegulations,
     reviewedAt: "2026-10-09",
   },
   sickLeave: {
     label: "Sick leave",
-    summary: "Up to 90 days per year after probation. Pay treatment remains outside TeamFrame.",
+    summary: "Up to 90 days per year after probation: first 15 days at full pay, next 30 at half pay and remaining 45 unpaid. TeamFrame records days only.",
     article: "Federal Decree-Law No. 33 of 2021, Article 31",
     sourceUrl: FEDERAL_LAW_URL,
     reviewedAt: "2026-10-09",
@@ -61,11 +101,81 @@ export const UAE_FEDERAL_REFERENCES = {
     sourceUrl: FEDERAL_LAW_URL,
     reviewedAt: "2026-10-09",
   },
+  hajjLeave: {
+    label: "Hajj leave",
+    summary: "Unpaid leave of up to 30 days, once during employment with the same employer; applicability must be confirmed.",
+    article: "Federal Decree-Law No. 33 of 2021, Article 32",
+    sourceUrl: UAE_OFFICIAL_GUIDANCE_URLS.hajjLeave,
+    reviewedAt: "2026-10-09",
+  },
+  nationalServiceLeave: {
+    label: "National service leave",
+    summary: "Paid sabbatical leave for UAE nationals; duration and applicability follow the applicable national-service requirement.",
+    article: "Federal Decree-Law No. 33 of 2021, Article 32",
+    sourceUrl: UAE_OFFICIAL_GUIDANCE_URLS.nationalServiceLeave,
+    reviewedAt: "2026-10-09",
+  },
   probation: {
     label: "Probation",
     summary: "May not exceed 6 months. The contractual end date must still be entered explicitly.",
     article: "Federal Decree-Law No. 33 of 2021, Article 9",
     sourceUrl: FEDERAL_LAW_URL,
+    reviewedAt: "2026-10-09",
+  },
+  workingHours: {
+    label: "Working hours and rest breaks",
+    summary: "Ordinary private-sector baseline: 8 hours per day or 48 hours per week; Ramadan reduces normal hours by 2 per day; after 5 consecutive hours, breaks total at least 1 hour.",
+    article: "Federal Decree-Law No. 33 of 2021, Articles 17–18",
+    sourceUrl: UAE_OFFICIAL_GUIDANCE_URLS.workingHours,
+    reviewedAt: "2026-10-09",
+  },
+  weeklyRest: {
+    label: "Weekly rest and official holidays",
+    summary: "At least one paid weekly rest day. Work on an official holiday is compensated by substitute rest or the applicable additional payment.",
+    article: "Federal Decree-Law No. 33 of 2021, Articles 21 and 28",
+    sourceUrl: UAE_OFFICIAL_GUIDANCE_URLS.restAndHolidays,
+    reviewedAt: "2026-10-09",
+  },
+  employmentModels: {
+    label: "Employment terms and work models",
+    summary: "The private-sector framework recognises full-time, part-time, temporary, flexible, remote and job-sharing arrangements; record the agreed terms in contract evidence.",
+    article: "Federal Decree-Law No. 33 of 2021 and Cabinet Resolution No. 1 of 2022",
+    sourceUrl: UAE_OFFICIAL_GUIDANCE_URLS.employmentModels,
+    reviewedAt: "2026-10-09",
+  },
+  noticePeriod: {
+    label: "Ordinary notice period",
+    summary: "Ordinary contractual termination notice is generally 30–90 days. Probation has separate notice rules that must be confirmed before termination or transfer.",
+    article: "Federal Decree-Law No. 33 of 2021, Articles 9 and 43",
+    sourceUrl: UAE_OFFICIAL_GUIDANCE_URLS.termination,
+    reviewedAt: "2026-10-09",
+  },
+  finalDues: {
+    label: "Final dues",
+    summary: "Outstanding wages, other termination entitlements and any applicable gratuity are generally due within 14 days following termination.",
+    article: "Federal Decree-Law No. 33 of 2021, Article 53",
+    sourceUrl: UAE_OFFICIAL_GUIDANCE_URLS.finalDues,
+    reviewedAt: "2026-10-09",
+  },
+  workInjury: {
+    label: "Work injury reporting",
+    summary: "Maintain an internal process; qualifying work injuries or occupational illnesses may require MoHRE reporting within 48 hours. TeamFrame does not submit government reports.",
+    article: "Cabinet Resolution No. 33 of 2022, Article 3",
+    sourceUrl: UAE_OFFICIAL_GUIDANCE_URLS.workInjuryResolution,
+    reviewedAt: "2026-10-09",
+  },
+  workforce50WorkRegulations: {
+    label: "50+ workers — internal work regulations",
+    summary: "Establishments with 50 or more workers must establish internal work regulations and a clear complaints and grievance system.",
+    article: "Cabinet Resolution No. 1 of 2022, Articles 14 and 24",
+    sourceUrl: UAE_OFFICIAL_GUIDANCE_URLS.disciplinaryRules,
+    reviewedAt: "2026-10-09",
+  },
+  workforce50InjuryMonitoring: {
+    label: "50+ workers — injury monitoring",
+    summary: "Establishments with 50 or more workers must maintain a system for monitoring work injuries and occupational diseases.",
+    article: "Official MoHRE/U.AE workplace health and safety guidance",
+    sourceUrl: UAE_OFFICIAL_GUIDANCE_URLS.workplaceSafety,
     reviewedAt: "2026-10-09",
   },
 } as const;
@@ -107,6 +217,24 @@ export const UAE_CORE_LEAVE_TEMPLATES = [
     attachmentRequirement: "optional" as const,
     reference: UAE_FEDERAL_REFERENCES.studyLeave,
   },
+  {
+    key: "hajj_leave",
+    displayName: "Hajj Leave",
+    defaultEntitlementDays: 30,
+    active: false,
+    countingBasis: "calendar_days" as CountingBasis,
+    attachmentRequirement: "optional" as const,
+    reference: UAE_FEDERAL_REFERENCES.hajjLeave,
+  },
+  {
+    key: "national_service_leave",
+    displayName: "National Service Leave",
+    defaultEntitlementDays: null,
+    active: false,
+    countingBasis: "calendar_days" as CountingBasis,
+    attachmentRequirement: "optional" as const,
+    reference: UAE_FEDERAL_REFERENCES.nationalServiceLeave,
+  },
 ] as const;
 
 export const UAE_SETUP_PACK = {
@@ -121,17 +249,28 @@ export const UAE_SETUP_PACK = {
     "ILOE",
   ],
   holidayGuidance:
-    "Confirm official UAE holiday dates each year. Religious holiday dates can be updated after official announcement.",
+    "Confirm official UAE holiday dates each year. Religious holiday dates can be updated after official announcement. If an employee works on an official holiday, confirm the applicable substitute rest or additional payment outside TeamFrame.",
   probationGuidance:
     "Record whether probation applies and enter the contractual end date explicitly. TeamFrame never invents a probation period.",
   offboardingGuidance:
-    "Use the existing standard offboarding checklist and add any applicable visa or permit cancellation evidence as a manual item.",
+    "Use the existing offboarding checklist to confirm the final date and contractual notice. Federal reference: ordinary notice is generally 30–90 days and final dues are generally payable within 14 days; probation has separate notice rules. Confirm final wages, unused-leave settlement and any applicable end-of-service entitlement outside TeamFrame, and add visa or permit cancellation evidence as a manual item.",
+  employmentTermsGuidance:
+    "Reflect the agreed work model and employment terms in the employee record and signed contract evidence. Use existing document expiry tracking where a fixed contract or related evidence needs review.",
+  workInjuryGuidance:
+    "Maintain an internal process for workplace injuries and occupational illnesses. Qualifying incidents may require MoHRE reporting within 48 hours. TeamFrame does not submit government reports.",
+  workforce50Guidance:
+    "50+ workers: review the Federal requirements for internal work regulations, a clear complaints and grievance system, and work-injury and occupational-disease monitoring. TeamFrame does not infer applicability or operate those processes.",
+  payrollBoundary:
+    "Payroll and WPS administration remain outside TeamFrame. TeamFrame can hold employee and compensation information used in the HR/finance handoff.",
   policyCategories: [
-    "Employment",
-    "Leave and attendance",
+    "Employment terms",
+    "Leave and public holidays",
+    "Working hours and overtime",
     "Conduct",
+    "Equal treatment / anti-harassment",
+    "Disciplinary and grievance",
     "Data and confidentiality",
-    "Health and safety",
+    "Health, safety and work-injury reporting",
   ],
 } as const;
 

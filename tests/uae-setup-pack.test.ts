@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
@@ -53,11 +54,13 @@ describe("M6 UAE setup pack",()=>{
     expect(updateCompanySettings).toHaveBeenCalledWith(actor,expect.objectContaining({country:"AE",default_working_days:[7,1,2,3,4]}));
     expect(updateLeaveDefinition).toHaveBeenCalledWith(actor,"annual-1",expect.objectContaining({default_entitlement_days:30,counting_basis:"calendar_days",accrual_enabled:true,accrual_frequency:"monthly",joining_date_pro_rata:false,carry_forward_cap_days:5}));
     expect(updateLeaveDefinition).toHaveBeenCalledWith(actor,"sick-1",expect.objectContaining({default_entitlement_days:90,counting_basis:"working_days",attachment_requirement:"optional"}));
-    expect(upsert).toHaveBeenCalledTimes(4);
+    expect(upsert).toHaveBeenCalledTimes(6);
     expect(upsert).toHaveBeenCalledWith(expect.objectContaining({code:"maternity_leave",display_name:"Maternity Leave",active:false,default_entitlement_days:60,counting_basis:"calendar_days"}),expect.objectContaining({onConflict:"tenant_id,code",ignoreDuplicates:true}));
     expect(upsert).toHaveBeenCalledWith(expect.objectContaining({code:"parental_leave",display_name:"Parental Leave",active:false,default_entitlement_days:5,counting_basis:"working_days"}),expect.anything());
     expect(upsert).toHaveBeenCalledWith(expect.objectContaining({code:"bereavement_leave",display_name:"Bereavement Leave",active:false,default_entitlement_days:null}),expect.anything());
     expect(upsert).toHaveBeenCalledWith(expect.objectContaining({code:"study_leave",display_name:"Study Leave",active:false,default_entitlement_days:10,counting_basis:"working_days"}),expect.anything());
+    expect(upsert).toHaveBeenCalledWith(expect.objectContaining({code:"hajj_leave",display_name:"Hajj Leave",active:false,default_entitlement_days:30,counting_basis:"calendar_days"}),expect.anything());
+    expect(upsert).toHaveBeenCalledWith(expect.objectContaining({code:"national_service_leave",display_name:"National Service Leave",active:false,default_entitlement_days:null,counting_basis:"calendar_days"}),expect.anything());
     expect(copyStarterChecklist).toHaveBeenCalledWith(actor,"uae_sme");
     expect(createServiceRoleClient).toHaveBeenCalledOnce();
   });
@@ -92,12 +95,51 @@ describe("M6 UAE setup pack",()=>{
 describe("UAE HR basics references and summary",()=>{
   it("keeps the official references factual and reviewed",()=>{
     expect(UAE_FEDERAL_REFERENCES.annualLeave.summary).toContain("30 days");
+    expect(UAE_FEDERAL_REFERENCES.annualLeave.summary).toContain("2 days per month");
+    expect(UAE_FEDERAL_REFERENCES.partTimeAnnualLeave.summary).toContain("hours-based");
+    expect(UAE_FEDERAL_REFERENCES.annualLeaveCarryForward.summary).toContain("no more than half");
     expect(UAE_FEDERAL_REFERENCES.sickLeave.summary).toContain("90 days");
+    expect(UAE_FEDERAL_REFERENCES.sickLeave.summary).toContain("first 15 days at full pay");
+    expect(UAE_FEDERAL_REFERENCES.workingHours.summary).toContain("8 hours per day or 48 hours per week");
+    expect(UAE_FEDERAL_REFERENCES.workingHours.summary).toContain("5 consecutive hours");
+    expect(UAE_FEDERAL_REFERENCES.weeklyRest.summary).toContain("one paid weekly rest day");
+    expect(UAE_FEDERAL_REFERENCES.noticePeriod.summary).toContain("30–90 days");
+    expect(UAE_FEDERAL_REFERENCES.finalDues.summary).toContain("14 days");
+    expect(UAE_FEDERAL_REFERENCES.workInjury.summary).toContain("48 hours");
+    expect(UAE_FEDERAL_REFERENCES.workInjury.article).toContain("Cabinet Resolution No. 33 of 2022, Article 3");
+    expect(UAE_FEDERAL_REFERENCES.workforce50WorkRegulations.summary).toContain("50 or more workers");
+    expect(UAE_FEDERAL_REFERENCES.workforce50InjuryMonitoring.summary).toContain("50 or more workers");
     expect(UAE_FEDERAL_REFERENCES.probation.summary).toContain("6 months");
     for(const reference of Object.values(UAE_FEDERAL_REFERENCES)){
-      expect(reference.sourceUrl).toContain("uaelegislation.gov.ae");
+      expect(reference.sourceUrl).toMatch(/^https:\/\/(u\.ae|(www\.)?uaelegislation\.gov\.ae)\//);
       expect(reference.reviewedAt).toBe("2026-10-09");
     }
+  });
+
+  it("keeps Hajj and national-service templates inactive and applicability-confirmed",()=>{
+    const hajj=UAE_CORE_LEAVE_TEMPLATES.find((template)=>template.key==="hajj_leave");
+    const nationalService=UAE_CORE_LEAVE_TEMPLATES.find((template)=>template.key==="national_service_leave");
+    expect(hajj).toMatchObject({active:false,defaultEntitlementDays:30,countingBasis:"calendar_days"});
+    expect(hajj?.reference.summary).toContain("once during employment");
+    expect(nationalService).toMatchObject({active:false,defaultEntitlementDays:null});
+    expect(nationalService?.reference.summary).toContain("UAE nationals");
+    expect(nationalService?.reference.summary).toContain("applicability");
+  });
+
+  it("renders bounded UAE guidance without creating a compliance product",()=>{
+    const page=readFileSync(new URL("../app/setup/page.tsx",import.meta.url),"utf8");
+    const service=readFileSync(new URL("../services/uaeSetupPackService.ts",import.meta.url),"utf8");
+    expect(page).toContain("Working hours &amp; rest — UAE Federal reference");
+    expect(page).toContain("company-policy method");
+    expect(page).toContain("existing employee-specific entitlement override");
+    expect(page).toContain("TeamFrame does not impose a cap automatically");
+    expect(service).toContain("Equal treatment / anti-harassment");
+    expect(service).toContain("Disciplinary and grievance");
+    expect(service).toContain("TeamFrame does not submit government reports");
+    expect(service).toContain("50+ workers: review the Federal requirements");
+    expect(service).toContain("Payroll and WPS administration remain outside TeamFrame");
+    expect(`${page}\n${service}`.toLowerCase()).not.toContain("compliance score");
+    expect(`${page}\n${service}`).not.toContain("automatically activate based on nationality");
   });
 
   it("reports factual setup states without a compliance conclusion",()=>{
