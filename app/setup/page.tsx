@@ -46,6 +46,7 @@ import { listPolicies } from "@/services/policyService";
 import {
   buildUaeHrBasicsSummary,
   UAE_CORE_LEAVE_TEMPLATES,
+  UAE_EXTERNAL_OBLIGATION_REFERENCES,
   UAE_FEDERAL_REFERENCES,
   UAE_SETUP_PACK,
   type UaeHrBasicsState,
@@ -308,7 +309,6 @@ export default async function SetupPage({
                     <li>{UAE_SETUP_PACK.offboardingGuidance}</li>
                     <li>{UAE_SETUP_PACK.workInjuryGuidance}</li>
                     <li>{UAE_SETUP_PACK.workforce50Guidance}</li>
-                    <li>{UAE_SETUP_PACK.payrollBoundary}</li>
                     <li>Suggested policy areas: {UAE_SETUP_PACK.policyCategories.join(", ")}</li>
                   </ul>
                   <p className="mt-3 rounded-lg border border-signal-amber/30 bg-signal-amber/5 p-3 text-[12px] text-ink-700">{UAE_SETUP_PACK.holidayGuidance}</p>
@@ -334,6 +334,21 @@ export default async function SetupPage({
                       <li>Employees receive at least one paid weekly rest day.</li>
                     </ul>
                     <p className="mt-2 text-[10.5px] text-ink-500">Reference guidance only. TeamFrame stores working days; it does not provide attendance, overtime or timesheet calculations.</p>
+                  </details>
+
+                  <details className="mt-4 rounded-lg border border-ink-200 p-3">
+                    <summary className="cursor-pointer text-[12px] font-semibold text-ink-800">Other UAE employment obligations to check</summary>
+                    <ul className="mt-2 space-y-3 text-[11.5px] text-ink-600">
+                      {UAE_EXTERNAL_OBLIGATION_REFERENCES.map((reference) => (
+                        <li key={reference.key}>
+                          <strong className="text-ink-800">{reference.label}:</strong> {reference.summary}{" "}
+                          {reference.sources.map((source, index) => (
+                            <span key={source.url}>{index > 0 ? " · " : null}<a href={source.url} target="_blank" rel="noreferrer" className="underline underline-offset-4">{source.label}</a></span>
+                          ))}
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-2 text-[10.5px] text-ink-500">Reference checkpoints only. TeamFrame does not determine applicability, calculate contributions or targets, or submit to government systems.</p>
                   </details>
 
                   <details className="mt-4 rounded-lg border border-ink-200 p-3">

@@ -15,6 +15,7 @@ import {
   applyUaeSetupPack,
   buildUaeHrBasicsSummary,
   UAE_CORE_LEAVE_TEMPLATES,
+  UAE_EXTERNAL_OBLIGATION_REFERENCES,
   UAE_FEDERAL_REFERENCES,
 } from "@/services/uaeSetupPackService";
 
@@ -121,15 +122,49 @@ describe("UAE HR basics references and summary",()=>{
     const nationalService=UAE_CORE_LEAVE_TEMPLATES.find((template)=>template.key==="national_service_leave");
     expect(hajj).toMatchObject({active:false,defaultEntitlementDays:30,countingBasis:"calendar_days"});
     expect(hajj?.reference.summary).toContain("once during employment");
+    expect(hajj?.reference.summary).toContain("Unpaid");
+    expect(hajj?.reference.article).toBe("Official UAE Government guidance — Hajj and Umrah leave");
+    expect(hajj?.reference.article).not.toContain("Article 32");
     expect(nationalService).toMatchObject({active:false,defaultEntitlementDays:null});
     expect(nationalService?.reference.summary).toContain("UAE nationals");
     expect(nationalService?.reference.summary).toContain("applicability");
+  });
+
+  it("keeps external UAE obligations as sourced awareness checkpoints only",()=>{
+    const getReference=(key:(typeof UAE_EXTERNAL_OBLIGATION_REFERENCES)[number]["key"])=>{
+      const reference=UAE_EXTERNAL_OBLIGATION_REFERENCES.find((candidate)=>candidate.key===key);
+      expect(reference).toBeDefined();
+      return reference!;
+    };
+    const healthInsurance=getReference("health_insurance");
+    const iloe=getReference("iloe");
+    const emiratisation=getReference("emiratisation");
+    const pension=getReference("uae_gcc_pension");
+    const payrollWps=getReference("payroll_wps");
+    expect(healthInsurance.summary).toContain("Medical Insurance document requirement");
+    expect(healthInsurance.summary).toContain("transitional and emirate arrangements");
+    expect(iloe.summary).toContain("statutory exclusions");
+    expect(iloe.summary).toContain("Confirm individual applicability");
+    expect(emiratisation.summary).toContain("20–49 employees");
+    expect(emiratisation.summary).toContain("size, activity and current MoHRE classification");
+    expect(emiratisation.summary).toContain("does not calculate targets");
+    expect(pension.summary).toContain("UAE or GCC national employees");
+    expect(pension.sources).toHaveLength(2);
+    expect(payrollWps.summary).toContain("remain outside TeamFrame");
+    for(const reference of UAE_EXTERNAL_OBLIGATION_REFERENCES){
+      expect(reference.reviewedAt).toBe("2026-10-09");
+      for(const source of reference.sources){
+        expect(source.url).toMatch(/^https:\/\/(u\.ae|(www\.)?gpssa\.gov\.ae)\//);
+      }
+    }
   });
 
   it("renders bounded UAE guidance without creating a compliance product",()=>{
     const page=readFileSync(new URL("../app/setup/page.tsx",import.meta.url),"utf8");
     const service=readFileSync(new URL("../services/uaeSetupPackService.ts",import.meta.url),"utf8");
     expect(page).toContain("Working hours &amp; rest — UAE Federal reference");
+    expect(page).toContain("Other UAE employment obligations to check");
+    expect(page).toContain("<details");
     expect(page).toContain("company-policy method");
     expect(page).toContain("existing employee-specific entitlement override");
     expect(page).toContain("TeamFrame does not impose a cap automatically");
@@ -138,6 +173,9 @@ describe("UAE HR basics references and summary",()=>{
     expect(service).toContain("TeamFrame does not submit government reports");
     expect(service).toContain("50+ workers: review the Federal requirements");
     expect(service).toContain("Payroll and WPS administration remain outside TeamFrame");
+    expect(page).toContain("does not determine applicability, calculate contributions or targets, or submit to government systems");
+    expect(service).not.toContain("Emiratisation engine");
+    expect(service).not.toContain("pension engine");
     expect(`${page}\n${service}`.toLowerCase()).not.toContain("compliance score");
     expect(`${page}\n${service}`).not.toContain("automatically activate based on nationality");
   });

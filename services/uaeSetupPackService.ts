@@ -42,6 +42,18 @@ const UAE_OFFICIAL_GUIDANCE_URLS = {
     "https://u.ae/en/information-and-services/jobs/employment-in-the-private-sector/disciplinary-rules",
   workplaceSafety:
     "https://u.ae/en/information-and-services/jobs/health-and-safety-at-workplace",
+  healthInsurance:
+    "https://u.ae/en/information-and-services/health-and-fitness/getting-a-health-insurance",
+  unemploymentInsurance:
+    "https://u.ae/en/information-and-services/jobs/insurance/unemployment-insurance-scheme",
+  emiratisation:
+    "https://u.ae/en/information-and-services/jobs/employment-in-the-private-sector/emiratis-employment-in-private-sector",
+  uaePension:
+    "https://gpssa.gov.ae/pages/en/help/faq/registration-gpssa-mandatory",
+  gccPension:
+    "https://www.gpssa.gov.ae/pages/en/services/gcc-overview",
+  wageProtection:
+    "https://u.ae/en/information-and-services/jobs/employment-in-the-private-sector/payment-of-wages",
 } as const;
 
 export const UAE_FEDERAL_REFERENCES = {
@@ -104,7 +116,7 @@ export const UAE_FEDERAL_REFERENCES = {
   hajjLeave: {
     label: "Hajj leave",
     summary: "Unpaid leave of up to 30 days, once during employment with the same employer; applicability must be confirmed.",
-    article: "Federal Decree-Law No. 33 of 2021, Article 32",
+    article: "Official UAE Government guidance — Hajj and Umrah leave",
     sourceUrl: UAE_OFFICIAL_GUIDANCE_URLS.hajjLeave,
     reviewedAt: "2026-10-09",
   },
@@ -179,6 +191,47 @@ export const UAE_FEDERAL_REFERENCES = {
     reviewedAt: "2026-10-09",
   },
 } as const;
+
+export const UAE_EXTERNAL_OBLIGATION_REFERENCES = [
+  {
+    key: "health_insurance",
+    label: "Health insurance",
+    summary: "From 1 January 2025, employer-purchased health insurance is a prerequisite for issuing or renewing private-sector employee residency permits, subject to applicable transitional and emirate arrangements. Use TeamFrame's Medical Insurance document requirement to retain evidence and expiry.",
+    sources: [{ label: "Official UAE Government guidance", url: UAE_OFFICIAL_GUIDANCE_URLS.healthInsurance }],
+    reviewedAt: "2026-10-09",
+  },
+  {
+    key: "iloe",
+    label: "ILOE",
+    summary: "Participation generally applies to Federal Government and private-sector employees, subject to statutory exclusions. Confirm individual applicability and retain ILOE evidence in TeamFrame where relevant.",
+    sources: [{ label: "Official UAE Government guidance", url: UAE_OFFICIAL_GUIDANCE_URLS.unemploymentInsurance }],
+    reviewedAt: "2026-10-09",
+  },
+  {
+    key: "emiratisation",
+    label: "Emiratisation",
+    summary: "Workforce targets may apply based on company size, activity and current MoHRE classification, including selected establishments with 20–49 employees. TeamFrame does not calculate targets; confirm current obligations separately.",
+    sources: [{ label: "Official UAE Government guidance", url: UAE_OFFICIAL_GUIDANCE_URLS.emiratisation }],
+    reviewedAt: "2026-10-09",
+  },
+  {
+    key: "uae_gcc_pension",
+    label: "UAE/GCC national pension",
+    summary: "UAE or GCC national employees may create pension or social-security registration and contribution obligations. Confirm the applicable authority and requirements separately.",
+    sources: [
+      { label: "GPSSA — UAE nationals", url: UAE_OFFICIAL_GUIDANCE_URLS.uaePension },
+      { label: "GPSSA — GCC protection extension", url: UAE_OFFICIAL_GUIDANCE_URLS.gccPension },
+    ],
+    reviewedAt: "2026-10-09",
+  },
+  {
+    key: "payroll_wps",
+    label: "Payroll and WPS",
+    summary: "Payroll and WPS administration remain outside TeamFrame. TeamFrame can hold employee and compensation information used in the HR/finance handoff; confirm applicable payment obligations separately.",
+    sources: [{ label: "Official UAE Government guidance", url: UAE_OFFICIAL_GUIDANCE_URLS.wageProtection }],
+    reviewedAt: "2026-10-09",
+  },
+] as const;
 
 export const UAE_CORE_LEAVE_TEMPLATES = [
   {
@@ -260,8 +313,6 @@ export const UAE_SETUP_PACK = {
     "Maintain an internal process for workplace injuries and occupational illnesses. Qualifying incidents may require MoHRE reporting within 48 hours. TeamFrame does not submit government reports.",
   workforce50Guidance:
     "50+ workers: review the Federal requirements for internal work regulations, a clear complaints and grievance system, and work-injury and occupational-disease monitoring. TeamFrame does not infer applicability or operate those processes.",
-  payrollBoundary:
-    "Payroll and WPS administration remain outside TeamFrame. TeamFrame can hold employee and compensation information used in the HR/finance handoff.",
   policyCategories: [
     "Employment terms",
     "Leave and public holidays",
