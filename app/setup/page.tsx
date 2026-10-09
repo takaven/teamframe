@@ -45,10 +45,11 @@ import { LeaveDefinitionsSettings } from "@/components/LeaveDefinitionsSettings"
 import { listPolicies } from "@/services/policyService";
 import {
   buildUaeHrBasicsSummary,
-  UAE_CORE_LEAVE_TEMPLATES,
   UAE_EXTERNAL_OBLIGATION_REFERENCES,
   UAE_FEDERAL_REFERENCES,
+  UAE_SUGGESTED_LEAVE_TEMPLATES,
   UAE_SETUP_PACK,
+  isSameUaeSuggestedLeaveTemplate,
   type UaeHrBasicsState,
 } from "@/services/uaeSetupPackService";
 
@@ -279,7 +280,7 @@ export default async function SetupPage({
           {section === "uae-pack" ? (
             <section className="tf-surface-flat p-6">
               <h2 className="tf-h2">UAE HR setup</h2>
-              <p className="mt-1 text-[13px] text-ink-500">Configure practical Federal UAE private-sector starting points using existing TeamFrame records and workflows. Company settings remain editable; special regimes and individual applicability still require confirmation.</p>
+              <p className="mt-1 text-[13px] text-ink-500">Configure company policy using existing TeamFrame records and workflows, with UAE references available for context. The company decides what applies and how each policy operates.</p>
 
               <div className="mt-5">
                 <h3 className="text-[14px] font-semibold text-ink-800">UAE HR basics</h3>
@@ -312,18 +313,6 @@ export default async function SetupPage({
                     <li>Suggested policy areas: {UAE_SETUP_PACK.policyCategories.join(", ")}</li>
                   </ul>
                   <p className="mt-3 rounded-lg border border-signal-amber/30 bg-signal-amber/5 p-3 text-[12px] text-ink-700">{UAE_SETUP_PACK.holidayGuidance}</p>
-
-                  <div className="mt-4 rounded-lg border border-ink-200 p-3">
-                    <h4 className="text-[12px] font-semibold text-ink-800">Core additional leave types</h4>
-                    <ul className="mt-2 space-y-2">
-                      {UAE_CORE_LEAVE_TEMPLATES.map((template) => (
-                        <li key={template.key} className="text-[11.5px] text-ink-600">
-                          <strong className="text-ink-800">{template.displayName}</strong> · {template.reference.summary}
-                        </li>
-                      ))}
-                    </ul>
-                    <p className="mt-2 text-[11px] text-ink-500">Missing templates are added once when the pack is applied. Existing custom definitions are never replaced.</p>
-                  </div>
 
                   <details className="mt-4 rounded-lg border border-ink-200 p-3">
                     <summary className="cursor-pointer text-[12px] font-semibold text-ink-800">Working hours &amp; rest — UAE Federal reference</summary>
@@ -370,6 +359,29 @@ export default async function SetupPage({
                   <label className="text-[12px] text-ink-600">Annual entitlement days<input name="annual_entitlement" type="number" min="0" max="365" step="0.5" required className="tf-input mt-1" defaultValue={annualLeave?.default_entitlement_days ?? 30} /><span className="mt-1 block text-[10.5px] text-ink-500">UAE Federal reference: {UAE_FEDERAL_REFERENCES.annualLeave.summary} {UAE_FEDERAL_REFERENCES.partTimeAnnualLeave.summary} Use the existing employee-specific entitlement override where appropriate.</span></label>
                   <label className="text-[12px] text-ink-600">Annual leave counting basis<select name="annual_counting_basis" className="tf-select mt-1" required defaultValue={annualLeave?.counting_basis ?? "calendar_days"}><option value="calendar_days">Calendar days</option><option value="working_days">Working days</option></select><span className="mt-1 block text-[10.5px] text-ink-500">Confirm the company policy. TeamFrame does not treat a working-day value as automatically equivalent to the Federal reference.</span></label>
                   <label className="text-[12px] text-ink-600">Sick entitlement days<input name="sick_entitlement" type="number" min="0" max="365" step="0.5" required className="tf-input mt-1" defaultValue={sickLeave?.default_entitlement_days ?? 90} /><span className="mt-1 block text-[10.5px] text-ink-500">UAE Federal reference: {UAE_FEDERAL_REFERENCES.sickLeave.summary}</span></label>
+                  <fieldset className="grid gap-2 rounded-lg border border-ink-200 p-3">
+                    <legend className="px-1 text-[12px] font-semibold text-ink-800">Suggested additional leave types</legend>
+                    <p className="text-[10.5px] text-ink-500">These are prompts, not automatic company policy. Select only what applies, then enter the company entitlement and counting basis. UAE reference values remain in the collapsed guidance.</p>
+                    {UAE_SUGGESTED_LEAVE_TEMPLATES.map((template) => {
+                      const definition = leaveDefinitions.find((candidate) => isSameUaeSuggestedLeaveTemplate(candidate, template));
+                      return (
+                        <div key={template.key} className="grid gap-2 rounded-lg bg-ink-50 p-3 xl:grid-cols-[minmax(0,1fr)_auto_80px_120px] xl:items-end">
+                          <input type="hidden" name={`suggested_leave_intent_${template.key}`} value="reviewed" />
+                          <div>
+                            <p className="text-[12px] font-semibold text-ink-800">{template.displayName}</p>
+                            <p className="text-[10.5px] text-ink-500">Company setting</p>
+                          </div>
+                          <label className="flex items-center gap-2 text-[11.5px] text-ink-700 xl:pb-2">
+                            <input name={`suggested_leave_applicable_${template.key}`} type="checkbox" defaultChecked={definition?.active ?? false} />
+                            Applicable
+                          </label>
+                          <label className="text-[10.5px] text-ink-600">Days<input name={`suggested_leave_days_${template.key}`} type="number" min="0" max="365" step="0.5" className="tf-input mt-1" defaultValue={definition?.default_entitlement_days ?? ""} /></label>
+                          <label className="text-[10.5px] text-ink-600">Basis<select name={`suggested_leave_basis_${template.key}`} className="tf-select mt-1" defaultValue={definition && (definition.active || definition.default_entitlement_days !== null) ? definition.counting_basis : ""}><option value="" disabled>Choose</option><option value="calendar_days">Calendar days</option><option value="working_days">Working days</option></select></label>
+                        </div>
+                      );
+                    })}
+                    <p className="text-[10.5px] text-ink-500">Days and basis are required only when a leave type is marked applicable. Existing company values are shown and remain editable in normal Leave Settings.</p>
+                  </fieldset>
                   <label className="text-[12px] text-ink-600">Annual entitlement timing<select name="entitlement_timing" className="tf-select mt-1" required defaultValue={entitlementTiming(annualLeave)}><option value="" disabled>Needs review — choose one timing method</option><option value="upfront">Granted upfront</option><option value="joining_date_proration">Joining-date proration</option><option value="monthly_accrual">Monthly accrual</option><option value="annual_accrual">Annual accrual</option></select></label>
                   <p className="text-[11px] text-ink-500">Choose one timing method. Monthly accrual and joining-date proration are not combined. If selected, TeamFrame monthly accrual is a company-policy method based on the configured annual entitlement, with partial first and final months prorated by calendar days in service. It is not the separate UAE Federal first-year 2-days-per-month entitlement rule.</p>
                   <label className="flex items-center gap-2 text-[12px]"><input name="carry_forward" type="checkbox" defaultChecked={annualLeave?.carry_forward_enabled ?? false} />Allow carry-forward</label>

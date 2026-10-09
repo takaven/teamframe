@@ -14,9 +14,9 @@ import { copyStarterChecklist, listChecklistTemplates } from "@/services/onboard
 import {
   applyUaeSetupPack,
   buildUaeHrBasicsSummary,
-  UAE_CORE_LEAVE_TEMPLATES,
   UAE_EXTERNAL_OBLIGATION_REFERENCES,
   UAE_FEDERAL_REFERENCES,
+  UAE_SUGGESTED_LEAVE_TEMPLATES,
 } from "@/services/uaeSetupPackService";
 
 const actor={role:"admin",tenantId:"tenant-1",authUserId:"user-1"} as const;
@@ -56,11 +56,11 @@ describe("M6 UAE setup pack",()=>{
     expect(updateLeaveDefinition).toHaveBeenCalledWith(actor,"annual-1",expect.objectContaining({default_entitlement_days:30,counting_basis:"calendar_days",accrual_enabled:true,accrual_frequency:"monthly",joining_date_pro_rata:false,carry_forward_cap_days:5}));
     expect(updateLeaveDefinition).toHaveBeenCalledWith(actor,"sick-1",expect.objectContaining({default_entitlement_days:90,counting_basis:"working_days",attachment_requirement:"optional"}));
     expect(upsert).toHaveBeenCalledTimes(6);
-    expect(upsert).toHaveBeenCalledWith(expect.objectContaining({code:"maternity_leave",display_name:"Maternity Leave",active:false,default_entitlement_days:60,counting_basis:"calendar_days"}),expect.objectContaining({onConflict:"tenant_id,code",ignoreDuplicates:true}));
-    expect(upsert).toHaveBeenCalledWith(expect.objectContaining({code:"parental_leave",display_name:"Parental Leave",active:false,default_entitlement_days:5,counting_basis:"working_days"}),expect.anything());
+    expect(upsert).toHaveBeenCalledWith(expect.objectContaining({code:"maternity_leave",display_name:"Maternity Leave",active:false,default_entitlement_days:null,counting_basis:"calendar_days"}),expect.objectContaining({onConflict:"tenant_id,code",ignoreDuplicates:true}));
+    expect(upsert).toHaveBeenCalledWith(expect.objectContaining({code:"parental_leave",display_name:"Parental Leave",active:false,default_entitlement_days:null,counting_basis:"calendar_days"}),expect.anything());
     expect(upsert).toHaveBeenCalledWith(expect.objectContaining({code:"bereavement_leave",display_name:"Bereavement Leave",active:false,default_entitlement_days:null}),expect.anything());
-    expect(upsert).toHaveBeenCalledWith(expect.objectContaining({code:"study_leave",display_name:"Study Leave",active:false,default_entitlement_days:10,counting_basis:"working_days"}),expect.anything());
-    expect(upsert).toHaveBeenCalledWith(expect.objectContaining({code:"hajj_leave",display_name:"Hajj Leave",active:false,default_entitlement_days:30,counting_basis:"calendar_days"}),expect.anything());
+    expect(upsert).toHaveBeenCalledWith(expect.objectContaining({code:"study_leave",display_name:"Study Leave",active:false,default_entitlement_days:null,counting_basis:"calendar_days"}),expect.anything());
+    expect(upsert).toHaveBeenCalledWith(expect.objectContaining({code:"hajj_leave",display_name:"Hajj Leave",active:false,default_entitlement_days:null,counting_basis:"calendar_days"}),expect.anything());
     expect(upsert).toHaveBeenCalledWith(expect.objectContaining({code:"national_service_leave",display_name:"National Service Leave",active:false,default_entitlement_days:null,counting_basis:"calendar_days"}),expect.anything());
     expect(copyStarterChecklist).toHaveBeenCalledWith(actor,"uae_sme");
     expect(createServiceRoleClient).toHaveBeenCalledOnce();
@@ -72,12 +72,12 @@ describe("M6 UAE setup pack",()=>{
     expect(copyStarterChecklist).not.toHaveBeenCalled();
   });
 
-  it("does not duplicate or reset existing core leave templates",async()=>{
+  it("does not duplicate or reset existing suggested leave definitions without explicit intent",async()=>{
     vi.mocked(listLeaveDefinitions).mockResolvedValue([
       ...definitions,
-      ...UAE_CORE_LEAVE_TEMPLATES.map((template,index)=>({
+      ...UAE_SUGGESTED_LEAVE_TEMPLATES.map((template,index)=>({
         id:`custom-${index}`,code:template.key,display_name:template.displayName,system_leave_type:"other",active:index!==3,
-        default_entitlement_days:index===0?75:template.defaultEntitlementDays,counting_basis:template.countingBasis,
+        default_entitlement_days:index===0?75:template.defaultEntitlementDays,counting_basis:template.inactiveStorageBasis,
         attachment_requirement:template.attachmentRequirement,accrual_enabled:false,accrual_frequency:"annual",
         joining_date_pro_rata:false,carry_forward_enabled:false,carry_forward_cap_days:null,is_system:false,sort_order:100,
       })),
@@ -85,6 +85,52 @@ describe("M6 UAE setup pack",()=>{
     await applyUaeSetupPack(actor as never,input);
     expect(upsert).not.toHaveBeenCalled();
     expect(updateLeaveDefinition).not.toHaveBeenCalledWith(actor,"custom-0",expect.anything());
+  });
+
+  it("activates suggested leave only from explicit company values",async()=>{
+    await applyUaeSetupPack(actor as never,{
+      ...input,
+      suggestedLeaves:[
+        {key:"hajj_leave",applicable:true,entitlementDays:10,countingBasis:"working_days"},
+        {key:"maternity_leave",applicable:true,entitlementDays:75,countingBasis:"calendar_days"},
+      ],
+    });
+    expect(upsert).toHaveBeenCalledWith(expect.objectContaining({
+      code:"hajj_leave",active:true,default_entitlement_days:10,counting_basis:"working_days",
+    }),expect.anything());
+    expect(upsert).toHaveBeenCalledWith(expect.objectContaining({
+      code:"maternity_leave",active:true,default_entitlement_days:75,counting_basis:"calendar_days",
+    }),expect.anything());
+    expect(upsert).toHaveBeenCalledWith(expect.objectContaining({
+      code:"parental_leave",active:false,default_entitlement_days:null,
+    }),expect.anything());
+    expect(vi.mocked(updateLeaveDefinition).mock.calls.filter(([,id])=>id==="annual-1")).toHaveLength(1);
+  });
+
+  it("preserves an existing custom value when the submitted company choice is unchanged",async()=>{
+    const maternity=UAE_SUGGESTED_LEAVE_TEMPLATES.find((template)=>template.key==="maternity_leave")!;
+    vi.mocked(listLeaveDefinitions).mockResolvedValue([...definitions,{
+      id:"maternity-1",code:maternity.key,display_name:maternity.displayName,system_leave_type:"other",active:true,
+      default_entitlement_days:75,counting_basis:"calendar_days",attachment_requirement:maternity.attachmentRequirement,
+      accrual_enabled:false,accrual_frequency:"annual",joining_date_pro_rata:false,carry_forward_enabled:false,
+      carry_forward_cap_days:null,is_system:false,sort_order:100,
+    }] as never);
+    await applyUaeSetupPack(actor as never,{
+      ...input,
+      suggestedLeaves:[{key:"maternity_leave",applicable:true,entitlementDays:75,countingBasis:"calendar_days"}],
+    });
+    expect(updateLeaveDefinition).toHaveBeenCalledWith(actor,"maternity-1",expect.objectContaining({
+      active:true,default_entitlement_days:75,counting_basis:"calendar_days",
+    }));
+  });
+
+  it("rejects an active suggested leave without company days or basis",async()=>{
+    await expect(applyUaeSetupPack(actor as never,{
+      ...input,
+      suggestedLeaves:[{key:"hajj_leave",applicable:true,entitlementDays:null,countingBasis:null}],
+    })).rejects.toThrow();
+    expect(updateCompanySettings).not.toHaveBeenCalled();
+    expect(upsert).not.toHaveBeenCalled();
   });
 
   it("supports annual accrual without restoring dual entitlement timing",async()=>{
@@ -117,12 +163,17 @@ describe("UAE HR basics references and summary",()=>{
     }
   });
 
-  it("keeps Hajj and national-service templates inactive and applicability-confirmed",()=>{
-    const hajj=UAE_CORE_LEAVE_TEMPLATES.find((template)=>template.key==="hajj_leave");
-    const nationalService=UAE_CORE_LEAVE_TEMPLATES.find((template)=>template.key==="national_service_leave");
-    expect(hajj).toMatchObject({active:false,defaultEntitlementDays:30,countingBasis:"calendar_days"});
+  it("keeps every suggested leave neutral and company-configurable",()=>{
+    expect(UAE_SUGGESTED_LEAVE_TEMPLATES).toHaveLength(6);
+    for(const template of UAE_SUGGESTED_LEAVE_TEMPLATES){
+      expect(template.active).toBe(false);
+      expect(template.defaultEntitlementDays).toBeNull();
+    }
+    const hajj=UAE_SUGGESTED_LEAVE_TEMPLATES.find((template)=>template.key==="hajj_leave");
+    const nationalService=UAE_SUGGESTED_LEAVE_TEMPLATES.find((template)=>template.key==="national_service_leave");
+    expect(hajj).toMatchObject({active:false,defaultEntitlementDays:null});
     expect(hajj?.reference.summary).toContain("once during employment");
-    expect(hajj?.reference.summary).toContain("Unpaid");
+    expect(hajj?.reference.summary).toContain("Umrah has no separate statutory leave provision");
     expect(hajj?.reference.article).toBe("Official UAE Government guidance — Hajj and Umrah leave");
     expect(hajj?.reference.article).not.toContain("Article 32");
     expect(nationalService).toMatchObject({active:false,defaultEntitlementDays:null});
@@ -164,6 +215,10 @@ describe("UAE HR basics references and summary",()=>{
     const service=readFileSync(new URL("../services/uaeSetupPackService.ts",import.meta.url),"utf8");
     expect(page).toContain("Working hours &amp; rest — UAE Federal reference");
     expect(page).toContain("Other UAE employment obligations to check");
+    expect(page).toContain("Suggested additional leave types");
+    expect(page).toContain("Applicable");
+    expect(page).toContain("Company setting");
+    expect(page).toContain("suggested_leave_intent_");
     expect(page).toContain("<details");
     expect(page).toContain("company-policy method");
     expect(page).toContain("existing employee-specific entitlement override");
@@ -182,19 +237,20 @@ describe("UAE HR basics references and summary",()=>{
 
   it("reports factual setup states without a compliance conclusion",()=>{
     const summary=buildUaeHrBasicsSummary({leaveDefinitions:definitions as never,currentYearHolidayCount:0,hasUaeStarterChecklist:false,hasPublishedPolicy:false});
-    expect(summary.find((item)=>item.label==="Leave settings")?.state).toBe("needs_setup");
+    expect(summary.find((item)=>item.label==="Leave settings")?.state).toBe("configured");
+    expect(summary.find((item)=>item.label==="Leave settings")?.detail).toContain("0/6 suggested additional leave types are active by company choice");
     expect(summary.find((item)=>item.label==="Current-year holidays")?.detail).toContain("have not been added");
     expect(JSON.stringify(summary).toLowerCase()).not.toContain("non-compliant");
     expect(JSON.stringify(summary).toLowerCase()).not.toContain("score");
   });
 
-  it("keeps inactive statutory templates in review rather than calling them configured",()=>{
+  it("treats inactive suggested leave as neutral",()=>{
     const summary=buildUaeHrBasicsSummary({
       leaveDefinitions:[
         ...definitions,
-        ...UAE_CORE_LEAVE_TEMPLATES.map((template,index)=>({
+        ...UAE_SUGGESTED_LEAVE_TEMPLATES.map((template,index)=>({
           id:`template-${index}`,code:template.key,display_name:template.displayName,system_leave_type:"other",active:false,
-          default_entitlement_days:template.defaultEntitlementDays,counting_basis:template.countingBasis,
+          default_entitlement_days:template.defaultEntitlementDays,counting_basis:template.inactiveStorageBasis,
           attachment_requirement:template.attachmentRequirement,accrual_enabled:false,accrual_frequency:"annual",
           joining_date_pro_rata:false,carry_forward_enabled:false,carry_forward_cap_days:null,is_system:false,sort_order:100,
         })),
@@ -203,7 +259,24 @@ describe("UAE HR basics references and summary",()=>{
       hasUaeStarterChecklist:true,
       hasPublishedPolicy:true,
     });
+    expect(summary.find((item)=>item.label==="Leave settings")?.state).toBe("configured");
+    expect(summary.find((item)=>item.label==="Leave settings")?.detail).toContain("0/6 suggested additional leave types are active by company choice");
+  });
+
+  it("flags only active suggested leave with incomplete company configuration",()=>{
+    const hajj=UAE_SUGGESTED_LEAVE_TEMPLATES.find((template)=>template.key==="hajj_leave")!;
+    const summary=buildUaeHrBasicsSummary({
+      leaveDefinitions:[...definitions,{
+        id:"hajj-1",code:hajj.key,display_name:hajj.displayName,system_leave_type:"other",active:true,
+        default_entitlement_days:null,counting_basis:"calendar_days",attachment_requirement:hajj.attachmentRequirement,
+        accrual_enabled:false,accrual_frequency:"annual",joining_date_pro_rata:false,carry_forward_enabled:false,
+        carry_forward_cap_days:null,is_system:false,sort_order:100,
+      }] as never,
+      currentYearHolidayCount:1,
+      hasUaeStarterChecklist:true,
+      hasPublishedPolicy:true,
+    });
     expect(summary.find((item)=>item.label==="Leave settings")?.state).toBe("needs_review");
-    expect(summary.find((item)=>item.label==="Leave settings")?.detail).toContain("await company review and activation");
+    expect(summary.find((item)=>item.label==="Leave settings")?.detail).toContain("active suggested leave type needs company entitlement days");
   });
 });

@@ -115,7 +115,7 @@ export const UAE_FEDERAL_REFERENCES = {
   },
   hajjLeave: {
     label: "Hajj leave",
-    summary: "Unpaid leave of up to 30 days, once during employment with the same employer; applicability must be confirmed.",
+    summary: "Hajj guidance describes unpaid leave of up to 30 days, once during employment with the same employer. Umrah has no separate statutory leave provision; the employer may handle a request under company policy, annual leave or unpaid leave.",
     article: "Official UAE Government guidance — Hajj and Umrah leave",
     sourceUrl: UAE_OFFICIAL_GUIDANCE_URLS.hajjLeave,
     reviewedAt: "2026-10-09",
@@ -233,22 +233,22 @@ export const UAE_EXTERNAL_OBLIGATION_REFERENCES = [
   },
 ] as const;
 
-export const UAE_CORE_LEAVE_TEMPLATES = [
+export const UAE_SUGGESTED_LEAVE_TEMPLATES = [
   {
     key: "maternity_leave",
     displayName: "Maternity Leave",
-    defaultEntitlementDays: 60,
+    defaultEntitlementDays: null,
     active: false,
-    countingBasis: "calendar_days" as CountingBasis,
+    inactiveStorageBasis: "calendar_days" as CountingBasis,
     attachmentRequirement: "optional" as const,
     reference: UAE_FEDERAL_REFERENCES.maternityLeave,
   },
   {
     key: "parental_leave",
     displayName: "Parental Leave",
-    defaultEntitlementDays: 5,
+    defaultEntitlementDays: null,
     active: false,
-    countingBasis: "working_days" as CountingBasis,
+    inactiveStorageBasis: "calendar_days" as CountingBasis,
     attachmentRequirement: "optional" as const,
     reference: UAE_FEDERAL_REFERENCES.parentalLeave,
   },
@@ -257,25 +257,25 @@ export const UAE_CORE_LEAVE_TEMPLATES = [
     displayName: "Bereavement Leave",
     defaultEntitlementDays: null,
     active: false,
-    countingBasis: "calendar_days" as CountingBasis,
+    inactiveStorageBasis: "calendar_days" as CountingBasis,
     attachmentRequirement: "not_required" as const,
     reference: UAE_FEDERAL_REFERENCES.bereavementLeave,
   },
   {
     key: "study_leave",
     displayName: "Study Leave",
-    defaultEntitlementDays: 10,
+    defaultEntitlementDays: null,
     active: false,
-    countingBasis: "working_days" as CountingBasis,
+    inactiveStorageBasis: "calendar_days" as CountingBasis,
     attachmentRequirement: "optional" as const,
     reference: UAE_FEDERAL_REFERENCES.studyLeave,
   },
   {
     key: "hajj_leave",
     displayName: "Hajj Leave",
-    defaultEntitlementDays: 30,
+    defaultEntitlementDays: null,
     active: false,
-    countingBasis: "calendar_days" as CountingBasis,
+    inactiveStorageBasis: "calendar_days" as CountingBasis,
     attachmentRequirement: "optional" as const,
     reference: UAE_FEDERAL_REFERENCES.hajjLeave,
   },
@@ -284,7 +284,7 @@ export const UAE_CORE_LEAVE_TEMPLATES = [
     displayName: "National Service Leave",
     defaultEntitlementDays: null,
     active: false,
-    countingBasis: "calendar_days" as CountingBasis,
+    inactiveStorageBasis: "calendar_days" as CountingBasis,
     attachmentRequirement: "optional" as const,
     reference: UAE_FEDERAL_REFERENCES.nationalServiceLeave,
   },
@@ -338,12 +338,41 @@ const Input = z.object({
   ]),
   carryForward: z.boolean(),
   carryCap: z.number().min(0).max(365).nullable(),
+  suggestedLeaves: z.array(z.object({
+    key: z.enum([
+      "maternity_leave",
+      "parental_leave",
+      "bereavement_leave",
+      "study_leave",
+      "hajj_leave",
+      "national_service_leave",
+    ]),
+    applicable: z.boolean(),
+    entitlementDays: z.number().min(0).max(365).nullable(),
+    countingBasis: z.enum(["calendar_days", "working_days"]).nullable(),
+  }).superRefine((leave, context) => {
+    if (!leave.applicable) return;
+    if (leave.entitlementDays === null) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "SUGGESTED_LEAVE_DAYS_REQUIRED", path: ["entitlementDays"] });
+    }
+    if (leave.countingBasis === null) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "SUGGESTED_LEAVE_BASIS_REQUIRED", path: ["countingBasis"] });
+    }
+  })).default([]).superRefine((leaves, context) => {
+    const keys = new Set<string>();
+    for (const [index, leave] of leaves.entries()) {
+      if (keys.has(leave.key)) {
+        context.addIssue({ code: z.ZodIssueCode.custom, message: "SUGGESTED_LEAVE_DUPLICATE", path: [index, "key"] });
+      }
+      keys.add(leave.key);
+    }
+  }),
   confirmed: z.literal(true),
 });
 
-function isSameLeaveTemplate(
+export function isSameUaeSuggestedLeaveTemplate(
   definition: Pick<LeaveDefinition, "code" | "display_name">,
-  template: (typeof UAE_CORE_LEAVE_TEMPLATES)[number],
+  template: (typeof UAE_SUGGESTED_LEAVE_TEMPLATES)[number],
 ): boolean {
   return (
     definition.code === template.key ||
@@ -351,22 +380,45 @@ function isSameLeaveTemplate(
   );
 }
 
-async function createMissingCoreLeaveTemplates(
+async function applySuggestedLeaveConfiguration(
   actor: Actor,
   definitions: LeaveDefinition[],
+  configurations: z.infer<typeof Input>["suggestedLeaves"],
   db: ReturnType<typeof createServiceRoleClient>,
 ): Promise<void> {
   if (!actor.tenantId) throw new Error("NO_TENANT_CONTEXT");
-  for (const template of UAE_CORE_LEAVE_TEMPLATES) {
-    if (definitions.some((definition) => isSameLeaveTemplate(definition, template))) continue;
+  const byKey = new Map(configurations.map((configuration) => [configuration.key, configuration]));
+  for (const template of UAE_SUGGESTED_LEAVE_TEMPLATES) {
+    const definition = definitions.find((candidate) => isSameUaeSuggestedLeaveTemplate(candidate, template));
+    const configuration = byKey.get(template.key);
+    if (definition) {
+      if (!configuration) continue;
+      await updateLeaveDefinition(actor, definition.id, {
+        display_name: definition.display_name,
+        system_leave_type: definition.system_leave_type,
+        active: configuration.applicable,
+        default_entitlement_days: configuration.entitlementDays,
+        counting_basis: configuration.countingBasis ?? definition.counting_basis,
+        attachment_requirement: definition.attachment_requirement,
+        accrual_enabled: definition.accrual_enabled,
+        accrual_frequency: definition.accrual_frequency,
+        joining_date_pro_rata: definition.joining_date_pro_rata,
+        carry_forward_enabled: definition.carry_forward_enabled,
+        carry_forward_cap_days: definition.carry_forward_cap_days,
+      });
+      continue;
+    }
     const { error } = await db.from("leave_definitions").upsert({
       tenant_id: actor.tenantId,
       code: template.key,
       display_name: template.displayName,
       system_leave_type: "other",
-      active: template.active,
-      default_entitlement_days: template.defaultEntitlementDays,
-      counting_basis: template.countingBasis,
+      active: configuration?.applicable ?? false,
+      default_entitlement_days: configuration?.entitlementDays ?? null,
+      // The database requires a basis even for inactive definitions. This neutral
+      // storage value is not shown as company policy and must be chosen explicitly
+      // before activation.
+      counting_basis: configuration?.countingBasis ?? template.inactiveStorageBasis,
       attachment_requirement: template.attachmentRequirement,
       is_system: false,
       sort_order: 100,
@@ -376,7 +428,7 @@ async function createMissingCoreLeaveTemplates(
       carry_forward_enabled: false,
       carry_forward_cap_days: null,
     } as never, { onConflict: "tenant_id,code", ignoreDuplicates: true });
-    if (error) throw new Error(`UAE_SETUP_LEAVE_TEMPLATE_FAILED: ${error.message}`);
+    if (error) throw new Error(`UAE_SETUP_SUGGESTED_LEAVE_FAILED: ${error.message}`);
   }
 }
 
@@ -397,27 +449,35 @@ export function buildUaeHrBasicsSummary(input: {
   const annual = input.leaveDefinitions.find((definition) => definition.code === "annual");
   const sick = input.leaveDefinitions.find((definition) => definition.code === "sick");
   const conflictingTiming = Boolean(annual?.accrual_enabled && annual.joining_date_pro_rata);
-  const coreTemplates = UAE_CORE_LEAVE_TEMPLATES.map((template) =>
-    input.leaveDefinitions.find((definition) => isSameLeaveTemplate(definition, template)),
+  const suggestedDefinitions = UAE_SUGGESTED_LEAVE_TEMPLATES.map((template) =>
+    input.leaveDefinitions.find((definition) => isSameUaeSuggestedLeaveTemplate(definition, template)),
   ).filter((definition): definition is LeaveDefinition => Boolean(definition));
-  const coreTemplateCount = coreTemplates.length;
-  const inactiveCoreTemplateCount = coreTemplates.filter((definition) => !definition.active).length;
+  const activeSuggestedCount = suggestedDefinitions.filter((definition) => definition.active).length;
+  const incompleteActiveSuggestedCount = suggestedDefinitions.filter(
+    (definition) => definition.active && definition.default_entitlement_days === null,
+  ).length;
+  const principalLeaveConfigured = Boolean(
+    annual?.active && annual.default_entitlement_days !== null &&
+    sick?.active && sick.default_entitlement_days !== null,
+  );
 
   return [
     {
       label: "Leave settings",
       state: conflictingTiming
         ? "needs_review"
-        : annual?.active && sick?.active && coreTemplateCount === UAE_CORE_LEAVE_TEMPLATES.length
-          ? inactiveCoreTemplateCount > 0
-            ? "needs_review"
-            : "configured"
-          : "needs_setup",
+        : incompleteActiveSuggestedCount > 0
+          ? "needs_review"
+          : principalLeaveConfigured
+            ? "configured"
+            : "needs_setup",
       detail: conflictingTiming
         ? "Annual leave has more than one entitlement-timing method selected."
-        : inactiveCoreTemplateCount > 0
-          ? `${coreTemplateCount}/${UAE_CORE_LEAVE_TEMPLATES.length} core additional leave templates are available; ${inactiveCoreTemplateCount} await company review and activation.`
-          : `${coreTemplateCount}/${UAE_CORE_LEAVE_TEMPLATES.length} core additional leave types are available.`,
+        : incompleteActiveSuggestedCount > 0
+          ? `${incompleteActiveSuggestedCount} active suggested leave type${incompleteActiveSuggestedCount === 1 ? " needs" : "s need"} company entitlement days.`
+          : principalLeaveConfigured
+            ? `Annual and sick leave are configured. ${activeSuggestedCount}/${UAE_SUGGESTED_LEAVE_TEMPLATES.length} suggested additional leave types are active by company choice.`
+            : "Configure active annual and sick leave with company entitlement days.",
     },
     {
       label: "Current-year holidays",
@@ -491,7 +551,7 @@ export async function applyUaeSetupPack(actor: Actor, input: unknown): Promise<v
     carry_forward_enabled: sick.carry_forward_enabled,
     carry_forward_cap_days: sick.carry_forward_cap_days,
   });
-  await createMissingCoreLeaveTemplates(actor, definitions, db);
+  await applySuggestedLeaveConfiguration(actor, definitions, value.suggestedLeaves, db);
   if (!checklists.some((template) => template.name === "UAE starter checklist")) {
     await copyStarterChecklist(actor, "uae_sme");
   }
