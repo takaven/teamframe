@@ -1,6 +1,8 @@
 # TEAMFRAME — FINAL 45-DAY MULTI-AGENT EXECUTION PLAN
 
-**Status:** LOCKED FOR EXECUTION
+> **Historical execution record.** The execution evidence and technical constraints in this plan are retained. Its managed-service-only commercial positioning was superseded on 2026-10-09 by the two-offer model recorded in [DECISIONS.md](DECISIONS.md) and the [controlling commercial scope](../../TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE.md): **TeamFrame / Tool Only** or **TeamFrame + HR Service**. Do not use this historical plan to require TAKAVEN operator involvement or authorise product work for service-only needs.
+
+**Status:** HISTORICAL LOCKED EXECUTION RECORD
 **Execution model:** Main Orchestrator + specialist agents
 **Founder role:** Strategic and material-risk approvals only
 **Launch target:** Day 45

@@ -10,6 +10,13 @@ Where older repository documents conflict with this file, this file controls unl
 
 TeamFrame is independently deployable HR software.
 
+This supports both commercial offers:
+
+- **TeamFrame / Tool Only:** the customer's internal HR, Admin or Operations owner uses the installation after implementation and handover.
+- **TeamFrame + HR Service:** TAKAVEN may receive explicitly authorised customer-local access for the agreed service scope.
+
+The optional service does not create a permanent remote backdoor, central customer-data runtime or requirement for TAKAVEN to operate Tool Only installations.
+
 Each customer installation is isolated:
 
 ```text

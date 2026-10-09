@@ -1,20 +1,43 @@
-# TeamFrame — Managed People Operations scope
+# TeamFrame — Product and optional HR service scope
 
-**Status: controlling commercial scope.** The [45-day plan](docs/launch/TEAMFRAME_45_DAY_EXECUTION_PLAN.md) governs execution. Existing technical documents remain authoritative for implemented behaviour, not for superseded market positioning.
+**Status: controlling commercial scope.** The [execution ledger](docs/launch/EXECUTION_LEDGER.md) governs current work. The [45-day plan](docs/launch/TEAMFRAME_45_DAY_EXECUTION_PLAN.md) remains historical execution provenance. Existing technical documents remain authoritative for implemented behaviour, not for superseded market positioning.
 
-TeamFrame is a technology-enabled managed People Operations platform for 25–80 employee knowledge-work startups and scale-ups without a mature internal People function. It combines TeamFrame Hire, TeamFrame People, operational controls, automation, and defined TAKAVEN operator work. Payroll, tax, employment-law advice, complex employee relations, immigration/legal advice, and other specialist judgement remain outside standard scope.
+TeamFrame is UAE-focused HR software for startups and growing small teams. It helps businesses establish and maintain core HR controls relevant to UAE employment requirements while leaving company policy and employee applicability explicit. Payroll, tax, employment-law advice, complex employee relations, immigration/legal advice and other specialist judgement remain outside the product and standard service scope.
 
-The product wedge is **SEE → OWN → ACT → PROVE**: detect unresolved People Ops work, explain it, identify the actual owner and deadline, prepare or perform the next action, escalate when needed, and retain resolution evidence. No opaque HR health score.
+TeamFrame is commercially available through two offers:
 
-Launch automation is limited to **Starter Rescue**, **Document Recovery**, and **Hiring Decision Rescue**. TeamFrame Hire remains on the existing HirePass architecture; Hire→People is a bounded handoff, not a shared database or live sync. Operator Mode v1 is inside each isolated customer environment, not a central cross-customer control plane.
+1. **TeamFrame / Tool Only.** TAKAVEN implements, configures, imports agreed data and trains the customer. The customer's own HR, Admin or Operations owner runs the independent installation.
+2. **TeamFrame + HR Service.** The same software is paired with separately agreed TAKAVEN HR operational support. This may include HR foundation setup, record administration support, onboarding/offboarding coordination, document follow-up, policy/process support and periodic UAE HR basics review.
 
-Customer activation target after Implementation Ready is **≤2 business days elapsed and ≤8 operator hours**, later ≤4 hours. The operating objective is progressively fewer human minutes per employee per month while maintaining resolution quality and customer retention.
+The product wedge is **SEE → OWN → ACT → PROVE**: show unresolved People Ops work, explain it, identify the actual owner and deadline, support the next action, escalate when appropriate and retain resolution evidence. This is a product and operating principle, not a requirement for TAKAVEN operator involvement. No opaque HR health or legal-compliance score.
 
-No new launch module without founder approval. The no-build list includes payroll, attendance, performance management, LMS, compensation, benefits, general AI chatbot, generic workflow engine, and central cross-customer operator platform. Feature freeze is Day 21; public launch is conditional on Day-44 gates.
+TeamFrame Hire remains on the existing HirePass architecture; Hire→People is a bounded handoff, not a shared database or live sync. Each TeamFrame customer remains isolated. Where the customer buys HR Service, TAKAVEN uses authorised customer-local access; no central cross-customer HR runtime or operator platform is authorised.
 
-## Internal managed-operations draft — not a customer commitment
+Implementation speed and service-effort targets remain internal operating measures, not product features or customer-facing guarantees unless separately approved.
 
-The 45-day plan names these as *candidate standard operations*: employee-record administration; starter and leaver coordination; document and policy-acknowledgement follow-up; standard leave administration support; hiring coordination; manager reminders; and recurring open-control review. These are working categories for SOP and capacity testing, **not** a staffed-service claim, response-time promise, or contractual inclusion. Payroll/tax processing, employment-law interpretation, complex employee relations, disciplinary investigations, immigration/legal advice, compensation consulting, benefits brokerage, H&S specialist advice, unlimited HR consulting, and unsupported jurisdiction-specific advice are excluded from standard operator work; route them to an appropriately engaged specialist or the customer.
+No new module without founder approval. The no-build list includes payroll/WPS processing, attendance, biometrics, timesheets, shift scheduling, EOS/gratuity calculation, general AI legal advice, a generic workflow engine, government integrations and a central cross-customer operator platform.
+
+## Product / service boundary
+
+| Layer | Responsibility |
+| --- | --- |
+| TeamFrame product | Customer-isolated records, documents, leave, policies, lifecycle workflows, operational attention, ownership, actions and evidence. It must remain useful without TAKAVEN administering HR. |
+| Implementation | Customer installation, configuration, agreed data import, initial access setup, training and handover. |
+| Optional HR service | Agreed operational support around the customer's installation, including routine follow-up, record support and periodic review. |
+| Specialist / external | Legal advice, payroll/WPS operation, tax, immigration/PRO work, complex employee relations, government submissions and other regulated or specialist judgement. |
+
+Software features must not be built solely to operate TAKAVEN's optional service unless they also have clear customer/product value.
+
+## Product freeze and bounded gap decisions
+
+TeamFrame is presumed **feature-complete for first-customer sale**. Future product work requires a genuine production defect, a real first-customer blocker, repeated buyer feedback or a separately founder-approved small improvement.
+
+- **Normal working arrangement/hours: DEFER.** TeamFrame already records company working days, employee overrides, holidays and leave. A structured company-hours fact would require an additive schema/migration and changes across configuration, setup/import and tests. Employee custom fields can record a special arrangement where needed. The commercial benefit does not currently justify reopening the product.
+- **Structured offboarding notice/final-dues facts: DEFER.** The current workflow already records the effective final date and requires notice confirmation, leave reconciliation, final exit-document evidence, access/property closeout and final HR review. Separate notice-period and final-dues fields would require an additive schema/migration and service/UI/test changes; wait for real customer evidence.
+
+## Optional HR service operating draft — not a customer commitment
+
+For customers that choose TeamFrame + HR Service, candidate operations include employee-record administration; starter and leaver coordination; document and policy-acknowledgement follow-up; standard leave administration support; hiring coordination; manager reminders; and recurring open-control review. These are working categories for SOP and capacity testing, **not** a staffed-service claim, response-time promise or contractual inclusion. Tool Only customers do not require TAKAVEN operators. Payroll/tax processing, employment-law interpretation, complex employee relations, disciplinary investigations, immigration/legal advice, compensation consulting, benefits brokerage, H&S specialist advice, unlimited HR consulting and unsupported jurisdiction-specific advice are excluded from standard operator work; route them to an appropriately engaged specialist or the customer.
 
 | Operational step | TeamFrame | TAKAVEN operator | Customer / employee | Specialist |
 | --- | --- | --- | --- | --- |

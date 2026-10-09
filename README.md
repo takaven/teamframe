@@ -1,15 +1,17 @@
 # TeamFrame
 
-> **TeamFrame delivers technology-enabled managed People Operations for growing knowledge-work companies.**
+> **UAE-focused HR software for startups, designed to help businesses establish and maintain the core HR controls relevant to UAE employment requirements.**
 
-**Product status:** `45-day managed People Operations launch execution; production trust and commercial gates remain open`
+**Product status:** `feature-complete for first-customer sale; commercial, customer-data and go-live gates remain separate`
 
-TeamFrame combines Hire, People, operational controls, automation and defined TAKAVEN operator work for 25–80 employee knowledge-work firms. The historical HR-system capability is real, but production trust, managed-service repeatability and buyer-visible differentiation still require live proof. See the commercial scope and execution ledger below; historical technical records remain provenance.
+TeamFrame is available in two forms: **TeamFrame / Tool Only**, implemented and configured for a customer to operate with its own HR, Admin or Operations owner; and **TeamFrame + HR Service**, the same software with separately agreed TAKAVEN HR support. The service is optional and does not require a central operator platform or make TAKAVEN involvement part of every deployment.
+
+TeamFrame is UAE-aware, company-flexible, operational and evidence-oriented. It does not guarantee legal compliance, provide legal advice, certify statutory status or claim to cover every UAE employment obligation.
 
 ## Canonical Documents
 
-- [TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE.md](TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE.md) - controlling commercial strategy.
-- [docs/launch/TEAMFRAME_45_DAY_EXECUTION_PLAN.md](docs/launch/TEAMFRAME_45_DAY_EXECUTION_PLAN.md) - locked launch execution.
+- [TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE.md](TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE.md) - controlling product and optional-service commercial scope.
+- [docs/launch/TEAMFRAME_45_DAY_EXECUTION_PLAN.md](docs/launch/TEAMFRAME_45_DAY_EXECUTION_PLAN.md) - historical locked launch execution; its former managed-service-only positioning is superseded.
 - [AGENTS.md](AGENTS.md) - agent authority, WIP and approval gates.
 - [docs/launch/EXECUTION_LEDGER.md](docs/launch/EXECUTION_LEDGER.md) - single current execution tracker.
 - [docs/launch/DECISIONS.md](docs/launch/DECISIONS.md) - material decisions.
@@ -22,7 +24,7 @@ TeamFrame combines Hire, People, operational controls, automation and defined TA
 - [TEAMFRAME_PRODUCTION_RUNBOOK.md](TEAMFRAME_PRODUCTION_RUNBOOK.md) - production release and operations runbook.
 - [TEAMFRAME_ACCESS_MODEL.md](TEAMFRAME_ACCESS_MODEL.md) - independent customer deployment, access and setup model.
 
-Older V1/readiness/finalisation documents are retained as technical provenance. The new commercial scope and locked 45-day plan supersede prior market positioning; technical details remain authoritative where not specifically superseded.
+Older V1/readiness/finalisation and launch-execution documents are retained as technical provenance. The current commercial scope and material decisions control market positioning; technical details remain authoritative where not specifically superseded.
 
 ## Implemented Capability
 
@@ -43,9 +45,10 @@ Older V1/readiness/finalisation documents are retained as technical provenance. 
 
 ## Product Operating Model
 
-1. SEE → OWN → ACT → PROVE is the managed-service operating model.
-2. Existing HR administration is the product substrate, not the whole commercial promise.
-3. Starter Rescue, Document Recovery and Hiring Decision Rescue are the only launch controls.
+1. **SEE → OWN → ACT → PROVE** is the product and operating principle: show what needs attention, identify ownership, support the next action and retain evidence of resolution.
+2. Tool Only customers operate the same independent product with their own HR, Admin or Operations owner after implementation and training.
+3. TeamFrame + HR Service adds agreed TAKAVEN support around that product; it is not a separate platform and does not justify features without customer/product value.
+4. UAE references inform company policy; they do not silently become company settings or employee applicability.
 
 TeamFrame People does not implement an ATS/recruiting pipeline. TeamFrame Hire is provided by the separate HirePass application and must not be rebuilt in this repository. TeamFrame is also intentionally not payroll, employee ratings/review software, enterprise RBAC, statutory leave calculation or a workflow-builder platform.
 
@@ -156,4 +159,4 @@ The local `.vercel` link must not be treated as production unless it is explicit
 - Do not reopen locked MR-0 through MR-8 semantics without hard production evidence.
 - Do not implement deferred or out-of-scope features merely because they are useful.
 - Preserve server-side authorization, RLS, tenant isolation and private storage.
-- Future source changes should now be driven by production defects, customer feedback or separately approved product development.
+- Presume the product feature-complete for first-customer sale. Future source changes require a production defect, a real first-customer blocker, repeated buyer feedback or a separately founder-approved small improvement.

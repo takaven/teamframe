@@ -8,6 +8,16 @@ Daily question: **Are current tasks moving TeamFrame toward M5/M6, or merely clo
 
 **Current rehearsal target gate (2026-09-28):** H2 ref `euhvgedjldqzfczkzjqi` remains **PAUSED, not deleted** and its prior evidence is preserved. Obsolete empty ref `xqiamhwkuogcgucwmlxy` was permanently deleted only after final SQL confirmed zero companies, employees, memberships, auth users, buckets and objects. TAKAVEN/Mumbai ref `tosrbylwchodbeaculgi` completed the original guarded rehearsal and is paused with its synthetic data preserved. First repeat ref `haxtsdnlcbhmwwwzjncd` is paused and quarantined as failure evidence after the post-install anonymous-grant gate failed. Its one approved corrected replacement, TAKAVEN/Mumbai Free ref `drohdttbgekrmwubhala` (`teamframe-operator-repeat-rehearsal-2-20260928`), completed the single authorised run in **238.4s**: 45 exact canonical public tables, RLS on all 45, required objects/service-role privileges present, zero anonymous table access, private canonical `documents` bucket, Full Access bootstrap, maintained preflight PASS (**29.9s**) and maintained execution PASS (**190.0s**). State: **REPEAT REHEARSAL PASS — PROOF TARGET LOCKED AGAINST REPLAY**. Founder Review remained untouched; no Production/customer data was used.
 
+## Commercial model reconciliation and product freeze — 2026-10-09
+
+| ID | Workstream | State | Target / ceiling | Stop condition |
+| -- | ---------- | ----- | ---------------- | -------------- |
+| COMMERCIAL-FREEZE | Reconcile Tool Only + optional HR Service positioning; audit two bounded candidate facts | PASS | Target 2h; max 4h active | Stop before website changes, product code, schema/migration, Candidate A/B implementation, a new module/engine or speculative roadmap. |
+
+Authoritative start: merged protected `main` at `9c7fdbdc792aa555c5909501e5b60c0adf855977`; documentation branch `docs/commercial-model-freeze`. Current commercial control is: TeamFrame is customer-isolated UAE-focused HR software offered as Tool Only or with separately agreed TAKAVEN HR Service. Historical managed-service execution evidence remains provenance but no longer makes TAKAVEN operator involvement mandatory. **SEE → OWN → ACT → PROVE** remains the product/operating principle. The product is presumed feature-complete for first-customer sale.
+
+Bounded audit: normal working days, employee overrides, holidays, leave and employee custom fields already cover the immediate working-arrangement need; a structured company-hours field would require schema/migration plus configuration/provisioning/test changes, so Candidate A is **DEFER**. Offboarding already records effective end date, notice confirmation, leave reconciliation, exit-document evidence, access/property closeout and final HR review; structured notice-period/final-dues fields would also require schema/migration and several product surfaces, so Candidate B is **DEFER**. No manual deployment or product, website or customer-data change was made in this documentation workstream.
+
 **Marketability Release closure (2026-10-04):** MR-M1 through MR-M6 are **PASS** after focused gates and independent M1/M2, M3/M4 and M5/M6 review. The IMPLEMENT cells below preserve the in-flight execution snapshot; this closure statement is the final state for the bounded release.
 
 ## UAE HR Basics completeness pass — 2026-10-09
