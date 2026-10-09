@@ -10,6 +10,16 @@ Daily question: **Are current tasks moving TeamFrame toward M5/M6, or merely clo
 
 **Marketability Release closure (2026-10-04):** MR-M1 through MR-M6 are **PASS** after focused gates and independent M1/M2, M3/M4 and M5/M6 review. The IMPLEMENT cells below preserve the in-flight execution snapshot; this closure statement is the final state for the bounded release.
 
+## UAE HR Basics — 2026-10-09
+
+| ID | Workstream | State | Target / ceiling | Stop condition |
+| -- | ---------- | ----- | ---------------- | -------------- |
+| UAE-BASICS | Reuse-first Federal UAE SME setup defaults and guidance | PASS | Target 8h; max 14h active | Stop before a new table/subsystem, DIFC/ADGM or jurisdiction-engine work, MOHRE/government workflow, payroll/WPS/attendance/EOS/Emiratisation scope, legal/compliance scoring, automatic law updates, customer-data use, Production deployment, or any reference value that cannot be supported simply by a current official UAE source. |
+
+Authoritative start: protected `origin/main` at `63036bba7d5e9b8d6f881511df7ad9e71c891837`; isolated branch `feature/uae-hr-basics`. This bounded work extends the existing UAE Setup Pack, configurable leave definitions, public-holiday indicator, explicit probation, document requirements, starter checklist and factual Setup summary. It must preserve customer-editable policy, existing settings/history, Phase A leave/probation/privacy corrections, and Employee Document Request security. No new compliance architecture, schema, Production operation or customer-data use is authorised.
+
+Closure evidence: the Setup page now shows current UAE HR settings, factual Federal references, explicit annual-leave basis/timing choices, current-year holiday state, starter-checklist and policy state. Missing maternity, parental, bereavement and study templates are inserted once with stable tenant/code keys and remain inactive until company review. Legacy dual leave timing cannot be silently reinterpreted, and conditional UAE employee evidence stays applicability-confirmed rather than inferred. No schema, migration, customer data or Production operation was introduced. Focused UAE/security checks 69/69 PASS in independent review; full suite 539 PASS / 2 skipped; typecheck, lint, instrumentation, health, telemetry and tenancy guards, Production build and `git diff --check` PASS. Independent bounded red-team final verdict: PASS.
+
 ## Employee document requests — 2026-10-08
 
 | ID | Workstream | State | Target / ceiling | Stop condition |
