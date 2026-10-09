@@ -81,12 +81,26 @@ describe("Premium craft pass", () => {
     expect(cal).not.toContain("overflow-x-auto");
   });
 
-  it("uses neutral ambient depth and keeps lime metric signals away from values", () => {
+  it("uses neutral ambient depth and keeps decorative lime out of neutral metrics", () => {
     const css = read("app/globals.css");
     const canonicalTokens = css.slice(css.indexOf("TEAMFRAME NEUMORPHIC UI"), css.indexOf("html,\nbody", css.indexOf("TEAMFRAME NEUMORPHIC UI")));
     expect(canonicalTokens).not.toMatch(/-[0-9]+px\s+-[0-9]+px[^;]*rgba\(255/);
-    expect(css).toContain(".tf-summary-label::after");
+    expect(css).not.toContain(".tf-summary-label::after");
     expect(css).not.toContain(".tf-summary-value::before");
     expect(css).toContain(".tf-value-strip");
+  });
+
+  it("uses native disclosures for infrequent admin work and secondary UAE guidance", () => {
+    const documents = read("app/documents/page.tsx");
+    const leaves = read("app/leaves/page.tsx");
+    const setup = read("app/setup/page.tsx");
+
+    expect(documents).toContain('/documents?action=request#request-document');
+    expect(documents).toContain('open={params.action === "request"}');
+    expect(documents).toContain("<details id=\"request-document\"");
+    expect(leaves).toContain("<details className=\"group border-t border-ink-200\"");
+    expect(leaves).toContain("Adjust balance");
+    expect(setup).toContain("Review supporting controls and UAE references");
+    expect(setup).toContain("grid max-w-4xl gap-4");
   });
 });
