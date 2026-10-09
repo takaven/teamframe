@@ -19,16 +19,33 @@ describe("onboarding template packs (static data)", () => {
     ]);
   });
 
-  it("every pack has 5-8 tasks with non-empty titles and non-negative offsets", () => {
+  it("every pack stays compact with non-empty titles and non-negative offsets", () => {
     for (const pack of ONBOARDING_TEMPLATE_PACKS) {
       expect(pack.tasks.length).toBeGreaterThanOrEqual(5);
-      expect(pack.tasks.length).toBeLessThanOrEqual(8);
+      expect(pack.tasks.length).toBeLessThanOrEqual(pack.id === "uae_sme" ? 10 : 8);
       for (const task of pack.tasks) {
         expect(task.title.trim().length).toBeGreaterThan(0);
         expect(task.dueOffsetDays).toBeGreaterThanOrEqual(0);
         expect(Number.isInteger(task.dueOffsetDays)).toBe(true);
       }
     }
+  });
+
+  it("keeps the UAE starter pack focused on existing employee, evidence and ownership flows", () => {
+    const titles = getTemplatePack("uae_sme")!.tasks.map((task) => task.title);
+    expect(titles).toContain("Complete core employee details and emergency contact");
+    expect(titles).toContain("Review and sign the employment contract");
+    expect(titles).toContain("Confirm applicable visa, permit and medical-fitness evidence");
+    expect(titles).toContain("Confirm applicable Emirates ID or application evidence");
+    expect(titles).toContain("Confirm applicable passport evidence");
+    expect(titles).toContain("Confirm applicable medical insurance evidence");
+    expect(titles).toContain("Confirm any applicable ILOE evidence");
+    expect(titles).toContain("Meet your manager and confirm first-month priorities");
+    expect(
+      getTemplatePack("uae_sme")!.tasks
+        .filter((task) => task.completionMode === "document_required")
+        .map((task) => task.title),
+    ).toEqual(["Review and sign the employment contract"]);
   });
 
   it("getTemplatePack resolves known ids and rejects unknown ids", () => {
