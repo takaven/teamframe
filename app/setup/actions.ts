@@ -199,9 +199,15 @@ export async function applyUaeSetupPackAction(formData:FormData):Promise<void>{
       applicable:formData.get(`suggested_leave_applicable_${template.key}`)==="on",
       entitlementDays:optNum(formData.get(`suggested_leave_days_${template.key}`)),
       countingBasis:s(formData.get(`suggested_leave_basis_${template.key}`))||null,
+      attachmentRequirement:s(formData.get(`suggested_leave_evidence_${template.key}`))||null,
     }];
   });
-  await run("applyUaeSetupPack","uae-pack",(actor)=>applyUaeSetupPack(actor,{weekend:s(formData.get("weekend")),annualEntitlement:Number(s(formData.get("annual_entitlement"))),annualCountingBasis:s(formData.get("annual_counting_basis")),sickEntitlement:Number(s(formData.get("sick_entitlement"))),entitlementTiming:s(formData.get("entitlement_timing"))||legacyTiming,carryForward:formData.get("carry_forward")==="on",carryCap:optNum(formData.get("carry_cap")),suggestedLeaves,confirmed:formData.get("confirmed")==="on"}));
+  await run("applyUaeSetupPack","uae-pack",(actor)=>{
+    const annualEntitlement=optNum(formData.get("annual_entitlement"));
+    const sickEntitlement=optNum(formData.get("sick_entitlement"));
+    if(annualEntitlement===null||sickEntitlement===null) throw new Error("UAE_SETUP_ENTITLEMENT_REQUIRED");
+    return applyUaeSetupPack(actor,{annualEntitlement,annualCountingBasis:s(formData.get("annual_counting_basis")),sickEntitlement,entitlementTiming:s(formData.get("entitlement_timing"))||legacyTiming,carryForward:formData.get("carry_forward")==="on",carryCap:optNum(formData.get("carry_cap")),suggestedLeaves,confirmed:formData.get("confirmed")==="on"});
+  });
 }
 
 // Whole-tenant portability export. The service enforces the complete Full

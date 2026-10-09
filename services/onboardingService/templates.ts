@@ -37,7 +37,7 @@ export const ONBOARDING_TEMPLATE_PACKS: readonly OnboardingTemplatePack[] = [
     name: "UAE starter checklist",
     description: "Editable starter checklist for a UAE office-based SME. Confirm every item against company policy before assigning it.",
     tasks: [
-      { title: "Review and sign the employment contract", dueOffsetDays: 0, completionMode: "document_required", requiredDocumentType: "contract" },
+      { title: "Confirm employment contract / signed employment terms evidence", dueOffsetDays: 0, completionMode: "manual_confirmation" },
       { title: "Complete core employee details and emergency contact", dueOffsetDays: 0 },
       { title: "Confirm applicable Emirates ID or application evidence", dueOffsetDays: 2 },
       { title: "Confirm applicable passport evidence", dueOffsetDays: 2 },

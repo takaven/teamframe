@@ -15,7 +15,7 @@ describe("marketability release closure",()=>{
   });
   it("requires explicit confirmation before applying the reusable UAE setup pack",()=>{
     const service=read("services/uaeSetupPackService.ts");const page=read("app/setup/page.tsx");
-    expect(service).toContain("confirmed: z.literal(true)");expect(service).toContain('country: "AE"');expect(service).toContain("UAE starter checklist");expect(page).toContain("I reviewed these editable company choices");expect(page).toContain("not a legal conclusion");
+    expect(service).toContain("confirmed: z.literal(true)");expect(service).not.toContain('country: "AE"');expect(service).not.toContain("copyStarterChecklist");expect(page).toContain("I reviewed these editable company choices");expect(page).toContain("not a legal conclusion");
     expect(page).toContain('definition?.accrual_enabled && definition.joining_date_pro_rata');
     expect(page).toContain('Needs review — choose one timing method');
   });

@@ -3,17 +3,11 @@ import "server-only";
 import { z } from "zod";
 import type { Actor } from "@/middleware/rbac";
 import {
-  getCompanySettings,
   listLeaveDefinitions,
-  updateCompanySettings,
   updateLeaveDefinition,
   type CountingBasis,
   type LeaveDefinition,
 } from "@/services/configurationService";
-import {
-  copyStarterChecklist,
-  listChecklistTemplates,
-} from "@/services/onboardingService/checklistTemplates";
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 
 const FEDERAL_LAW_URL = "https://uaelegislation.gov.ae/en/legislations/1541/download";
@@ -240,7 +234,7 @@ export const UAE_SUGGESTED_LEAVE_TEMPLATES = [
     defaultEntitlementDays: null,
     active: false,
     inactiveStorageBasis: "calendar_days" as CountingBasis,
-    attachmentRequirement: "optional" as const,
+    inactiveStorageAttachmentRequirement: "not_required" as const,
     reference: UAE_FEDERAL_REFERENCES.maternityLeave,
   },
   {
@@ -249,7 +243,7 @@ export const UAE_SUGGESTED_LEAVE_TEMPLATES = [
     defaultEntitlementDays: null,
     active: false,
     inactiveStorageBasis: "calendar_days" as CountingBasis,
-    attachmentRequirement: "optional" as const,
+    inactiveStorageAttachmentRequirement: "not_required" as const,
     reference: UAE_FEDERAL_REFERENCES.parentalLeave,
   },
   {
@@ -258,7 +252,7 @@ export const UAE_SUGGESTED_LEAVE_TEMPLATES = [
     defaultEntitlementDays: null,
     active: false,
     inactiveStorageBasis: "calendar_days" as CountingBasis,
-    attachmentRequirement: "not_required" as const,
+    inactiveStorageAttachmentRequirement: "not_required" as const,
     reference: UAE_FEDERAL_REFERENCES.bereavementLeave,
   },
   {
@@ -267,7 +261,7 @@ export const UAE_SUGGESTED_LEAVE_TEMPLATES = [
     defaultEntitlementDays: null,
     active: false,
     inactiveStorageBasis: "calendar_days" as CountingBasis,
-    attachmentRequirement: "optional" as const,
+    inactiveStorageAttachmentRequirement: "not_required" as const,
     reference: UAE_FEDERAL_REFERENCES.studyLeave,
   },
   {
@@ -276,7 +270,7 @@ export const UAE_SUGGESTED_LEAVE_TEMPLATES = [
     defaultEntitlementDays: null,
     active: false,
     inactiveStorageBasis: "calendar_days" as CountingBasis,
-    attachmentRequirement: "optional" as const,
+    inactiveStorageAttachmentRequirement: "not_required" as const,
     reference: UAE_FEDERAL_REFERENCES.hajjLeave,
   },
   {
@@ -285,7 +279,7 @@ export const UAE_SUGGESTED_LEAVE_TEMPLATES = [
     defaultEntitlementDays: null,
     active: false,
     inactiveStorageBasis: "calendar_days" as CountingBasis,
-    attachmentRequirement: "optional" as const,
+    inactiveStorageAttachmentRequirement: "not_required" as const,
     reference: UAE_FEDERAL_REFERENCES.nationalServiceLeave,
   },
 ] as const;
@@ -326,7 +320,6 @@ export const UAE_SETUP_PACK = {
 } as const;
 
 const Input = z.object({
-  weekend: z.enum(["friday_saturday", "saturday_sunday"]),
   annualEntitlement: z.number().min(0).max(365),
   annualCountingBasis: z.enum(["calendar_days", "working_days"]),
   sickEntitlement: z.number().min(0).max(365),
@@ -350,6 +343,7 @@ const Input = z.object({
     applicable: z.boolean(),
     entitlementDays: z.number().min(0).max(365).nullable(),
     countingBasis: z.enum(["calendar_days", "working_days"]).nullable(),
+    attachmentRequirement: z.enum(["not_required", "optional", "required"]).nullable(),
   }).superRefine((leave, context) => {
     if (!leave.applicable) return;
     if (leave.entitlementDays === null) {
@@ -357,6 +351,9 @@ const Input = z.object({
     }
     if (leave.countingBasis === null) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: "SUGGESTED_LEAVE_BASIS_REQUIRED", path: ["countingBasis"] });
+    }
+    if (leave.attachmentRequirement === null) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "SUGGESTED_LEAVE_EVIDENCE_REQUIRED", path: ["attachmentRequirement"] });
     }
   })).default([]).superRefine((leaves, context) => {
     const keys = new Set<string>();
@@ -399,7 +396,7 @@ async function applySuggestedLeaveConfiguration(
         active: configuration.applicable,
         default_entitlement_days: configuration.entitlementDays,
         counting_basis: configuration.countingBasis ?? definition.counting_basis,
-        attachment_requirement: definition.attachment_requirement,
+        attachment_requirement: configuration.attachmentRequirement ?? definition.attachment_requirement,
         accrual_enabled: definition.accrual_enabled,
         accrual_frequency: definition.accrual_frequency,
         joining_date_pro_rata: definition.joining_date_pro_rata,
@@ -419,7 +416,8 @@ async function applySuggestedLeaveConfiguration(
       // storage value is not shown as company policy and must be chosen explicitly
       // before activation.
       counting_basis: configuration?.countingBasis ?? template.inactiveStorageBasis,
-      attachment_requirement: template.attachmentRequirement,
+      attachment_requirement:
+        configuration?.attachmentRequirement ?? template.inactiveStorageAttachmentRequirement,
       is_system: false,
       sort_order: 100,
       accrual_enabled: false,
@@ -442,9 +440,6 @@ export type UaeHrBasicsSummaryItem = {
 
 export function buildUaeHrBasicsSummary(input: {
   leaveDefinitions: LeaveDefinition[];
-  currentYearHolidayCount: number;
-  hasUaeStarterChecklist: boolean;
-  hasPublishedPolicy: boolean;
 }): UaeHrBasicsSummaryItem[] {
   const annual = input.leaveDefinitions.find((definition) => definition.code === "annual");
   const sick = input.leaveDefinitions.find((definition) => definition.code === "sick");
@@ -479,28 +474,6 @@ export function buildUaeHrBasicsSummary(input: {
             ? `Annual and sick leave are configured. ${activeSuggestedCount}/${UAE_SUGGESTED_LEAVE_TEMPLATES.length} suggested additional leave types are active by company choice.`
             : "Configure active annual and sick leave with company entitlement days.",
     },
-    {
-      label: "Current-year holidays",
-      state: input.currentYearHolidayCount > 0 ? "configured" : "needs_setup",
-      detail:
-        input.currentYearHolidayCount > 0
-          ? `${input.currentYearHolidayCount} confirmed holiday date${input.currentYearHolidayCount === 1 ? "" : "s"} entered.`
-          : "Current-year public holidays have not been added.",
-    },
-    {
-      label: "UAE starter checklist",
-      state: input.hasUaeStarterChecklist ? "configured" : "needs_setup",
-      detail: input.hasUaeStarterChecklist
-        ? "The editable UAE starter checklist is available."
-        : "Apply the UAE setup pack to copy the starter checklist.",
-    },
-    {
-      label: "Policies",
-      state: input.hasPublishedPolicy ? "configured" : "needs_setup",
-      detail: input.hasPublishedPolicy
-        ? "At least one policy is published for acknowledgement."
-        : "No published policy is available for acknowledgement yet.",
-    },
   ];
 }
 
@@ -508,21 +481,11 @@ export async function applyUaeSetupPack(actor: Actor, input: unknown): Promise<v
   if (actor.role !== "admin" || !actor.tenantId) throw new Error("FORBIDDEN");
   const value = Input.parse(input);
   const db = createServiceRoleClient();
-  const [company, definitions, checklists] = await Promise.all([
-    getCompanySettings(actor),
-    listLeaveDefinitions(actor),
-    listChecklistTemplates(actor),
-  ]);
+  const definitions = await listLeaveDefinitions(actor);
   const annual = definitions.find((definition) => definition.code === "annual");
   const sick = definitions.find((definition) => definition.code === "sick");
   if (!annual || !sick) throw new Error("UAE_SETUP_LEAVE_DEFINITIONS_MISSING");
 
-  await updateCompanySettings(actor, {
-    ...company,
-    country: "AE",
-    default_working_days:
-      value.weekend === "friday_saturday" ? [7, 1, 2, 3, 4] : [1, 2, 3, 4, 5],
-  });
   await updateLeaveDefinition(actor, annual.id, {
     display_name: annual.display_name,
     system_leave_type: annual.system_leave_type,
@@ -552,9 +515,6 @@ export async function applyUaeSetupPack(actor: Actor, input: unknown): Promise<v
     carry_forward_cap_days: sick.carry_forward_cap_days,
   });
   await applySuggestedLeaveConfiguration(actor, definitions, value.suggestedLeaves, db);
-  if (!checklists.some((template) => template.name === "UAE starter checklist")) {
-    await copyStarterChecklist(actor, "uae_sme");
-  }
   const audit = await db.from("audit_logs")
     .insert({
       tenant_id: actor.tenantId,
