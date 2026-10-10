@@ -4,9 +4,13 @@
 
 **Product status:** `feature-complete for first-customer sale; commercial, customer-data and go-live gates remain separate`
 
-TeamFrame is available in two forms: **TeamFrame / Tool Only**, implemented and configured for a customer to operate with its own HR, Admin or Operations owner; and **TeamFrame + HR Service**, the same software with separately agreed TAKAVEN HR support. The service is optional and does not require a central operator platform or make TAKAVEN involvement part of every deployment.
+TeamFrame is the customer-facing product and service brand. **TeamFrame is owned by TAKAVEN.** That ownership does not make TAKAVEN part of the customer implementation, support workflow or HR-service proposition, and TeamFrame does not depend on parent-company involvement.
 
-TeamFrame is UAE-aware, company-flexible, operational and evidence-oriented. It does not guarantee legal compliance, provide legal advice, certify statutory status or claim to cover every UAE employment obligation.
+TeamFrame is available in two forms: **TeamFrame / Tool Only**, including agreed implementation, configuration, data import, training and handover for a customer to operate with its own HR, Admin or Operations owner; and **TeamFrame + HR Support**, the same software with separately agreed HR foundation, setup or operational support delivered under the TeamFrame brand. The optional support does not require a central operator platform.
+
+TeamFrame is designed to be configured and ready for handover within 48 hours once complete setup information and required access are available. This is a conditional implementation differentiator, not an unconditional SLA and not a promise that bespoke HR-policy or foundation work will always be completed within 48 hours.
+
+TeamFrame is UAE-aware, company-flexible, operational and evidence-oriented: **built to help UAE businesses stay on top of key employment requirements** and shaped around the realities of employing people in the UAE. It does not guarantee legal compliance, provide legal advice, certify statutory status or claim to cover every UAE employment obligation.
 
 ## Canonical Documents
 
@@ -47,7 +51,7 @@ Older V1/readiness/finalisation and launch-execution documents are retained as t
 
 1. **SEE → OWN → ACT → PROVE** is the product and operating principle: show what needs attention, identify ownership, support the next action and retain evidence of resolution.
 2. Tool Only customers operate the same independent product with their own HR, Admin or Operations owner after implementation and training.
-3. TeamFrame + HR Service adds agreed TAKAVEN support around that product; it is not a separate platform and does not justify features without customer/product value.
+3. TeamFrame + HR Support adds agreed HR foundation, setup or operational support under the TeamFrame brand; it is not a separate platform and does not justify features without customer/product value.
 4. UAE references inform company policy; they do not silently become company settings or employee applicability.
 
 TeamFrame People does not implement an ATS/recruiting pipeline. TeamFrame Hire is provided by the separate HirePass application and must not be rebuilt in this repository. TeamFrame is also intentionally not payroll, a full talent-management, OKR, 360-feedback, succession or compensation-performance platform, enterprise RBAC, statutory leave calculation or a workflow-builder platform.

@@ -10,12 +10,14 @@ Where older repository documents conflict with this file, this file controls unl
 
 TeamFrame is independently deployable HR software.
 
+TeamFrame is the customer-facing product and service brand. TeamFrame is owned by TAKAVEN, but ownership does not create a customer-facing parent-company role or make either offer dependent on parent-company involvement.
+
 This supports both commercial offers:
 
 - **TeamFrame / Tool Only:** the customer's internal HR, Admin or Operations owner uses the installation after implementation and handover.
-- **TeamFrame + HR Service:** TAKAVEN may receive explicitly authorised customer-local access for the agreed service scope.
+- **TeamFrame + HR Support:** the customer may explicitly authorise scoped, customer-local access needed to deliver the agreed TeamFrame support.
 
-The optional service does not create a permanent remote backdoor, central customer-data runtime or requirement for TAKAVEN to operate Tool Only installations.
+Optional TeamFrame HR Support does not create a permanent remote backdoor, central customer-data runtime or external-operator requirement for Tool Only installations.
 
 Each customer installation is isolated:
 
@@ -183,17 +185,17 @@ npm run access:bootstrap
 
 This is not a remote backdoor, does not create cross-customer access and does not introduce a permanent product role above Full Access.
 
-## 48-Hour Objective
+## Conditional 48-Hour Handover Positioning
 
-Forty-eight hours is an implementation process objective, not a customer-facing TeamFrame feature. Do not build in-product SLA timers, setup countdowns, central provisioning dashboards or handover dashboards.
+Forty-eight hours is an approved conditional implementation differentiator, not a customer-facing TeamFrame feature or unconditional SLA. Do not build in-product SLA timers, setup countdowns, central provisioning dashboards or handover dashboards.
 
-The operational promise is:
+Approved wording is:
 
 ```text
-A complete customer TeamFrame installation can be operational within 48 hours after a complete usable setup pack and necessary customer infrastructure/account access are available.
+TeamFrame is designed to be configured and ready for handover within 48 hours once complete setup information and required access are available.
 ```
 
-The installer handover report is sufficient evidence.
+This positioning does not apply while customer inputs or required access are incomplete and does not promise that bespoke HR-policy or foundation work will always be completed within 48 hours. The installer handover report is sufficient operational evidence; no SLA feature is required.
 
 ## Production Gates
 

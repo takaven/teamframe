@@ -232,7 +232,7 @@ These are intentional release boundaries, not defects:
 
 ## Production Release Status
 
-Historical deployment details above are retained for provenance. Current Takaven commercial delivery treats TeamFrame as source-ready and customer-deployment controlled: a real customer deployment requires an explicitly selected customer Vercel/Supabase target, current environment configuration, backup responsibility, post-deployment smoke verification and founder/customer-delivery approval.
+Historical deployment details above are retained for provenance. Current TeamFrame commercial delivery treats the product as source-ready and customer-deployment controlled: a real customer deployment requires an explicitly selected customer Vercel/Supabase target, current environment configuration, backup responsibility, post-deployment smoke verification and founder/customer-delivery approval.
 
 This sentence was a historical release statement and is not current branch authority. The live repository inventory and branch relationship are maintained in `docs/operations/ENVIRONMENTS.md`; Production release remains gated by `docs/operations/DEPLOYMENT.md`.
 

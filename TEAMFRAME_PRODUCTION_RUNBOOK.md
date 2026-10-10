@@ -323,7 +323,7 @@ Do not include secret values.
 
 ## 18. Current Repository State
 
-Historical deployment details above are retained as provenance. Current Takaven commercial delivery treats TeamFrame as source-ready and customer-deployment controlled.
+Historical deployment details above are retained as provenance. Current TeamFrame commercial delivery treats the product as source-ready and customer-deployment controlled.
 
 Current frozen product source at the 2026-09-26 checkpoint:
 
@@ -334,7 +334,7 @@ A real customer deployment requires an explicitly selected customer Vercel/Supab
 
 ## 19. First-Customer Implementation Input Gate
 
-The two-business-day implementation clock starts only when the operator records
+The conditional 48-hour implementation window starts only when the operator records
 `IMPLEMENTATION READY`. Otherwise return `CUSTOMER ACTION REQUIRED` with the
 specific row/field corrections.
 
