@@ -1,20 +1,19 @@
 # TeamFrame Deployment Runbook
 
-This is the current deployment control document. Historical deployment evidence remains in `TEAMFRAME_PRODUCTION_RUNBOOK.md` and `docs/launch/`, but it does not authorise a current deployment.
+**CURRENT STATUS (2026-10-10): Production rebuild COMPLETE.** Read [CURRENT-STATE.md](CURRENT-STATE.md) and [MANUAL-ACTIONS.md](MANUAL-ACTIONS.md) before any deployment operation.
 
-## Source of truth
+Current accepted Production:
+- repository: `takaven/teamframe`
+- branch: protected `main`
+- verified deployed SHA: `f7e9a42b0bfe7c21abe48722b2c01f82d2a0c8f9`
+- Vercel project: `teamframe-production`
+- verified deployment: `4XhWi9koWLXSVm9PseFQUQCCMz9`
+- domain: `https://app.takaven.com`
+- Supabase: `teamframe-production-uae` / `ttwsczpzjdjzuhchbyjx`
+- public health: healthy
+- customer data: not yet authorised; MA-001, MA-003, MA-009 and MA-010 remain
 
-- Repository: `takaven/teamframe`
-- Default/Production branch: `main`
-- Accepted main SHA: `30a0a85ea4ce8d71ff1435179cd740f4e824c165`
-- Retained launch/evidence branch: `launch/managed-people-ops-45-day`
-- Integration vehicle: PR #6, `TeamFrame launch consolidation`, merged
-- Founder Review project: `teamframe-founder-review`
-- Production project: `teamframe-production` (reserved shell; rebuild required)
-
-The Production project is a **REBUILD-ONLY HISTORICAL SHELL**. Its current Git history, deployment, variable values, cron, framework and Function region must not be treated as launch configuration. Follow [PRODUCTION-REBUILD-PLAN.md](PRODUCTION-REBUILD-PLAN.md).
-
-Never deploy from `ismaelloveexcel/TeamFrame`, `ismaelloveexcel/teamframe.v2`, a stale local checkout, or a Vercel project selected only by name.
+The previous rebuild-only-shell instructions are historical and must not be replayed.
 
 ## Branch strategy
 
@@ -27,43 +26,37 @@ Never deploy from `ismaelloveexcel/TeamFrame`, `ismaelloveexcel/teamframe.v2`, a
 
 `main` passed post-merge acceptance and is protected by the active `Protect main` ruleset. Pull requests are required; `Gate Chain (Strict)` and `Static Guard Suite (Phase 1D)` are required checks; force pushes and branch deletion are blocked.
 
-## Founder Review Preview
+## Founder Review / Prospect Demo
 
-1. Confirm the Vercel team is `ismaelloveexcels-projects`.
-2. Confirm project `teamframe-founder-review` is connected to `takaven/teamframe`.
-3. Confirm the deployment source is `launch/managed-people-ops-45-day`.
-4. Confirm Preview variables target `dcfxyjrfsrkibhpbmjnw` and are Preview-only.
-5. Push only with the applicable Preview/deployment authority.
-6. Verify the deployed SHA and use the stable branch Preview URL from [ENVIRONMENTS.md](ENVIRONMENTS.md).
-7. Run role-safe smoke checks; never send real external email from Review.
+Founder Review is synthetic-only and separate from Production. Current work is limited to stabilising a durable current-main login. Until that passes fresh-context repeat-login acceptance, retain the known historical Preview fallback. Do not weaken authentication, use customer data, or copy Founder Review configuration into Production.
 
-The default domain `teamframe-founder-review.vercel.app` currently represents an older Production deployment in the review project. Do not use it for acceptance.
-
-## Production preflight
+## Future Production change preflight
 
 Stop unless every item is explicit:
 
 - [ ] Production approval granted for this exact release and target
 - [ ] GitHub `main` protection is enabled and required checks are enforced
 - [ ] GitHub release SHA/tag recorded
-- [ ] `teamframe-production` connected to `takaven/teamframe`
-- [ ] Production branch is `main`
+- [x] `teamframe-production` connected to `takaven/teamframe`
+- [x] Production branch is `main`
 - [x] Production Supabase project name/ref recorded: `teamframe-production-uae` / `ttwsczpzjdjzuhchbyjx`
 - [ ] Vercel and Supabase account/team verified against [ACCOUNT-OWNERSHIP.md](ACCOUNT-OWNERSHIP.md)
 - [ ] local `.vercel/project.json`, if present, points to Production; no such file existed in the inventory worktree
 - [ ] Production environment variable names and targets validated without exposing values
-- [ ] fresh secrets generated; no Preview/rehearsal secret reused
+- [x] Production runtime secrets/configuration completed and accepted
 - [x] private `documents` bucket verified
-- [ ] Supabase Auth URL/redirect/SMTP configuration verified
+- [x] Supabase Auth URL/redirect/SMTP configuration verified
 - [ ] provider-managed database backup posture approved
 - [ ] off-platform database and Storage recovery plan approved
-- [ ] cron is `0 4 * * *`
-- [ ] public and protected health checks prepared
+- [x] cron configured at the approved Production cadence
+- [x] public health is healthy; protected deep health denies unauthorised access
 - [ ] rollback deployment identified
 - [ ] `npm run verify:release` passes
 - [ ] `git diff --check` passes
 
-## Production deployment
+## Production deployment / change procedure
+
+Production is already deployed. Use this procedure only for a separately approved future Production change.
 
 1. Verify the Vercel team/project and the target Supabase ref again.
 2. Configure Production variables from their authoritative providers. Do not copy Founder Review values.
