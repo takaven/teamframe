@@ -59,6 +59,7 @@ export type EmployeeFullRecord = OrgChartEmployee & {
   canonical_lifecycle: CanonicalEmployeeLifecycle;
   canonical_lifecycle_label: string;
   grade: string | null;
+  annual_leave_entitlement_override: number | null;
   setup_status: "incomplete" | "ready" | "active";
   invite_attempt_count: number;
   invite_last_attempt_at: string | null;
@@ -247,9 +248,9 @@ export async function listEmployeesForAdmin(actor: Actor): Promise<EmployeeFullR
   const tenantId = requireTenant(actor);
   const capabilities = await detectEmployeeTelemetryCapabilities();
   const baseSelect =
-    "id, tenant_id, full_name, employee_number, work_location, email, role_title, department, timezone, manager_id, status, employment_type, country, start_date, end_date, lifecycle_state, grade, setup_status, created_at, updated_at";
+    "id, tenant_id, full_name, employee_number, work_location, email, role_title, department, timezone, manager_id, status, employment_type, country, start_date, end_date, lifecycle_state, grade, annual_leave_entitlement_override, setup_status, created_at, updated_at";
   const legacyBaseSelect =
-    "id, tenant_id, full_name, employee_number, work_location, email, role_title, department, timezone, manager_id, status, grade, setup_status, created_at, updated_at";
+    "id, tenant_id, full_name, employee_number, work_location, email, role_title, department, timezone, manager_id, status, grade, annual_leave_entitlement_override, setup_status, created_at, updated_at";
   const telemetrySelect =
     "invite_attempt_count, invite_last_attempt_at, invite_last_sent_at, invite_last_error, activated_at";
   const selectColumns = capabilities.limitedMode ? baseSelect : `${baseSelect}, ${telemetrySelect}`;
@@ -455,6 +456,7 @@ function toEmployeeFullRecord(row: EmployeeRow): EmployeeFullRecord {
     canonical_lifecycle: canonicalLifecycle,
     canonical_lifecycle_label: canonicalLifecycleLabel(canonicalLifecycle),
     grade: row.grade,
+    annual_leave_entitlement_override: row.annual_leave_entitlement_override ?? null,
     setup_status: row.setup_status,
     invite_attempt_count: maybeTelemetry.invite_attempt_count ?? 0,
     invite_last_attempt_at: maybeTelemetry.invite_last_attempt_at ?? null,
@@ -892,7 +894,7 @@ export async function getEmployee(
   const { data, error } = await supabase
     .from("employees")
     .select(
-      "id, tenant_id, full_name, email, role_title, department, timezone, manager_id, status, employment_type, country, start_date, end_date, lifecycle_state, grade, setup_status, created_at, updated_at",
+      "id, tenant_id, full_name, email, role_title, department, timezone, manager_id, status, employment_type, country, start_date, end_date, lifecycle_state, grade, annual_leave_entitlement_override, setup_status, created_at, updated_at",
     )
     .eq("tenant_id", tenantId)
     .eq("id", employeeId)
@@ -1080,6 +1082,44 @@ export async function updateEmployee(
   }
 
   return toEmployeeFullRecord(data as EmployeeRow);
+}
+
+const AnnualLeaveEntitlementOverrideSchema = z.number().finite().min(0).max(365).multipleOf(0.01).nullable();
+
+export async function updateEmployeeAnnualLeaveEntitlementOverride(
+  actor: Actor,
+  employeeId: string,
+  override: unknown,
+  expectedUpdatedAt: string,
+): Promise<void> {
+  requireAdmin(actor);
+  const tenantId = requireTenant(actor);
+  const parsedOverride = AnnualLeaveEntitlementOverrideSchema.parse(override);
+  const parsedEmployeeId = z.string().uuid().parse(employeeId);
+
+  if (!expectedUpdatedAt) {
+    throw new Error("MISSING_EXPECTED_UPDATED_AT");
+  }
+
+  const { data, error } = await createServiceRoleClient()
+    .from("employees")
+    .update({ annual_leave_entitlement_override: parsedOverride } as never)
+    .eq("tenant_id", tenantId)
+    .eq("id", parsedEmployeeId)
+    .eq("updated_at", expectedUpdatedAt)
+    .is("deleted_at", null)
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`EMPLOYEE_ANNUAL_LEAVE_OVERRIDE_UPDATE_FAILED: ${error.message}`);
+  }
+  if (!data) {
+    const exists = await rowExistsForTenant(actor, parsedEmployeeId);
+    throw new Error(exists ? "STALE_WRITE" : "NOT_FOUND");
+  }
+
+  await writeAudit(actor, "employee.annual_leave_entitlement_override_updated", parsedEmployeeId, true);
 }
 
 export async function softDeleteEmployee(

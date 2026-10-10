@@ -111,3 +111,13 @@ Closure evidence: the founder explicitly chose to leave the repository public fo
 | L1 | M6 | Launch | Day-44 GO/MODIFY/STOP then conditional Day-45 public launch | M1–M5 | Public launch | Main Orchestrator | DEFERRED | 0h | Set later | No launch evidence yet | Gate must be evidence-based | Founder public-launch approval |
 
 Founder interruptions: password handoff for synthetic project was required operational input; repeated terminal visibility troubleshooting was avoidable and should not recur. No new founder approval is pending for governance.
+
+## Final product closeout — 2026-10-10
+
+| ID | Workstream | State | Target / ceiling | Stop condition |
+| -- | ---------- | ----- | ---------------- | -------------- |
+| FPC | Product-code closeout | PASS | Target 3h; max 5h active | Stop before schema or migration work, leave-calculation changes, new Performance states/workflows, auth/environment changes, appraisal-document architecture, or any product capability beyond the existing employee entitlement override and Performance comprehension fixes. |
+
+Authorised scope: expose the existing nullable employee annual-leave entitlement override in the Admin employee record using current update, audit and concurrency patterns; clarify the existing Performance workflow, identities and human stage labels without changing stored statuses or permissions. Product code freezes after verification unless first-customer evidence or a genuine production defect reopens it.
+
+Closure evidence: PR #21 merged the previously verified UX-only commit `48019c0ebc3bbf64ec31e8f9bfe4f08f45eeed76` into main at `cfa8a353c230ba2f2efbd62abe11cf4a55bbf7fc`. The closeout branch exposes the existing employee override through an Admin-only, audited and concurrency-checked update; clearing it restores the existing company-default projection. Performance adds only a three-step explanation, employee/reviewer identity and human labels over the unchanged stored state machine. Focused tests 23/23 PASS; full serial suite 553 PASS / 2 skipped; typecheck, lint, four security/static guards, production build and diff check PASS. Responsive source checks cover the stacked 390px disclosure and workflow layouts; authenticated branch-preview screenshots remain intentionally not run because the accepted magic-link callback points outside the disposable Preview, with no auth or environment workaround introduced.

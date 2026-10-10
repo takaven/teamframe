@@ -53,6 +53,7 @@ import {
   uploadEmployeeDocumentAction,
   uploadUaeRecordAction,
   updateEmployeePersonalProfileAction,
+  updateEmployeeAnnualLeaveEntitlementOverrideAction,
 } from "@/app/employees/actions";
 import { AppShell } from "@/components/AppShell";
 import { getCompanyIdentity } from "@/lib/company/identity";
@@ -95,6 +96,7 @@ const STATUS_COPY: Record<string, string> = {
   employment_change_recorded: "Employment change recorded.",
   employment_change_cancelled: "Employment change cancelled.",
   compensation_saved: "Compensation updated.",
+  annual_leave_entitlement_updated: "Annual leave entitlement updated.",
 };
 
 const ERROR_COPY: Record<string, string> = {
@@ -111,6 +113,7 @@ const ERROR_COPY: Record<string, string> = {
   HIRE_HANDOFF_FAILED: "The TeamFrame Hire transfer failed; no partial person was saved.",
   HIRE_HANDOFF_DISABLED: "TeamFrame Hire transfer is not enabled for this workspace.",
   EMPLOYEE_UPDATE_FAILED: "Could not update employee.",
+  EMPLOYEE_ANNUAL_LEAVE_OVERRIDE_UPDATE_FAILED: "Could not update the annual leave entitlement.",
   EMPLOYEE_DELETE_FAILED: "Could not archive employee.",
   OFFBOARDING_START_FAILED: "Could not start offboarding.",
   OFFBOARDING_END_DATE_REQUIRED: "Choose an effective end date before starting offboarding.",
@@ -604,6 +607,7 @@ export async function PeopleExperience({
                 const offboarding = offboardingByEmployee.get(employee.id) ?? null;
                 const offboardingLeave = offboardingLeaveByEmployee.get(employee.id) ?? null;
                 const leaveOverview = leaveOverviews.get(employee.id);
+                const annualLeaveBalance = leaveOverview?.balances.find((balance) => balance.system_leave_type === "annual");
                 const position = positionByEmployeeId.get(employee.id);
                 const resendGuidance = resendBlocked
                   ? `Re-send cooldown active: retry in ${resendCooldownSeconds}s.`
@@ -746,6 +750,43 @@ export async function PeopleExperience({
                         {balance.timing_review_required ? <p className="mt-1 text-[11px] font-medium text-signal-amber">Timing settings require review</p> : null}
                       </div>
                     ))}
+                  </div>
+                  <div className="mt-4 rounded-lg border border-ink-200 bg-ink-50/50 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-[13px] font-semibold text-ink-900">Annual leave entitlement</p>
+                        <p className="mt-1 text-[12px] text-ink-600">
+                          Effective entitlement: <strong>{annualLeaveBalance?.entitlement ?? "—"} days</strong>
+                        </p>
+                        <p className="mt-1 text-[12px] text-ink-500">
+                          {employee.annual_leave_entitlement_override === null
+                            ? "Company default is used because this employee has no override."
+                            : `Employee override: ${employee.annual_leave_entitlement_override} days.`}
+                        </p>
+                      </div>
+                      <details className="w-full sm:w-auto sm:min-w-64">
+                        <summary className="tf-secondary-action cursor-pointer px-3 py-1.5 text-[12px]">Edit entitlement</summary>
+                        <form action={updateEmployeeAnnualLeaveEntitlementOverrideAction} className="mt-3 grid gap-3 rounded-lg border border-ink-200 bg-white p-4">
+                          <input type="hidden" name="employee_id" value={employee.id} />
+                          <input type="hidden" name="expected_updated_at" value={employee.updated_at} />
+                          <input type="hidden" name="return_to" value={`/people/${employee.id}?tab=time-off`} />
+                          <label className="text-[12px] text-ink-600">
+                            Annual leave entitlement override (days)
+                            <input
+                              name="annual_leave_entitlement_override"
+                              type="number"
+                              min="0"
+                              max="365"
+                              step="0.01"
+                              defaultValue={employee.annual_leave_entitlement_override ?? ""}
+                              className="tf-input mt-1"
+                            />
+                          </label>
+                          <p className="text-[12px] text-ink-500">Leave blank to use the company default.</p>
+                          <PendingSubmitButton idleLabel="Save entitlement" pendingLabel="Saving…" className="tf-primary-action px-3 py-2 text-[12px]" />
+                        </form>
+                      </details>
+                    </div>
                   </div>
                   <div className="mt-4 divide-y divide-ink-100 border-t border-ink-100">
                     {(leaveOverview?.requests ?? []).slice(0, 8).map((request) => (

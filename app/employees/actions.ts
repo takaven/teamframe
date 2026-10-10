@@ -11,6 +11,7 @@ import {
   reinviteEmployee,
   softDeleteEmployee,
   updateEmployee,
+  updateEmployeeAnnualLeaveEntitlementOverride,
 } from "@/services/employeeService";
 import {
   cancelEmploymentChange,
@@ -84,6 +85,16 @@ const UpdateInputSchema = z.object({
   end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   status: z.enum(["active", "on_leave", "inactive"]),
   lifecycle_state: z.enum(["preboarding", "active", "on_leave", "offboarding", "exited"]).optional(),
+});
+
+const UpdateAnnualLeaveEntitlementOverrideInputSchema = z.object({
+  employee_id: z.string().uuid(),
+  expected_updated_at: z.string().trim().min(1),
+  annual_leave_entitlement_override: z.preprocess(
+    (value) => typeof value === "string" && value.trim() === "" ? null : value,
+    z.coerce.number().finite().min(0).max(365).multipleOf(0.01).nullable(),
+  ),
+  return_to: z.string().trim().optional(),
 });
 
 const StartOffboardingInputSchema = z.object({
@@ -418,6 +429,58 @@ export async function updateEmployeeAction(formData: FormData): Promise<void> {
   }
 
   redirect("/people?status=updated");
+}
+
+export async function updateEmployeeAnnualLeaveEntitlementOverrideAction(formData: FormData): Promise<void> {
+  const start = Date.now();
+  const requestId = crypto.randomUUID();
+  let actor: Awaited<ReturnType<typeof requireTenantActor>> | null = null;
+  let caughtError: unknown = null;
+  let employeeId = typeof formData.get("employee_id") === "string" ? String(formData.get("employee_id")) : "";
+  let returnTo = safeReturnPath(optionalString(formData.get("return_to")), "/people");
+
+  try {
+    actor = await requireTenantActor();
+    const parsed = UpdateAnnualLeaveEntitlementOverrideInputSchema.parse({
+      employee_id: formData.get("employee_id"),
+      expected_updated_at: formData.get("expected_updated_at"),
+      annual_leave_entitlement_override: formData.get("annual_leave_entitlement_override"),
+      return_to: optionalString(formData.get("return_to")),
+    });
+    employeeId = parsed.employee_id;
+    returnTo = safeReturnPath(parsed.return_to, `/people/${encodeURIComponent(parsed.employee_id)}?tab=time-off`);
+
+    await updateEmployeeAnnualLeaveEntitlementOverride(
+      actor,
+      parsed.employee_id,
+      parsed.annual_leave_entitlement_override,
+      parsed.expected_updated_at,
+    );
+  } catch (error) {
+    caughtError = error;
+  }
+
+  const durationMs = Date.now() - start;
+  logAction({
+    action: "updateEmployeeAnnualLeaveEntitlementOverride",
+    actorUserId: actor?.authUserId ?? null,
+    actorTenantId: actor?.tenantId ?? null,
+    durationMs,
+    outcome: caughtError ? "fail" : "ok",
+    error: caughtError ?? undefined,
+    requestId,
+  });
+
+  if (caughtError !== null) {
+    captureActionError("updateEmployeeAnnualLeaveEntitlementOverride", caughtError, {
+      actor_user_id: actor?.authUserId ?? null,
+      actor_tenant_id: actor?.tenantId ?? null,
+      employee_id: employeeId || null,
+    });
+    redirect(`${returnTo}${returnTo.includes("?") ? "&" : "?"}error=${encodeURIComponent(getErrorCode(caughtError))}`);
+  }
+
+  redirect(`${returnTo}${returnTo.includes("?") ? "&" : "?"}status=annual_leave_entitlement_updated`);
 }
 
 export async function saveCompensationAction(formData: FormData): Promise<void> {

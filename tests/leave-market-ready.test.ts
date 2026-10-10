@@ -7,6 +7,9 @@ const leavesSchema = readFileSync(join(root, "schemas", "leaves.sql"), "utf8");
 const mutations = readFileSync(join(root, "schemas", "transactional_mutations.sql"), "utf8");
 const accrual = readFileSync(join(root, "schemas", "20261004_leave_accrual.sql"), "utf8");
 const service = readFileSync(join(root, "services", "leaveService", "index.ts"), "utf8");
+const employeeService = readFileSync(join(root, "services", "employeeService", "index.ts"), "utf8");
+const employeeActions = readFileSync(join(root, "app", "employees", "actions.ts"), "utf8");
+const people = readFileSync(join(root, "components", "PeopleExperience.tsx"), "utf8");
 const page = readFileSync(join(root, "app", "leaves", "page.tsx"), "utf8");
 const documentService = readFileSync(join(root, "services", "documentService", "index.ts"), "utf8");
 
@@ -182,6 +185,19 @@ describe("MR-6 leave market-ready scope", () => {
     expect(service).toContain("annual_leave_entitlement_override");
     expect(service).toContain("annualAllocation - annual.pending - annual.approved");
     expect(service).toContain("periodForYear");
+  });
+
+  it("lets an admin maintain the existing employee annual entitlement override without changing the leave engine", () => {
+    expect(employeeService).toContain("updateEmployeeAnnualLeaveEntitlementOverride");
+    expect(employeeService).toContain("annual_leave_entitlement_override: parsedOverride");
+    expect(employeeService).toContain('.eq("updated_at", expectedUpdatedAt)');
+    expect(employeeService).toContain('employee.annual_leave_entitlement_override_updated');
+    expect(employeeActions).toContain('value.trim() === "" ? null : value');
+    expect(employeeActions).toContain(".min(0).max(365)");
+    expect(people).toContain("Effective entitlement:");
+    expect(people).toContain("Leave blank to use the company default.");
+    expect(people).toContain('className="w-full sm:w-auto sm:min-w-64"');
+    expect(service).toContain('d.system_leave_type==="annual"&&annualOverride!=null?Number(annualOverride):d.default_entitlement_days');
   });
 
   it("enforces overlap, lifecycle and insufficient balance in transactional RPCs", () => {
