@@ -5,7 +5,7 @@
 - **Authentication method**: two-tier Supabase Auth
   - Admin/Finance/Full Access operators: email + password at `/admin/login`
   - Employees: Magic Link at `/auth`
-- **No password reset flows** exist
+- TeamFrame supports completion of an authorised password-recovery link. It does **not** expose a public in-product password-reset request flow
 - **No OAuth providers** allowed
 - **No ordinary-user MFA requirement** in V1
 
@@ -14,6 +14,13 @@ User identity is always:
 - a Supabase Auth user, keyed by email;
 - resolved server-side from the Supabase SSR cookie;
 - authorized through local company membership and effective access.
+
+## Password Recovery Boundary
+
+- Password recovery is only completed after an authorised recovery link has been issued through the approved provider/admin process.
+- The application verifies the recovery callback and permits the user to set a new password through the bounded update flow.
+- There is no public "Forgot password" request form in the product.
+- Recovery does not create a new role or bypass normal customer-local authorization.
 
 ## Employee Login Flow
 
