@@ -26,7 +26,7 @@ function dateOrDash(value: string | null): string {
   return value ? humaneDate(value) : "—";
 }
 
-export default async function DocumentsPage({ searchParams }: { searchParams: Promise<{ view?: string; status?: string; error?: string }> }) {
+export default async function DocumentsPage({ searchParams }: { searchParams: Promise<{ view?: string; action?: string; status?: string; error?: string }> }) {
   const actor = await requireTenantActor();
   const params = await searchParams;
   const view = params.view === "expiring" || params.view === "all" || params.view === "employee-requests" ? params.view : "outstanding";
@@ -59,7 +59,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
           <h1 className="text-[34px] leading-tight tracking-tight">Documents</h1>
           <p className="text-[14px] text-ink-500">Request, review and monitor employee documents in one place.</p>
         </div>
-        {view !== "employee-requests" ? <a href="#request-document" className="tf-primary-action px-4 py-2 text-[13px]">Request document</a> : null}
+        {view !== "employee-requests" ? <a href="/documents?action=request#request-document" className="tf-primary-action px-4 py-2 text-[13px]">Request document</a> : null}
       </header>
       {params.status === "document_request_in_progress" ? <p role="status" aria-live="polite" className="mt-6 rounded-lg border border-accent/70 bg-white/80 px-4 py-3 text-[14px] text-accent">Document request marked in progress.</p> : null}
       {params.status === "document_request_ready" ? <p role="status" aria-live="polite" className="mt-6 rounded-lg border border-accent/70 bg-white/80 px-4 py-3 text-[14px] text-accent">Final document uploaded. The document is ready for the employee.</p> : null}
@@ -129,10 +129,15 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
         </table></div></section>
       )}
 
-      {view !== "employee-requests" ? <section id="request-document" className="mt-8 tf-surface-flat p-5 scroll-mt-8">
-        <h2 className="text-[18px] font-semibold">Request document</h2>
-        <p className="mt-1 text-[13px] text-ink-500">The request appears here and in the person’s record.</p>
-        <form action={createDocumentRequirementAction} className="mt-5 grid gap-3 md:grid-cols-3">
+      {view !== "employee-requests" ? <details id="request-document" open={params.action === "request"} className="group mt-8 tf-surface-flat scroll-mt-8">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-[15px] font-semibold text-ink-800 [&::-webkit-details-marker]:hidden">
+          <span>Request a document from an employee</span>
+          <span className="text-[12px] font-semibold text-ink-500 group-open:hidden">Show form</span>
+          <span className="hidden text-[12px] font-semibold text-ink-500 group-open:inline">Hide form</span>
+        </summary>
+        <div className="border-t border-ink-200 p-5">
+        <p className="text-[13px] leading-relaxed text-ink-500">The request appears here and in the person’s record.</p>
+        <form action={createDocumentRequirementAction} className="mt-4 grid gap-3 md:grid-cols-3">
           <input type="hidden" name="return_to" value="/documents" />
           <label className="text-[12px] text-ink-500">Person<select name="employee_id" required className="tf-select-sm mt-1 w-full"><option value="">Select person</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.full_name}</option>)}</select></label>
           <label className="text-[12px] text-ink-500">Document type<select name="document_type" defaultValue="passport" className="tf-select-sm mt-1 w-full">{UAE_RECORD_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}<option value="contract">Employment contract</option><option value="right_to_work">Right to work (non-UAE)</option><option value="jd">Job description</option></select></label>
@@ -142,7 +147,8 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
           <label className="flex items-center gap-2 text-[12px] text-ink-600"><input type="checkbox" name="employee_upload_allowed" defaultChecked/>Employee can upload</label>
           <div className="md:col-span-3"><PendingSubmitButton idleLabel="Request document" pendingLabel="Requesting…" className="tf-primary-action px-4 py-2 text-[13px]"/></div>
         </form>
-      </section> : null}
+        </div>
+      </details> : null}
     </main>
   );
 }

@@ -855,7 +855,6 @@ main:has(> .tf-app-shell) { background: var(--tf-canvas); }
 }
 .tf-summary > *:first-child { border-left: 0; }
 .tf-summary-label { display: inline-flex; align-items: center; gap: 6px; color: var(--tf-titanium); font-size: 12px; font-weight: 600; }
-.tf-summary-label::after { content: ""; width: 4px; height: 4px; border-radius: 999px; background: var(--tf-lime); box-shadow: 0 0 0 1px rgba(32,36,43,.1); }
 .tf-summary-value { display: block; margin-top: 3px; color: var(--tf-charcoal); font-size: 23px; font-weight: 750; line-height: 1.1; }
 
 /* Explicit surface vocabulary. Elevation follows visual meaning, never incidental markup. */
