@@ -1,6 +1,6 @@
 # TeamFrame — Product and optional HR support scope
 
-**Status: controlling commercial scope.** The [execution ledger](docs/launch/EXECUTION_LEDGER.md) governs current work. The [45-day plan](docs/launch/TEAMFRAME_45_DAY_EXECUTION_PLAN.md) remains historical execution provenance. Existing technical documents remain authoritative for implemented behaviour, not for superseded market positioning.
+**Status: controlling commercial scope.** Current operational status is summarised in [CURRENT-STATE](docs/operations/CURRENT-STATE.md), current environment identities are governed by [ENVIRONMENTS](docs/operations/ENVIRONMENTS.md), and outstanding founder/account-owner actions are governed by [MANUAL-ACTIONS](docs/operations/MANUAL-ACTIONS.md). The [execution ledger](docs/launch/EXECUTION_LEDGER.md) and [45-day plan](docs/launch/TEAMFRAME_45_DAY_EXECUTION_PLAN.md) are historical execution provenance. Existing technical documents remain authoritative within their technical domain, not for superseded market positioning.
 
 TeamFrame is UAE-focused HR software for startups and growing small teams. It helps businesses establish and maintain core HR controls relevant to UAE employment requirements while leaving company policy and employee applicability explicit. Payroll, tax, employment-law advice, complex employee relations, immigration/legal advice and other specialist judgement remain outside the product and standard service scope.
 
