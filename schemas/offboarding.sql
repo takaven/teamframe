@@ -406,8 +406,7 @@ begin
   update employees
   set status = 'inactive',
       lifecycle_state = 'exited',
-      end_date = v_case.effective_end_date,
-      deleted_at = coalesce(deleted_at, clock_timestamp())
+      end_date = v_case.effective_end_date
   where tenant_id = p_tenant_id
     and id = v_case.employee_id
     and deleted_at is null;
