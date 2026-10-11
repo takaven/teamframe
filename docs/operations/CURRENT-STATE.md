@@ -4,18 +4,19 @@
 
 Last reconciled: 2026-10-10
 
-This file is the first document any human or agent must read before changing TeamFrame operations, deployment, access, launch status or repository state.
+This file is the concise first-read summary of TeamFrame's current operational status. It does not override domain-specific authorities. If current authority documents conflict, stop and reconcile them against live state before making an operational change.
 
-If another repository document conflicts with this file, this file controls unless a newer founder-approved decision explicitly supersedes it.
+## Domain authorities
 
-## Source of truth order
+- `CURRENT-STATE.md` — concise current operational status and remaining launch boundary.
+- `ENVIRONMENTS.md` — authoritative infrastructure identities.
+- `MANUAL-ACTIONS.md` — authoritative outstanding founder/account-owner actions.
+- `DEPLOYMENT.md` — authoritative current deployment/change procedure.
+- `TEAMFRAME_ACCESS_MODEL.md` — customer deployment and access model.
+- `TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE.md` and `docs/launch/DECISIONS.md` — current product/commercial positioning and founder-approved decisions.
+- completed plans, launch ledgers and historical release records — provenance only.
 
-1. `docs/operations/CURRENT-STATE.md` — current operational truth.
-2. `docs/operations/MANUAL-ACTIONS.md` — remaining founder/account-owner gates.
-3. `docs/operations/ENVIRONMENTS.md` — current environment identities.
-4. `docs/operations/DEPLOYMENT.md` and `TEAMFRAME_PRODUCTION_RUNBOOK.md` — current deployment/operations procedure.
-5. `TEAMFRAME_ACCESS_MODEL.md` and `TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE.md` — current product/commercial model.
-6. `docs/launch/*`, completed plans and historical release records — provenance only; they do not override current state.
+If these current authority documents disagree, do not choose one mechanically. Verify the live state and reconcile the documents before proceeding.
 
 Do not infer current production status from an old launch branch, old SHA, historical Vercel deployment, retired Supabase project, or superseded launch plan.
 
@@ -27,14 +28,14 @@ Do not infer current production status from an old launch branch, old SHA, histo
 - Owner: **TAKAVEN**.
 - TAKAVEN is not the customer implementation/support/HR-service proposition.
 - Commercial implementation can state that TeamFrame is designed to be configured and ready for handover within 48 hours once complete usable setup information and required access are available.
-- UAE positioning may state that TeamFrame helps businesses stay compliant with UAE Labour Law; this is operational support, not legal advice or a guarantee of statutory compliance.
+- Customer-facing UAE marketing wording and its limits are governed by `docs/launch/DECISIONS.md`; this operational file does not restate marketing claims.
 
 ## Canonical source
 
 - Repository: `takaven/teamframe`
 - Protected production branch: `main`
-- Current verified main SHA at reconciliation: `f7e9a42b0bfe7c21abe48722b2c01f82d2a0c8f9`
-- Open PRs at reconciliation: 0 before this documentation-cleanup branch.
+- Source policy: protected `main` is authoritative.
+- Last verified source checkpoint (2026-10-10): `f7e9a42b0bfe7c21abe48722b2c01f82d2a0c8f9`.
 - Historical merged branches are not current source authority.
 
 ## Production
