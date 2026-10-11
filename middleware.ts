@@ -2,7 +2,27 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { CookieOptions } from "@supabase/ssr";
 import { createServerClient } from "@supabase/ssr";
 
-const PROTECTED_PREFIXES = ["/dashboard", "/employees", "/leaves", "/onboarding", "/policies", "/me"] as const;
+const PROTECTED_PREFIXES = [
+  "/access",
+  "/company",
+  "/dashboard",
+  "/directory",
+  "/documents-and-policies",
+  "/documents",
+  "/early-employment",
+  "/employees",
+  "/home",
+  "/leaves",
+  "/manager",
+  "/me",
+  "/onboarding",
+  "/org-chart",
+  "/people",
+  "/performance",
+  "/policies",
+  "/reports",
+  "/setup",
+] as const;
 const PUBLIC_PATHS = ["/admin/login"] as const;
 
 function isProtectedPath(pathname: string): boolean {
@@ -71,14 +91,39 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/access/:path*",
+    "/access",
+    "/company/:path*",
+    "/company",
     "/dashboard/:path*",
+    "/directory/:path*",
+    "/directory",
+    "/documents-and-policies/:path*",
+    "/documents-and-policies",
+    "/documents/:path*",
+    "/documents",
+    "/early-employment/:path*",
+    "/early-employment",
     "/employees/:path*",
+    "/home/:path*",
+    "/home",
     "/leaves/:path*",
-    "/onboarding/:path*",
-    "/policies/:path*",
-    "/policies",
-    "/admin/login",
+    "/manager/:path*",
+    "/manager",
     "/me/:path*",
     "/me",
+    "/onboarding/:path*",
+    "/org-chart/:path*",
+    "/org-chart",
+    "/people/:path*",
+    "/performance/:path*",
+    "/performance",
+    "/policies/:path*",
+    "/policies",
+    "/reports/:path*",
+    "/reports",
+    "/setup/:path*",
+    "/setup",
+    "/admin/login",
   ],
 };
