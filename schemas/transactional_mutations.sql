@@ -1339,7 +1339,7 @@ revoke all on function teamframe_complete_guided_company_setup(
 revoke all on function teamframe_update_employee(uuid, uuid, uuid, timestamptz, jsonb) from public, anon, authenticated;
 revoke all on function teamframe_archive_employee(uuid, uuid, uuid, timestamptz) from public, anon, authenticated;
 revoke all on function teamframe_calculate_leave_days(uuid, uuid, date, date) from public, anon, authenticated;
-revoke all on function teamframe_submit_leave(uuid, uuid, uuid, date, date, leave_type, text, uuid, text, uuid) from public, anon, authenticated;
+revoke all on function teamframe_submit_leave(uuid, uuid, uuid, date, date, leave_type, text, uuid, text, uuid, text) from public, anon, authenticated;
 revoke all on function teamframe_decide_leave(uuid, uuid, uuid, leave_status, timestamptz, boolean, text, text) from public, anon, authenticated;
 revoke all on function teamframe_withdraw_leave(uuid, uuid, uuid, uuid, timestamptz, text) from public, anon, authenticated;
 revoke all on function teamframe_cancel_approved_leave(uuid, uuid, uuid, timestamptz, text) from public, anon, authenticated;
@@ -1367,7 +1367,7 @@ grant execute on function teamframe_complete_guided_company_setup(
 grant execute on function teamframe_update_employee(uuid, uuid, uuid, timestamptz, jsonb) to service_role;
 grant execute on function teamframe_archive_employee(uuid, uuid, uuid, timestamptz) to service_role;
 grant execute on function teamframe_calculate_leave_days(uuid, uuid, date, date) to service_role;
-grant execute on function teamframe_submit_leave(uuid, uuid, uuid, date, date, leave_type, text, uuid, text, uuid) to service_role;
+grant execute on function teamframe_submit_leave(uuid, uuid, uuid, date, date, leave_type, text, uuid, text, uuid, text) to service_role;
 grant execute on function teamframe_decide_leave(uuid, uuid, uuid, leave_status, timestamptz, boolean, text, text) to service_role;
 grant execute on function teamframe_withdraw_leave(uuid, uuid, uuid, uuid, timestamptz, text) to service_role;
 grant execute on function teamframe_cancel_approved_leave(uuid, uuid, uuid, timestamptz, text) to service_role;
