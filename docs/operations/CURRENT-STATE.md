@@ -2,7 +2,7 @@
 
 **STATUS: CANONICAL CURRENT-STATE RECORD**
 
-Last reconciled: 2026-10-10
+Last reconciled: 2026-10-11
 
 This file is the concise first-read summary of TeamFrame's current operational status. It does not override domain-specific authorities. If current authority documents conflict, stop and reconcile them against live state before making an operational change.
 
@@ -45,8 +45,8 @@ Production is **deployed and healthy for pre-revenue/synthetic operation**.
 - Vercel project: `teamframe-production`
 - Vercel project ID: `prj_09tvdrEWbL1Ov9SFMtrhgYnJ0bNj`
 - Source: protected `main`
-- Verified deployment at reconciliation: `4XhWi9koWLXSVm9nPseFQUQCCMz9`
-- Verified source SHA: `f7e9a42b0bfe7c21abe48722b2c01f82d2a0c8f9`
+- Last verified deployment checkpoint (2026-10-10): `4XhWi9koWLXSVm9nPseFQUQCCMz9`
+- Last verified source checkpoint (2026-10-10): `f7e9a42b0bfe7c21abe48722b2c01f82d2a0c8f9`
 - Customer-facing domain: `https://app.takaven.com`
 - Public root: healthy
 - `/api/health`: healthy
@@ -59,6 +59,8 @@ Production is **deployed and healthy for pre-revenue/synthetic operation**.
 - Auth hostname/redirect alignment: completed and accepted
 
 The old statement that `teamframe-production` is a disconnected rebuild-only historical shell is **obsolete** and must not be used.
+
+These exact identifiers are dated evidence, not permanent current state. Reverify the live GitHub, Vercel and Supabase targets before any operational write.
 
 ## Production data platform
 
@@ -142,7 +144,7 @@ Agents must not:
 ## Current priorities
 
 1. Stabilise durable Founder Review access for prospect demos and screenshots.
-2. Reconcile/remove stale operational documentation and secret-bearing current text.
+2. Complete MA-002 credential rotation and consolidation before stable Founder Review / prospect-demo acceptance.
 3. Retire merged remote branches after Founder Review no longer depends on the historical launch Preview.
 4. Proceed with sales, demos and website launch.
 5. When the first paying customer is ready, complete MA-001, MA-003, MA-009 and MA-010, then load that customer's data only after separate approval.

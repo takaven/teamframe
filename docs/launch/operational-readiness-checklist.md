@@ -1,5 +1,7 @@
 # Operational Readiness Checklist
 
+> **HISTORICAL / COMPLETED READINESS CHECKLIST — NOT CURRENT OPERATIONS AUTHORITY.** The dated checkpoint and unchecked boxes below preserve launch-era evidence. Use [CURRENT-STATE.md](../operations/CURRENT-STATE.md), [ENVIRONMENTS.md](../operations/ENVIRONMENTS.md), [MANUAL-ACTIONS.md](../operations/MANUAL-ACTIONS.md) and [DEPLOYMENT.md](../operations/DEPLOYMENT.md) for current status and remaining gates.
+
 All items must be checked before public launch. Each item links to the relevant runbook or verification artifact where one exists.
 
 Current environment identity and deployment authority are governed by `docs/operations/ENVIRONMENTS.md` and `docs/operations/DEPLOYMENT.md`.

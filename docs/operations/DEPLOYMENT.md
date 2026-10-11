@@ -27,6 +27,8 @@ The previous rebuild-only-shell instructions are historical and must not be repl
 
 `main` passed post-merge acceptance and is protected by the active `Protect main` ruleset. Pull requests are required; `Gate Chain (Strict)` and `Static Guard Suite (Phase 1D)` are required checks; force pushes and branch deletion are blocked.
 
+`teamframe-production` is Git-connected to protected `main`. Merging an approved pull request may therefore trigger the normal Vercel Production deployment automatically. A documentation-only change performs no manual deployment or provider-configuration operation, but its merge must not be described as having zero deployment effect; verify the resulting deployment SHA and health after merge.
+
 ## Founder Review / Prospect Demo
 
 Founder Review is synthetic-only and separate from Production. Current work is limited to stabilising a durable current-main login. Until that passes fresh-context repeat-login acceptance, retain the known historical Preview fallback. Do not weaken authentication, use customer data, or copy Founder Review configuration into Production.

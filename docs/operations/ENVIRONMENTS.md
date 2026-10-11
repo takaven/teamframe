@@ -1,102 +1,89 @@
 # TeamFrame Environment Registry
 
-This is the canonical registry for current TeamFrame infrastructure. Historical evidence may retain older names and refs, but it does not override this file.
+**STATUS: CURRENT INFRASTRUCTURE IDENTITY REGISTRY**
 
-Last verified: 2026-10-01 after the approved Free-plan Production foundation installation. No customer data was loaded and Vercel Production was not changed.
+Last reconciled: 2026-10-11. Exact SHAs and deployment IDs below are dated checkpoints, not permanent current state. Reverify live provider state before any operational write.
 
-## Authoritative architecture
+Historical evidence may retain older names and refs, but it does not override this registry.
 
-| Purpose | GitHub | Branch | Vercel | Supabase | Region | Data | Status | Deployment authority |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Local development | `takaven/teamframe` | short-lived working branch | None required | Explicitly selected non-Production target only | Target-specific | Synthetic unless customer approval says otherwise | ACTIVE | Developer/operator; no external deployment implied |
-| Founder Review | `takaven/teamframe` | `launch/managed-people-ops-45-day` | `teamframe-founder-review` (`prj_7aEgmyR1qQP8VfaFbFN7CexbWVNW`), team `ismaelloveexcels-projects`; canonical review URL `https://teamframe-founder-review-git-l-9951de-ismaelloveexcels-projects.vercel.app/` | `teamframe-founder-review-20260924`, ref `dcfxyjrfsrkibhpbmjnw`, organisation `Takaven` | `eu-west-1` | Synthetic Northstar fixture only | ACTIVE | Founder-approved Preview changes only; never Production |
-| Production | `takaven/teamframe` | protected `main` | Existing shell `teamframe-production` (`prj_09tvdrEWbL1Ov9SFMtrhgYnJ0bNj`), team `ismaelloveexcels-projects`; currently disconnected and historical | `teamframe-production-uae`, ref `ttwsczpzjdjzuhchbyjx`, organisation `Takaven`, Free-plan build phase | Mumbai / `ap-south-1` | **NO CUSTOMER DATA** until Pro upgrade and go-live approval | FOUNDATION READY / GO-LIVE BLOCKED | Explicit Production approval only |
-| Temporary repeat-rehearsal proof | `takaven/teamframe` | launch branch at proof time | Local maintained operator path; no permanent Vercel environment | `teamframe-operator-repeat-rehearsal-2-20260928`, ref `drohdttbgekrmwubhala`, organisation `Takaven` | `ap-south-1` | Synthetic Crescent Ridge fixture | PAUSED, PRESERVED, LOCKED AGAINST REPLAY | Retain only until Production acceptance; no further mutation without fresh approval |
+## Authoritative environments
 
-## Current source state
+| Purpose | Source | Vercel | Supabase | Region | Data | Current status |
+| --- | --- | --- | --- | --- | --- | --- |
+| Local development | `takaven/teamframe`; short-lived working branch | None required | Explicitly selected non-Production target only | Target-specific | Synthetic unless separately authorised | Active development only; no external deployment implied |
+| Founder Review | `takaven/teamframe`; current-main stable path remains to be accepted | `teamframe-founder-review` (`prj_7aEgmyR1qQP8VfaFbFN7CexbWVNW`), team `ismaelloveexcels-projects` | `teamframe-founder-review-20260924`, ref `dcfxyjrfsrkibhpbmjnw` | `eu-west-1` | Synthetic Northstar fixture only | Separate synthetic environment; stable durable login not yet accepted |
+| Production | `takaven/teamframe`; protected `main` | `teamframe-production` (`prj_09tvdrEWbL1Ov9SFMtrhgYnJ0bNj`), team `ismaelloveexcels-projects`; `https://app.takaven.com` | `teamframe-production-uae`, ref `ttwsczpzjdjzuhchbyjx` | Mumbai / `ap-south-1` | **NO REAL CUSTOMER DATA** until the recorded gates pass | Rebuilt, deployed and healthy for pre-revenue/synthetic operation |
+| Temporary repeat-rehearsal proof | Historical launch source | No permanent Vercel environment | `teamframe-operator-repeat-rehearsal-2-20260928`, ref `drohdttbgekrmwubhala` | `ap-south-1` | Synthetic Crescent Ridge fixture | Paused, preserved and locked against replay |
 
-| Item | Verified state |
-| --- | --- |
-| Canonical repository | `https://github.com/takaven/teamframe` |
-| Owner | GitHub organisation `takaven` |
-| Visibility | Public |
-| Default branch | `main` |
-| Accepted `main` head | `30a0a85ea4ce8d71ff1435179cd740f4e824c165` |
-| Launch branch | `launch/managed-people-ops-45-day` |
-| Launch consolidation head retained | `ac957e11088fc453cc20cf415f92811fbcffa54f` |
-| Integration path | PR #6, `TeamFrame launch consolidation`, merged into `main` |
-| Branch protection | Active ruleset `Protect main` requires a pull request and successful `Gate Chain (Strict)` and `Static Guard Suite (Phase 1D)` checks; force pushes and deletion are blocked |
+## Canonical source
 
-The documentation worktree may contain local documentation commits ahead of the remote launch branch. A local commit is not a deployed environment and must not be recorded as a deployed SHA until pushed and verified.
+- Repository: `https://github.com/takaven/teamframe`
+- Owner: GitHub organisation `takaven`
+- Visibility: public
+- Default and Production source branch: protected `main`
+- Source policy: protected `main` is authoritative; historical launch branches are not.
+- Last verified source checkpoint before this documentation PR (2026-10-10): `f7e9a42b0bfe7c21abe48722b2c01f82d2a0c8f9`
+- Branch protection: active `Protect main` ruleset requires a pull request plus `Gate Chain (Strict)` and `Static Guard Suite (Phase 1D)`; force pushes and deletion are blocked.
 
-## Founder Review rules
+## Production
 
-- The branch Preview URL above is the review destination.
-- Latest accepted launch-branch source: SHA `ac957e11088fc453cc20cf415f92811fbcffa54f`; canonical branch Preview remained available and Ready after main consolidation.
-- `teamframe-founder-review.vercel.app` currently resolves to an older Production deployment inside the same Vercel project and is **not** the approved review URL.
-- That older project Production deployment is from branch `codex/direction-b-full-system-implementation` at SHA `489c9606441618e898f21eafb0443a9ca33474ad`; it is historical, not the accepted review source.
-- Founder Review Vercel variables are Preview-scoped and point to the synthetic review database.
-- Vercel contains a launch-branch-specific Preview `TEAMFRAME_AUTOMATION_SECRET` entry (`J4ZDwcFtjmxKREQy`) and a general Preview entry (`EnrT3DQSpohTVD9P`), both created/updated at `2026-09-25T05:58:38.142Z`. Vercel does not expose their plaintext for safe equality comparison; the branch-specific value takes precedence for the canonical launch Preview. Consolidation is deliberately deferred under MA-002 in [MANUAL-ACTIONS.md](MANUAL-ACTIONS.md); do not delete either blindly.
-- Deployment Retention is enabled for the project. Do not manually delete old Preview deployments merely for cosmetic cleanup.
-- Never promote Founder Review configuration to Production.
-- Do not casually reseed, reset, or use customer data in `dcfxyjrfsrkibhpbmjnw`.
+- Production application: `https://app.takaven.com`
+- Git connection: `takaven/teamframe`, protected `main`
+- Last verified deployment checkpoint before this documentation PR (2026-10-10): `4XhWi9koWLXSVm9nPseFQUQCCMz9`
+- Production Supabase: `teamframe-production-uae`, ref `ttwsczpzjdjzuhchbyjx`, organisation `Takaven`, Mumbai / `ap-south-1`
+- Current plan: Free pre-revenue posture; no real customer data is authorised.
+- Database: 45/45 canonical public tables installed; RLS enabled on all 45; zero anonymous table access.
+- Storage: private canonical `documents` bucket verified.
+- Email/DNS/SMTP: complete and accepted.
+- Runtime configuration and cron: complete and accepted.
+- Auth hostname and redirect alignment: complete and accepted.
+- Monitoring: approved log-only pre-revenue posture complete.
 
-## Production rules
+The former description of `teamframe-production` as a disconnected rebuild-only historical shell is obsolete. The rebuild completed. The first-real-customer gates in [MANUAL-ACTIONS.md](MANUAL-ACTIONS.md) still apply before any customer data is loaded.
 
-- `teamframe-production` is a **REBUILD-ONLY HISTORICAL SHELL**, not a launch-ready Production environment. Do not redeploy its current configuration.
-- Its default domain is `https://teamframe-production.vercel.app`; its ready Aug 14 deployment is from `ismaelloveexcel/TeamFrame`, branch `codex/market-ready-implementation`, SHA `37bf104b5d72f81f9936a99ac3134c14bd2de7a5`, not the canonical repository state.
-- It has no Git connection and retains eight Production variable names whose values were not revealed during this inventory. Treat all target values as untrusted until replaced and verified.
-- Historical Supabase ref `zylllrvcmockvfcfubkp` is abandoned for launch and is not visible in the signed-in `Takaven` organisation.
-- The authoritative Production Supabase foundation is `teamframe-production-uae`, ref `ttwsczpzjdjzuhchbyjx`, in Mumbai (`ap-south-1`). It currently remains on Free solely for technical acceptance and contains no customer data.
-- The guarded fresh installer completed once: 45/45 canonical public tables, RLS enabled on all 45, no missing or unexpected tables, required functions/triggers and service-role privileges present, and zero anonymous table access.
-- Private Storage bucket `documents` exists with the canonical 10 MB and MIME-type restrictions. Public access remains disallowed.
-- Free is not an accepted customer go-live posture. Upgrade to Pro, provider daily backups with seven-day retention, MFA and the remaining recovery controls are required before customer data.
-- The Vercel team has no TeamFrame shared environment variables; the two team-shared variables observed belong to another project stack.
-- Production remains blocked until the database, private Storage, Auth/SMTP, backups, Vercel variables, Git connection, cron, health checks, and live security proof are approved and verified.
-- Read-only audit confirmed: Git disconnected; framework `Other`; Node `24.x`; Function region `iad1`; cron `/api/automation/run` at stale schedule `0 6 * * *`; default domain serves historical SHA `37bf104...`; eight Production-only variables added Aug 13 with untrusted values.
+## Founder Review
+
+- Founder Review is separate from Production and contains synthetic Northstar data only.
+- The historical launch-branch Preview remains a temporary fallback while a durable current-main login is stabilised.
+- Stable Founder Review / prospect-demo acceptance is blocked on MA-002 in [MANUAL-ACTIONS.md](MANUAL-ACTIONS.md).
+- Founder Review automation credential values previously appeared in public Git history and must be treated as compromised.
+- Current documentation records variable names and scope only. It must not contain, quote or reuse those values.
+- MA-002 requires rotation and consolidation under one intended authority, followed by focused health, automation and fresh-browser repeat-login verification.
+- Deployment Retention is enabled. Do not delete retained Preview deployments merely for cosmetic cleanup.
+- Never promote Founder Review configuration to Production or use customer data in `dcfxyjrfsrkibhpbmjnw`.
 
 ## Environment-variable inventory
 
-Values were not revealed. Names and scopes alone do not prove target correctness.
+Names and scopes do not prove target correctness. Values belong only in their approved provider stores.
 
-| Vercel project | Scope | Names observed |
+| Vercel project | Scope | Expected names |
 | --- | --- | --- |
-| `teamframe-founder-review` | Preview | `TEAMFRAME_AUTOMATION_SECRET` (two entries with different Preview scope), `SITE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `VERCEL_PREVIEW_FEEDBACK_ENABLED`, `DEEP_HEALTH_SECRET`, `TEAMFRAME_REVIEW_PASSWORD_AUTH` |
-| `teamframe-production` | Production | `CRON_SECRET`, `TEAMFRAME_AUTOMATION_SECRET`, `DEEP_HEALTH_SECRET`, `SUPABASE_DB_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SITE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SUPABASE_URL` |
+| `teamframe-founder-review` | Preview | `TEAMFRAME_AUTOMATION_SECRET`, `SITE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `VERCEL_PREVIEW_FEEDBACK_ENABLED`, `DEEP_HEALTH_SECRET`, `TEAMFRAME_REVIEW_PASSWORD_AUTH` |
+| `teamframe-production` | Production | `CRON_SECRET`, `TEAMFRAME_AUTOMATION_SECRET`, `DEEP_HEALTH_SECRET`, `SUPABASE_DB_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SITE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, `RESEND_API_KEY`, `TEAMFRAME_EMAIL_FROM` |
 
-Production is missing the required Resend sender/provider variables and has no recorded Sentry variables. Replace and validate all Production values; do not assume the eight existing entries are usable.
-
-GitHub repository Actions had no repository secret names, repository variable names, Preview-environment secret names, or Preview-environment variable names at inventory time. The `Preview` GitHub environment exists without protection rules.
+Do not print or record secret values during inventory. Verify provider account, project, scope and target identity before any change.
 
 ## Temporary environment policy
 
-Only one active rehearsal/proof project should exist at a time. A new proof project requires:
+Only one active rehearsal/proof project should exist at a time. A new proof project requires an explicit purpose, approved project identity, synthetic-only confirmation, a stop condition and a recorded retention/deletion decision.
 
-1. an explicit purpose;
-2. exact project name/ref approval;
-3. synthetic-only confirmation;
-4. a stop condition;
-5. deletion or pause decision after evidence is recorded.
+Do not infer mutation authority from `scripts/approved-launch-projects.mjs`. Current resource status and task-specific approval are both required.
 
-Do not infer mutation authority from `scripts/approved-launch-projects.mjs`. Retired refs have been removed, but current resource status and a task-specific approval are still both required.
-
-## DO NOT USE
+## Do not use
 
 | Resource | Why |
 | --- | --- |
-| Supabase `zylllrvcmockvfcfubkp` | Historical Production; inaccessible/owner unknown; abandoned for launch |
-| Supabase `xqiamhwkuogcgucwmlxy` | Deleted empty rehearsal project; must never be rediscovered as active |
-| Supabase retired refs listed in `RETIRED-RESOURCES.md` | Deleted disposable proofs; identifiers remain historical evidence only and must never be re-added without a new project and approval |
+| Supabase `zylllrvcmockvfcfubkp` | Historical Production; abandoned for launch |
+| Supabase `xqiamhwkuogcgucwmlxy` | Deleted empty rehearsal project; never rediscover as active |
+| Supabase retired refs in [RETIRED-RESOURCES.md](RETIRED-RESOURCES.md) | Deleted disposable proofs; retained as historical evidence only |
 | Vercel `teamframe` | Deleted historical duplicate; do not recreate as canonical TeamFrame |
 | Vercel `teamframe-visual-review-20260814061335` | Deleted superseded visual-review project |
 | Vercel `mockup-sandbox` | Historical TeamFrame V2 project connected to `ismaelloveexcel/teamframe.v2` |
-| GitHub `ismaelloveexcel/TeamFrame` | Historical source whose old Vercel project is now deleted; not canonical; archive only after separate approval |
+| GitHub `ismaelloveexcel/TeamFrame` | Historical source; not canonical TeamFrame |
 | GitHub `ismaelloveexcel/teamframe.v2` | Separate historical simulation project; not canonical TeamFrame |
 
-See [RETIRED-RESOURCES.md](RETIRED-RESOURCES.md) for the full retention/deletion inventory.
-
-The complete non-destructive Production target and variable manifest is in [PRODUCTION-PREPARATION.md](PRODUCTION-PREPARATION.md). The exact rebuild sequence is in [PRODUCTION-REBUILD-PLAN.md](PRODUCTION-REBUILD-PLAN.md). Founder-interactive actions are in [MANUAL-ACTIONS.md](MANUAL-ACTIONS.md).
+See [RETIRED-RESOURCES.md](RETIRED-RESOURCES.md) for the full retention/deletion inventory. The completed preparation and rebuild plans are historical evidence only. Current founder actions are in [MANUAL-ACTIONS.md](MANUAL-ACTIONS.md), and the current deployment/change procedure is in [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Provider login map
 
-Use [ACCOUNT-OWNERSHIP.md](ACCOUNT-OWNERSHIP.md). Never select a project by a remembered name alone; verify provider account/team, project name/ref, branch, and target URL before any write.
+Use [ACCOUNT-OWNERSHIP.md](ACCOUNT-OWNERSHIP.md). Never select a project by remembered name alone; verify provider account/team, project name/ref, branch and target URL before any write.

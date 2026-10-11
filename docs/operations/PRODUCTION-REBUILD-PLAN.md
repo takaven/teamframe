@@ -1,5 +1,7 @@
 # TeamFrame Production Rebuild Plan
 
+> **HISTORICAL / COMPLETED REBUILD PLAN.** The rebuild described below has been completed. Retain the plan as provenance; do not replay its shell-rebuild instructions. Use [CURRENT-STATE.md](CURRENT-STATE.md), [ENVIRONMENTS.md](ENVIRONMENTS.md), [MANUAL-ACTIONS.md](MANUAL-ACTIONS.md) and [DEPLOYMENT.md](DEPLOYMENT.md) for current status and procedure.
+
 This is the exact non-secret plan for rebuilding the existing Vercel Production shell around the canonical TeamFrame stack. It authorises no provider mutation, spend, secret creation, DNS change, deployment, or customer-data use.
 
 Last reviewed: 2026-10-01 against `main` SHA `30a0a85ea4ce8d71ff1435179cd740f4e824c165` and the completed Free-plan Production foundation.
