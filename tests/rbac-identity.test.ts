@@ -6,6 +6,8 @@ type Row = Record<string, unknown>;
 
 const db = {
   employees: [] as Row[],
+  tenant_memberships: [] as Row[],
+  tenant_access_invitations: [] as Row[],
 };
 
 let authUser: {
@@ -52,6 +54,7 @@ function makeBuilder(table: keyof typeof db) {
       limitCount = count;
       return builder;
     },
+    order: () => builder,
     update: (payload: unknown) => {
       mode = "update";
       updatePatch = payload as Row;
@@ -82,6 +85,8 @@ import { resolveIdentity } from "@/lib/rbac/roles";
 
 beforeEach(() => {
   db.employees = [];
+  db.tenant_memberships = [];
+  db.tenant_access_invitations = [];
   updates.length = 0;
   authUser = {
     id: "auth-user-1",
@@ -195,6 +200,40 @@ describe("resolveIdentity tenant binding", () => {
     );
     expect(updates).toHaveLength(0);
     expect(db.employees[0]?.setup_status).toBe("ready");
+  });
+
+  it("does not restore legacy admin authority after a database membership is suspended", async () => {
+    authUser = {
+      id: "auth-user-1",
+      email: "admin@example.test",
+      app_metadata: { role: "admin", tenant_id: "TENANT_A" },
+    };
+    db.tenant_memberships = [
+      {
+        id: "membership-1",
+        tenant_id: "TENANT_A",
+        auth_user_id: "auth-user-1",
+        employee_id: null,
+        email: "admin@example.test",
+        display_name: "Admin",
+        profile: "full_access",
+        active: false,
+        removed_at: null,
+        people_access_scope: "all",
+        people_selected_employee_ids: [],
+        salary_access_level: "manage",
+        salary_access_scope: "all",
+        salary_selected_employee_ids: [],
+        private_documents_scope: "all",
+        private_documents_selected_employee_ids: [],
+        finance_exports_access: true,
+        manage_users_access: true,
+        created_at: "2026-10-01T00:00:00.000Z",
+      },
+    ];
+
+    await expect(resolveIdentity("auth-user-1")).rejects.toThrow("RBAC: no active membership");
+    expect(updates).toHaveLength(0);
   });
 
   it("returns an unlinked employee identity when tenant metadata is missing", async () => {
