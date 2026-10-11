@@ -25,6 +25,8 @@ describe("Phase A existing-install migration", () => {
     expect(migration).toContain("v_eligible_end := least(v_as_of, v_year_end, coalesce(v_employee.end_date, v_as_of))");
     expect(migration).toContain("(v_service_end - v_service_start + 1)::numeric");
     expect(migration).toContain("accrued := least(v_prorated, round(v_monthly_accrued, 2))");
+    expect(migration).toContain("leave_type = v_def.system_leave_type");
+    expect(migration).not.toContain("leave_type::text = v_def.system_leave_type");
     expect(migration).not.toContain("v_prorated * least(12");
   });
 
