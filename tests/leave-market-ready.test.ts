@@ -103,6 +103,8 @@ describe("MR-6 leave market-ready scope", () => {
 
   it("uses one transparent balance engine for reads and approval enforcement", () => {
     expect(accrual).toContain("function teamframe_leave_balance_components");
+    expect(accrual).toContain("leave_type = v_def.system_leave_type");
+    expect(accrual).not.toContain("leave_type::text = v_def.system_leave_type");
     for (const component of ["opening", "carried_forward", "accrued", "adjustments", "taken", "pending", "available"]) {
       expect(accrual).toContain(component);
       expect(page).toContain(component);

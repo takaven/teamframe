@@ -122,7 +122,7 @@ begin
   select coalesce(sum(requested_days), 0) into taken from leaves
   where tenant_id = p_tenant_id and employee_id = p_employee_id
     and (leave_definition_id = p_leave_definition_id
-      or (leave_definition_id is null and v_def.is_system and leave_type::text = v_def.system_leave_type))
+      or (leave_definition_id is null and v_def.is_system and leave_type = v_def.system_leave_type))
     and status = 'approved' and extract(year from start_date)::integer = p_balance_year
     and (p_exclude_leave_id is null or id <> p_exclude_leave_id);
   taken := taken + v_legacy_used;
@@ -130,7 +130,7 @@ begin
   select coalesce(sum(requested_days), 0) into pending from leaves
   where tenant_id = p_tenant_id and employee_id = p_employee_id
     and (leave_definition_id = p_leave_definition_id
-      or (leave_definition_id is null and v_def.is_system and leave_type::text = v_def.system_leave_type))
+      or (leave_definition_id is null and v_def.is_system and leave_type = v_def.system_leave_type))
     and status = 'pending' and extract(year from start_date)::integer = p_balance_year
     and (p_exclude_leave_id is null or id <> p_exclude_leave_id);
 

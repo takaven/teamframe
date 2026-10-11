@@ -197,7 +197,7 @@ begin
       or (
         leave_definition_id is null
         and v_def.is_system
-        and leave_type::text = v_def.system_leave_type
+        and leave_type = v_def.system_leave_type
       )
     )
     and status = 'approved' and extract(year from start_date)::integer = p_balance_year
@@ -211,7 +211,7 @@ begin
       or (
         leave_definition_id is null
         and v_def.is_system
-        and leave_type::text = v_def.system_leave_type
+        and leave_type = v_def.system_leave_type
       )
     )
     and status = 'pending' and extract(year from start_date)::integer = p_balance_year
