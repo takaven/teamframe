@@ -54,7 +54,7 @@ export async function createPerformanceCycle(actor: Actor, input: unknown): Prom
   if(templateQ.error||!templateQ.data) throw new Error("PERFORMANCE_TEMPLATE_NOT_FOUND");
   const template=templateQ.data as {id:string;name:string;questions:z.infer<typeof Questions>;rating_scale_max:number};
   Questions.parse(template.questions);
-  const employeesQ=await db.from("employees").select("id,manager_id").eq("tenant_id",t).is("deleted_at",null).in("lifecycle_state",["pre_start","active","offboarding"]);
+  const employeesQ=await db.from("employees").select("id,manager_id").eq("tenant_id",t).is("deleted_at",null).in("lifecycle_state",["preboarding","active","offboarding"]);
   if(employeesQ.error) throw new Error(`PERFORMANCE_ASSIGNMENT_FAILED: ${employeesQ.error.message}`);
   const selected=new Set(parsed.employeeIds);
   const selectedEmployees=((employeesQ.data??[]) as Array<{id:string;manager_id:string|null}>).filter((employee)=>selected.has(employee.id));
