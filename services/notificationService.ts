@@ -180,10 +180,21 @@ export async function notifyDueMilestone(tenantId: string, input: { ruleKey: str
 
 export async function notifyPolicyPublished(tenantId: string, policyId: string): Promise<void> {
   const db: any = createServiceRoleClient();
-  const [{ data: policy }, { data: employees }] = await Promise.all([
+  const [policyResult, employeesResult] = await Promise.all([
     db.from("policies").select("id,title,version").eq("tenant_id", tenantId).eq("id", policyId).maybeSingle(),
-    db.from("employees").select("id").eq("tenant_id", tenantId).neq("lifecycle_state", "former").is("deleted_at", null),
+    db.from("employees").select("id").eq("tenant_id", tenantId).neq("lifecycle_state", "exited").is("deleted_at", null),
   ]);
+  if (policyResult.error || employeesResult.error) {
+    console.error("[POLICY_NOTIFICATION_RECIPIENT_LOOKUP_FAILED]", {
+      tenant_id: tenantId,
+      policy_id: policyId,
+      policy_error: policyResult.error?.message ?? null,
+      employee_error: employeesResult.error?.message ?? null,
+    });
+    return;
+  }
+  const policy = policyResult.data;
+  const employees = employeesResult.data;
   if (!policy) return;
   await Promise.all(((employees ?? []) as Array<{ id: string }>).map((employee) => notifyBestEffort({ tenantId, recipientEmployeeId: employee.id, type: "policy_acknowledgement", eventKey: `policy:${policyId}:${policy.version}:ack:${employee.id}`, subject: "Policy acknowledgement needed", text: `${policy.title} is ready for you to read and acknowledge.`, actionPath: "/documents-and-policies#policies", relatedEntityType: "policy", relatedEntityId: policyId })));
 }

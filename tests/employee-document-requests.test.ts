@@ -247,13 +247,16 @@ describe("employee document requests", () => {
     expect(completeness).not.toContain("employee_document_requests");
   });
 
-  it("keeps browser writes blocked, private files non-deletable while linked, and notifications idempotent", () => {
+  it("keeps browser writes blocked without creating an early access-model dependency", () => {
     const tenancy = read("schemas/tenancy_rls.sql");
+    const accessModel = read("schemas/access_model.sql");
     const documents = read("services/documentService/index.ts");
     const notifications = read("services/notificationService.ts");
     expect(tenancy).toContain("employee_document_requests_insert_blocked");
     expect(tenancy).toContain("employee_document_requests_update_blocked");
     expect(tenancy).toContain("employee_document_requests_delete_blocked");
+    expect(tenancy).not.toContain("create policy employee_document_requests_select");
+    expect(accessModel).toContain("create policy employee_document_requests_select");
     expect(documents).toContain("DOCUMENT_IN_USE_BY_EMPLOYEE_REQUEST");
     expect(notifications).toContain('employee-document-request:${requestId}:ready');
     expect(notifications).not.toContain("Address to Emirates NBD");

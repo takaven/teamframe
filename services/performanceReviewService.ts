@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import type { Actor } from "@/middleware/rbac";
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
+import { hasCapability } from "@/lib/rbac/access";
 import { notifyPerformanceReviewDue } from "@/services/notificationService";
 
 const Question = z.object({ id:z.string().regex(/^q\d+$/), section:z.string().trim().min(1).max(80), prompt:z.string().trim().min(1).max(240), type:z.literal("text"), required:z.boolean() });
@@ -50,11 +51,13 @@ export async function setPerformanceTemplateActive(actor:Actor,templateId:string
 export async function createPerformanceCycle(actor: Actor, input: unknown): Promise<void> {
   admin(actor); const parsed = z.object({ templateId:z.string().uuid(), name:z.string().trim().min(1).max(120), dueDate:z.string().regex(/^\d{4}-\d{2}-\d{2}$/), employeeIds:z.array(z.string().uuid()).min(1), selfInputEnabled:z.boolean() }).parse(input);
   const db=serviceDb(); const t=tenant(actor);
+  const accessChecks=await Promise.all(parsed.employeeIds.map((employeeId)=>hasCapability(actor,"people_operations",{employeeId})));
+  if(accessChecks.some((allowed)=>!allowed))throw new Error("FORBIDDEN");
   const templateQ=await db.from("performance_review_templates").select("id,name,questions,rating_scale_max").eq("tenant_id",t).eq("id",parsed.templateId).eq("active",true).maybeSingle();
   if(templateQ.error||!templateQ.data) throw new Error("PERFORMANCE_TEMPLATE_NOT_FOUND");
   const template=templateQ.data as {id:string;name:string;questions:z.infer<typeof Questions>;rating_scale_max:number};
   Questions.parse(template.questions);
-  const employeesQ=await db.from("employees").select("id,manager_id").eq("tenant_id",t).is("deleted_at",null).in("lifecycle_state",["pre_start","active","offboarding"]);
+  const employeesQ=await db.from("employees").select("id,manager_id").eq("tenant_id",t).is("deleted_at",null).in("lifecycle_state",["preboarding","active","offboarding"]);
   if(employeesQ.error) throw new Error(`PERFORMANCE_ASSIGNMENT_FAILED: ${employeesQ.error.message}`);
   const selected=new Set(parsed.employeeIds);
   const selectedEmployees=((employeesQ.data??[]) as Array<{id:string;manager_id:string|null}>).filter((employee)=>selected.has(employee.id));
@@ -71,14 +74,19 @@ export async function listPerformanceReviews(actor: Actor): Promise<PerformanceR
   const t=tenant(actor); const db=serviceDb();
   let query=db.from("performance_reviews").select("id,cycle_id,employee_id,reviewer_employee_id,employee_responses,reviewer_responses,rating,reviewer_comments,status,employee_submitted_at,reviewer_completed_at,acknowledged_at,cycle:performance_review_cycles(name,due_date,questions_snapshot,rating_scale_max_snapshot,self_input_enabled)").eq("tenant_id",t).order("created_at",{ascending:false});
   if(actor.role!=="admin") { if(!actor.employeeId) return []; query=query.or(`employee_id.eq.${actor.employeeId},reviewer_employee_id.eq.${actor.employeeId}`); }
-  const result=await query; if(result.error)throw new Error(`PERFORMANCE_REVIEW_LIST_FAILED: ${result.error.message}`); return (result.data??[]) as unknown as PerformanceReview[];
+  const result=await query;
+  if(result.error)throw new Error(`PERFORMANCE_REVIEW_LIST_FAILED: ${result.error.message}`);
+  const rows=(result.data??[]) as unknown as PerformanceReview[];
+  if(actor.role!=="admin")return rows;
+  const visible=await Promise.all(rows.map(async(review)=>(await hasCapability(actor,"people_operations",{employeeId:review.employee_id}))?review:null));
+  return visible.filter((review):review is PerformanceReview=>review!==null);
 }
 
 async function getReview(actor:Actor,id:string){const q=await serviceDb().from("performance_reviews").select("*,cycle:performance_review_cycles(name,due_date,questions_snapshot,rating_scale_max_snapshot,self_input_enabled)").eq("tenant_id",tenant(actor)).eq("id",id).maybeSingle();if(q.error||!q.data)throw new Error("PERFORMANCE_REVIEW_NOT_FOUND");return q.data as unknown as PerformanceReview;}
 
 export async function submitPerformanceSelfReview(actor:Actor,reviewId:string,responses:unknown){if(!actor.employeeId)throw new Error("FORBIDDEN");const review=await getReview(actor,reviewId);if(review.employee_id!==actor.employeeId||review.status!=="assigned"||!review.cycle.self_input_enabled)throw new Error("FORBIDDEN");const parsed=validateResponses(Questions.parse(review.cycle.questions_snapshot),responses);const q=await serviceDb().from("performance_reviews").update({employee_responses:parsed,status:"self_submitted",employee_submitted_at:new Date().toISOString(),updated_at:new Date().toISOString()} as never).eq("tenant_id",tenant(actor)).eq("id",reviewId).eq("status","assigned").select("id").maybeSingle();if(q.error)throw new Error(`PERFORMANCE_REVIEW_SUBMIT_FAILED: ${q.error.message}`);if(!q.data)throw new Error("PERFORMANCE_REVIEW_STATE_INVALID");await audit(actor,"performance.self_submitted",reviewId);}
 
-export async function completePerformanceReview(actor:Actor,reviewId:string,input:unknown){const review=await getReview(actor,reviewId);if(actor.role!=="admin"&&review.reviewer_employee_id!==actor.employeeId)throw new Error("FORBIDDEN");const expectedStatus=review.cycle.self_input_enabled?"self_submitted":"assigned";if(review.status!==expectedStatus)throw new Error("PERFORMANCE_REVIEW_STATE_INVALID");const questions=Questions.parse(review.cycle.questions_snapshot);const parsed=z.object({responses:Responses,rating:z.number().min(1).max(review.cycle.rating_scale_max_snapshot),comments:z.string().trim().max(4000)}).parse(input);const responses=validateResponses(questions,parsed.responses);const q=await serviceDb().from("performance_reviews").update({reviewer_responses:responses,rating:parsed.rating,reviewer_comments:parsed.comments,status:"completed",reviewer_completed_at:new Date().toISOString(),updated_at:new Date().toISOString()} as never).eq("tenant_id",tenant(actor)).eq("id",reviewId).eq("status",expectedStatus).select("id").maybeSingle();if(q.error)throw new Error(`PERFORMANCE_REVIEW_COMPLETE_FAILED: ${q.error.message}`);if(!q.data)throw new Error("PERFORMANCE_REVIEW_STATE_INVALID");await audit(actor,"performance.completed",reviewId);}
+export async function completePerformanceReview(actor:Actor,reviewId:string,input:unknown){const review=await getReview(actor,reviewId);if(actor.role==="admin"){if(!(await hasCapability(actor,"people_operations",{employeeId:review.employee_id})))throw new Error("FORBIDDEN");}else if(review.reviewer_employee_id!==actor.employeeId)throw new Error("FORBIDDEN");const expectedStatus=review.cycle.self_input_enabled?"self_submitted":"assigned";if(review.status!==expectedStatus)throw new Error("PERFORMANCE_REVIEW_STATE_INVALID");const questions=Questions.parse(review.cycle.questions_snapshot);const parsed=z.object({responses:Responses,rating:z.number().min(1).max(review.cycle.rating_scale_max_snapshot),comments:z.string().trim().max(4000)}).parse(input);const responses=validateResponses(questions,parsed.responses);const q=await serviceDb().from("performance_reviews").update({reviewer_responses:responses,rating:parsed.rating,reviewer_comments:parsed.comments,status:"completed",reviewer_completed_at:new Date().toISOString(),updated_at:new Date().toISOString()} as never).eq("tenant_id",tenant(actor)).eq("id",reviewId).eq("status",expectedStatus).select("id").maybeSingle();if(q.error)throw new Error(`PERFORMANCE_REVIEW_COMPLETE_FAILED: ${q.error.message}`);if(!q.data)throw new Error("PERFORMANCE_REVIEW_STATE_INVALID");await audit(actor,"performance.completed",reviewId);}
 
 export async function acknowledgePerformanceReview(actor:Actor,reviewId:string){if(!actor.employeeId)throw new Error("FORBIDDEN");const review=await getReview(actor,reviewId);if(review.employee_id!==actor.employeeId||review.status!=="completed")throw new Error("FORBIDDEN");const q=await serviceDb().from("performance_reviews").update({status:"acknowledged",acknowledged_at:new Date().toISOString(),updated_at:new Date().toISOString()} as never).eq("tenant_id",tenant(actor)).eq("id",reviewId).eq("status","completed").select("id").maybeSingle();if(q.error)throw new Error(`PERFORMANCE_REVIEW_ACK_FAILED: ${q.error.message}`);if(!q.data)throw new Error("PERFORMANCE_REVIEW_STATE_INVALID");await audit(actor,"performance.acknowledged",reviewId);}
 

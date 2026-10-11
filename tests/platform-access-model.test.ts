@@ -161,6 +161,28 @@ describe("Independent customer access and setup architecture", () => {
     expect(schema).toContain("current_actor_has_capability(tenant_id, 'people_operations'");
   });
 
+  it("enforces effective People scope in employee and performance lists", () => {
+    const employees = read("services/employeeService/index.ts");
+    const performance = read("services/performanceReviewService.ts");
+    const roles = read("lib/rbac/roles.ts");
+
+    expect(employees).toContain('hasCapability(actor, "people_operations", { employeeId: employee.id })');
+    expect(performance).toContain('hasCapability(actor,"people_operations",{employeeId:review.employee_id})');
+    expect(roles).toContain("RBAC: no active membership");
+  });
+
+  it("routes every customer-private page through authentication middleware", () => {
+    const middleware = read("middleware.ts");
+    for (const prefix of [
+      "/access", "/company", "/dashboard", "/directory", "/documents-and-policies",
+      "/documents", "/early-employment", "/employees", "/home", "/leaves", "/manager",
+      "/me", "/onboarding", "/org-chart", "/people", "/performance", "/policies",
+      "/reports", "/setup",
+    ]) {
+      expect(middleware).toContain(`"${prefix}"`);
+    }
+  });
+
   it("keeps automation local to ordinary installation companies without tenant lifecycle gates", () => {
     const automation = read("services/hrAutomation/index.ts");
 

@@ -43,7 +43,7 @@ describe("MR-7 bounded offboarding workflow", () => {
     expect(actions).not.toContain("signalEngine.emit");
   });
 
-  it("closes only after end date and required work are complete, then makes the employee former and vacates positions", () => {
+  it("closes only after end date and required work are complete, preserves the former record, and vacates positions", () => {
     const schema = read("schemas/offboarding.sql");
     const automation = read("services/hrAutomation/index.ts");
     const policyService = read("services/policyService/index.ts");
@@ -52,7 +52,7 @@ describe("MR-7 bounded offboarding workflow", () => {
     expect(schema).toContain("and required");
     expect(schema).toContain("and status = 'pending'");
     expect(schema).toContain("lifecycle_state = 'exited'");
-    expect(schema).toContain("deleted_at = coalesce(deleted_at, clock_timestamp())");
+    expect(schema).not.toContain("deleted_at = coalesce(deleted_at, clock_timestamp())");
     expect(schema).toContain("set assigned_employee_id = null");
     expect(schema).toContain("position.vacated_by_offboarding_completion");
     expect(automation).toContain('item.rule_key === "offboarding.closure_due"');

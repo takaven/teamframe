@@ -490,17 +490,6 @@ create policy document_requirements_delete_blocked on document_requirements
 for delete
 using (false);
 
-drop policy if exists employee_document_requests_select on employee_document_requests;
-create policy employee_document_requests_select on employee_document_requests
-for select
-using (
-  tenant_id = current_actor_tenant_id()
-  and (
-    is_current_actor_admin()
-    or current_actor_employee_id(tenant_id) = employee_id
-  )
-);
-
 drop policy if exists employee_document_requests_insert_blocked on employee_document_requests;
 create policy employee_document_requests_insert_blocked on employee_document_requests
 for insert with check (false);
