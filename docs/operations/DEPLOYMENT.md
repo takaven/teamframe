@@ -5,15 +5,16 @@
 Current accepted Production:
 - repository: `takaven/teamframe`
 - branch: protected `main`
-- verified deployed SHA: `f7e9a42b0bfe7c21abe48722b2c01f82d2a0c8f9`
+- source policy: protected `main`
+- last verified source checkpoint (2026-10-10): `f7e9a42b0bfe7c21abe48722b2c01f82d2a0c8f9`
 - Vercel project: `teamframe-production`
-- verified deployment: `4XhWi9koWLXSVm9PseFQUQCCMz9`
+- last verified deployment checkpoint (2026-10-10): `4XhWi9koWLXSVm9nPseFQUQCCMz9`
 - domain: `https://app.takaven.com`
 - Supabase: `teamframe-production-uae` / `ttwsczpzjdjzuhchbyjx`
 - public health: healthy
 - customer data: not yet authorised; MA-001, MA-003, MA-009 and MA-010 remain
 
-The previous rebuild-only-shell instructions are historical and must not be replayed.
+The previous rebuild-only-shell instructions are historical and must not be replayed. Before any operational write, re-verify the live provider state rather than assuming the dated checkpoint above is still current.
 
 ## Branch strategy
 
