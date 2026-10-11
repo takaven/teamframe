@@ -136,4 +136,14 @@ describe("transactional mutation RPCs", () => {
       expect(migration).toContain("to service_role");
     }
   });
+
+  it("grants only the current 11-argument leave submission RPC", () => {
+    const signature =
+      "teamframe_submit_leave(uuid, uuid, uuid, date, date, leave_type, text, uuid, text, uuid, text)";
+
+    expect(migration).toContain(
+      `revoke all on function ${signature} from public, anon, authenticated`,
+    );
+    expect(migration).toContain(`grant execute on function ${signature} to service_role`);
+  });
 });
