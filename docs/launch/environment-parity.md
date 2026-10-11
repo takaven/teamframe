@@ -2,7 +2,7 @@
 
 > **HISTORICAL PROOF REGISTRY.** Current active, Production, temporary, and retired environment authority is now maintained in [`docs/operations/ENVIRONMENTS.md`](../operations/ENVIRONMENTS.md) and [`docs/operations/RETIRED-RESOURCES.md`](../operations/RETIRED-RESOURCES.md). This file preserves detailed proof history and does not by itself authorise a new write.
 
-This is the operational source of truth for the **synthetic-data-only** launch-test Supabase target. The [execution ledger](EXECUTION_LEDGER.md) owns task state; this page owns environment identity and safety rules. It supersedes this file's earlier generic staging-setup and reset instructions.
+This is the historical proof record for the **synthetic-data-only** launch-test Supabase targets used during the launch programme. The current environment registry owns environment identity; this page preserves dated safety evidence and superseded setup context only.
 
 ## Approved target
 

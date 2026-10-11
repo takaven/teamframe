@@ -2,7 +2,7 @@
 
 > **UAE-focused HR software for startups, designed to help businesses establish and maintain the core HR controls relevant to UAE employment requirements.**
 
-**Product status:** `feature-complete for first-customer sale; commercial, customer-data and go-live gates remain separate`
+**Product status:** `product complete/frozen; Production deployed and healthy; real-customer data remains gated by MA-001, MA-003, MA-009 and MA-010`
 
 TeamFrame is the customer-facing product and service brand. **TeamFrame is owned by TAKAVEN.** That ownership does not make TAKAVEN part of the customer implementation, support workflow or HR-service proposition, and TeamFrame does not depend on parent-company involvement.
 
@@ -14,10 +14,12 @@ TeamFrame is UAE-aware, company-flexible, operational and evidence-oriented: **b
 
 ## Canonical Documents
 
+- [docs/operations/CURRENT-STATE.md](docs/operations/CURRENT-STATE.md) - **first-read canonical operational truth** for source, Production, Founder Review, launch status and remaining customer-data gates.
+- [docs/operations/MANUAL-ACTIONS.md](docs/operations/MANUAL-ACTIONS.md) - canonical founder/account-owner actions and remaining activation gates.
 - [TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE.md](TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE.md) - controlling product and optional-service commercial scope.
-- [docs/launch/TEAMFRAME_45_DAY_EXECUTION_PLAN.md](docs/launch/TEAMFRAME_45_DAY_EXECUTION_PLAN.md) - historical locked launch execution; its former managed-service-only positioning is superseded.
+- [docs/launch/TEAMFRAME_45_DAY_EXECUTION_PLAN.md](docs/launch/TEAMFRAME_45_DAY_EXECUTION_PLAN.md) - historical launch-execution provenance only; it does not define current operational status.
 - [AGENTS.md](AGENTS.md) - agent authority, WIP and approval gates.
-- [docs/launch/EXECUTION_LEDGER.md](docs/launch/EXECUTION_LEDGER.md) - single current execution tracker.
+- [docs/launch/EXECUTION_LEDGER.md](docs/launch/EXECUTION_LEDGER.md) - execution history and workstream evidence; current operational truth is in `CURRENT-STATE.md`.
 - [docs/launch/DECISIONS.md](docs/launch/DECISIONS.md) - material decisions.
 - [docs/launch/environment-parity.md](docs/launch/environment-parity.md) - canonical synthetic Supabase identity and safety checks.
 - [TEAMFRAME_MARKET_READY_SCOPE.md](TEAMFRAME_MARKET_READY_SCOPE.md) - historical TeamFrame People product scope; superseded for commercial positioning.
@@ -28,7 +30,7 @@ TeamFrame is UAE-aware, company-flexible, operational and evidence-oriented: **b
 - [TEAMFRAME_PRODUCTION_RUNBOOK.md](TEAMFRAME_PRODUCTION_RUNBOOK.md) - production release and operations runbook.
 - [TEAMFRAME_ACCESS_MODEL.md](TEAMFRAME_ACCESS_MODEL.md) - independent customer deployment, access and setup model.
 
-Older V1/readiness/finalisation and launch-execution documents are retained as technical provenance. The current commercial scope and material decisions control market positioning; technical details remain authoritative where not specifically superseded.
+Older V1/readiness/finalisation and launch-execution documents are retained as technical provenance only. **Do not infer current deployment or launch status from them.** `CURRENT-STATE.md` controls current operational truth; the current commercial scope and material decisions control market positioning.
 
 ## Implemented Capability
 

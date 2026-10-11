@@ -1,10 +1,10 @@
 # TeamFrame Production Runbook
 
-> **HISTORICAL TECHNICAL RELEASE PROVENANCE — NOT CURRENT MANAGED-SERVICE LAUNCH APPROVAL.** Historical GO statements and release SHA below describe an earlier technical release. Current commercial scope and launch approval are controlled by [managed scope](TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE.md), [45-day plan](docs/launch/TEAMFRAME_45_DAY_EXECUTION_PLAN.md), and [execution ledger](docs/launch/EXECUTION_LEDGER.md). M1 production trust remains open until live security, email and restore gates pass; historical PASS rows are not current evidence.
+> **HISTORICAL / COMPLETED TECHNICAL RELEASE RECORD — NOT CURRENT OPERATIONS AUTHORITY.** The states, SHAs, targets and release instructions below are preserved as provenance and must not be replayed as current instructions. Use [CURRENT-STATE.md](docs/operations/CURRENT-STATE.md) for current status, [ENVIRONMENTS.md](docs/operations/ENVIRONMENTS.md) for environment identity, [MANUAL-ACTIONS.md](docs/operations/MANUAL-ACTIONS.md) for founder actions and [DEPLOYMENT.md](docs/operations/DEPLOYMENT.md) for the current deployment/change procedure.
 
-**STATUS: CURRENT OPERATIONS REFERENCE — FIRST-CUSTOMER RELEASE BLOCKED PENDING THE LIVE GATES BELOW**
+**STATUS: HISTORICAL RELEASE PROVENANCE**
 
-This runbook governs TeamFrame production release, production operations and bounded smoke verification.
+This runbook records an earlier TeamFrame production-release design and bounded smoke-verification process.
 
 Do not include secret values in this file.
 

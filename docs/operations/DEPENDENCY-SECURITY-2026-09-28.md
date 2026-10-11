@@ -1,5 +1,7 @@
 # TeamFrame dependency security review — 2026-09-28
 
+> **HISTORICAL DATED SECURITY REVIEW.** The branch, versions and advisory state below describe the 2026-09-28 checkpoint. Re-run current security/release guards for present decisions; this record is evidence only.
+
 ## Release decision
 
 **CLEAN WITH DOCUMENTED EXCEPTIONS.** The launch branch has no unresolved Critical or High production-runtime advisory. The complete local audit is `0 Critical / 0 High / 22 Moderate`; the production-only audit is also `0 Critical / 0 High / 22 Moderate`.

@@ -2,7 +2,7 @@
   "name": "teamframe",
   "version": "1.0.0",
   "private": true,
-  "description": "Managed people-ops readiness system for founder-led teams.",
+  "description": "UAE-focused HR software for growing businesses.",
   "license": "MIT",
   "scripts": {
     "dev": "next dev -p 3030",

@@ -1,6 +1,6 @@
 # TeamFrame execution agents
 
-The [45-day plan](docs/launch/TEAMFRAME_45_DAY_EXECUTION_PLAN.md) governs execution; the [scope](TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE.md) governs commercial positioning. [EXECUTION_LEDGER](docs/launch/EXECUTION_LEDGER.md) is the only task tracker; [DECISIONS](docs/launch/DECISIONS.md) records material choices. Technical documents remain authoritative within their technical domain.
+Before making claims or changes about Production, Founder Review, deployment, environment identity, launch readiness, customer data, branches, access/recovery or infrastructure, read [CURRENT-STATE](docs/operations/CURRENT-STATE.md), [MANUAL-ACTIONS](docs/operations/MANUAL-ACTIONS.md) and [ENVIRONMENTS](docs/operations/ENVIRONMENTS.md). Current authority is domain-specific: [DEPLOYMENT](docs/operations/DEPLOYMENT.md) governs deployment/change procedure; [TEAMFRAME_ACCESS_MODEL](TEAMFRAME_ACCESS_MODEL.md) governs the access/deployment model; [TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE](TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE.md) and [DECISIONS](docs/launch/DECISIONS.md) govern current product/commercial positioning. Historical plans and ledgers are evidence, not current operational authority. If current authority documents conflict, stop and reconcile them against live state before proceeding.
 
 ## Orchestrator
 

@@ -1,6 +1,8 @@
 # TeamFrame 45-day execution ledger
 
-**Single execution tracker.** States: PROVE, IMPLEMENT, DOCUMENT, PASS, BLOCKED, CUT, DEFERRED. Before IMPLEMENT, set target/max active hours and stop condition. Maximum three concurrent technical workstreams.
+> **HISTORICAL / COMPLETED EXECUTION LEDGER — NOT THE CURRENT OPERATIONAL TRACKER.** The evidence, decisions and intermediate states below are retained as provenance. Use [CURRENT-STATE.md](../operations/CURRENT-STATE.md), [ENVIRONMENTS.md](../operations/ENVIRONMENTS.md), [MANUAL-ACTIONS.md](../operations/MANUAL-ACTIONS.md) and [DEPLOYMENT.md](../operations/DEPLOYMENT.md) for current status and procedure.
+
+Historical state vocabulary: PROVE, IMPLEMENT, DOCUMENT, PASS, BLOCKED, CUT, DEFERRED.
 
 Milestones: **M1 Production trustworthy** · **M2 Product wedge visible** · **M3 Private launch ready** · **M4 First external buyer exposure** · **M5 Paid/financially committed launch partner** · **M6 Public launch**.
 

@@ -1,5 +1,7 @@
 # TeamFrame Production Preparation
 
+> **HISTORICAL / COMPLETED PRODUCTION-PREPARATION RECORD.** The Production rebuild described below is complete. Preserve the specification as evidence, but do not use its former “current state” cells as present instructions. Use [CURRENT-STATE.md](CURRENT-STATE.md), [ENVIRONMENTS.md](ENVIRONMENTS.md), [MANUAL-ACTIONS.md](MANUAL-ACTIONS.md) and [DEPLOYMENT.md](DEPLOYMENT.md) for current status and procedure.
+
 This is the non-secret, non-destructive Production specification. It prepares the work but does not authorise infrastructure creation, spend, secret changes, DNS changes, customer data, or deployment.
 
 Last reviewed: 2026-10-01 against `main` SHA `30a0a85ea4ce8d71ff1435179cd740f4e824c165` and the completed Free-plan Production foundation.
