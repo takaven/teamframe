@@ -28,6 +28,12 @@ describe("Group D bounded notifications", () => {
     for (const helper of ["notifyDocumentRequest", "notifyTaskAssignment", "notifyLeaveRequest", "notifyLeaveDecision", "notifyPolicyPublished", "notifyDueMilestone", "notifyOffboardingAssignment"]) expect(service).toContain(helper);
   });
 
+  it("targets current employees with the stored lifecycle enum and surfaces lookup failures", () => {
+    expect(service).toContain('.neq("lifecycle_state", "exited")');
+    expect(service).not.toContain('.neq("lifecycle_state", "former")');
+    expect(service).toContain("[POLICY_NOTIFICATION_RECIPIENT_LOOKUP_FAILED]");
+  });
+
   it("routes manager-owned onboarding assignments to the assigned manager", () => {
     const actions = read("app/onboarding/actions.ts");
     expect(service).toContain('task.ownerRole === "manager" ? task.ownerEmployeeId');
