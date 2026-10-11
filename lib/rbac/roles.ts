@@ -237,6 +237,27 @@ async function listDatabaseMemberships(user: AuthUser): Promise<ResolvedMembersh
   });
 }
 
+async function hasAnyDatabaseMembership(user: AuthUser): Promise<boolean> {
+  const supabase = createServiceRoleClient();
+  let result;
+  try {
+    result = await supabase
+      .from("tenant_memberships")
+      .select("id")
+      .eq("auth_user_id", user.id)
+      .limit(1);
+  } catch {
+    return false;
+  }
+  const { data, error } = result;
+  if (error) {
+    const message = error.message.toLowerCase();
+    if (message.includes("tenant_memberships") || message.includes("does not exist")) return false;
+    throw new Error(`RBAC: failed to check membership history (${error.message})`);
+  }
+  return (data ?? []).length > 0;
+}
+
 async function acceptPendingInvitations(user: AuthUser, email: string): Promise<void> {
   const supabase = createServiceRoleClient();
   let invitationResult;
@@ -433,6 +454,13 @@ export async function resolveIdentity(authUserId: string): Promise<ResolvedIdent
       memberships,
       currentMembership: selectedMembership,
     };
+  }
+
+  // Once an auth identity has ever been represented in the database-backed
+  // access model, that model is authoritative. An inactive/removed membership
+  // must not regain legacy app_metadata authority through compatibility fallback.
+  if (await hasAnyDatabaseMembership(user)) {
+    throw new Error("RBAC: no active membership");
   }
 
   const legacyTenantId = preferredTenantFromMetadata(user);
