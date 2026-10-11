@@ -2,7 +2,7 @@
 
 This register is the canonical list of founder or account-owner actions that cannot be completed safely through unattended automation. It contains no passwords, API keys, MFA material, one-time codes, recovery secrets, or secret values.
 
-Last reviewed: 2026-10-02 after the founder approved the pre-revenue, Free-plan Production posture. Detailed decision options and execution order are in [PRODUCTION-REBUILD-PLAN.md](PRODUCTION-REBUILD-PLAN.md).
+Last reviewed: 2026-10-11 after Production/documentation reconciliation. Current operational status is in [CURRENT-STATE.md](CURRENT-STATE.md); completed Production rebuild planning is historical.
 
 ## Operating policy
 
@@ -28,7 +28,7 @@ Do not stop the wider workstream unless a pending action is required for the nex
 | ID | Provider / account or organisation | Exact action required | Why required | Launch blocker | Prerequisite | Perform when | Verification afterward | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | MA-001 | Supabase; `admin@takaven.com`; organisation `Takaven` | Enable TOTP MFA and preferably register a second backup TOTP factor. Store all enrolment material privately. | The sole organisation owner controls the Production data platform. | **YES**, before any real customer data | First paying customer is ready; authenticator and secure recovery ownership are available | Pre-customer go-live window, before creating customer memberships, invitations or data | Account Security reports MFA enabled; organisation and Production remain accessible; project API credentials are unchanged | **DEFERRED** |
-| MA-002 | Vercel; team `ismaelloveexcels-projects`; project `teamframe-founder-review` | Deliberately consolidate or rotate the two `TEAMFRAME_AUTOMATION_SECRET` Preview entries; do not delete either blindly. | A branch-specific Preview entry and a general Preview entry overlap, while plaintext equality cannot be verified. | **NO** for Production provisioning; operational hygiene item **YES** | Controlled rotation plan, authoritative replacement value, rollback, and focused Preview health check prepared | Final manual-action window or a dedicated Founder Review maintenance window | Exactly one intended authority per scope; canonical Preview loads; protected automation/health path passes; no variable-resolution errors | **DEFERRED** |
+| MA-002 | Vercel; project `teamframe-founder-review` | Rotate and consolidate the Founder Review automation credential authority. Do not reuse any value that has appeared in repository history. | Founder Review automation credentials were committed in plaintext to the public repository and must be treated as compromised. | **NO** for Production/customer data; **YES** before stable Founder Review / prospect-demo acceptance | Controlled rotation plan, one authoritative replacement value, rollback path, and focused Review health/automation check | Dedicated Founder Review maintenance window before stable demo acceptance | Exposed values are no longer active; exactly one intended authority per scope; current-main Review loads; protected automation/health path passes; no variable-resolution errors | **READY FOR FOUNDER** |
 | MA-003 | Supabase; organisation `Takaven` | When the first paying customer is ready for onboarding, inspect active projects, pause Founder Review only if separately approved and materially useful, reopen Pro checkout, record the exact billing breakdown, and approve the Production upgrade. | Pro supplies the accepted daily-backup and non-pausing posture; Free Production is approved only for synthetic pre-revenue use. | **YES**, before any real customer data | First paying customer is ready; Production acceptance remains healthy; Founder Review retention decision recorded | First paid-customer onboarding window, before creating customer memberships, invitations or data | Checkout cost/credits are recorded; Production is Pro; actual daily backups and seven-day retention are verified | **DEFERRED** |
 | MA-004 | Supabase; organisation `Takaven` | Approve creation of `teamframe-production-uae`, ref `ttwsczpzjdjzuhchbyjx`, in Mumbai and its empty-target guarded installation. | Creating the authoritative data target is an external infrastructure change. | **YES** | Exact name, region, Free build phase, canonical schema and stop conditions recorded | Production foundation window | Empty target verified; 45/45 tables and RLS, zero anon table access, service-role checks and private Storage pass without manual repair | **COMPLETE** |
 | MA-005 | Resend; verified owner identity recorded privately; Free plan | Establish `mail.takaven.com` as the verified sending domain and approve `TeamFrame <no-reply@mail.takaven.com>` as the Production sender. | Transactional mail and Supabase Auth SMTP need an owned, auditable sender. | **YES**, before Production email acceptance | Production email specification complete; GoDaddy access confirmed | Email/DNS action window | Resend reports DKIM, SPF and return path verified; sender identity and ownership are recorded | **COMPLETE** |
@@ -45,7 +45,7 @@ Do not stop the wider workstream unless a pending action is required for the nex
 **PARTIAL — AUTOMATABLE PORTION COMPLETE**
 
 - Supabase MFA: **DEFERRED MANUAL ACTION**.
-- Founder Review duplicate automation secret: **DEFERRED MANUAL CONSOLIDATION**.
+- Founder Review exposed automation credential: **READY FOR FOUNDER — REQUIRED BEFORE STABLE DEMO ACCEPTANCE**.
 - Neither item is forgotten or waived.
 
 ## Pre-revenue Production posture
@@ -65,4 +65,4 @@ Founder decision recorded on 2026-10-02:
 2. **Production email, DNS and hostname:** MA-005, MA-006 and MA-011 are complete.
 3. **Production monitoring, credentials and hosting:** MA-007, MA-008 and MA-012 are complete.
 4. **First paid customer / before customer data:** MA-001, MA-003, MA-009 and MA-010. Customer-data load remains hard blocked until every gate passes and separate approval is recorded.
-5. **Founder Review hygiene:** MA-002, in a separate maintenance window if it would add risk to go-live.
+5. **Founder Review security/demo acceptance:** MA-002 must complete in a separate controlled maintenance window before Founder Review is called stable/accepted for prospect demos. It is not a Production customer-data gate.
