@@ -15,6 +15,7 @@ import "server-only";
 import { z } from "zod";
 import type { Actor } from "@/middleware/rbac";
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
+import { hasCapability } from "@/lib/rbac/access";
 import { env } from "@/lib/db/env";
 import { track } from "@/lib/telemetry/track";
 import { logSchemaCapability } from "@/lib/telemetry/logger";
@@ -243,6 +244,15 @@ async function detectEmployeeTelemetryCapabilities(): Promise<EmployeeTelemetryC
   return capabilities;
 }
 
+async function filterEmployeesToPeopleScope(actor: Actor, employees: EmployeeFullRecord[]): Promise<EmployeeFullRecord[]> {
+  const visible = await Promise.all(
+    employees.map(async (employee) =>
+      (await hasCapability(actor, "people_operations", { employeeId: employee.id })) ? employee : null,
+    ),
+  );
+  return visible.filter((employee): employee is EmployeeFullRecord => employee !== null);
+}
+
 export async function listEmployeesForAdmin(actor: Actor): Promise<EmployeeFullRecord[]> {
   requireAdmin(actor);
   const tenantId = requireTenant(actor);
@@ -265,7 +275,7 @@ export async function listEmployeesForAdmin(actor: Actor): Promise<EmployeeFullR
     .order("full_name", { ascending: true });
 
   if (!error) {
-    return ((data ?? []) as EmployeeRow[]).map(toEmployeeFullRecord);
+    return filterEmployeesToPeopleScope(actor, ((data ?? []) as EmployeeRow[]).map(toEmployeeFullRecord));
   }
 
   const missingProfileColumns = isSchemaMissingColumnError(error.message)
@@ -294,7 +304,7 @@ export async function listEmployeesForAdmin(actor: Actor): Promise<EmployeeFullR
     throw new Error(`EMPLOYEE_LIST_FAILED: ${legacyError.message}`);
   }
 
-  return ((legacyData ?? []) as EmployeeRow[]).map(toEmployeeFullRecord);
+  return filterEmployeesToPeopleScope(actor, ((legacyData ?? []) as EmployeeRow[]).map(toEmployeeFullRecord));
 }
 
 export type ColleagueDirectoryEntry = {
