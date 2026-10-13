@@ -9,6 +9,7 @@ const accrual = readFileSync(join(root, "schemas", "20261004_leave_accrual.sql")
 const service = readFileSync(join(root, "services", "leaveService", "index.ts"), "utf8");
 const employeeService = readFileSync(join(root, "services", "employeeService", "index.ts"), "utf8");
 const employeeActions = readFileSync(join(root, "app", "employees", "actions.ts"), "utf8");
+const leaveActions = readFileSync(join(root, "app", "leaves", "actions.ts"), "utf8");
 const people = readFileSync(join(root, "components", "PeopleExperience.tsx"), "utf8");
 const page = readFileSync(join(root, "app", "leaves", "page.tsx"), "utf8");
 const documentService = readFileSync(join(root, "services", "documentService", "index.ts"), "utf8");
@@ -209,6 +210,15 @@ describe("MR-6 leave market-ready scope", () => {
     expect(mutations).toContain("raise exception 'LEAVE_INSUFFICIENT_BALANCE'");
     expect(mutations).toContain("for update");
     expect(mutations).not.toContain("return 'on_leave'");
+  });
+
+  it("maps the admin balance override fields into the existing leave decision contract", () => {
+    expect(leaveActions).toContain('override_insufficient_balance: optionalString(formData.get("override_insufficient_balance"))');
+    expect(leaveActions).toContain('override_reason: optionalString(formData.get("override_reason"))');
+    expect(leaveActions).toContain('decision_note: optionalString(formData.get("decision_note"))');
+    expect(leaveActions).toContain('overrideInsufficientBalance: parsed.override_insufficient_balance === "on"');
+    expect(leaveActions).toContain("overrideReason: parsed.override_reason");
+    expect(leaveActions).toContain("decisionNote: parsed.decision_note");
   });
 
   it("integrates pending approval with MR-2 and suppresses it on decision or withdrawal", () => {
