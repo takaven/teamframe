@@ -32,6 +32,16 @@ TeamFrame is UAE-aware, company-flexible, operational and evidence-oriented: **b
 
 Older V1/readiness/finalisation and launch-execution documents are retained as technical provenance only. **Do not infer current deployment or launch status from them.** `CURRENT-STATE.md` controls current operational truth; the current commercial scope and material decisions control market positioning.
 
+## Marketing website — separate repository
+
+**Marketing site (target canonical source):** [`takaven/takaven-web`](https://github.com/takaven/takaven-web), at `teamframe/`. Marketing Vercel project: `takaven-web`, TAKAVEN team under `admin@takaven.com`, intended public URL `https://www.takaven.com/teamframe/`. This website includes the product explorer, HR Setup Check, contact fallback `admin@takaven.com` and its own website-enquiry privacy notice.
+
+**Do not confuse it with this repository.** `takaven/teamframe` remains the only canonical product **application** source and `https://app.takaven.com` remains the product domain; all current Production/customer-data gates in `docs/operations/` continue to apply. The marketing site cannot provision a customer or authorise real customer-data use.
+
+The earlier [`takaven/teamframe-site`](https://github.com/takaven/teamframe-site) is the predecessor commercial site. Following the founder's 2026-10-13 consolidation decision, `takaven/takaven-web` is the intended replacement source. Complete the website PR, this documentation PR and the portfolio registry update **before treating the predecessor as safe to delete**. Historical README/portfolio SHA references to `teamframe-site` must not be used as live source authority after that cutover.
+
+The marketing site was deployed and its Vercel-generated `/teamframe/` and privacy routes were checked in Chrome on 2026-10-13. **Custom `www` domain verification and DNS cutover were still pending at that checkpoint.** Recheck live DNS/Vercel before making a later availability claim. Form endpoint is unconfigured; a direct mailto fallback is available. Marketing page commercial wording must follow `TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE.md` and `docs/launch/DECISIONS.md`, not obsolete site claims or old prices.
+
 ## Implemented Capability
 
 - People and employee lifecycle.

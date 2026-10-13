@@ -30,6 +30,12 @@ Do not infer current production status from an old launch branch, old SHA, histo
 - Commercial implementation can state that TeamFrame is designed to be configured and ready for handover within 48 hours once complete usable setup information and required access are available.
 - Customer-facing UAE marketing wording and its limits are governed by `docs/launch/DECISIONS.md`; this operational file does not restate marketing claims.
 
+## Public marketing website — not application Production
+
+Founder-directed source consolidation (2026-10-13): `takaven/takaven-web` (`teamframe/`) is the **target authoritative commercial website**, replacing the predecessor `takaven/teamframe-site`. New site Vercel project `takaven-web` belongs to the `Takaven` team under `admin@takaven.com`. The Vercel-generated `https://takaven-web-gamma.vercel.app/teamframe/` and privacy route were reported visually/functionally checked in Chrome. As of this dated review, `www.takaven.com` domain verification/DNS cutover is **not confirmed complete**; the online enquiry `FORM_ENDPOINT` is unset and `admin@takaven.com` is the mailto fallback.
+
+**This is separate from** `takaven/teamframe`, Vercel `teamframe-production`, `https://app.takaven.com`, Supabase and the real-customer-data activation gates. No change to application readiness or authority follows from publishing a marketing page. Canonical marketing-source and status details live in the website repo's `README.md` and `docs/WEBSITE-OPERATIONS.md`; reconcile the portfolio `PORTFOLIO.yaml` source pointer before retiring `teamframe-site`.
+
 ## Canonical source
 
 - Repository: `takaven/teamframe`
