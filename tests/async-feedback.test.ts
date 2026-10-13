@@ -58,4 +58,15 @@ describe("Global async processing-feedback coverage", () => {
       expect(read(file)).toMatch(/pendingLabel="Opening…"/);
     }
   });
+
+  it("does not claim magic-link delivery when provider errors are intentionally hidden", () => {
+    const checkEmail = read("app/auth/check-email/page.tsx");
+
+    expect(checkEmail).toContain("If this email is associated with a TeamFrame account");
+    expect(checkEmail).toContain("a fresh link may arrive");
+    expect(checkEmail).not.toContain("Link sent");
+    expect(checkEmail).not.toContain("We sent a sign-in link");
+    expect(checkEmail).not.toContain("A fresh link is on its way");
+    expect(checkEmail).not.toContain("text-signal-green");
+  });
 });

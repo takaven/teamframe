@@ -30,18 +30,20 @@ export default async function CheckEmailPage({
       <section className="tf-auth-card">
       <div>
         <div className="flex items-center gap-2">
-          <span className="h-1.5 w-1.5 rounded-full bg-signal-green" aria-hidden="true" />
-          <p className="text-[12px] font-bold text-signal-green">Link sent</p>
+          <span className="h-1.5 w-1.5 rounded-full bg-ink-400" aria-hidden="true" />
+          <p className="text-[12px] font-bold text-ink-500">Check your inbox</p>
         </div>
         <h1 className="tf-auth-title mt-3">Check your email</h1>
         <p className="mt-3 max-w-prose text-[15.5px] leading-relaxed text-ink-700">
-          We sent a sign-in link to <span className="font-medium">{recipient}</span>. It opens TeamFrame on this device.
+          If this email is associated with a TeamFrame account, a sign-in link may arrive at{" "}
+          <span className="font-medium">{recipient}</span>. Use the newest link on this device.
         </p>
       </div>
 
       {wasResent ? (
-        <p className="mt-6 rounded-lg border border-signal-green/30 bg-signal-green/10 px-4 py-3 text-[14px] text-signal-green">
-          A fresh link is on its way. Only the newest link will work.
+        <p className="mt-6 rounded-lg border border-ink-200 bg-ink-50/60 px-4 py-3 text-[14px] text-ink-700">
+          If this address can receive TeamFrame sign-in links, a fresh link may arrive. Only the
+          newest link will work.
         </p>
       ) : null}
       {rateLimited ? (

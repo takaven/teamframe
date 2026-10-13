@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { notifyPolicyPublished } from "@/services/notificationService";
 import { requireTenantActor } from "@/middleware/rbac";
+import { withQuery } from "@/lib/ui/returnPath";
 import {
   acknowledgePolicy,
   attachPolicyFile,
@@ -212,7 +213,7 @@ export async function downloadPolicyFileAction(formData: FormData): Promise<void
   }
 
   if (failed) {
-    redirect(`${returnTo}?error=${encodeURIComponent(errorCode)}`);
+    redirect(withQuery(returnTo, "error", errorCode));
   }
   redirect(signedUrl);
 }
@@ -415,7 +416,7 @@ export async function acknowledgePolicyAction(formData: FormData): Promise<void>
   }
 
   if (failed) {
-    redirect(`${returnTo}?error=${encodeURIComponent(errorCode)}`);
+    redirect(withQuery(returnTo, "error", errorCode));
   }
-  redirect(`${returnTo}?status=policy_acknowledged`);
+  redirect(withQuery(returnTo, "status", "policy_acknowledged"));
 }
