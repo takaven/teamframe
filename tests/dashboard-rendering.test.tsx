@@ -6,6 +6,9 @@ vi.mock("server-only", () => ({}));
 const mocks = vi.hoisted(() => ({
   requireTenantRole: vi.fn(),
   loadControlCentreData: vi.fn(),
+  getCompanyIdentity: vi.fn(),
+  getActorFirstName: vi.fn(),
+  listFailedDeliveries: vi.fn(),
 }));
 
 vi.mock("@/middleware/rbac", () => ({
@@ -14,6 +17,19 @@ vi.mock("@/middleware/rbac", () => ({
 
 vi.mock("@/app/dashboard/data", () => ({
   loadControlCentreData: mocks.loadControlCentreData,
+}));
+
+vi.mock("@/lib/company/identity", () => ({
+  getCompanyIdentity: mocks.getCompanyIdentity,
+  getActorFirstName: mocks.getActorFirstName,
+}));
+
+vi.mock("@/services/notificationService", () => ({
+  listFailedDeliveries: mocks.listFailedDeliveries,
+}));
+
+vi.mock("@/app/notifications/actions", () => ({
+  retryNotificationAction: vi.fn(),
 }));
 
 vi.mock("@/components/AppShell", () => ({
@@ -25,6 +41,9 @@ import DashboardPage from "@/app/dashboard/page";
 beforeEach(() => {
   mocks.requireTenantRole.mockReset();
   mocks.loadControlCentreData.mockReset();
+  mocks.getCompanyIdentity.mockReset();
+  mocks.getActorFirstName.mockReset();
+  mocks.listFailedDeliveries.mockReset();
   mocks.requireTenantRole.mockResolvedValue({
     authUserId: "admin-a",
     email: "admin-a@example.test",
@@ -32,6 +51,9 @@ beforeEach(() => {
     tenantId: "TENANT_A",
     role: "admin",
   });
+  mocks.getCompanyIdentity.mockResolvedValue({ name: "Northstar" });
+  mocks.getActorFirstName.mockResolvedValue("Amina");
+  mocks.listFailedDeliveries.mockResolvedValue([]);
 });
 
 describe("dashboard rendered states", () => {

@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { requireTenantActor } from "@/middleware/rbac";
 import type { EmployeeDocumentRequestType } from "@/lib/employeeDocumentRequests";
+import { withQuery } from "@/lib/ui/returnPath";
 import {
   completeEmployeeDocumentRequest,
   createEmployeeDocumentRequest,
@@ -25,13 +26,6 @@ function errorCode(error: unknown): string {
   if (error.name === "ZodError") return "INVALID_INPUT";
   const code = error.message.split(":", 1)[0] ?? "UNKNOWN";
   return code || "UNKNOWN";
-}
-
-function withQuery(path: string, key: "status" | "error", value: string): string {
-  const [rawBase, hash] = path.split("#", 2);
-  const base = rawBase || "/";
-  const separator = base.includes("?") ? "&" : "?";
-  return `${base}${separator}${key}=${encodeURIComponent(value)}${hash ? `#${hash}` : ""}`;
 }
 
 export async function createEmployeeDocumentRequestAction(formData: FormData): Promise<void> {

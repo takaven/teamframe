@@ -5,6 +5,7 @@ import { z } from "zod";
 import { notifyDocumentRequest } from "@/services/notificationService";
 import { requireTenantActor } from "@/middleware/rbac";
 import { UAE_RECORD_TYPE_VALUES } from "@/lib/countryRecords";
+import { withQuery } from "@/lib/ui/returnPath";
 import {
   createEmployee,
   generateEmployeeActivationLink,
@@ -1106,8 +1107,8 @@ export async function uploadRequirementDocumentAction(formData: FormData): Promi
     errorCode = getErrorCode(error);
   }
 
-  if (failed) redirect(`${returnTo}?error=${encodeURIComponent(errorCode)}`);
-  redirect(`${returnTo}?status=document_uploaded`);
+  if (failed) redirect(withQuery(returnTo, "error", errorCode));
+  redirect(withQuery(returnTo, "status", "document_uploaded"));
 }
 
 export async function reviewDocumentRequirementAction(formData: FormData): Promise<void> {
