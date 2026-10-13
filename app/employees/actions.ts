@@ -616,6 +616,7 @@ export async function startOffboardingAction(formData: FormData): Promise<void> 
     actor = await requireTenantActor();
     const parsed = StartOffboardingInputSchema.parse({
       employee_id: formData.get("employee_id"),
+      effective_end_date: formData.get("effective_end_date"),
       expected_updated_at: formData.get("expected_updated_at"),
       return_to: optionalString(formData.get("return_to")),
     });
@@ -1066,7 +1067,7 @@ export async function createDocumentRequirementAction(formData: FormData): Promi
       dueDate: parsed.due_date ?? null,
       expiryRequired: parsed.expiry_required === "on",
       reviewRequired: parsed.review_required === "on",
-      employeeUploadAllowed: parsed.employee_upload_allowed !== undefined,
+      employeeUploadAllowed: parsed.employee_upload_allowed === "on",
     });
     await notifyDocumentRequest(actor.tenantId, requirement.id);
   } catch (error) {

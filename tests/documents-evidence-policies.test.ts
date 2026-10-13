@@ -239,5 +239,7 @@ describe("MR-5 documents, evidence and policies", () => {
     expect(actions).toContain('expiry_required: z.enum(["on"]).nullish()');
     expect(actions).toContain('review_required: z.enum(["on"]).nullish()');
     expect(actions).toContain('employee_upload_allowed: z.enum(["on"]).nullish()');
+    expect(actions).toContain('employeeUploadAllowed: parsed.employee_upload_allowed === "on"');
+    expect(actions).not.toContain("employeeUploadAllowed: parsed.employee_upload_allowed !== undefined");
   });
 });
