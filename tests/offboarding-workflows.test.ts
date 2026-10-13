@@ -40,6 +40,8 @@ describe("MR-7 bounded offboarding workflow", () => {
     expect(schema).toContain("'offboarding.closure_due'");
     expect(service).toContain('rpc("teamframe_start_offboarding"');
     expect(actions).toContain("await startOffboarding(actor");
+    expect(actions).toContain('effective_end_date: formData.get("effective_end_date")');
+    expect(actions).toContain("effectiveEndDate: parsed.effective_end_date");
     expect(actions).not.toContain("signalEngine.emit");
   });
 

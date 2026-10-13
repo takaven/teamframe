@@ -223,6 +223,9 @@ export async function decideLeaveAction(formData: FormData): Promise<void> {
       leave_id: formData.get("leave_id"),
       expected_updated_at: formData.get("expected_updated_at"),
       decision: formData.get("decision"),
+      override_insufficient_balance: optionalString(formData.get("override_insufficient_balance")),
+      override_reason: optionalString(formData.get("override_reason")),
+      decision_note: optionalString(formData.get("decision_note")),
       return_to: optionalString(formData.get("return_to")),
     });
     leaveId = parsed.leave_id;
