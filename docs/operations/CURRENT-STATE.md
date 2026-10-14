@@ -32,7 +32,7 @@ Do not infer current production status from an old launch branch, old SHA, histo
 
 ## Public marketing website — not application Production
 
-Publication verified 2026-10-13: `takaven/takaven-web` (`teamframe/`) is the **live authoritative commercial website source**, separate from this application repository. Vercel project `takaven-web` belongs to the `Takaven` team under `admin@takaven.com`; website `main` commit `56f9184b04caf5a816718a8f1318b8fbfbf99d62` was deployed successfully. `https://www.takaven.com/` redirects to `/teamframe/`; the website, privacy page, navigation and HR Setup Check passed browser verification over valid HTTPS. Authoritative and public DNS return `www.takaven.com CNAME 10074f97bb5aebf8.vercel-dns-017.com`, and the Vercel ownership TXT record is present. The online enquiry `FORM_ENDPOINT` remains intentionally unset; `admin@takaven.com` is the accepted contact fallback.
+Publication verified 2026-10-13 and documentation rechecked 2026-10-14: `takaven/takaven-web` (`teamframe/`) is the **live authoritative commercial website source**, separate from this application repository. Vercel project `takaven-web` belongs to the `Takaven` team under `admin@takaven.com`. The last behaviour-changing website baseline is `56f9184b04caf5a816718a8f1318b8fbfbf99d62`; subsequent documentation-only reconciliation is deployed from current website `main` (verified Production deployment source `46651a099bb18d497cac88983f1ddb4bbeed241a`, state `READY`). `https://www.takaven.com/` redirects to `/teamframe/`; the website, privacy page, navigation and HR Setup Check passed browser verification over valid HTTPS. Authoritative and public DNS return `www.takaven.com CNAME 10074f97bb5aebf8.vercel-dns-017.com`, and the Vercel ownership TXT record is present. The online enquiry `FORM_ENDPOINT` remains intentionally unset; `admin@takaven.com` is the accepted contact fallback.
 
 The website, application and portfolio source references were reconciled, after which the founder deleted the superseded `takaven/teamframe-site` repository. **The marketing website remains separate from** `takaven/teamframe`, Vercel `teamframe-production`, `https://app.takaven.com`, Supabase and the real-customer-data activation gates. Publishing the website does not change application readiness or customer-data authority. Canonical marketing-source and status details live in the website repository's `README.md` and `docs/WEBSITE-OPERATIONS.md`.
 
@@ -41,7 +41,7 @@ The website, application and portfolio source references were reconciled, after 
 - Repository: `takaven/teamframe`
 - Protected production branch: `main`
 - Source policy: protected `main` is authoritative.
-- Last verified source checkpoint (2026-10-10): `f7e9a42b0bfe7c21abe48722b2c01f82d2a0c8f9`.
+- Last verified behaviour-changing application baseline: `3865ec2ea9ee37bfdefbb95d45214e48038ce784` (PR #31 merge, containing the preceding PR #30 correction). Later `main` commits may be documentation-only; protected `main` remains authoritative and must be re-read before operational changes.
 - Historical merged branches are not current source authority.
 
 ## Production
@@ -51,8 +51,8 @@ Production is **deployed and healthy for pre-revenue/synthetic operation**.
 - Vercel project: `teamframe-production`
 - Vercel project ID: `prj_09tvdrEWbL1Ov9SFMtrhgYnJ0bNj`
 - Source: protected `main`
-- Last verified deployment checkpoint (2026-10-10): `4XhWi9koWLXSVm9nPseFQUQCCMz9`
-- Last verified source checkpoint (2026-10-10): `f7e9a42b0bfe7c21abe48722b2c01f82d2a0c8f9`
+- Last verified functional deployment checkpoint: Vercel `dpl_HvXQpY2dXUoFRAU3smBfLdacN9Xq`, source `3865ec2ea9ee37bfdefbb95d45214e48038ce784`; deployment completed successfully and the public root plus `/api/health` returned HTTP 200 at correction-workstream closure.
+- Subsequent documentation-only Production checkpoint (2026-10-14): Vercel `dpl_FeYRCZhuDbEHFubc8QywZ2WDnj56`, source `bf51addc33231e8d1abb21d61c56834a72c20679`, state `READY`. This did not change application behaviour.
 - Customer-facing domain: `https://app.takaven.com`
 - Public root: healthy
 - `/api/health`: healthy
@@ -67,6 +67,20 @@ Production is **deployed and healthy for pre-revenue/synthetic operation**.
 The old statement that `teamframe-production` is a disconnected rebuild-only historical shell is **obsolete** and must not be used.
 
 These exact identifiers are dated evidence, not permanent current state. Reverify the live GitHub, Vercel and Supabase targets before any operational write.
+
+## Recent bounded correction closure — 2026-10-13
+
+The independent six-finding correction workstream is **CLOSED**. PR #30 corrected offboarding date propagation, leave approval override propagation and unchecked employee-upload permission mapping. PR #31 corrected confirmed fragment-aware feedback redirects, restored `.test.tsx` discovery and neutralised unconfirmed magic-link delivery wording while preserving anti-enumeration behaviour.
+
+- PR #30 merge: `b0e4be709f6e8e4d474b88768b00efb0f0e2e67f`.
+- PR #31 / final functional baseline: `3865ec2ea9ee37bfdefbb95d45214e48038ce784`.
+- Required Gate Chain, Static Guard, typecheck, lint, tests and production build passed.
+- Final reported suite after TSX discovery: 568 passed, 2 skipped.
+- Vercel Production and Founder Review checks passed.
+- No Supabase schema, Production data, customer data or product-scope expansion was part of these fixes.
+- Detailed runtime-log inspection was unavailable at closure; exact-SHA deployment success plus public root and health smoke checks were verified. Do not reinterpret that limitation as evidence of a runtime failure.
+
+This correction did **not** reopen product development. The normal feature-freeze rules remain in force.
 
 ## Production data platform
 
@@ -152,5 +166,5 @@ Agents must not:
 1. Stabilise durable Founder Review access for prospect demos and screenshots.
 2. Complete MA-002 credential rotation and consolidation before stable Founder Review / prospect-demo acceptance.
 3. Retire merged remote branches after Founder Review no longer depends on the historical launch Preview.
-4. Proceed with sales, demos and website launch.
+4. Proceed with sales and demos; the TeamFrame marketing website is live. Website changes remain governed separately in `takaven/takaven-web`.
 5. When the first paying customer is ready, complete MA-001, MA-003, MA-009 and MA-010, then load that customer's data only after separate approval.
