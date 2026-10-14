@@ -2,7 +2,7 @@
 
 This registry prevents historical identifiers from being mistaken for current infrastructure. It is not deletion authority.
 
-Last reconciled: 2026-10-13 (marketing-source consolidation; no infrastructure or deletion operation). Read [CURRENT-STATE.md](CURRENT-STATE.md) before using this historical/retirement registry.
+Last reconciled: 2026-10-14 (live marketing publication and founder-confirmed predecessor deletion). Read [CURRENT-STATE.md](CURRENT-STATE.md) before using this historical/retirement registry.
 
 ## GitHub
 
@@ -10,8 +10,8 @@ Last reconciled: 2026-10-13 (marketing-source consolidation; no infrastructure o
 | --- | --- | --- | --- |
 | `takaven/teamframe` | ACTIVE canonical HR product application repository | KEEP | Protected TeamFrame application code for `app.takaven.com`; distinct from public marketing |
 | `takaven/hirepass` | ACTIVE separate product repository | KEEP | Canonical HirePass source; do not merge into or retire with TeamFrame |
-| `takaven/takaven-web` | ACTIVE canonical marketing website repository | KEEP | Vercel `takaven-web`; approved marketing source in `teamframe/`, separate from the application; custom `www` DNS verification still pending at 2026-10-13 checkpoint |
-| `takaven/teamframe-site` | SUPERSEDED commercial-site predecessor; still retained | KEEP TEMPORARILY; DELETE ONLY AFTER EXPLICIT FOUNDER APPROVAL | Source content reviewed and useful truthful differentiators retained in `takaven/takaven-web`; do not misidentify old repository as current or delete before portfolio registry is reconciled |
+| `takaven/takaven-web` | ACTIVE live canonical marketing website repository | KEEP | Vercel `takaven-web`; public `www.takaven.com/teamframe/` publication verified at website commit `56f9184b04caf5a816718a8f1318b8fbfbf99d62`; separate from the application |
+| `takaven/teamframe-site` | DELETED by founder after source reconciliation | RETIRED; DO NOT RECREATE | Predecessor content was reviewed and truthful differentiators were retained in `takaven/takaven-web`; deletion followed website, application and portfolio reconciliation |
 | branch `main` | ACTIVE protected Production/default branch; verified at `f7e9a42b0bfe7c21abe48722b2c01f82d2a0c8f9` on 2026-10-10 | KEEP | Canonical current source |
 | branch `launch/managed-people-ops-45-day` | MERGED historical evidence branch; temporarily retained only because Founder Review still has a known Preview fallback dependency | RETIRE after stable Founder Review current-main login passes repeat-login acceptance | Not current Production or product authority |
 | branch `brand/apply-final-takaven-logos` | DELETED 2026-09-28; merged in PR #1; had 0 unique commits | RETIRED; never recreate for active work | Merged stale branch |
