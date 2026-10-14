@@ -2,7 +2,7 @@
 
 **STATUS: CANONICAL CURRENT-STATE RECORD**
 
-Last reconciled: 2026-10-11
+Last reconciled: 2026-10-14
 
 This file is the concise first-read summary of TeamFrame's current operational status. It does not override domain-specific authorities. If current authority documents conflict, stop and reconcile them against live state before making an operational change.
 
@@ -32,9 +32,9 @@ Do not infer current production status from an old launch branch, old SHA, histo
 
 ## Public marketing website — not application Production
 
-Founder-directed source consolidation (2026-10-13): `takaven/takaven-web` (`teamframe/`) is the **target authoritative commercial website**, replacing the predecessor `takaven/teamframe-site`. New site Vercel project `takaven-web` belongs to the `Takaven` team under `admin@takaven.com`. The Vercel-generated `https://takaven-web-gamma.vercel.app/teamframe/` and privacy route were reported visually/functionally checked in Chrome. As of this dated review, `www.takaven.com` domain verification/DNS cutover is **not confirmed complete**; the online enquiry `FORM_ENDPOINT` is unset and `admin@takaven.com` is the mailto fallback.
+Publication verified 2026-10-13: `takaven/takaven-web` (`teamframe/`) is the **live authoritative commercial website source**, separate from this application repository. Vercel project `takaven-web` belongs to the `Takaven` team under `admin@takaven.com`; website `main` commit `56f9184b04caf5a816718a8f1318b8fbfbf99d62` was deployed successfully. `https://www.takaven.com/` redirects to `/teamframe/`; the website, privacy page, navigation and HR Setup Check passed browser verification over valid HTTPS. Authoritative and public DNS return `www.takaven.com CNAME 10074f97bb5aebf8.vercel-dns-017.com`, and the Vercel ownership TXT record is present. The online enquiry `FORM_ENDPOINT` remains intentionally unset; `admin@takaven.com` is the accepted contact fallback.
 
-**This is separate from** `takaven/teamframe`, Vercel `teamframe-production`, `https://app.takaven.com`, Supabase and the real-customer-data activation gates. No change to application readiness or authority follows from publishing a marketing page. Canonical marketing-source and status details live in the website repo's `README.md` and `docs/WEBSITE-OPERATIONS.md`; reconcile the portfolio `PORTFOLIO.yaml` source pointer before retiring `teamframe-site`.
+The website, application and portfolio source references were reconciled, after which the founder deleted the superseded `takaven/teamframe-site` repository. **The marketing website remains separate from** `takaven/teamframe`, Vercel `teamframe-production`, `https://app.takaven.com`, Supabase and the real-customer-data activation gates. Publishing the website does not change application readiness or customer-data authority. Canonical marketing-source and status details live in the website repository's `README.md` and `docs/WEBSITE-OPERATIONS.md`.
 
 ## Canonical source
 
