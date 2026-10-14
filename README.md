@@ -15,6 +15,7 @@ TeamFrame is UAE-aware, company-flexible, operational and evidence-oriented: **b
 ## Canonical Documents
 
 - [docs/operations/CURRENT-STATE.md](docs/operations/CURRENT-STATE.md) - **first-read canonical operational truth** for source, Production, Founder Review, launch status and remaining customer-data gates.
+- [takaven/takaven-web/docs/AUDIT-HANDOFF.md](https://github.com/takaven/takaven-web/blob/main/docs/AUDIT-HANDOFF.md) - independent-review orientation for the separate live marketing website; navigation only, not application authority.
 - [docs/operations/MANUAL-ACTIONS.md](docs/operations/MANUAL-ACTIONS.md) - canonical founder/account-owner actions and remaining activation gates.
 - [TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE.md](TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE.md) - controlling product and optional-service commercial scope.
 - [docs/launch/TEAMFRAME_45_DAY_EXECUTION_PLAN.md](docs/launch/TEAMFRAME_45_DAY_EXECUTION_PLAN.md) - historical launch-execution provenance only; it does not define current operational status.
