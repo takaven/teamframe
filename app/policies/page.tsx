@@ -32,6 +32,7 @@ const ERROR_COPY: Record<string, string> = {
   POLICY_FILE_REQUIRED: "Attach a policy file (PDF, DOC, or DOCX) to upload a policy.",
   POLICY_FILE_ATTACH_FAILED: "Could not attach the policy file.",
   POLICY_FILE_UNSUPPORTED_TYPE: "Policy files must be PDF, DOC, or DOCX.",
+  POLICY_PUBLISHED_IMMUTABLE: "Published policy content cannot be replaced. Add a new version instead.",
   POLICY_FILE_NOT_FOUND: "No file is attached to that policy version.",
   POLICY_PUBLISH_FAILED: "Could not publish the policy.",
   POLICY_ARCHIVE_FAILED: "Could not archive the policy.",
@@ -262,7 +263,7 @@ export default async function PoliciesPage({
                             PDF or DOCX upload is the normal policy content path; plain text remains available for simple policies.
                           </p>
                         )}
-                        {!policy.archived_at ? (
+                        {!policy.archived_at && !policy.is_published ? (
                           <form action={attachPolicyFileAction} className="mt-2 flex flex-wrap items-end gap-2" encType="multipart/form-data">
                             <input type="hidden" name="policy_id" value={policy.id} />
                             <div className="flex min-w-0 flex-1 flex-col gap-1 text-[11px] text-ink-500">
