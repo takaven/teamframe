@@ -15,7 +15,7 @@
  */
 
 import * as Sentry from "@sentry/nextjs";
-import { scrubPII } from "@/lib/telemetry/scrub";
+import { scrubSentryEvent } from "@/lib/telemetry/scrub";
 
 const dsn = process.env.SENTRY_DSN;
 
@@ -27,15 +27,10 @@ if (dsn) {
     dsn,
 
     tracesSampleRate: 0,
+    sendDefaultPii: false,
 
     beforeSend(event) {
-      delete event.user;
-
-      if (event.extra && typeof event.extra === "object") {
-        event.extra = scrubPII(event.extra as Record<string, unknown>);
-      }
-
-      return event;
+      return scrubSentryEvent(event as unknown as Record<string, unknown>) as unknown as typeof event;
     },
   });
 
