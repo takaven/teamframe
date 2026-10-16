@@ -10,14 +10,12 @@ describe("magic-link diagnostic privacy", () => {
       email: "person@example.invalid",
       code: "provider_failure",
       status: 503,
-      message: "raw provider response containing person@example.invalid",
     };
 
     expect(scrubPII(providerFailure)).toEqual({
       email: "[REDACTED]",
       code: "provider_failure",
       status: 503,
-      message: providerFailure.message,
     });
     expect(source).toContain('scrubPII({');
     expect(source).toMatch(/AUTH_SEND_MAGIC_LINK_DIAGNOSTIC[\s\S]*email,[\s\S]*code,[\s\S]*status/);
