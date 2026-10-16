@@ -247,6 +247,7 @@ export async function createEmployeeAction(formData: FormData): Promise<void> {
   let actor: Awaited<ReturnType<typeof requireTenantActor>> | null = null;
   let caughtError: unknown = null;
   let employeeId: string | null = null;
+  let onboardingChecklistIncomplete = false;
 
   try {
     actor = await requireTenantActor();
@@ -281,6 +282,7 @@ export async function createEmployeeAction(formData: FormData): Promise<void> {
         actor_tenant_id: actor.tenantId,
         employee_id: created.id,
       });
+      onboardingChecklistIncomplete = true;
     }
   } catch (error) {
     failed = true;
@@ -318,12 +320,15 @@ export async function createEmployeeAction(formData: FormData): Promise<void> {
     redirect(`/people/add?error=${encodeURIComponent(errorCode)}`);
   }
 
-  redirect(`/people/${encodeURIComponent(employeeId!)}?status=created`);
+  redirect(
+    `/people/${encodeURIComponent(employeeId!)}?status=${onboardingChecklistIncomplete ? "created_onboarding_incomplete" : "created"}`,
+  );
 }
 
 export async function createEmployeeFromHireAction(formData: FormData): Promise<void> {
   let errorCode: string | null = null;
   let employeeId: string | null = null;
+  let onboardingChecklistIncomplete = false;
   try {
     if (process.env.TEAMFRAME_HIRE_BRIDGE_ENABLED !== "true") throw new Error("HIRE_HANDOFF_DISABLED");
     const actor = await requireTenantActor();
@@ -347,12 +352,15 @@ export async function createEmployeeFromHireAction(formData: FormData): Promise<
       grade: null,
     });
     employeeId = result.employeeId;
+    onboardingChecklistIncomplete = !result.onboardingChecklistAssigned;
   } catch (error) {
     captureActionError("createEmployeeFromHire", error);
     errorCode = getErrorCode(error);
   }
   if (errorCode) redirect(`/people/add?error=${encodeURIComponent(errorCode)}#hire-handoff`);
-  redirect(`/people/${encodeURIComponent(employeeId!)}?status=hire_handoff_created`);
+  redirect(
+    `/people/${encodeURIComponent(employeeId!)}?status=${onboardingChecklistIncomplete ? "hire_handoff_onboarding_incomplete" : "hire_handoff_created"}`,
+  );
 }
 
 export async function updateEmployeeAction(formData: FormData): Promise<void> {

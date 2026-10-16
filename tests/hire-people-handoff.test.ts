@@ -7,6 +7,7 @@ vi.mock("@/lib/db/supabaseServer", () => ({ createServiceRoleClient: vi.fn() }))
 vi.mock("@/services/onboardingService/checklistTemplates", () => ({ assignDefaultChecklist: vi.fn().mockResolvedValue(0) }));
 
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
+import { assignDefaultChecklist } from "@/services/onboardingService/checklistTemplates";
 import { createEmployeeFromReviewedHire, HirePeopleSnapshotSchema } from "@/services/hirePeopleHandoff";
 
 const actor = { role: "admin", tenantId: "tenant-1", authUserId: "operator-1" } as const;
@@ -31,6 +32,7 @@ const snapshot = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(assignDefaultChecklist).mockResolvedValue(0);
   vi.stubEnv("TEAMFRAME_HIREPASS_SOURCE_NAMESPACE", "hirepass-customer-1");
   vi.stubEnv("TEAMFRAME_HIRE_BRIDGE_ENABLED", "true");
 });
@@ -52,7 +54,7 @@ describe("one-way Hire→People handoff", () => {
     vi.mocked(createServiceRoleClient).mockReturnValue({ rpc } as never);
     await expect(createEmployeeFromReviewedHire({ ...actor, role: "employee" } as never, snapshot)).rejects.toThrow("FORBIDDEN");
     expect(rpc).not.toHaveBeenCalled();
-    await expect(createEmployeeFromReviewedHire(actor as never, { ...snapshot, email: "SYNTHETIC@example.invalid" })).resolves.toEqual({ employeeId: "employee-1" });
+    await expect(createEmployeeFromReviewedHire(actor as never, { ...snapshot, email: "SYNTHETIC@example.invalid" })).resolves.toEqual({ employeeId: "employee-1", onboardingChecklistAssigned: true });
     expect(rpc).toHaveBeenCalledWith("teamframe_create_employee_from_hire", {
       p_tenant_id: actor.tenantId,
       p_actor_user_id: actor.authUserId,
@@ -67,11 +69,23 @@ describe("one-way Hire→People handoff", () => {
       .mockResolvedValueOnce({ data: null, error: { message: "HIRE_HANDOFF_CONFLICT" } });
     const rpc = vi.fn().mockReturnValue({ single });
     vi.mocked(createServiceRoleClient).mockReturnValue({ rpc } as never);
-    expect(await createEmployeeFromReviewedHire(actor as never, snapshot)).toEqual({ employeeId: "employee-1" });
-    expect(await createEmployeeFromReviewedHire(actor as never, snapshot)).toEqual({ employeeId: "employee-1" });
+    expect(await createEmployeeFromReviewedHire(actor as never, snapshot)).toEqual({ employeeId: "employee-1", onboardingChecklistAssigned: true });
+    expect(await createEmployeeFromReviewedHire(actor as never, snapshot)).toEqual({ employeeId: "employee-1", onboardingChecklistAssigned: true });
     await expect(createEmployeeFromReviewedHire(actor as never, { ...snapshot, offer_id: 22 }))
       .rejects.toThrow("HIRE_HANDOFF_CONFLICT");
     expect(rpc).toHaveBeenCalledTimes(3);
+  });
+
+  it("preserves the created employee and truthfully reports checklist assignment failure", async () => {
+    const rpc = vi.fn().mockReturnValue({ single: vi.fn().mockResolvedValue({ data: { id: "employee-1" }, error: null }) });
+    vi.mocked(createServiceRoleClient).mockReturnValue({ rpc } as never);
+    vi.mocked(assignDefaultChecklist).mockRejectedValueOnce(new Error("synthetic checklist failure"));
+
+    await expect(createEmployeeFromReviewedHire(actor as never, snapshot)).resolves.toEqual({
+      employeeId: "employee-1",
+      onboardingChecklistAssigned: false,
+    });
+    expect(rpc).toHaveBeenCalledTimes(1);
   });
 
   it("fails closed if the stable source namespace is absent", async () => {

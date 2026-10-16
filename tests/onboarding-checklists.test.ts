@@ -37,8 +37,16 @@ describe("persistent onboarding checklist closure", () => {
   });
 
   it("integrates the default once in Add Person and HirePass paths", () => {
-    expect(read("app/employees/actions.ts")).toContain("await assignDefaultChecklist(actor, created.id)");
-    expect(read("services/hirePeopleHandoff.ts")).toContain("await assignDefaultChecklist(actor, employeeId)");
+    const actions = read("app/employees/actions.ts");
+    const handoff = read("services/hirePeopleHandoff.ts");
+    const people = read("components/PeopleExperience.tsx");
+    expect(actions).toContain("await assignDefaultChecklist(actor, created.id)");
+    expect(actions).toContain("created_onboarding_incomplete");
+    expect(actions).toContain("hire_handoff_onboarding_incomplete");
+    expect(handoff).toContain("await assignDefaultChecklist(actor, employeeId)");
+    expect(handoff).toContain("onboardingChecklistAssigned = false");
+    expect(people).toContain("Do not create the employee again");
+    expect(people).toContain('href="/onboarding"');
   });
 
   it("keeps starter packs as copyable sources, not a second editable model", () => {

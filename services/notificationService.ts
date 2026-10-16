@@ -50,7 +50,22 @@ export async function deliverNotification(input: NotificationInput): Promise<{ s
   if (existing) return { status: (existing as DeliveryRow).status, id: (existing as DeliveryRow).id };
   const initialStatus = email ? "pending" : "skipped";
   const { data, error } = await db.from("notification_deliveries").insert({ tenant_id: input.tenantId, recipient_employee_id: input.recipientEmployeeId ?? null, recipient_email: email, notification_type: input.type, event_key: input.eventKey, related_entity_type: input.relatedEntityType ?? null, related_entity_id: input.relatedEntityId ?? null, action_path: input.actionPath, status: initialStatus, last_error_summary: email ? null : "No valid recipient email" }).select("*").single();
-  if (error) { if (error.code === "23505") return { status: "sent", id: null }; throw new Error(`NOTIFICATION_LEDGER_FAILED: ${error.message}`); }
+  if (error) {
+    if (error.code === "23505") {
+      const { data: concurrent, error: concurrentError } = await db
+        .from("notification_deliveries")
+        .select("id,status")
+        .eq("tenant_id", input.tenantId)
+        .eq("event_key", input.eventKey)
+        .maybeSingle();
+      if (concurrentError || !concurrent) {
+        throw new Error(`NOTIFICATION_LEDGER_FAILED: ${concurrentError?.message ?? "concurrent record unavailable"}`);
+      }
+      const recorded = concurrent as Pick<DeliveryRow, "id" | "status">;
+      return { status: recorded.status, id: recorded.id };
+    }
+    throw new Error(`NOTIFICATION_LEDGER_FAILED: ${error.message}`);
+  }
   const row = data as DeliveryRow;
   if (!email) return { status: "skipped", id: row.id };
   try {
