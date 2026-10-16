@@ -50,6 +50,7 @@ describe("Phase 8 — consolidated founder correction pass", () => {
       "components/EmployeeAvatar.tsx",
       "components/TakavenEndorsement.tsx",
       "lib/company/identity.ts",
+      "public/brand/takaven-primary-horizontal.svg",
       "public/brand/teamframe-by-takaven-primary.svg",
       "public/brand/teamframe-by-takaven-reversed.svg",
     ].map(expectFile));
@@ -71,7 +72,18 @@ describe("Phase 8 — consolidated founder correction pass", () => {
     // Redesign brand hierarchy: TeamFrame product identity at top, customer workspace context,
     // quiet TAKAVEN endorsement at the bottom.
     expect(shell).toContain("Workspace");
-    expect(shell).toContain("Conceptualised by");
+    expect(shell).toContain('<TakavenEndorsement reversed align="center"');
+
+    const endorsement = read("components/TakavenEndorsement.tsx");
+    expect(endorsement).toContain('label = "Conceptualised by"');
+    expect(endorsement).toContain('src="/brand/takaven-primary-horizontal.svg"');
+    expect(endorsement).toContain('alt="TAKAVEN"');
+    expect(endorsement).toContain('width={1683}');
+    expect(endorsement).toContain('height={202}');
+    expect(endorsement).not.toContain("teamframe-endorsed");
+
+    const takavenMark = read("public/brand/takaven-primary-horizontal.svg");
+    expect(takavenMark).toContain('viewBox="204 177 1683 202"');
   });
 
   it("keeps the developer-narration 'Admin queue' eyebrow out of customer pages", () => {
