@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { scrubSentryEvent } from "@/lib/telemetry/scrub";
+
 const sentry = vi.hoisted(() => {
   const scope = {
     setTag: vi.fn(),
@@ -158,5 +160,100 @@ describe("Sentry 10 instrumentation compatibility", () => {
     await import("../instrumentation-client");
 
     expect(sentry.init).not.toHaveBeenCalled();
+  });
+});
+
+describe("Sentry payload privacy limits", () => {
+  it("does not expose PII or secrets beyond the recursion limit", () => {
+    let nested: Record<string, unknown> = {
+      email: "deep.employee@example.invalid",
+      token: "deep-secret-token",
+      note: "contact deep.employee@example.invalid",
+    };
+
+    for (let level = 0; level < 8; level += 1) {
+      nested = { nested };
+    }
+
+    const result = scrubSentryEvent({ extra: nested });
+    const serialized = JSON.stringify(result);
+
+    expect(serialized).not.toContain("deep.employee@example.invalid");
+    expect(serialized).not.toContain("deep-secret-token");
+  });
+
+  it("recursively sanitises mixed and nested arrays", () => {
+    const result = scrubSentryEvent({
+      extra: {
+        values: [
+          "employee@example.invalid",
+          [{ token: "nested-array-secret", detail: "Bearer credential" }],
+          42,
+          null,
+        ],
+      },
+    });
+
+    expect(result.extra).toEqual({
+      values: [
+        "[REDACTED_EMAIL]",
+        [{ token: "[REDACTED]", detail: "Bearer [REDACTED]" }],
+        42,
+        null,
+      ],
+    });
+  });
+
+  it("replaces circular references with a safe marker", () => {
+    const circular: Record<string, unknown> = {
+      email: "circular.employee@example.invalid",
+    };
+    circular.self = circular;
+
+    const result = scrubSentryEvent({ extra: circular });
+
+    expect(() => JSON.stringify(result)).not.toThrow();
+    expect(result.extra).toEqual({
+      email: "[REDACTED]",
+      self: "[CIRCULAR]",
+    });
+  });
+
+  it("bounds unusually large payloads without leaking truncated values", () => {
+    const values = Array.from({ length: 2_000 }, (_, index) =>
+      index === 1_999 ? "last.employee@example.invalid" : `diagnostic-${index}`,
+    );
+
+    const result = scrubSentryEvent({
+      extra: {
+        values,
+        oversized: `${"x".repeat(5_000)}oversized.employee@example.invalid`,
+      },
+    });
+    const serialized = JSON.stringify(result);
+    const scrubbedExtra = result.extra as {
+      values: unknown[];
+      oversized: string;
+    };
+
+    expect(serialized).not.toContain("last.employee@example.invalid");
+    expect(serialized).not.toContain("oversized.employee@example.invalid");
+    expect(serialized.length).toBeLessThan(JSON.stringify({ extra: { values } }).length);
+    expect(scrubbedExtra.values).toHaveLength(101);
+    expect(scrubbedExtra.values.at(-1)).toBe("[TRUNCATED]");
+    expect(scrubbedExtra.oversized).toBe("[TRUNCATED]");
+  });
+
+  it("preserves useful ordinary diagnostic context", () => {
+    const event = {
+      extra: {
+        action: "updateEmployee",
+        status: 409,
+        retryable: false,
+        tags: ["conflict", "employee-update"],
+      },
+    };
+
+    expect(scrubSentryEvent(event)).toEqual(event);
   });
 });
