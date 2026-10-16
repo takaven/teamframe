@@ -7,8 +7,9 @@
  *
  * Rules:
  *  - keys are matched case-insensitively
- *  - nested objects are recursed up to MAX_DEPTH levels
- *  - arrays are recursed: object elements are scrubbed, scalars pass through
+ *  - nested objects and arrays are recursed up to MAX_DEPTH levels
+ *  - depth, collection size, string length and total work are bounded
+ *  - circular references and truncated values are replaced with safe markers
  *  - never throws
  */
 
@@ -49,48 +50,91 @@ const PII_KEYS = new Set([
 ]);
 
 const MAX_DEPTH = 5;
+const MAX_COLLECTION_ITEMS = 100;
+const MAX_TOTAL_VALUES = 1_000;
+const MAX_STRING_LENGTH = 4_096;
+
+const CIRCULAR_MARKER = "[CIRCULAR]";
+const TRUNCATED_MARKER = "[TRUNCATED]";
+const UNAVAILABLE_MARKER = "[UNAVAILABLE]";
 
 const EMAIL_RE = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
 const BEARER_RE = /\bBearer\s+[^\s,;]+/gi;
 const JWT_RE = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g;
 
 export function scrubSensitiveText(value: string): string {
+  if (value.length > MAX_STRING_LENGTH) return TRUNCATED_MARKER;
+
   return value
     .replace(EMAIL_RE, "[REDACTED_EMAIL]")
     .replace(BEARER_RE, "Bearer [REDACTED]")
     .replace(JWT_RE, "[REDACTED_TOKEN]");
 }
 
+type ScrubState = {
+  ancestors: WeakSet<object>;
+  remainingValues: number;
+};
+
+function scrubValue(
+  value: unknown,
+  depth: number,
+  state: ScrubState,
+): unknown {
+  if (state.remainingValues <= 0) return TRUNCATED_MARKER;
+  state.remainingValues -= 1;
+
+  if (typeof value === "string") return scrubSensitiveText(value);
+  if (value === null || typeof value !== "object") return value;
+  if (depth > MAX_DEPTH) return TRUNCATED_MARKER;
+  if (state.ancestors.has(value)) return CIRCULAR_MARKER;
+
+  state.ancestors.add(value);
+
+  try {
+    if (Array.isArray(value)) {
+      const result = value
+        .slice(0, MAX_COLLECTION_ITEMS)
+        .map((item) => scrubValue(item, depth + 1, state));
+
+      if (value.length > MAX_COLLECTION_ITEMS) result.push(TRUNCATED_MARKER);
+      return result;
+    }
+
+    const result: Record<string, unknown> = {};
+    let included = 0;
+
+    for (const key in value) {
+      if (!Object.prototype.hasOwnProperty.call(value, key)) continue;
+      if (included >= MAX_COLLECTION_ITEMS) break;
+
+      const nestedValue = (value as Record<string, unknown>)[key];
+      result[key] = PII_KEYS.has(key.toLowerCase())
+        ? "[REDACTED]"
+        : scrubValue(nestedValue, depth + 1, state);
+      included += 1;
+    }
+
+    return result;
+  } catch {
+    return UNAVAILABLE_MARKER;
+  } finally {
+    state.ancestors.delete(value);
+  }
+}
+
 export function scrubPII(
   payload: Record<string, unknown>,
   _depth = 0,
 ): Record<string, unknown> {
-  if (_depth > MAX_DEPTH) return payload;
+  const result = scrubValue(payload, _depth, {
+    ancestors: new WeakSet<object>(),
+    remainingValues: MAX_TOTAL_VALUES,
+  });
 
-  const result: Record<string, unknown> = {};
-
-  for (const [key, value] of Object.entries(payload)) {
-    if (PII_KEYS.has(key.toLowerCase())) {
-      result[key] = "[REDACTED]";
-    } else if (Array.isArray(value)) {
-      result[key] = value.map((item) =>
-        item !== null && typeof item === "object" && !Array.isArray(item)
-          ? scrubPII(item as Record<string, unknown>, _depth + 1)
-          : typeof item === "string"
-            ? scrubSensitiveText(item)
-            : item,
-      );
-    } else if (
-      value !== null &&
-      typeof value === "object"
-    ) {
-      result[key] = scrubPII(value as Record<string, unknown>, _depth + 1);
-    } else {
-      result[key] = typeof value === "string" ? scrubSensitiveText(value) : value;
-    }
-  }
-
-  return result;
+  return result !== null && typeof result === "object" && !Array.isArray(result)
+    ? result as Record<string, unknown>
+    : {};
 }
 
 /**
