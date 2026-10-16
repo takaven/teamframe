@@ -78,7 +78,12 @@ describe("Phase 8 — consolidated founder correction pass", () => {
     expect(endorsement).toContain('label = "Conceptualised by"');
     expect(endorsement).toContain('src="/brand/takaven-primary-horizontal.svg"');
     expect(endorsement).toContain('alt="TAKAVEN"');
+    expect(endorsement).toContain('width={1683}');
+    expect(endorsement).toContain('height={202}');
     expect(endorsement).not.toContain("teamframe-endorsed");
+
+    const takavenMark = read("public/brand/takaven-primary-horizontal.svg");
+    expect(takavenMark).toContain('viewBox="204 177 1683 202"');
   });
 
   it("keeps the developer-narration 'Admin queue' eyebrow out of customer pages", () => {
