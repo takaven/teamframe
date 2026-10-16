@@ -37,7 +37,7 @@
     "customer:implement": "node scripts/customer-implementation.mjs"
   },
   "dependencies": {
-    "@sentry/nextjs": "^9.47.1",
+    "@sentry/nextjs": "10.76.2",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.46.0",
     "next": "15.5.28",
