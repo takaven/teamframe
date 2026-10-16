@@ -20,9 +20,9 @@ export function TakavenEndorsement({
         <Image
           src="/brand/takaven-primary-horizontal.svg"
           alt="TAKAVEN"
-          width={2048}
-          height={512}
-          className="h-7 w-auto"
+          width={1683}
+          height={202}
+          className={reversed ? "h-auto w-[164px] max-w-full" : "h-auto w-[204px] max-w-full"}
         />
       </span>
     </div>
