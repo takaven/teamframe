@@ -171,6 +171,7 @@ export async function attachPolicyFile(
 
   if (policyError) throw new Error(`POLICY_FILE_LOOKUP_FAILED: ${policyError.message}`);
   if (!policyData) throw new Error("POLICY_NOT_FOUND");
+  if ((policyData as PolicyRow).is_published) throw new Error("POLICY_PUBLISHED_IMMUTABLE");
 
   await assertPrivateDocumentStorageReady();
   const bytes = Buffer.from(await input.file.arrayBuffer());
@@ -198,10 +199,13 @@ export async function attachPolicyFile(
     } as never)
     .eq("tenant_id", tenantId)
     .eq("id", input.policyId)
+    .eq("is_published", false)
     .select(POLICY_COLUMNS)
-    .single();
+    .maybeSingle();
 
+  if (error?.message.includes("POLICY_PUBLISHED_IMMUTABLE")) throw new Error("POLICY_PUBLISHED_IMMUTABLE");
   if (error) throw new Error(`POLICY_FILE_ATTACH_FAILED: ${error.message}`);
+  if (!data) throw new Error("POLICY_PUBLISHED_IMMUTABLE");
   return stripTenant(data as PolicyRow);
 }
 
