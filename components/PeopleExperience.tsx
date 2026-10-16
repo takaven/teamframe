@@ -249,6 +249,7 @@ export async function PeopleExperience({
 
   const successMessage = status ? (STATUS_COPY[status] ?? null) : null;
   const errorMessage = error ? (ERROR_COPY[error] ?? ERROR_COPY.UNKNOWN) : null;
+  const onboardingIncomplete = status === "created_onboarding_incomplete" || status === "hire_handoff_onboarding_incomplete";
 
   if (actor.role !== "admin") {
     return (
@@ -466,6 +467,21 @@ export async function PeopleExperience({
           </div>
         </div>
       ) : null}
+      {onboardingIncomplete ? (
+        <p role="status" aria-live="polite" className="mb-5 rounded-lg border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 text-[13.5px] text-ink-800">
+          Employee created, but the default onboarding checklist was not assigned. Do not create the employee again.{" "}
+          <Link href="/onboarding" className="font-semibold text-accent underline underline-offset-2">Assign onboarding work</Link>.
+        </p>
+      ) : successMessage ? (
+        <p role="status" aria-live="polite" className="mb-5 rounded-lg border border-signal-green/25 bg-signal-green/5 px-4 py-2.5 text-[13.5px] text-signal-green">
+          {successMessage}
+        </p>
+      ) : null}
+      {errorMessage ? (
+        <p role="alert" className="mb-5 rounded-lg border border-signal-red/25 bg-signal-red/5 px-4 py-2.5 text-[13.5px] text-signal-red">
+          {errorMessage}
+        </p>
+      ) : null}
       {view === "directory" ? <>
       <div className="tf-people-header flex flex-wrap items-end justify-between gap-5 border-b border-ink-300/50 pb-5">
         <div>
@@ -503,17 +519,6 @@ export async function PeopleExperience({
         </form>
         </div>
       </div>
-
-      {successMessage ? (
-        <p role="status" aria-live="polite" className="mb-5 rounded-lg border border-signal-green/25 bg-signal-green/5 px-4 py-2.5 text-[13.5px] text-signal-green">
-          {successMessage}
-        </p>
-      ) : null}
-      {errorMessage ? (
-        <p role="alert" className="mb-5 rounded-lg border border-signal-red/25 bg-signal-red/5 px-4 py-2.5 text-[13.5px] text-signal-red">
-          {errorMessage}
-        </p>
-      ) : null}
 
       <section className="tf-surface overflow-hidden">
         <div className="hidden grid-cols-[minmax(0,2fr)_minmax(0,1fr)_140px] items-center gap-4 border-b border-ink-100 bg-ink-50/50 px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-500 md:grid">

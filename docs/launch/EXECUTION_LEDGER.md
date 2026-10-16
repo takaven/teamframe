@@ -136,8 +136,10 @@ Closure evidence: PR #21 merged the previously verified UX-only commit `48019c0e
 
 | ID | Workstream | State | Target / ceiling | Stop condition |
 | -- | ---------- | ----- | ---------------- | -------------- |
-| ADC-1 | Integrity and access | IMPLEMENT | Target 4h; max 7h active | Stop before auth/RLS redesign, a new access model, a new policy-versioning system, or any live database/infrastructure change. |
-| ADC-2 | Operational reliability and privacy | IMPLEMENT | Target 4h; max 7h active | Stop before workflow redesign, notification architecture changes, new onboarding capability, or any live provider/infrastructure operation. |
-| ADC-3 | Commercial-value assessment | REVIEW | Target 1h; max 2h active | Stop at evidence-based classification; no strategic enhancement without founder approval. |
+| ADC-1 | Integrity and access | PREPARED | Target 4h; max 7h active | Stop before auth/RLS redesign, a new access model, a new policy-versioning system, or any live database/infrastructure change. |
+| ADC-2 | Operational reliability and privacy | PREPARED | Target 4h; max 7h active | Stop before workflow redesign, notification architecture changes, new onboarding capability, or any live provider/infrastructure operation. |
+| ADC-3 | Commercial-value assessment | PASS | Target 1h; max 2h active | Stop at evidence-based classification; no strategic enhancement without founder approval. |
 
 Authorised scope: correct TF-A03, TF-M03, TF-M01, TF-A01 and TF-A02; follow only concrete adjacent evidence; preserve existing product architecture; prepare reviewable PRs without merge, deployment, live migration or customer-data access.
+
+Prepared evidence: PR #34 protects the effective `manage_users_access` authority under custom profiles and concurrent writes, and prevents published policy content from changing beneath version-specific acknowledgements. The stacked operational branch adds truthful employee/onboarding partial-success recovery, equivalent policy notifications from both publication paths, sanitised magic-link diagnostics, record-page action feedback, and accurate concurrent notification idempotency results. No strategic feature met the evidence threshold for implementation; buyer-value opportunities remain recommendations pending customer evidence. No live migration, provider call, deployment or customer-data operation was performed.
