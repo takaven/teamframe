@@ -141,6 +141,7 @@ export async function uploadPolicyAction(formData: FormData): Promise<void> {
   const requestId = crypto.randomUUID();
   let actor: Awaited<ReturnType<typeof requireTenantActor>> | null = null;
   let caughtError: unknown = null;
+  let published = false;
 
   try {
     actor = await requireTenantActor();
@@ -163,6 +164,8 @@ export async function uploadPolicyAction(formData: FormData): Promise<void> {
     const attached = await attachPolicyFile(actor, { policyId: created.id, file });
     if (shouldPublish) {
       await publishPolicy(actor, created.id, attached.updated_at);
+      published = true;
+      await notifyPolicyPublished(actor.tenantId, created.id);
     }
   } catch (error) {
     failed = true;
@@ -190,7 +193,7 @@ export async function uploadPolicyAction(formData: FormData): Promise<void> {
   if (failed) {
     redirect(`/policies?error=${encodeURIComponent(errorCode)}`);
   }
-  redirect("/policies?status=uploaded");
+  redirect(`/policies?status=${published ? "published" : "uploaded"}`);
 }
 
 export async function downloadPolicyFileAction(formData: FormData): Promise<void> {

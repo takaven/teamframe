@@ -24,8 +24,21 @@ describe("Group D bounded notifications", () => {
     expect(service).toContain('.eq("event_key", input.eventKey)');
   });
 
+  it("returns the real concurrent idempotency record instead of inventing successful delivery", () => {
+    expect(service).toContain('error.code === "23505"');
+    expect(service).toMatch(/error\.code === "23505"[\s\S]*\.eq\("event_key", input\.eventKey\)[\s\S]*recorded\.status/);
+    expect(service).not.toContain('if (error.code === "23505") return { status: "sent", id: null }');
+  });
+
   it("covers the bounded transactional families", () => {
     for (const helper of ["notifyDocumentRequest", "notifyTaskAssignment", "notifyLeaveRequest", "notifyLeaveDecision", "notifyPolicyPublished", "notifyDueMilestone", "notifyOffboardingAssignment"]) expect(service).toContain(helper);
+  });
+
+  it("uses the same notification operation for both supported policy publication routes", () => {
+    const actions = read("app/policies/actions.ts");
+    expect(actions.match(/notifyPolicyPublished\(/g)).toHaveLength(2);
+    expect(actions).toMatch(/uploadPolicyAction[\s\S]*publishPolicy\([\s\S]*notifyPolicyPublished/);
+    expect(actions).toContain('status=${published ? "published" : "uploaded"}');
   });
 
   it("targets current employees with the stored lifecycle enum and surfaces lookup failures", () => {
