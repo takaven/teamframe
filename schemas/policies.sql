@@ -81,6 +81,40 @@ before update on policies
 for each row
 execute function policies_touch_updated_at();
 
+-- Once published, a policy version is evidence. Content changes must use the
+-- existing new-version workflow so acknowledgements remain attributable.
+create or replace function teamframe_protect_published_policy_content()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if old.is_published and (
+    new.title is distinct from old.title
+    or new.body is distinct from old.body
+    or new.version is distinct from old.version
+    or new.effective_date is distinct from old.effective_date
+    or new.file_storage_path is distinct from old.file_storage_path
+    or new.file_original_name is distinct from old.file_original_name
+    or new.file_mime_type is distinct from old.file_mime_type
+    or new.file_uploaded_at is distinct from old.file_uploaded_at
+    or new.file_uploaded_by is distinct from old.file_uploaded_by
+    or new.is_published is distinct from old.is_published
+  ) then
+    raise exception using
+      errcode = 'P0001',
+      message = 'POLICY_PUBLISHED_IMMUTABLE';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists policies_protect_published_content on policies;
+create trigger policies_protect_published_content
+before update on policies
+for each row
+execute function teamframe_protect_published_policy_content();
+
 create or replace function teamframe_create_policy(
   p_tenant_id uuid,
   p_actor_user_id uuid,

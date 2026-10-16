@@ -30,6 +30,8 @@ const ERROR_COPY: Record<string, string> = {
   FORBIDDEN: "You do not have permission to change access.",
   INVALID_INPUT: "Check the access settings and try again.",
   STALE_WRITE: "This membership changed. Refresh and try again.",
+  LAST_ACCESS_ADMIN_REQUIRED: "Keep at least one active person with permission to manage users and access.",
+  ACCESS_MEMBERSHIP_NOT_FOUND: "This membership no longer exists. Refresh and try again.",
   NO_TENANT_CONTEXT: "Session error — please sign out and back in.",
 };
 

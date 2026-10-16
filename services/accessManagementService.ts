@@ -49,6 +49,11 @@ function requireTenant(actor: Actor): string {
   return actor.tenantId;
 }
 
+function throwAccessMutationError(prefix: string, message: string): never {
+  if (message.includes("LAST_ACCESS_ADMIN_REQUIRED")) throw new Error("LAST_ACCESS_ADMIN_REQUIRED");
+  throw new Error(`${prefix}: ${message}`);
+}
+
 async function requireAccessManager(actor: Actor): Promise<string> {
   const tenantId = requireTenant(actor);
   await requireCapability(actor, "company_access_settings");
@@ -127,19 +132,48 @@ function displayProfile(row: AccessMembershipRow): AccessMembershipRow["display_
   return "Employee";
 }
 
-async function assertNotLastFullAccess(tenantId: string, membershipId: string, nextProfile?: AccessProfile, deactivate = false): Promise<void> {
+async function assertNotLastAccessAdministrator(
+  tenantId: string,
+  membershipId: string,
+  nextManageUsersAccess: boolean,
+): Promise<void> {
   const supabase = createServiceRoleClient();
+  const { data: membership, error: membershipError } = await supabase
+    .from("tenant_memberships")
+    .select("id, profile, active, removed_at, manage_users_access")
+    .eq("tenant_id", tenantId)
+    .eq("id", membershipId)
+    .maybeSingle();
+  if (membershipError) throw new Error(`ACCESS_ADMIN_CHECK_FAILED: ${membershipError.message}`);
+  if (!membership) throw new Error("ACCESS_MEMBERSHIP_NOT_FOUND");
+
+  const current = membership as {
+    id: string;
+    profile: AccessProfile;
+    active: boolean;
+    removed_at: string | null;
+    manage_users_access: boolean | null;
+  };
+  const currentlyEffective =
+    current.active &&
+    current.removed_at === null &&
+    (current.manage_users_access ?? current.profile === "full_access");
+  if (!currentlyEffective || nextManageUsersAccess) return;
+
   const { data, error } = await supabase
     .from("tenant_memberships")
-    .select("id, profile, active, removed_at")
+    .select("id, profile, manage_users_access")
     .eq("tenant_id", tenantId)
-    .eq("profile", "full_access")
     .eq("active", true)
-    .is("removed_at", null);
-  if (error) throw new Error(`ACCESS_FULL_ACCESS_CHECK_FAILED: ${error.message}`);
-  const fullAccessIds = ((data ?? []) as Array<{ id: string }>).map((row) => row.id);
-  if (fullAccessIds.length === 1 && fullAccessIds[0] === membershipId && (deactivate || nextProfile !== "full_access")) {
-    throw new Error("LAST_FULL_ACCESS_REQUIRED");
+    .is("removed_at", null)
+    .neq("id", membershipId);
+  if (error) throw new Error(`ACCESS_ADMIN_CHECK_FAILED: ${error.message}`);
+  const anotherEffectiveAdministrator = ((data ?? []) as Array<{
+    profile: AccessProfile;
+    manage_users_access: boolean | null;
+  }>).some((row) => row.manage_users_access ?? row.profile === "full_access");
+  if (!anotherEffectiveAdministrator) {
+    throw new Error("LAST_ACCESS_ADMIN_REQUIRED");
   }
 }
 
@@ -176,8 +210,8 @@ export async function listAccessMemberships(actor: Actor): Promise<{ memberships
 export async function updateAccessProfile(actor: Actor, input: { membershipId: string; profile: AccessProfile }): Promise<void> {
   const tenantId = await requireAccessManager(actor);
   const parsed = z.object({ membershipId: z.string().uuid(), profile: ProfileSchema }).parse(input);
-  await assertNotLastFullAccess(tenantId, parsed.membershipId, parsed.profile);
   const preset = presetMatrix(parsed.profile);
+  await assertNotLastAccessAdministrator(tenantId, parsed.membershipId, preset.manageUsersAccess);
   const supabase = createServiceRoleClient();
   const { error } = await supabase
     .from("tenant_memberships")
@@ -195,12 +229,13 @@ export async function updateAccessProfile(actor: Actor, input: { membershipId: s
     } as never)
     .eq("tenant_id", tenantId)
     .eq("id", parsed.membershipId);
-  if (error) throw new Error(`ACCESS_PROFILE_UPDATE_FAILED: ${error.message}`);
+  if (error) throwAccessMutationError("ACCESS_PROFILE_UPDATE_FAILED", error.message);
 }
 
 export async function updateAccessMatrix(actor: Actor, input: { membershipId: string; matrix: AccessMatrixInput }): Promise<void> {
   const tenantId = await requireAccessManager(actor);
   const parsed = z.object({ membershipId: z.string().uuid(), matrix: MatrixSchema }).parse(input);
+  await assertNotLastAccessAdministrator(tenantId, parsed.membershipId, parsed.matrix.manageUsersAccess);
   const supabase = createServiceRoleClient();
   const { error } = await supabase
     .from("tenant_memberships")
@@ -217,18 +252,18 @@ export async function updateAccessMatrix(actor: Actor, input: { membershipId: st
     } as never)
     .eq("tenant_id", tenantId)
     .eq("id", parsed.membershipId);
-  if (error) throw new Error(`ACCESS_MATRIX_UPDATE_FAILED: ${error.message}`);
+  if (error) throwAccessMutationError("ACCESS_MATRIX_UPDATE_FAILED", error.message);
 }
 
 export async function setMembershipActive(actor: Actor, input: { membershipId: string; active: boolean }): Promise<void> {
   const tenantId = await requireAccessManager(actor);
   const parsed = z.object({ membershipId: z.string().uuid(), active: z.boolean() }).parse(input);
-  if (!parsed.active) await assertNotLastFullAccess(tenantId, parsed.membershipId, undefined, true);
+  if (!parsed.active) await assertNotLastAccessAdministrator(tenantId, parsed.membershipId, false);
   const supabase = createServiceRoleClient();
   const { error } = await supabase
     .from("tenant_memberships")
     .update({ active: parsed.active } as never)
     .eq("tenant_id", tenantId)
     .eq("id", parsed.membershipId);
-  if (error) throw new Error(`ACCESS_MEMBERSHIP_UPDATE_FAILED: ${error.message}`);
+  if (error) throwAccessMutationError("ACCESS_MEMBERSHIP_UPDATE_FAILED", error.message);
 }

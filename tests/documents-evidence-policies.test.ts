@@ -141,8 +141,27 @@ describe("MR-5 documents, evidence and policies", () => {
     expect(policyService).toContain("attachPolicyFile");
     expect(policyService).toContain("assertPrivateDocumentStorageReady");
     expect(policyService).toContain("POLICY_FILE_UNSUPPORTED_TYPE");
+    expect(policyService).toContain("POLICY_PUBLISHED_IMMUTABLE");
     expect(acknowledgementSchema).toContain("policy_version = p_policy_version");
     expect(acknowledgementSchema).toContain("archived_at is null");
+  });
+
+  it("keeps published policy content immutable and routes changes through a new version", () => {
+    const policies = read("schemas/policies.sql");
+    const migration = read("migrations/20261016_application_integrity.sql");
+    const service = read("services/policyService/index.ts");
+    const page = read("app/policies/page.tsx");
+
+    for (const sql of [policies, migration]) {
+      expect(sql).toContain("teamframe_protect_published_policy_content");
+      expect(sql).toContain("if old.is_published");
+      expect(sql).toContain("new.file_storage_path is distinct from old.file_storage_path");
+      expect(sql).toContain("POLICY_PUBLISHED_IMMUTABLE");
+    }
+    expect(service).toContain('if ((policyData as PolicyRow).is_published) throw new Error("POLICY_PUBLISHED_IMMUTABLE")');
+    expect(service).toContain('.eq("is_published", false)');
+    expect(page).toContain("!policy.archived_at && !policy.is_published");
+    expect(page).toContain("New version");
   });
 
   it("keeps archived policies historical and out of current employee obligations", () => {

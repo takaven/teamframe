@@ -91,7 +91,29 @@ describe("Independent customer access and setup architecture", () => {
     expect(documents).toContain('"private_employee_documents"');
     expect(documents).toContain("canRunFinanceExport");
     expect(setup).toContain('"company_access_settings"');
-    expect(accessManagement).toContain("LAST_FULL_ACCESS_REQUIRED");
+    expect(accessManagement).toContain("LAST_ACCESS_ADMIN_REQUIRED");
+    expect(accessManagement).toContain("manage_users_access");
+    expect(accessManagement).toContain("assertNotLastAccessAdministrator");
+    expect(schema).toContain("teamframe_protect_last_access_administrator");
+    expect(schema).toContain("for update");
+    expect(schema).toContain("coalesce(tm.manage_users_access, tm.profile = 'full_access')");
+  });
+
+  it("protects the effective final access administrator across every supported membership mutation", () => {
+    const schema = read("schemas/access_model.sql");
+    const migration = read("migrations/20261016_application_integrity.sql");
+    const service = read("services/accessManagementService.ts");
+
+    for (const sql of [schema, migration]) {
+      expect(sql).toContain("tenant_memberships_protect_last_access_administrator");
+      expect(sql).toContain("before update of profile, active, removed_at, manage_users_access or delete");
+      expect(sql).toContain("LAST_ACCESS_ADMIN_REQUIRED");
+      expect(sql).toContain("perform 1 from companies where id = old.tenant_id for update");
+    }
+    expect(service).toMatch(/updateAccessProfile[\s\S]*assertNotLastAccessAdministrator/);
+    expect(service).toMatch(/updateAccessMatrix[\s\S]*assertNotLastAccessAdministrator/);
+    expect(service).toMatch(/setMembershipActive[\s\S]*assertNotLastAccessAdministrator/);
+    expect(service).toContain("ACCESS_MEMBERSHIP_NOT_FOUND");
   });
 
   it("stages setup-pack users without fake auth identities or accidental sample employees", () => {

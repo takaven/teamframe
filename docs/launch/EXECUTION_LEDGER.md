@@ -131,3 +131,13 @@ Founder interruptions: password handoff for synthetic project was required opera
 Authorised scope: expose the existing nullable employee annual-leave entitlement override in the Admin employee record using current update, audit and concurrency patterns; clarify the existing Performance workflow, identities and human stage labels without changing stored statuses or permissions. Product code freezes after verification unless first-customer evidence or a genuine production defect reopens it.
 
 Closure evidence: PR #21 merged the previously verified UX-only commit `48019c0ebc3bbf64ec31e8f9bfe4f08f45eeed76` into main at `cfa8a353c230ba2f2efbd62abe11cf4a55bbf7fc`. The closeout branch exposes the existing employee override through an Admin-only, audited and concurrency-checked update; clearing it restores the existing company-default projection. Performance adds only a three-step explanation, employee/reviewer identity and human labels over the unchanged stored state machine. Focused tests 23/23 PASS; full serial suite 553 PASS / 2 skipped; typecheck, lint, four security/static guards, production build and diff check PASS. Responsive source checks cover the stacked 390px disclosure and workflow layouts; authenticated branch-preview screenshots remain intentionally not run because the accepted magic-link callback points outside the disposable Preview, with no auth or environment workaround introduced.
+
+## Application defect correction — 2026-10-16
+
+| ID | Workstream | State | Target / ceiling | Stop condition |
+| -- | ---------- | ----- | ---------------- | -------------- |
+| ADC-1 | Integrity and access | IMPLEMENT | Target 4h; max 7h active | Stop before auth/RLS redesign, a new access model, a new policy-versioning system, or any live database/infrastructure change. |
+| ADC-2 | Operational reliability and privacy | IMPLEMENT | Target 4h; max 7h active | Stop before workflow redesign, notification architecture changes, new onboarding capability, or any live provider/infrastructure operation. |
+| ADC-3 | Commercial-value assessment | REVIEW | Target 1h; max 2h active | Stop at evidence-based classification; no strategic enhancement without founder approval. |
+
+Authorised scope: correct TF-A03, TF-M03, TF-M01, TF-A01 and TF-A02; follow only concrete adjacent evidence; preserve existing product architecture; prepare reviewable PRs without merge, deployment, live migration or customer-data access.
