@@ -62,17 +62,17 @@ Plan selection, spend approval, RPO, RTO, retention and named recovery ownership
 | RTO | Awaiting founder approval; small synthetic execution was 47.141s | Recommended: 8 business hours after Production-equivalent rehearsal |
 | Recovery owner | Awaiting founder approval | Primary infrastructure operator executes; recovery delegate verifies; founder approves restore/cutover |
 
-## Founder-ready recommendation
+## Founder-ready proposal — not yet approved
 
 - Supabase Pro automatic daily database backups with seven-day retention.
 - Weekly encrypted off-platform logical export retained for eight weeks and an export before material schema/configuration changes.
 - Daily encrypted private Storage-object copy with inventory/checksum verification, retained for 30 days.
 - Restore only to a separate approved Mumbai recovery project.
 - Complete one Production-equivalent synthetic restore before customer data and repeat quarterly.
-- Initial RPO: 24 hours.
-- Initial RTO: 8 business hours.
+- Proposed initial RPO: 24 hours; founder approval pending.
+- Proposed initial RTO: 8 business hours; founder approval pending. A restore rehearsal must record actual elapsed recovery time separately and determine whether it meets the approved objective.
 
-PITR is not recommended for the first-customer baseline. At current published pricing, seven-day PITR is approximately $100/month in addition to the Pro plan; add it only if contractual or operational requirements demand a lower RPO.
+PITR is not recommended for the first-customer baseline. As checked on 2026-10-17, [Supabase's published PITR pricing](https://supabase.com/docs/guides/platform/manage-your-usage/point-in-time-recovery#pricing) lists seven-day retention at `$0.137/hour` (approximately `$100/month`) in addition to the paid plan and outside the Spend Cap. This is time-sensitive reference pricing, not an approved commitment: obtain the exact dashboard checkout quote before any plan/add-on approval. Add PITR only if contractual or operational requirements justify a lower RPO.
 
 ## Authorised backup procedure
 
