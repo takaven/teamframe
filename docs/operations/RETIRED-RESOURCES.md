@@ -2,7 +2,7 @@
 
 This registry prevents historical identifiers from being mistaken for current infrastructure. It is not deletion authority.
 
-Last reconciled: 2026-10-14 (live marketing publication and founder-confirmed predecessor deletion). Read [CURRENT-STATE.md](CURRENT-STATE.md) before using this historical/retirement registry.
+Last reconciled: 2026-10-17 (current Vercel ownership, live schema and release state). Read [CURRENT-STATE.md](CURRENT-STATE.md) before using this historical/retirement registry.
 
 ## GitHub
 
@@ -12,8 +12,8 @@ Last reconciled: 2026-10-14 (live marketing publication and founder-confirmed pr
 | `takaven/hirepass` | ACTIVE separate product repository | KEEP | Canonical HirePass source; do not merge into or retire with TeamFrame |
 | `takaven/takaven-web` | ACTIVE live canonical marketing website repository | KEEP | Vercel `takaven-web`; public `www.takaven.com/teamframe/` publication verified at website commit `56f9184b04caf5a816718a8f1318b8fbfbf99d62`; separate from the application |
 | `takaven/teamframe-site` | DELETED by founder after source reconciliation | RETIRED; DO NOT RECREATE | Predecessor content was reviewed and truthful differentiators were retained in `takaven/takaven-web`; deletion followed website, application and portfolio reconciliation |
-| branch `main` | ACTIVE protected Production/default branch; verified at `f7e9a42b0bfe7c21abe48722b2c01f82d2a0c8f9` on 2026-10-10 | KEEP | Canonical current source |
-| branch `launch/managed-people-ops-45-day` | MERGED historical evidence branch; temporarily retained only because Founder Review still has a known Preview fallback dependency | RETIRE after stable Founder Review current-main login passes repeat-login acceptance | Not current Production or product authority |
+| branch `main` | ACTIVE protected Production/default branch; verified at `e53d9ecee1fd53ccbcfa0e24ea8a6871c2a761cc` on 2026-10-17 | KEEP | Canonical current source; the accepted five-PR candidate is local/unmerged |
+| branch `launch/managed-people-ops-45-day` | MERGED historical evidence branch; current-main Founder Review no longer depends on it, but deletion has not been authorised in this workstream | REVIEW FOR SEPARATE RETIREMENT APPROVAL after MA-002 evidence closes | Not current Production or product authority; no branch cleanup is performed by documentation work |
 | branch `brand/apply-final-takaven-logos` | DELETED 2026-09-28; merged in PR #1; had 0 unique commits | RETIRED; never recreate for active work | Merged stale branch |
 | branch `codex/market-ready-implementation` | DELETED 2026-09-28; had 0 unique commits | RETIRED; never recreate for active work | Historical release branch |
 | `ismaelloveexcel/TeamFrame` | Public, unarchived, last pushed 2026-08-13; its old Vercel `teamframe` project is deleted | ARCHIVE after one final independent-reference check and approval | Historical source easily confused with canonical repo |
@@ -25,8 +25,8 @@ Last reconciled: 2026-10-14 (live marketing publication and founder-confirmed pr
 
 | Resource | Current state | Recommendation | Reason |
 | --- | --- | --- | --- |
-| `teamframe-founder-review` | ACTIVE synthetic Review/demo project; durable stable-login acceptance still open | KEEP | Prospect demo/screenshots; separate from Production |
-| `teamframe-production` | ACTIVE Production; current protected `main` deployed at `app.takaven.com` | KEEP | Authoritative Production application; real customer data remains gated by MA-001/003/009/010 |
+| `teamframe-founder-review` | ACTIVE under TAKAVEN team; current-main synthetic Review/demo project; clean-browser login/walkthrough complete, MA-002 credential freshness still open | KEEP | Prospect demo/screenshots; separate from Production |
+| `teamframe-production` | ACTIVE under TAKAVEN team; current protected `main` `e53d9ece...` deployed at `app.takaven.com` | KEEP | Authoritative Production application; real customer data remains gated by MA-001/003/009/010 |
 | `teamframe-visual-review-20260814061335` (`prj_WpAud4aQp2XGjmQ0zAZb8dS63lPs`) | DELETED 2026-09-28; historical unconnected project | RETIRED; never reuse | Superseded visual review; variable names and domain were recorded before deletion |
 | `teamframe` (`prj_sgOeDDOVf1pSdrsRQgU3iuZuXt7t`) | DELETED 2026-09-28; was connected to `ismaelloveexcel/TeamFrame` | RETIRED; never recreate as an ambiguous duplicate | Old project/source pair was not canonical TeamFrame |
 | `mockup-sandbox` | Historical, connected to `ismaelloveexcel/teamframe.v2`, one variable | DELETE after approval if V2 is closed | Not canonical TeamFrame |
@@ -40,9 +40,9 @@ All projects below are in the TAKAVEN Supabase organisation. The authoritative P
 
 | Project / ref | Status | Known synthetic footprint | Recommendation |
 | --- | --- | --- | --- |
-| `teamframe-founder-review-20260924` / `dcfxyjrfsrkibhpbmjnw` | ACTIVE | Northstar synthetic fixture; 17 employees at original bootstrap; current Review accounts/workflows | KEEP |
-| `teamframe-production-uae` / `ttwsczpzjdjzuhchbyjx` | ACTIVE, accepted Free pre-revenue posture | Authoritative Production data platform: 45/45 tables and RLS, zero anon table access, private `documents` bucket, no real customer data | KEEP; complete MA-001/003/009/010 before customer data |
-| `teamframe-operator-repeat-rehearsal-2-20260928` / `drohdttbgekrmwubhala` | PAUSED, preserved, replay locked | Current 45-table/RLS/no-anon proof; synthetic Crescent Ridge 50-person setup and four review identities | KEEP TEMPORARILY; DELETE after Production acceptance and approval |
+| `teamframe-founder-review-20260924` / `dcfxyjrfsrkibhpbmjnw` | ACTIVE | Northstar synthetic fixture; live 2026-10-17 counts: 50 tables/RLS, 18 employees, three memberships, 10 document rows, five leave rows, four policies, three Auth users, zero Storage objects | KEEP |
+| `teamframe-production-uae` / `ttwsczpzjdjzuhchbyjx` | ACTIVE, accepted Free pre-revenue posture | Authoritative Production data platform: 50/50 tables and RLS, zero anonymous table privileges, one synthetic/bootstrap employee, one membership, zero document/leave/policy rows, two Auth users, zero Storage objects; pending integrity migration not applied | KEEP; complete MA-001/003/009/010 before customer data |
+| `teamframe-operator-repeat-rehearsal-2-20260928` / `drohdttbgekrmwubhala` | PAUSED, preserved, replay locked | Historical 45-table/RLS/no-anon proof; synthetic Crescent Ridge 50-person setup and four review identities | KEEP TEMPORARILY; DELETE after Production acceptance and approval |
 | `teamframe-s3-restore-proof-2-disposable-20260923` / `zdwhsxhpireckvqdqdkh` | PAUSED | Restore-proof purpose; final counts not present in canonical repository evidence inspected | REVIEW, then delete after exact data/reference check and approval |
 | `teamframe-northstar-demo-persistent-20260923` / `sgndpkvjrqsffwclrujp` | PAUSED | Older Northstar synthetic demo; final counts not present in canonical repository evidence inspected | REVIEW; likely delete after confirming Founder Review supersedes it |
 
@@ -69,4 +69,4 @@ All projects below are in the TAKAVEN Supabase organisation. The authoritative P
 2. Review the two remaining paused Supabase projects without resuming them solely for cleanup.
 3. Archive historical personal repositories only after their remaining deployment dependencies are closed.
 4. Delete the final repeat-rehearsal project only after Production acceptance and explicit approval.
-5. The launch branch is already merged; retire it only after stable Founder Review no longer depends on its Preview fallback.
+5. The launch branch is already merged and no longer needed by the current-main demo; retire it only under a separate explicit cleanup approval after MA-002 evidence closes.
