@@ -1,6 +1,6 @@
 # TeamFrame execution agents
 
-Before making claims or changes about Production, Founder Review, deployment, environment identity, launch readiness, customer data, branches, access/recovery or infrastructure, read [CURRENT-STATE](docs/operations/CURRENT-STATE.md), [MANUAL-ACTIONS](docs/operations/MANUAL-ACTIONS.md) and [ENVIRONMENTS](docs/operations/ENVIRONMENTS.md). Current authority is domain-specific: [DEPLOYMENT](docs/operations/DEPLOYMENT.md) governs deployment/change procedure; [TEAMFRAME_ACCESS_MODEL](TEAMFRAME_ACCESS_MODEL.md) governs the access/deployment model; [TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE](TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE.md) and [DECISIONS](docs/launch/DECISIONS.md) govern current product/commercial positioning. Historical plans and ledgers are evidence, not current operational authority. If current authority documents conflict, stop and reconcile them against live state before proceeding.
+Before making claims or changes about Production, Founder Review, deployment, environment identity, launch readiness, customer data, branches, access/recovery or infrastructure, start with [SYSTEM-HANDOVER](docs/operations/SYSTEM-HANDOVER.md), then read [CURRENT-STATE](docs/operations/CURRENT-STATE.md), [MANUAL-ACTIONS](docs/operations/MANUAL-ACTIONS.md) and [ENVIRONMENTS](docs/operations/ENVIRONMENTS.md). Current authority is domain-specific: [DEPLOYMENT](docs/operations/DEPLOYMENT.md) governs deployment/change procedure; [TEAMFRAME_ACCESS_MODEL](TEAMFRAME_ACCESS_MODEL.md) governs the access/deployment model; [TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE](TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE.md) and [DECISIONS](docs/launch/DECISIONS.md) govern current product/commercial positioning. Historical plans and ledgers are evidence, not current operational authority. If current authority documents conflict, stop and reconcile them against live state before proceeding.
 
 ## Orchestrator
 
@@ -18,6 +18,10 @@ Escalate only material strategy/scope, central cross-customer architecture, majo
 
 Never use real employer or customer data in launch-test environments. Approved TAKAVEN synthetic project refs are maintained in `scripts/approved-launch-projects.mjs` and their purposes/states in `docs/launch/environment-parity.md`; verify both before use. The older externally associated project `qrsxoumymbcehtltbtgn` is **not** a test target.
 For live Supabase work, verify the signed-in `admin@takaven.com` account and the project against [environment identity](docs/launch/environment-parity.md) before any write. A correct project URL with the wrong browser account is not sufficient. Never infer that a password, migration, backup or access test passed from a command invocation alone.
+
+## Quality policy
+
+Fix every confirmed defect and investigate credible suspected defects. Evaluate commercially valuable improvements on customer evidence, benefit and maintenance burden. Founder approval is required for material spend, architecture, security-boundary or product-boundary changes. The historical feature freeze prevents speculative expansion; it is not permission to leave a known defect unresolved.
 
 ## Separate public marketing website (verified live 2026-10-13)
 
