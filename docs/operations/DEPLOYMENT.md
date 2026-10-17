@@ -136,7 +136,7 @@ Never reveal values during routine inventory. A variable name is not proof that 
 - Private file access is authorised and tenant-scoped.
 - Public health is safe; protected deep health succeeds only with the secret.
 - Unauthorised automation invocation is denied.
-- One safe authorised automation run succeeds and remains idempotent.
+- Authorised automation execution is optional, not an unconditional smoke requirement: run it only with separate explicit approval and a bounded synthetic or otherwise approved test case because it performs business operations. When intentionally withheld, record `NOT VERIFIED` rather than treating the release as failed or claiming execution evidence.
 - Email uses the approved Production provider/domain only.
 - Deployed SHA, Production domain, and Supabase ref match the registry.
 
