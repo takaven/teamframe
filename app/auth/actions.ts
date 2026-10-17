@@ -14,6 +14,7 @@ import { z } from "zod";
 import { env } from "@/lib/db/env";
 import { createServerClient } from "@/lib/db/supabaseServer";
 import { resolveIdentity } from "@/lib/rbac/roles";
+import { scrubPII } from "@/lib/telemetry/scrub";
 
 const EmailSchema = z.string().trim().toLowerCase().email();
 const EMAIL_RATE_LIMIT_MAX = 3;
@@ -103,12 +104,11 @@ export async function sendMagicLink(formData: FormData): Promise<void> {
   if (error) {
     const code = typeof (error as { code?: unknown }).code === "string" ? (error as { code: string }).code : null;
     const status = typeof (error as { status?: unknown }).status === "number" ? (error as { status: number }).status : null;
-    console.warn("AUTH_SEND_MAGIC_LINK_DIAGNOSTIC", {
+    console.warn("AUTH_SEND_MAGIC_LINK_DIAGNOSTIC", scrubPII({
       email,
       code,
       status,
-      message: error.message,
-    });
+    }));
   }
   // In all cases land on /auth/check-email — never reveal whether the email
   // is a known user (prevents enumeration).

@@ -7,7 +7,7 @@
  */
 
 import * as Sentry from "@sentry/nextjs";
-import { scrubPII } from "@/lib/telemetry/scrub";
+import { scrubSentryEvent } from "@/lib/telemetry/scrub";
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
 
@@ -19,14 +19,9 @@ if (dsn) {
     tracesSampleRate: 0,
     replaysSessionSampleRate: 0,
     replaysOnErrorSampleRate: 0,
+    sendDefaultPii: false,
     beforeSend(event) {
-      delete event.user;
-
-      if (event.extra && typeof event.extra === "object") {
-        event.extra = scrubPII(event.extra as Record<string, unknown>);
-      }
-
-      return event;
+      return scrubSentryEvent(event as unknown as Record<string, unknown>) as unknown as typeof event;
     },
   });
 }

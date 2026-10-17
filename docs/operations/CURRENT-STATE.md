@@ -2,12 +2,13 @@
 
 **STATUS: CANONICAL CURRENT-STATE RECORD**
 
-Last reconciled: 2026-10-14
+Last reconciled: 2026-10-17
 
 This file is the concise first-read summary of TeamFrame's current operational status. It does not override domain-specific authorities. If current authority documents conflict, stop and reconcile them against live state before making an operational change.
 
 ## Domain authorities
 
+- `SYSTEM-HANDOVER.md` — replacement-operator navigation and architecture map.
 - `CURRENT-STATE.md` — concise current operational status and remaining launch boundary.
 - `ENVIRONMENTS.md` — authoritative infrastructure identities.
 - `MANUAL-ACTIONS.md` — authoritative outstanding founder/account-owner actions.
@@ -22,8 +23,8 @@ Do not infer current production status from an old launch branch, old SHA, histo
 
 ## Product
 
-- Product functionality: **COMPLETE / FROZEN**.
-- Product changes require a genuine production defect, a demonstrated first-customer blocker, repeated customer evidence, or a separately founder-approved bounded improvement.
+- Product functionality: **commercially launchable; product work is controlled**.
+- Fix every confirmed defect and investigate credible suspected defects. Commercially valuable improvements require evidence and bounded scope; material investment, architecture, security-boundary or product-boundary changes require founder approval. Do not use the earlier feature-freeze wording to knowingly leave a defect unresolved.
 - Customer-facing brand: **TeamFrame**.
 - Owner: **TAKAVEN**.
 - TAKAVEN is not the customer implementation/support/HR-service proposition.
@@ -32,7 +33,7 @@ Do not infer current production status from an old launch branch, old SHA, histo
 
 ## Public marketing website — not application Production
 
-Publication verified 2026-10-13 and documentation rechecked 2026-10-14: `takaven/takaven-web` (`teamframe/`) is the **live authoritative commercial website source**, separate from this application repository. Vercel project `takaven-web` belongs to the `Takaven` team under `admin@takaven.com`. The last behaviour-changing website baseline is `56f9184b04caf5a816718a8f1318b8fbfbf99d62`; subsequent documentation-only reconciliation is deployed from current website `main` (verified Production deployment source `46651a099bb18d497cac88983f1ddb4bbeed241a`, state `READY`). `https://www.takaven.com/` redirects to `/teamframe/`; the website, privacy page, navigation and HR Setup Check passed browser verification over valid HTTPS. Authoritative and public DNS return `www.takaven.com CNAME 10074f97bb5aebf8.vercel-dns-017.com`, and the Vercel ownership TXT record is present. The online enquiry `FORM_ENDPOINT` remains intentionally unset; `admin@takaven.com` is the accepted contact fallback.
+Publication verified 2026-10-13 and provider state rechecked 2026-10-17: `takaven/takaven-web` (`teamframe/`) is the **live authoritative commercial website source**, separate from this application repository. Vercel project `takaven-web` belongs to the `Takaven` team under `admin@takaven.com`. Current Production deployment `dpl_CTjMMHf32BSC3epnHCYJXLuLxQEf` is `READY` from website `main` `2835dafe1abe97578dd7b2733cba47d1c061ad83`. `www.takaven.com` remains verified and assigned to that project. The online enquiry `FORM_ENDPOINT` remains intentionally unset; `admin@takaven.com` is the accepted contact fallback. Website branding PR #6 (`2668ede17b6684bda451265965c9e1406fec36b9`) remains open and unmerged.
 
 The website, application and portfolio source references were reconciled, after which the founder deleted the superseded `takaven/teamframe-site` repository. **The marketing website remains separate from** `takaven/teamframe`, Vercel `teamframe-production`, `https://app.takaven.com`, Supabase and the real-customer-data activation gates. Publishing the website does not change application readiness or customer-data authority. Canonical marketing-source and status details live in the website repository's `README.md` and `docs/WEBSITE-OPERATIONS.md`.
 
@@ -41,7 +42,8 @@ The website, application and portfolio source references were reconciled, after 
 - Repository: `takaven/teamframe`
 - Protected production branch: `main`
 - Source policy: protected `main` is authoritative.
-- Last verified behaviour-changing application baseline: `3865ec2ea9ee37bfdefbb95d45214e48038ce784` (PR #31 merge, containing the preceding PR #30 correction). Later `main` commits may be documentation-only; protected `main` remains authoritative and must be re-read before operational changes.
+- Current protected `main`: `e53d9ecee1fd53ccbcfa0e24ea8a6871c2a761cc` (**VERIFIED REPOSITORY 2026-10-17**).
+- Accepted five-PR assembly checkpoint: `b9eccb63889a3f0e561fe91b51ad4bd7f53d6d37`, tree `21ec311ed6c44f984c8f4d571a01b12b6326e556`. Draft branch `release/six-pr-candidate` adds accepted PR #39; the draft release PR is authoritative for the exact combined head/tree. Neither checkpoint is on `main`, deployed or database-applied.
 - Historical merged branches are not current source authority.
 
 ## Production
@@ -50,9 +52,9 @@ Production is **deployed and healthy for pre-revenue/synthetic operation**.
 
 - Vercel project: `teamframe-production`
 - Vercel project ID: `prj_09tvdrEWbL1Ov9SFMtrhgYnJ0bNj`
+- Vercel owner: TAKAVEN Pro team `team_cXj0JaXqYVDGppqmiqNXIxVg`, controlled by `admin@takaven.com`. The former personal team no longer owns the project.
 - Source: protected `main`
-- Last verified functional deployment checkpoint: Vercel `dpl_HvXQpY2dXUoFRAU3smBfLdacN9Xq`, source `3865ec2ea9ee37bfdefbb95d45214e48038ce784`; deployment completed successfully and the public root plus `/api/health` returned HTTP 200 at correction-workstream closure.
-- Subsequent documentation-only Production checkpoint (2026-10-14): Vercel `dpl_FeYRCZhuDbEHFubc8QywZ2WDnj56`, source `bf51addc33231e8d1abb21d61c56834a72c20679`, state `READY`. This did not change application behaviour.
+- Current Production deployment: `dpl_9qzKwWtmCYrBrUPKcbLeiHTo7yBR`, source `e53d9ecee1fd53ccbcfa0e24ea8a6871c2a761cc`, state `READY` (**VERIFIED LIVE 2026-10-17**).
 - Customer-facing domain: `https://app.takaven.com`
 - Public root: healthy
 - `/api/health`: healthy
@@ -68,19 +70,11 @@ The old statement that `teamframe-production` is a disconnected rebuild-only his
 
 These exact identifiers are dated evidence, not permanent current state. Reverify the live GitHub, Vercel and Supabase targets before any operational write.
 
-## Recent bounded correction closure — 2026-10-13
+## Accepted but unintegrated six-PR release — 2026-10-17
 
-The independent six-finding correction workstream is **CLOSED**. PR #30 corrected offboarding date propagation, leave approval override propagation and unchecked employee-upload permission mapping. PR #31 corrected confirmed fragment-aware feedback redirects, restored `.test.tsx` discovery and neutralised unconfirmed magic-link delivery wording while preserving anti-enumeration behaviour.
+PRs #34–#39 passed independent source acceptance but remain open and unmerged. They cover administrator/policy integrity, truthful operational outcomes, dependency security, Sentry/telemetry privacy, TAKAVEN attribution and the complete operational handover. Draft branch `release/six-pr-candidate` consolidates them for one protected release; its draft PR is authoritative for the exact head/tree and check results. The accepted five-PR checkpoint reported 587 passing tests and two skipped, zero Production dependency vulnerabilities and no lost test identities; the six-PR candidate requires its own exact-head results. Controlled Production release remains a future gate. Do not describe any candidate correction or documentation as deployed.
 
-- PR #30 merge: `b0e4be709f6e8e4d474b88768b00efb0f0e2e67f`.
-- PR #31 / final functional baseline: `3865ec2ea9ee37bfdefbb95d45214e48038ce784`.
-- Required Gate Chain, Static Guard, typecheck, lint, tests and production build passed.
-- Final reported suite after TSX discovery: 568 passed, 2 skipped.
-- Vercel Production and Founder Review checks passed.
-- No Supabase schema, Production data, customer data or product-scope expansion was part of these fixes.
-- Detailed runtime-log inspection was unavailable at closure; exact-SHA deployment success plus public root and health smoke checks were verified. Do not reinterpret that limitation as evidence of a runtime failure.
-
-This correction did **not** reopen product development. The normal feature-freeze rules remain in force.
+The remaining development-only advisory is `GHSA-vfj7-8cjw-p6xm` through the trusted Next.js ESLint chain (`braces@3.0.3`). It is absent from the proposed Production dependency audit. Temporary founder risk acceptance is recommended but **not recorded**. External Sentry provider receipt also remains unverified.
 
 ## Production data platform
 
@@ -89,10 +83,14 @@ This correction did **not** reopen product development. The normal feature-freez
 - Organisation: `Takaven`
 - Region: Mumbai / `ap-south-1`
 - Current plan: Free pre-revenue posture
-- Schema: 45/45 canonical public tables installed
-- RLS: enabled on all 45
-- Anonymous table access: zero
-- Storage: private canonical `documents` bucket verified
+- PostgreSQL: `17.6.1.171` at the last provider-settings verification
+- Schema: 50/50 current public tables installed
+- RLS: enabled on all 50
+- Anonymous table privileges: zero
+- Read-only counts (2026-10-17): one company, one employee, one membership, zero documents, zero leave rows, zero policies, two Auth users, one Storage bucket, zero Storage objects
+- Data classification: synthetic/bootstrap-only application data; one unlinked non-reserved Auth identity prevents a claim of literally zero personal data
+- Storage: private canonical `documents` bucket; zero objects at the checkpoint
+- Pending migration: `migrations/20261016_application_integrity.sql`; its functions/triggers are absent in Production and the migration has not been applied
 - Real customer data: **NOT AUTHORISED YET**
 
 Free Production is intentional until the first paying customer is ready. It is not the approved real-customer-data posture.
@@ -117,7 +115,7 @@ The next real implementation proof should be the bounded first paying-customer a
 
 ## Remaining real-customer-data gates
 
-Only the following manual-action gates remain blocking for real customer data:
+The following manual-action gates remain blocking for real customer data:
 
 - **MA-001** — enable Supabase organisation MFA.
 - **MA-003** — upgrade Production to Pro and verify actual daily backups with seven-day retention.
@@ -135,15 +133,19 @@ Founder Review is separate from Production.
 - Synthetic Supabase: `teamframe-founder-review-20260924`
 - Ref: `dcfxyjrfsrkibhpbmjnw`
 - Data: synthetic Northstar fixture only
-- Stable durable login: **NOT YET ACCEPTED**
-- Current priority: stabilise a bookmarkable current-main demo login without weakening auth or using customer data.
-- Keep the known historical launch-branch Preview fallback until the stable Founder Review path passes repeat-login acceptance.
+- Vercel owner: TAKAVEN team `team_cXj0JaXqYVDGppqmiqNXIxVg`.
+- Current deployment: `dpl_GKUwv4TuJhuTdoHZS8TKsideU4Tj`, source `e53d9ecee1fd53ccbcfa0e24ea8a6871c2a761cc`, state `READY`.
+- Database: 50 tables, RLS 50/50, zero anonymous table privileges; Northstar counts are recorded in `ENVIRONMENTS.md`.
+- Current-main authenticated walkthrough and clean-browser login: completed in the preceding acceptance work.
+- MA-002: **OPEN**. The obsolete branch-scoped override is gone, but freshness of the remaining authoritative automation secret has not been documented to the gate's standard. Authorised automation execution was intentionally not used as a harmless check because the endpoint performs business actions.
 
 ## Security hygiene
 
 No secret values belong in Git, documentation, chat transcripts or screenshots.
 
-Founder Review automation-secret plaintext was previously written into tracked environment documentation. Those values must be treated as exposed and rotated/consolidated during the Founder Review maintenance window. The current documentation must never repeat them.
+Founder Review automation-secret plaintext was previously written into tracked environment documentation. The obsolete branch-scoped authority was removed; the remaining authoritative secret must still satisfy MA-002 freshness evidence. The current documentation must never repeat any value.
+
+The Supabase CLI token named `cli_root@Ismael_1792239426` was still active at the last account-token inspection and is pending explicit revocation. A legacy Vercel token found in a historical local setup script has unverified status and is pending safe metadata-only revocation verification. Do not copy, test or publish either value.
 
 Removing a secret from the latest file does not remove it from Git history; rotation is therefore required.
 
@@ -163,8 +165,9 @@ Agents must not:
 
 ## Current priorities
 
-1. Stabilise durable Founder Review access for prospect demos and screenshots.
-2. Complete MA-002 credential rotation and consolidation before stable Founder Review / prospect-demo acceptance.
-3. Retire merged remote branches after Founder Review no longer depends on the historical launch Preview.
-4. Proceed with sales and demos; the TeamFrame marketing website is live. Website changes remain governed separately in `takaven/takaven-web`.
-5. When the first paying customer is ready, complete MA-001, MA-003, MA-009 and MA-010, then load that customer's data only after separate approval.
+1. Independently review the combined six-PR draft release and preserve its exact-head evidence.
+2. Complete the bounded Production pre-migration backup, then separately authorise the integrity migration and one combined application release.
+3. Resolve MA-002 credential-freshness evidence and the two named token-revocation follow-ups without exposing values.
+4. Obtain explicit founder disposition for the development-only `braces` advisory before the combined release.
+5. Proceed with sales and demos; the live website remains governed separately in `takaven/takaven-web`.
+6. Before the first paying-customer data load, complete MA-001, MA-003, MA-009 and MA-010 and record the separate customer-data approval.

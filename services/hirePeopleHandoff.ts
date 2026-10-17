@@ -38,7 +38,7 @@ export type HirePeopleSnapshot = z.infer<typeof HirePeopleSnapshotSchema>;
 export async function createEmployeeFromReviewedHire(
   actor: Actor,
   untrustedSnapshot: unknown,
-): Promise<{ employeeId: string }> {
+): Promise<{ employeeId: string; onboardingChecklistAssigned: boolean }> {
   if (process.env.TEAMFRAME_HIRE_BRIDGE_ENABLED !== "true") throw new Error("HIRE_HANDOFF_DISABLED");
   if (actor.role !== "admin") throw new Error("FORBIDDEN");
   if (!actor.tenantId) throw new Error("NO_TENANT_CONTEXT");
@@ -61,14 +61,16 @@ export async function createEmployeeFromReviewedHire(
     throw new Error(`HIRE_HANDOFF_FAILED: ${error.message}`);
   }
   const employeeId = (data as { id: string }).id;
+  let onboardingChecklistAssigned = true;
   try {
     await assignDefaultChecklist(actor, employeeId);
   } catch (assignmentError) {
+    onboardingChecklistAssigned = false;
     console.error("HIRE_HANDOFF_DEFAULT_CHECKLIST_FAILED", {
       tenant_id: actor.tenantId,
       employee_id: employeeId,
       message: assignmentError instanceof Error ? assignmentError.message : "UNKNOWN",
     });
   }
-  return { employeeId };
+  return { employeeId, onboardingChecklistAssigned };
 }

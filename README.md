@@ -2,7 +2,7 @@
 
 > **UAE-focused HR software for startups, designed to help businesses establish and maintain the core HR controls relevant to UAE employment requirements.**
 
-**Product status:** `product complete/frozen; Production deployed and healthy; real-customer data remains gated by MA-001, MA-003, MA-009 and MA-010`
+**Product status:** `commercially launchable; Production deployed and healthy; accepted corrections await one controlled release; real-customer data remains gated by MA-001, MA-003, MA-009 and MA-010`
 
 TeamFrame is the customer-facing product and service brand. **TeamFrame is owned by TAKAVEN.** That ownership does not make TAKAVEN part of the customer implementation, support workflow or HR-service proposition, and TeamFrame does not depend on parent-company involvement.
 
@@ -14,7 +14,10 @@ TeamFrame is UAE-aware, company-flexible, operational and evidence-oriented: **b
 
 ## Canonical Documents
 
+- [docs/operations/SYSTEM-HANDOVER.md](docs/operations/SYSTEM-HANDOVER.md) - **replacement-operator start page**: system map, ownership/navigation, architecture and operating routes.
 - [docs/operations/CURRENT-STATE.md](docs/operations/CURRENT-STATE.md) - **first-read canonical operational truth** for source, Production, Founder Review, launch status and remaining customer-data gates.
+- [docs/operations/ENVIRONMENTS.md](docs/operations/ENVIRONMENTS.md) - exact current provider projects, IDs, data classifications and non-secret variable inventory.
+- [docs/operations/ACCOUNT-OWNERSHIP.md](docs/operations/ACCOUNT-OWNERSHIP.md) - required provider identity/role and verified ownership versus access/billing unknowns.
 - [takaven/takaven-web/docs/AUDIT-HANDOFF.md](https://github.com/takaven/takaven-web/blob/main/docs/AUDIT-HANDOFF.md) - independent-review orientation for the separate live marketing website; navigation only, not application authority.
 - [docs/operations/MANUAL-ACTIONS.md](docs/operations/MANUAL-ACTIONS.md) - canonical founder/account-owner actions and remaining activation gates.
 - [TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE.md](TEAMFRAME_MANAGED_PEOPLE_OPS_SCOPE.md) - controlling product and optional-service commercial scope.
@@ -117,7 +120,7 @@ Optional names include:
 
 ### Fresh Database Installation
 
-For this launch branch, the installer accepts only the two named TAKAVEN disposable projects. Supply the exact project ref, matching public URL, database connection URI and `TEAMFRAME_INSTALL_APPROVAL=fresh:<project-ref>` in process memory. The command does not load `.env.local`; it refuses populated targets. A future first customer project requires founder approval and a reviewed allowlist addition. Existing deployments require a separately reviewed migration and must not replay the full schema pack. See the [runbook](TEAMFRAME_PRODUCTION_RUNBOOK.md).
+The fresh installer accepts only reviewed, purpose-specific targets registered in the command's approval mechanism. Supply the exact project ref, matching public URL, database connection URI and `TEAMFRAME_INSTALL_APPROVAL=fresh:<project-ref>` in process memory. The command does not load `.env.local`; it refuses populated targets. A future customer project requires approval and a reviewed target-registration change. Existing deployments require a separately reviewed existing-install migration and must not replay the full schema pack. See the [runbook](TEAMFRAME_PRODUCTION_RUNBOOK.md).
 
 ```bash
 npm run db:install:fresh -- --check-target
@@ -173,7 +176,7 @@ The local `.vercel` link must not be treated as production unless it is explicit
 
 ## Development Discipline
 
-- Do not reopen locked MR-0 through MR-8 semantics without hard production evidence.
+- Fix confirmed defects and investigate credible suspected defects; do not use the earlier feature-freeze wording to leave a known defect unresolved.
 - Do not implement deferred or out-of-scope features merely because they are useful.
 - Preserve server-side authorization, RLS, tenant isolation and private storage.
-- Presume the product feature-complete for first-customer sale. Future source changes require a production defect, a real first-customer blocker, repeated buyer feedback or a separately founder-approved small improvement.
+- Presume the product feature-complete for first-customer sale. Commercial improvements need evidence and bounded scope; material investment or product/security-boundary changes require founder approval.

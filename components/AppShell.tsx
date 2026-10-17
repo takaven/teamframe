@@ -4,6 +4,7 @@ import type { Actor } from "@/middleware/rbac";
 import { createServiceRoleClient } from "@/lib/db/supabaseServer";
 import { SignOutButton } from "@/components/SignOutButton";
 import { BrandLogo } from "@/components/BrandLogo";
+import { TakavenEndorsement } from "@/components/TakavenEndorsement";
 import { getCompanyIdentity } from "@/lib/company/identity";
 import { hasCapability } from "@/lib/rbac/access";
 
@@ -151,9 +152,7 @@ export async function AppShell({
         {/* Account + quiet parent-company endorsement. */}
         <div className="mt-auto px-5 pb-1">
           <SignOutButton className="mb-4" />
-          <p className="border-t border-white/10 pt-4 text-center text-[9px] font-semibold uppercase tracking-[0.16em] text-white/45">
-            Conceptualised by <span className="text-white/70">TAKAVEN</span>
-          </p>
+          <TakavenEndorsement reversed align="center" className="border-t border-white/10 pt-4" />
         </div>
       </aside>
 

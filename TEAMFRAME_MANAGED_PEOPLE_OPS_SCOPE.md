@@ -30,9 +30,9 @@ No new module without founder approval. The no-build list includes payroll/WPS p
 
 Software features must not be built solely for optional support delivery unless they also have clear customer/product value.
 
-## Product freeze and bounded gap decisions
+## Quality control and bounded gap decisions
 
-TeamFrame is presumed **feature-complete for first-customer sale**. Future product work requires a genuine production defect, a real first-customer blocker, repeated buyer feedback or a separately founder-approved small improvement.
+TeamFrame is presumed **feature-complete for first-customer sale**. Fix every confirmed defect and investigate credible suspected defects. Bounded commercially valuable improvements require evidence of initial-buyer benefit; material investment, architecture, security-boundary or product-boundary changes require founder approval. This policy prevents speculative scope expansion without using a historical feature freeze to leave known defects unresolved.
 
 - **Normal working arrangement/hours: DEFER.** TeamFrame already records company working days, employee overrides, holidays and leave. A structured company-hours fact would require an additive schema/migration and changes across configuration, setup/import and tests. Employee custom fields can record a special arrangement where needed. The commercial benefit does not currently justify reopening the product.
 - **Structured offboarding notice/final-dues facts: DEFER.** The current workflow already records the effective final date and requires notice confirmation, leave reconciliation, final exit-document evidence, access/property closeout and final HR review. Separate notice-period and final-dues fields would require an additive schema/migration and service/UI/test changes; wait for real customer evidence.
