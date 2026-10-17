@@ -43,7 +43,7 @@ The website, application and portfolio source references were reconciled, after 
 - Protected production branch: `main`
 - Source policy: protected `main` is authoritative.
 - Current protected `main`: `e53d9ecee1fd53ccbcfa0e24ea8a6871c2a761cc` (**VERIFIED REPOSITORY 2026-10-17**).
-- Accepted local five-PR release candidate: `b9eccb63889a3f0e561fe91b51ad4bd7f53d6d37`, tree `21ec311ed6c44f984c8f4d571a01b12b6326e556`. It is not on `main`, not deployed and not database-applied.
+- Accepted five-PR assembly checkpoint: `b9eccb63889a3f0e561fe91b51ad4bd7f53d6d37`, tree `21ec311ed6c44f984c8f4d571a01b12b6326e556`. Draft branch `release/six-pr-candidate` adds accepted PR #39; the draft release PR is authoritative for the exact combined head/tree. Neither checkpoint is on `main`, deployed or database-applied.
 - Historical merged branches are not current source authority.
 
 ## Production
@@ -70,9 +70,9 @@ The old statement that `teamframe-production` is a disconnected rebuild-only his
 
 These exact identifiers are dated evidence, not permanent current state. Reverify the live GitHub, Vercel and Supabase targets before any operational write.
 
-## Accepted but unintegrated correction release — 2026-10-17
+## Accepted but unintegrated six-PR release — 2026-10-17
 
-PRs #34–#38 passed independent source acceptance but remain open and unmerged. They cover administrator/policy integrity, truthful operational outcomes, dependency security, Sentry/telemetry privacy and TAKAVEN attribution. The combined local candidate reported 587 passing tests and two skipped, zero Production dependency vulnerabilities and no lost test identities. Protected-branch exact-head checks and controlled Production release remain future gates. Do not describe these corrections as deployed.
+PRs #34–#39 passed independent source acceptance but remain open and unmerged. They cover administrator/policy integrity, truthful operational outcomes, dependency security, Sentry/telemetry privacy, TAKAVEN attribution and the complete operational handover. Draft branch `release/six-pr-candidate` consolidates them for one protected release; its draft PR is authoritative for the exact head/tree and check results. The accepted five-PR checkpoint reported 587 passing tests and two skipped, zero Production dependency vulnerabilities and no lost test identities; the six-PR candidate requires its own exact-head results. Controlled Production release remains a future gate. Do not describe any candidate correction or documentation as deployed.
 
 The remaining development-only advisory is `GHSA-vfj7-8cjw-p6xm` through the trusted Next.js ESLint chain (`braces@3.0.3`). It is absent from the proposed Production dependency audit. Temporary founder risk acceptance is recommended but **not recorded**. External Sentry provider receipt also remains unverified.
 
@@ -165,7 +165,7 @@ Agents must not:
 
 ## Current priorities
 
-1. Independently review this documentation handover PR.
+1. Independently review the combined six-PR draft release and preserve its exact-head evidence.
 2. Complete the bounded Production pre-migration backup, then separately authorise the integrity migration and one combined application release.
 3. Resolve MA-002 credential-freshness evidence and the two named token-revocation follow-ups without exposing values.
 4. Obtain explicit founder disposition for the development-only `braces` advisory before the combined release.

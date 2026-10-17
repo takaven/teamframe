@@ -23,8 +23,8 @@ Historical evidence may retain older names and refs, but it does not override th
 - Visibility: public
 - Default and Production source branch: protected `main`
 - Source policy: protected `main` is authoritative; historical launch branches are not.
-- Last verified protected `main` before this documentation PR (2026-10-17): `e53d9ecee1fd53ccbcfa0e24ea8a6871c2a761cc`.
-- Accepted combined release candidate remains local and unmerged: commit `b9eccb63889a3f0e561fe91b51ad4bd7f53d6d37`, tree `21ec311ed6c44f984c8f4d571a01b12b6326e556`.
+- Last verified protected `main` before the six-PR draft release (2026-10-17): `e53d9ecee1fd53ccbcfa0e24ea8a6871c2a761cc`.
+- Accepted five-PR assembly checkpoint: commit `b9eccb63889a3f0e561fe91b51ad4bd7f53d6d37`, tree `21ec311ed6c44f984c8f4d571a01b12b6326e556`. Draft branch `release/six-pr-candidate` adds accepted operational-handover PR #39; the GitHub draft release PR controls the exact combined head/tree. It remains unmerged and is not a deployed checkpoint.
 - Branch protection: active `Protect main` ruleset requires a pull request plus `Gate Chain (Strict)` and `Static Guard Suite (Phase 1D)`; force pushes and deletion are blocked.
 
 ## Production

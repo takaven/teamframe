@@ -1,6 +1,6 @@
 # TeamFrame Deployment Runbook
 
-**CURRENT STATUS (2026-10-17): Production is healthy on the existing `main`; a five-PR release and one integrity migration are prepared but not released.** Read [SYSTEM-HANDOVER.md](SYSTEM-HANDOVER.md), [CURRENT-STATE.md](CURRENT-STATE.md) and [MANUAL-ACTIONS.md](MANUAL-ACTIONS.md) before any deployment operation.
+**CURRENT STATUS (2026-10-17): Production is healthy on the existing `main`; a six-PR combined release and one integrity migration are prepared but not released.** Read [SYSTEM-HANDOVER.md](SYSTEM-HANDOVER.md), [CURRENT-STATE.md](CURRENT-STATE.md) and [MANUAL-ACTIONS.md](MANUAL-ACTIONS.md) before any deployment operation.
 
 Current accepted Production:
 - repository: `takaven/teamframe`
@@ -19,10 +19,10 @@ The previous rebuild-only-shell instructions are historical and must not be repl
 
 Prepared release state:
 
-- open accepted application PRs #34–#38 remain unmerged;
-- local combined candidate commit `b9eccb63889a3f0e561fe91b51ad4bd7f53d6d37`, tree `21ec311ed6c44f984c8f4d571a01b12b6326e556`;
+- accepted source PRs #34–#39 remain open and unmerged;
+- the accepted five-PR checkpoint (`b9eccb63889a3f0e561fe91b51ad4bd7f53d6d37`, tree `21ec311ed6c44f984c8f4d571a01b12b6326e556`) is the assembly base for draft branch `release/six-pr-candidate`, which adds accepted PR #39; the draft release PR is authoritative for the exact combined head/tree;
 - pending existing-install migration `migrations/20261016_application_integrity.sql` is not applied;
-- do not merge the five source PRs independently into Git-connected `main`, because each merge could publish a partial Production version.
+- do not merge the six source PRs independently into Git-connected `main`, because each merge could publish a partial Production version.
 
 ## Branch strategy
 
@@ -30,7 +30,7 @@ Prepared release state:
 2. Run focused tests during work.
 3. Before integration, run `npm run verify:release` and `git diff --check`.
 4. Review and merge through a protected pull request into `main`.
-5. For the prepared correction programme, use one combined protected release PR containing the exact accepted tree; do not publish the five source PRs sequentially.
+5. For the prepared correction programme, use one combined protected release PR containing the exact accepted tree; do not publish the six source PRs sequentially.
 6. Merge only after the database backup/migration sequence and release approval are explicit. Git-connected `main` will normally deploy automatically.
 7. Record the resulting deployment ID/SHA and health in [ENVIRONMENTS.md](ENVIRONMENTS.md).
 
@@ -83,6 +83,18 @@ Production is already deployed. The next authorised release must follow this seq
 10. Run the bounded post-deploy checks and record the result.
 
 Application rollback may promote the prior known-good deployment. The protective database migration is not automatically removed during an application rollback; any database rollback needs independent review and separate approval.
+
+### Required post-release documentation reconciliation
+
+After—and only after—the combined release is merged and the exact Production deployment is `READY` and healthy:
+
+1. Update [ENVIRONMENTS.md](ENVIRONMENTS.md) with the merged `main` SHA, Vercel deployment IDs, state, health result and verification date for Production and Founder Review.
+2. Update [CURRENT-STATE.md](CURRENT-STATE.md) and [SYSTEM-HANDOVER.md](SYSTEM-HANDOVER.md) to move PRs #34–#39 and the combined candidate from “accepted/unintegrated” to the evidence-backed deployed state. Preserve the former SHA/deployment as a dated historical rollback checkpoint.
+3. Record whether `migrations/20261016_application_integrity.sql` was applied and its verified trigger/function result; never infer migration success from the application deployment.
+4. Update the release decision/ledger with the combined PR, merge SHA, deployment IDs, smoke evidence, unresolved gates and rollback target.
+5. Close or supersede the six source PRs only after their changes are confirmed in protected `main`; retain their review history.
+
+Do not pre-fill future SHAs, deployment IDs, migration results or health outcomes.
 
 ## Configuration and secret-location register
 

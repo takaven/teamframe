@@ -87,7 +87,7 @@ flowchart LR
 ## Current release boundary
 
 - **Deployed:** application `main` `e53d9ecee1fd53ccbcfa0e24ea8a6871c2a761cc` in both Vercel application projects (**VERIFIED LIVE 2026-10-17**).
-- **Prepared, not deployed:** local combined application candidate `b9eccb63889a3f0e561fe91b51ad4bd7f53d6d37`, tree `21ec311ed6c44f984c8f4d571a01b12b6326e556`, composed from open PRs #34–#38 (**VERIFIED REPOSITORY/LOCAL 2026-10-17**).
+- **Prepared, not deployed:** draft branch `release/six-pr-candidate` combines accepted PRs #34–#39. Its assembly base is the accepted five-PR checkpoint `b9eccb63889a3f0e561fe91b51ad4bd7f53d6d37`, tree `21ec311ed6c44f984c8f4d571a01b12b6326e556`; the GitHub draft release PR controls the exact combined head/tree (**VERIFIED REPOSITORY/LOCAL 2026-10-17**).
 - **Database:** `migrations/20261016_application_integrity.sql` is not applied to Production (**VERIFIED LIVE 2026-10-17**).
 - **Website:** Production deploys website `main` `2835dafe1abe97578dd7b2733cba47d1c061ad83`; branding PR #6 remains open and unmerged (**VERIFIED LIVE/REPOSITORY 2026-10-17**).
 
